@@ -1,0 +1,38 @@
+name: RFP question
+description: Ask a public, non-confidential clarification question about the RFP.
+title: "[RFP question] "
+labels:
+  - rfp-question
+body:
+  - type: markdown
+    attributes:
+      value: Do not include confidential pricing, credentials, customer information, or security-sensitive details.
+  - type: input
+    id: section
+    attributes:
+      label: RFP section
+      description: Identify the section number and heading.
+      placeholder: "Section 5: Scale and performance response"
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: Ask one bounded question and state why the answer changes the proposal.
+    validations:
+      required: true
+  - type: textarea
+    id: assumption
+    attributes:
+      label: Current assumption
+      description: State the assumption you will use if no clarification is issued.
+    validations:
+      required: true
+  - type: checkboxes
+    id: public
+    attributes:
+      label: Public-content confirmation
+      options:
+        - label: This issue contains no confidential or security-sensitive information.
+          required: true

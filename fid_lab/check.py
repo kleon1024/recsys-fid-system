@@ -5,12 +5,20 @@ from __future__ import annotations
 import ast
 import json
 from pathlib import Path
+import re
 import subprocess
 import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIRS = (ROOT / "fid_lab", ROOT / "tests")
+PUBLIC_DOCS = (
+    "README.md",
+    "REQUEST_FOR_PROPOSAL.md",
+    "BIDDER_RESPONSE_TEMPLATE.md",
+    "ARCHITECTURE_VISUALS.md",
+    "SECURITY.md",
+)
 
 
 def python_files() -> list[Path]:
@@ -45,12 +53,38 @@ def check_structure() -> None:
         raise SystemExit("\n".join(failures))
 
 
+def check_public_docs() -> None:
+    failures: list[str] = []
+    texts: dict[str, str] = {}
+    for name in PUBLIC_DOCS:
+        path = ROOT / name
+        if not path.exists():
+            failures.append(f"missing public document: {name}")
+            continue
+        texts[name] = path.read_text()
+    combined = "\n".join(texts.values())
+    for banned in ("/Users/", "gho_", "BEGIN PRIVATE KEY", "TODO"):
+        if banned in combined:
+            failures.append(f"public documents contain prohibited text: {banned}")
+    mermaid_starts = combined.count("```mermaid")
+    mermaid_blocks = len(re.findall(r"```mermaid\n[\s\S]*?```", combined))
+    if mermaid_starts != mermaid_blocks or mermaid_blocks < 10:
+        failures.append("public diagrams are missing or have unbalanced Mermaid fences")
+    rfp = texts.get("REQUEST_FOR_PROPOSAL.md", "")
+    for heading in ("## 4. Scope of work", "## 7. Delivery gates and acceptance", "## 10. Evaluation rubric"):
+        if heading not in rfp:
+            failures.append(f"RFP missing required section: {heading}")
+    if failures:
+        raise SystemExit("\n".join(failures))
+
+
 def run(command: list[str], capture: bool = False) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, cwd=ROOT, check=True, text=True, capture_output=capture)
 
 
 def main() -> None:
     check_structure()
+    check_public_docs()
     run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
     run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
     benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)

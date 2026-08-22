@@ -1,0 +1,58 @@
+name: RFP capability statement
+description: Submit public evidence of capability and request the private commercial channel.
+title: "[RFP capability] "
+labels:
+  - rfp-capability
+body:
+  - type: markdown
+    attributes:
+      value: This is not the commercial proposal. Do not post pricing, credentials, customer data, private references, or protected work product.
+  - type: input
+    id: bidder
+    attributes:
+      label: Bidder
+      description: Legal entity or individual trading name.
+    validations:
+      required: true
+  - type: input
+    id: lead
+    attributes:
+      label: Proposed technical lead
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Comparable public evidence
+      description: Link to relevant systems, papers, repositories, or redacted delivery evidence and state your exact ownership.
+    validations:
+      required: true
+  - type: dropdown
+    id: tiers
+    attributes:
+      label: Traffic tiers proposed
+      multiple: true
+      options:
+        - Tier A: 100 RPS
+        - Tier B: 1,000 RPS
+        - Tier C: 10,000 RPS
+    validations:
+      required: true
+  - type: textarea
+    id: approach
+    attributes:
+      label: Proposed approach
+      description: Summarize architecture direction, delivery gates, major risks, and material exceptions in no more than 500 words.
+    validations:
+      required: true
+  - type: checkboxes
+    id: declarations
+    attributes:
+      label: Declarations
+      options:
+        - label: The proposed team is available as stated.
+          required: true
+        - label: No confidential third-party material was used.
+          required: true
+        - label: Commercial and security-sensitive details will be submitted privately.
+          required: true

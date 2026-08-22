@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Public RFP
+    url: https://github.com/kleon1024/recsys-fid-system/blob/main/REQUEST_FOR_PROPOSAL.md
+    about: Read the full scope, gates, and submission rules before opening an issue.
