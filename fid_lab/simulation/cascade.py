@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from .contracts import Catalog, SimulationConfig
+
+if TYPE_CHECKING:
+    from .experimentation.contracts import FeedParameters
 
 
 @dataclass(frozen=True)
@@ -29,11 +33,23 @@ class CascadeCandidateProvider:
         "popular": 0.55,
     }
 
-    def __init__(self, config: SimulationConfig, catalog: Catalog) -> None:
+    def __init__(
+        self,
+        config: SimulationConfig,
+        catalog: Catalog,
+        parameters: FeedParameters | None = None,
+    ) -> None:
         self.config = config
         self.catalog = catalog
+        self.parameters = parameters
         self.route_limit = max(config.candidates * 2, 20)
-        self.merge_limit = max(config.candidates * 5, 60)
+        self.merge_limit = (
+            parameters.recall_budget
+            if parameters is not None
+            else max(config.candidates * 5, 60)
+        )
+        if parameters is not None and parameters.coarse_budget != config.candidates:
+            raise ValueError("Feed parameter coarse_budget must match simulator candidates")
 
     @staticmethod
     def _top(scores: np.ndarray, limit: int) -> np.ndarray:
@@ -66,7 +82,15 @@ class CascadeCandidateProvider:
             "long_tail": long_tail,
             "popular": self.catalog.popularity,
         }
-        return {name: self._top(value, self.route_limit) for name, value in scores.items()}
+        enabled = set(self.parameters.enabled_routes) if self.parameters else set(scores)
+        unknown = enabled - set(scores)
+        if unknown:
+            raise ValueError(f"unsupported recall routes: {sorted(unknown)}")
+        return {
+            name: self._top(value, self.route_limit)
+            for name, value in scores.items()
+            if name in enabled
+        }
 
     def recall(self, state) -> CandidateBatch:
         route_hits = self._routes(state)
@@ -84,14 +108,35 @@ class CascadeCandidateProvider:
         recalled_array = np.asarray(recalled, dtype=np.int64)
         estimated = self.catalog.topics[recalled_array] @ state.observed_interest
         same_city = (self.catalog.city[recalled_array] == state.city).astype(np.float32)
-        coarse = (
-            0.46 * estimated
-            + 0.18 * self.catalog.quality[recalled_array]
-            + 0.12 * self.catalog.popularity[recalled_array]
-            + 0.10 * self.catalog.freshness[recalled_array]
-            + 0.08 * same_city
-            + 0.06 * np.asarray([merged[item] for item in recalled])
-        )
+        quality = self.catalog.quality[recalled_array]
+        popularity = self.catalog.popularity[recalled_array]
+        freshness = self.catalog.freshness[recalled_array]
+        route_score = np.asarray([merged[item] for item in recalled])
+        model = self.parameters.coarse_model if self.parameters else "lr_v1"
+        if model == "quality_only":
+            coarse = quality
+        elif model == "dcnv2_distilled":
+            coarse = (
+                0.38 * estimated
+                + 0.18 * quality
+                + 0.10 * popularity
+                + 0.10 * freshness
+                + 0.08 * same_city
+                + 0.06 * route_score
+                + 0.07 * estimated * quality
+                + 0.03 * same_city * freshness
+            )
+        elif model == "lr_v1":
+            coarse = (
+                0.46 * estimated
+                + 0.18 * quality
+                + 0.12 * popularity
+                + 0.10 * freshness
+                + 0.08 * same_city
+                + 0.06 * route_score
+            )
+        else:
+            raise ValueError(f"unsupported coarse model: {model}")
         selected_index = self._top(coarse, self.config.candidates)
         selected = recalled_array[selected_index]
         return CandidateBatch(

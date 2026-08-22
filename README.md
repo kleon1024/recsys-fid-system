@@ -35,6 +35,10 @@ The latest synthetic [main-Feed Launch Review](docs/launch-reviews/2026-08-23-ma
 records both wins and rejected launches. It does not claim company-internal
 metrics. The [simulation evidence review](docs/research/main-feed-simulation-evidence.md)
 defines the public evidence boundary and why Rust is conditional on profiling.
+The [unified launch protocol](docs/operations/launch-protocol.md) and
+[independent Launch Review index](docs/launch-reviews/README.md) cover model,
+feature, strategy, architecture, realtime, Bug, chain, product, Value Tree, and
+long-term iterations under the same gate.
 
 The runnable [POI posting recommendation reconstruction](docs/architecture/poi-posting.md) adds multimodal draft fusion, permission-aware geographic features, impression-derived labels, hard-negative sampling, entire-space sparse publication, and a multi-task ranker.
 
@@ -217,9 +221,12 @@ python3 -m fid_lab.evolution.evaluation.benchmark --profile ci
 python3 -m fid_lab.evolution.cli.generative_demo
 python3 -m fid_lab.evolution.cli.ab_demo
 python3 -m fid_lab.simulation.cli --users 2000 --items 4000
-python3 -m fid_lab.feed_loop.cli --users 3000 --items 4000 --ab-users 500 --epochs 10 --device cuda:0
-python3 -m fid_lab.feed_loop.tensor_cli --users 1000000 --steps 24 --device cuda:0
-python3 -m fid_lab.feed_loop.power_cli --users 1000000
+python3 -m fid_lab.feed_loop.models.cli --users 3000 --items 4000 --ab-users 500 --epochs 10 --device cuda:0
+python3 -m fid_lab.feed_loop.scale.tensor_cli --users 1000000 --steps 24 --device cuda:0
+python3 -m fid_lab.feed_loop.scale.power_cli --users 1000000
+python3 -m fid_lab.feed_loop.streaming.online_learning_cli --users 1000 --ab-users 1000
+python3 -m fid_lab.launches.policy.cli --users 1000000 --device cuda:0
+python3 -m fid_lab.launches.system.cli --users 1000000 --device cuda:0
 python3 -m fid_lab.check
 ```
 

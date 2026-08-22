@@ -7,12 +7,12 @@ from time import perf_counter
 
 import numpy as np
 
-from ..evolution.evaluation.metrics import binary_metrics, grouped_auc
-from ..simulation.ab import experiment_metrics, launch_decision, randomization_audit
-from ..simulation.contracts import SimulationConfig
-from ..simulation.environment import build_catalog
-from ..simulation.policies import HeuristicPolicy, fit_logistic_policy
-from ..simulation.population import run_population
+from ...evolution.evaluation.metrics import binary_metrics, grouped_auc
+from ...simulation.ab import experiment_metrics, launch_decision, randomization_audit
+from ...simulation.contracts import SimulationConfig
+from ...simulation.environment import build_catalog
+from ...simulation.policies import HeuristicPolicy, fit_logistic_policy
+from ...simulation.population import run_population
 from .deep_policy import FeedDeepPolicy
 from .multitask_policy import FeedMMoEPolicy
 

@@ -31,6 +31,33 @@ class PopularPolicy:
         return features[:, 3]
 
 
+class ParameterizedPolicy:
+    """Bind one resolved full-chain snapshot to the actual fine/value score."""
+
+    def __init__(self, base, parameters) -> None:
+        if parameters.fine_model != base.name:
+            raise ValueError(
+                f"resolved fine_model {parameters.fine_model} does not match {base.name}"
+            )
+        self.base = base
+        self.parameters = parameters
+        self.name = parameters.fine_model
+
+    def score(self, features: np.ndarray) -> np.ndarray:
+        raw = self.base.score(features) / self.parameters.calibration_temperature
+        interaction_proxy = 0.5 * features[:, 0] + 0.5 * features[:, 1]
+        negative_proxy = 0.5 * features[:, 7] - 0.5 * features[:, 0]
+        value = (
+            self.parameters.stay_weight * features[:, 0]
+            + self.parameters.long_view_weight * features[:, 4]
+            + self.parameters.hlt_weight * features[:, 1]
+            + self.parameters.interaction_weight * interaction_proxy
+            + self.parameters.negative_weight * negative_proxy
+        )
+        diversity_penalty = self.parameters.diversity_strength * features[:, 11]
+        return raw + 0.10 * value - diversity_penalty
+
+
 class LocalConstrainedValuePolicy:
     """Boost Local value only inside an explicit Feed-value tolerance."""
 

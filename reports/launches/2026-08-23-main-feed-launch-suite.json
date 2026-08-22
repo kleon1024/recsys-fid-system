@@ -1,0 +1,903 @@
+{
+  "config": {
+    "users": 1000000,
+    "steps": 24,
+    "candidates": 20,
+    "topics": 12,
+    "batch_users": 25000,
+    "seed": 20260823,
+    "device": "cuda:0",
+    "count_inactive_play_bug": false
+  },
+  "launches": [
+    {
+      "spec": {
+        "launch_id": "L-FEATURE-001",
+        "category": "feature",
+        "title": "Lower-noise sequence interest feature",
+        "hypothesis": "A better point-in-time interest estimate improves scoped ranking.",
+        "change": "Reduce observable interest noise from 0.12 to 0.08.",
+        "owner": "feed-feature",
+        "control": {
+          "name": "feature_v1",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "treatment": {
+          "name": "feature_v2",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.08,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "primary_metric": "stay_per_exposure",
+        "training_mode": "reuse_control_model_to_isolate_feature_effect",
+        "product_dependency": "none",
+        "short_term_value": "stay and LT",
+        "long_term_value": "HLT, negative feedback, and return behavior"
+      },
+      "protocol": {
+        "training": "reuse_control_model_to_isolate_feature_effect",
+        "shadow": "common_random_potential_worlds",
+        "experiment": "stable_user_50_50",
+        "gate": "primary_plus_hlt_and_negative_guardrails",
+        "review": "required"
+      },
+      "known_dgp_effect": {
+        "stay_per_exposure": {
+          "control": 3.4713830129623244,
+          "treatment": 3.4726304630958067,
+          "relative_effect": 0.00035935249116107916
+        },
+        "lt_rate": {
+          "control": 0.053403424042054795,
+          "treatment": 0.053470080230609354,
+          "relative_effect": 0.0012481631983385162
+        },
+        "hlt_rate": {
+          "control": 0.008637534328430126,
+          "treatment": 0.008646522577652051,
+          "relative_effect": 0.0010406035889595595
+        },
+        "negative_rate": {
+          "control": 0.003646981331022687,
+          "treatment": 0.0036468292244117937,
+          "relative_effect": -4.1707537573390315e-05
+        }
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 3.469062135649047,
+          "treatment_mean": 3.471352406133805,
+          "relative_lift": 0.0006601987497491469,
+          "standard_error": 0.0017802665088851289,
+          "confidence_interval": [
+            -0.0011990518726572464,
+            0.005779592842172459
+          ],
+          "p_value": 0.19827692144014564
+        },
+        "lt_rate": {
+          "control_mean": 0.05317517342195259,
+          "treatment_mean": 0.053287314692261875,
+          "relative_lift": 0.0021089027659473344,
+          "standard_error": 0.00011351291861031117,
+          "confidence_interval": [
+            -0.00011034405016692488,
+            0.0003346265907854949
+          ],
+          "p_value": 0.32319360838365685
+        },
+        "hlt_rate": {
+          "control_mean": 0.008576981892827885,
+          "treatment_mean": 0.008641389179342087,
+          "relative_lift": 0.007509318233265672,
+          "standard_error": 4.6837284392489714e-05,
+          "confidence_interval": [
+            -2.739379089507789e-05,
+            0.0001562083639234818
+          ],
+          "p_value": 0.16909159760488054
+        },
+        "negative_rate": {
+          "control_mean": 0.0037811650549227816,
+          "treatment_mean": 0.0037691996949142394,
+          "relative_lift": -0.003164463818622299,
+          "standard_error": 3.365528680752737e-05,
+          "confidence_interval": [
+            -7.792972215129579e-05,
+            5.3999002134211504e-05
+          ],
+          "p_value": 0.7221948912926546
+        }
+      },
+      "decision": "hold_underpowered_or_neutral",
+      "performance": {
+        "control": {
+          "seconds": 2.051063290999082,
+          "users_per_second": 487551.99529357074,
+          "requests_per_second": 10644650.06799723,
+          "peak_gpu_memory_bytes": 95003136
+        },
+        "treatment": {
+          "seconds": 1.6804343219992006,
+          "users_per_second": 595084.2510823674,
+          "requests_per_second": 12992438.15374201,
+          "peak_gpu_memory_bytes": 95403008
+        }
+      }
+    },
+    {
+      "spec": {
+        "launch_id": "L-STRATEGY-001",
+        "category": "strategy",
+        "title": "Fatigue-aware ranking constraint",
+        "hypothesis": "Penalizing repeated affinity under fatigue protects HLT.",
+        "change": "Enable a 0.12 fatigue-match penalty.",
+        "owner": "feed-strategy",
+        "control": {
+          "name": "strategy_v1",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.0,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "treatment": {
+          "name": "strategy_v2",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "primary_metric": "hlt_rate",
+        "training_mode": "no_weight_update_strategy_only",
+        "product_dependency": "none",
+        "short_term_value": "stay and LT",
+        "long_term_value": "HLT, negative feedback, and return behavior"
+      },
+      "protocol": {
+        "training": "no_weight_update_strategy_only",
+        "shadow": "common_random_potential_worlds",
+        "experiment": "stable_user_50_50",
+        "gate": "primary_plus_hlt_and_negative_guardrails",
+        "review": "required"
+      },
+      "known_dgp_effect": {
+        "stay_per_exposure": {
+          "control": 3.4713886606300295,
+          "treatment": 3.4713830129623244,
+          "relative_effect": -1.6269188665352207e-06
+        },
+        "lt_rate": {
+          "control": 0.05340406527759476,
+          "treatment": 0.053403424042054795,
+          "relative_effect": -1.2007242082264683e-05
+        },
+        "hlt_rate": {
+          "control": 0.008637580130968695,
+          "treatment": 0.008637534328430126,
+          "relative_effect": -5.30270490978937e-06
+        },
+        "negative_rate": {
+          "control": 0.003646981331022687,
+          "treatment": 0.003646981331022687,
+          "relative_effect": 0.0
+        }
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 3.4690682524328396,
+          "treatment_mean": 3.4701157385762462,
+          "relative_lift": 0.0003019502838181593,
+          "standard_error": 0.0017768357241143182,
+          "confidence_interval": [
+            -0.002435111875857402,
+            0.004530084162670726
+          ],
+          "p_value": 0.5555102550904379
+        },
+        "lt_rate": {
+          "control_mean": 0.053176006985101484,
+          "treatment_mean": 0.05322544793815767,
+          "relative_lift": 0.000929760541629976,
+          "standard_error": 0.00011339304887946763,
+          "confidence_interval": [
+            -0.00017280942274756922,
+            0.0002716913288599439
+          ],
+          "p_value": 0.6628265960893682
+        },
+        "hlt_rate": {
+          "control_mean": 0.008577065230833437,
+          "treatment_mean": 0.008632624501752272,
+          "relative_lift": 0.0064776551680061885,
+          "standard_error": 4.682581736298643e-05,
+          "confidence_interval": [
+            -3.6219331112619e-05,
+            0.0001473378729502878
+          ],
+          "p_value": 0.23542120454025323
+        },
+        "negative_rate": {
+          "control_mean": 0.0037811650549227816,
+          "treatment_mean": 0.0037691996949142394,
+          "relative_lift": -0.003164463818622299,
+          "standard_error": 3.365528680752737e-05,
+          "confidence_interval": [
+            -7.792972215129579e-05,
+            5.3999002134211504e-05
+          ],
+          "p_value": 0.7221948912926546
+        }
+      },
+      "decision": "hold_underpowered_or_neutral",
+      "performance": {
+        "control": {
+          "seconds": 1.6261642089993984,
+          "users_per_second": 614944.0471422711,
+          "requests_per_second": 13425981.75459418,
+          "peak_gpu_memory_bytes": 95403008
+        },
+        "treatment": {
+          "seconds": 1.686033474999931,
+          "users_per_second": 593108.0342281109,
+          "requests_per_second": 12949239.338205246,
+          "peak_gpu_memory_bytes": 95403008
+        }
+      }
+    },
+    {
+      "spec": {
+        "launch_id": "L-REALTIME-001",
+        "category": "realtime",
+        "title": "Faster online interest refresh",
+        "hypothesis": "A fresher sequence state reacts faster without harming HLT.",
+        "change": "Increase online interest update rate from 0.06 to 0.12.",
+        "owner": "feed-realtime",
+        "control": {
+          "name": "realtime_v1",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "treatment": {
+          "name": "realtime_v2",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.12,
+          "uid_collision_weight": 0.0
+        },
+        "primary_metric": "stay_per_exposure",
+        "training_mode": "reuse_control_model_to_isolate_freshness_effect",
+        "product_dependency": "none",
+        "short_term_value": "stay and LT",
+        "long_term_value": "HLT, negative feedback, and return behavior"
+      },
+      "protocol": {
+        "training": "reuse_control_model_to_isolate_freshness_effect",
+        "shadow": "common_random_potential_worlds",
+        "experiment": "stable_user_50_50",
+        "gate": "primary_plus_hlt_and_negative_guardrails",
+        "review": "required"
+      },
+      "known_dgp_effect": {
+        "stay_per_exposure": {
+          "control": 3.4713830129623244,
+          "treatment": 3.4715314153942316,
+          "relative_effect": 4.275023278993595e-05
+        },
+        "lt_rate": {
+          "control": 0.053403424042054795,
+          "treatment": 0.05341257653081204,
+          "relative_effect": 0.0001713839313007499
+        },
+        "hlt_rate": {
+          "control": 0.008637534328430126,
+          "treatment": 0.008638670687087312,
+          "relative_effect": 0.00013156053729891466
+        },
+        "negative_rate": {
+          "control": 0.003646981331022687,
+          "treatment": 0.003647023458616738,
+          "relative_effect": 1.155135994058062e-05
+        }
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 3.469062135649047,
+          "treatment_mean": 3.470254044579442,
+          "relative_lift": 0.00034358246805282154,
+          "standard_error": 0.0017772649472478407,
+          "confidence_interval": [
+            -0.0022915303662108762,
+            0.004675348227000659
+          ],
+          "p_value": 0.5024484721539271
+        },
+        "lt_rate": {
+          "control_mean": 0.05317517342195259,
+          "treatment_mean": 0.05323344016486338,
+          "relative_lift": 0.0010957508769822862,
+          "standard_error": 0.00011340551679136563,
+          "confidence_interval": [
+            -0.00016400807000028692,
+            0.0002805415558218663
+          ],
+          "p_value": 0.6073980652594421
+        },
+        "hlt_rate": {
+          "control_mean": 0.008576981892827885,
+          "treatment_mean": 0.008634020315311514,
+          "relative_lift": 0.006650174058467388,
+          "standard_error": 4.682718296448862e-05,
+          "confidence_interval": [
+            -3.474285612676918e-05,
+            0.00014881970109402622
+          ],
+          "p_value": 0.22320032894604042
+        },
+        "negative_rate": {
+          "control_mean": 0.0037811650549227816,
+          "treatment_mean": 0.0037691996872843414,
+          "relative_lift": -0.0031644658364918987,
+          "standard_error": 3.365528680923649e-05,
+          "confidence_interval": [
+            -7.792972978454367e-05,
+            5.399899450766336e-05
+          ],
+          "p_value": 0.7221947214981556
+        }
+      },
+      "decision": "hold_underpowered_or_neutral",
+      "performance": {
+        "control": {
+          "seconds": 1.7014609519992518,
+          "users_per_second": 587730.20845702,
+          "requests_per_second": 12831826.069441058,
+          "peak_gpu_memory_bytes": 95403008
+        },
+        "treatment": {
+          "seconds": 1.7332505200010928,
+          "users_per_second": 576950.641849148,
+          "requests_per_second": 12596490.090760933,
+          "peak_gpu_memory_bytes": 95403008
+        }
+      }
+    },
+    {
+      "spec": {
+        "launch_id": "L-PRODUCT-001",
+        "category": "product",
+        "title": "Expand personalized Feed trigger",
+        "hypothesis": "Product eligibility expansion converts model value into overall ITT.",
+        "change": "Increase eligible trigger coverage from 0.5% to 1.0%.",
+        "owner": "feed-product",
+        "control": {
+          "name": "trigger_0_5pct",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.005,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "treatment": {
+          "name": "trigger_1pct",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "primary_metric": "stay_per_exposure",
+        "training_mode": "no_weight_update_trigger_only",
+        "product_dependency": "Feed trigger eligibility and exposure logging",
+        "short_term_value": "stay and LT",
+        "long_term_value": "HLT, negative feedback, and return behavior"
+      },
+      "protocol": {
+        "training": "no_weight_update_trigger_only",
+        "shadow": "common_random_potential_worlds",
+        "experiment": "stable_user_50_50",
+        "gate": "primary_plus_hlt_and_negative_guardrails",
+        "review": "required"
+      },
+      "known_dgp_effect": {
+        "stay_per_exposure": {
+          "control": 3.4590104818127783,
+          "treatment": 3.4713830129623244,
+          "relative_effect": 0.003576899004672009
+        },
+        "lt_rate": {
+          "control": 0.052876206455984044,
+          "treatment": 0.053403424042054795,
+          "relative_effect": 0.009970790671407655
+        },
+        "hlt_rate": {
+          "control": 0.008568208969320458,
+          "treatment": 0.008637534328430126,
+          "relative_effect": 0.008090997705342592
+        },
+        "negative_rate": {
+          "control": 0.003655312345441399,
+          "treatment": 0.003646981331022687,
+          "relative_effect": -0.0022791525405761676
+        }
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 3.4567376521899553,
+          "treatment_mean": 3.4701157385762462,
+          "relative_lift": 0.0038701480217381984,
+          "standard_error": 0.0017579170294420043,
+          "confidence_interval": [
+            0.009932569008584571,
+            0.016823603763997226
+          ],
+          "p_value": 2.7368871013721698e-14
+        },
+        "lt_rate": {
+          "control_mean": 0.05264812300220217,
+          "treatment_mean": 0.05322544793815767,
+          "relative_lift": 0.01096572684901523,
+          "standard_error": 0.0001126700607994764,
+          "confidence_interval": [
+            0.0003564916167885309,
+            0.0007981582551224785
+          ],
+          "p_value": 2.990710515145453e-07
+        },
+        "hlt_rate": {
+          "control_mean": 0.00850984159447332,
+          "treatment_mean": 0.008632624501752272,
+          "relative_lift": 0.014428342280623948,
+          "standard_error": 4.673751595821669e-05,
+          "confidence_interval": [
+            3.1177376000847e-05,
+            0.00021438843855705643
+          ],
+          "p_value": 0.008612263368875942
+        },
+        "negative_rate": {
+          "control_mean": 0.003788768419677856,
+          "treatment_mean": 0.0037691996949142394,
+          "relative_lift": -0.0051649302876316605,
+          "standard_error": 3.366754920523504e-05,
+          "confidence_interval": [
+            -8.555712120587718e-05,
+            4.6419671678644186e-05
+          ],
+          "p_value": 0.5610827462480958
+        }
+      },
+      "decision": "pass_primary_metric",
+      "performance": {
+        "control": {
+          "seconds": 1.7940772509991803,
+          "users_per_second": 557389.5992734245,
+          "requests_per_second": 12169115.89946356,
+          "peak_gpu_memory_bytes": 95403008
+        },
+        "treatment": {
+          "seconds": 1.686121794000428,
+          "users_per_second": 593076.9672500575,
+          "requests_per_second": 12948561.057502383,
+          "peak_gpu_memory_bytes": 95403008
+        }
+      }
+    },
+    {
+      "spec": {
+        "launch_id": "L-VALUE-001",
+        "category": "business_value",
+        "title": "Balanced engagement Value Tree",
+        "hypothesis": "More quality weight improves durable value without losing stay.",
+        "change": "Shift affinity/quality weights from 1.0/0.45 to 0.85/0.60.",
+        "owner": "feed-value",
+        "control": {
+          "name": "value_v1",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "treatment": {
+          "name": "value_v2",
+          "affinity_weight": 0.85,
+          "quality_weight": 0.6,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "primary_metric": "hlt_rate",
+        "training_mode": "no_weight_update_value_tree_only",
+        "product_dependency": "none",
+        "short_term_value": "stay and LT",
+        "long_term_value": "HLT, negative feedback, and return behavior"
+      },
+      "protocol": {
+        "training": "no_weight_update_value_tree_only",
+        "shadow": "common_random_potential_worlds",
+        "experiment": "stable_user_50_50",
+        "gate": "primary_plus_hlt_and_negative_guardrails",
+        "review": "required"
+      },
+      "known_dgp_effect": {
+        "stay_per_exposure": {
+          "control": 3.4713830129623244,
+          "treatment": 3.4702253452995495,
+          "relative_effect": -0.00033348888856462347
+        },
+        "lt_rate": {
+          "control": 0.053403424042054795,
+          "treatment": 0.0533440541788969,
+          "relative_effect": -0.0011117239057769521
+        },
+        "hlt_rate": {
+          "control": 0.008637534328430126,
+          "treatment": 0.008631120391721559,
+          "relative_effect": -0.0007425656981131329
+        },
+        "negative_rate": {
+          "control": 0.003646981331022687,
+          "treatment": 0.00364748449069075,
+          "relative_effect": 0.00013796606628698735
+        }
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 3.469062135649047,
+          "treatment_mean": 3.468946848929529,
+          "relative_lift": -3.3232820575127375e-05,
+          "standard_error": 0.0017732231377954096,
+          "confidence_interval": [
+            -0.0035908040695969957,
+            0.0033602306305610097
+          ],
+          "p_value": 0.9481617801128088
+        },
+        "lt_rate": {
+          "control_mean": 0.05317517342195259,
+          "treatment_mean": 0.05316663778227332,
+          "relative_lift": -0.00016051926359581992,
+          "standard_error": 0.00011326205259349129,
+          "confidence_interval": [
+            -0.00023052926276251478,
+            0.0002134579834039711
+          ],
+          "p_value": 0.9399267990745885
+        },
+        "hlt_rate": {
+          "control_mean": 0.008576981892827885,
+          "treatment_mean": 0.008628614807180789,
+          "relative_lift": 0.006019939764135357,
+          "standard_error": 4.681828689880874e-05,
+          "confidence_interval": [
+            -4.013092796876159e-05,
+            0.00014339675667456866
+          ],
+          "p_value": 0.2700981863218671
+        },
+        "negative_rate": {
+          "control_mean": 0.0037811650549227816,
+          "treatment_mean": 0.0037699647066476894,
+          "relative_lift": -0.0029621421208551103,
+          "standard_error": 3.3656475994764265e-05,
+          "confidence_interval": [
+            -7.716704122483015e-05,
+            5.4766344674645755e-05
+          ],
+          "p_value": 0.7392970772195464
+        }
+      },
+      "decision": "hold_underpowered_or_neutral",
+      "performance": {
+        "control": {
+          "seconds": 1.7332704450000165,
+          "users_per_second": 576944.0094502913,
+          "requests_per_second": 12596332.5936708,
+          "peak_gpu_memory_bytes": 95403008
+        },
+        "treatment": {
+          "seconds": 1.695864231998712,
+          "users_per_second": 589669.8456936141,
+          "requests_per_second": 12874176.238901053,
+          "peak_gpu_memory_bytes": 95403008
+        }
+      }
+    },
+    {
+      "spec": {
+        "launch_id": "L-LONGTERM-001",
+        "category": "long_term_value",
+        "title": "Stronger fatigue protection",
+        "hypothesis": "More aggressive fatigue control improves long-term quality.",
+        "change": "Increase fatigue penalty from 0.12 to 0.24.",
+        "owner": "feed-longterm",
+        "control": {
+          "name": "longterm_v1",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "treatment": {
+          "name": "longterm_v2",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.24,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "primary_metric": "hlt_rate",
+        "training_mode": "no_weight_update_constraint_only",
+        "product_dependency": "none",
+        "short_term_value": "stay and LT",
+        "long_term_value": "HLT, negative feedback, and return behavior"
+      },
+      "protocol": {
+        "training": "no_weight_update_constraint_only",
+        "shadow": "common_random_potential_worlds",
+        "experiment": "stable_user_50_50",
+        "gate": "primary_plus_hlt_and_negative_guardrails",
+        "review": "required"
+      },
+      "known_dgp_effect": {
+        "stay_per_exposure": {
+          "control": 3.4713830129623244,
+          "treatment": 3.4713753975746227,
+          "relative_effect": -2.193761873391582e-06
+        },
+        "lt_rate": {
+          "control": 0.053403424042054795,
+          "treatment": 0.053403149226823377,
+          "relative_effect": -5.146022682032062e-06
+        },
+        "hlt_rate": {
+          "control": 0.008637534328430126,
+          "treatment": 0.008637534328430126,
+          "relative_effect": 0.0
+        },
+        "negative_rate": {
+          "control": 0.003646981331022687,
+          "treatment": 0.0036469355284841176,
+          "relative_effect": -1.2559027428951181e-05
+        }
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 3.469062135649047,
+          "treatment_mean": 3.4701085349758083,
+          "relative_lift": 0.0003016375279093457,
+          "standard_error": 0.0017767991385902624,
+          "confidence_interval": [
+            -0.0024361269848758205,
+            0.004528925638398008
+          ],
+          "p_value": 0.555912381469982
+        },
+        "lt_rate": {
+          "control_mean": 0.05317517342195259,
+          "treatment_mean": 0.05322504776526188,
+          "relative_lift": 0.0009379253531253965,
+          "standard_error": 0.00011338943237031263,
+          "confidence_interval": [
+            -0.00017236894413652366,
+            0.0002721176307551018
+          ],
+          "p_value": 0.6600457419089519
+        },
+        "hlt_rate": {
+          "control_mean": 0.008576981892827885,
+          "treatment_mean": 0.008632624501752272,
+          "relative_lift": 0.006487434580095718,
+          "standard_error": 4.682577376670226e-05,
+          "confidence_interval": [
+            -3.6135907658349975e-05,
+            0.00014742112550712288
+          ],
+          "p_value": 0.23471909019927772
+        },
+        "negative_rate": {
+          "control_mean": 0.0037811650549227816,
+          "treatment_mean": 0.0037691996949142394,
+          "relative_lift": -0.003164463818622299,
+          "standard_error": 3.365528680752737e-05,
+          "confidence_interval": [
+            -7.792972215129579e-05,
+            5.3999002134211504e-05
+          ],
+          "p_value": 0.7221948912926546
+        }
+      },
+      "decision": "hold_underpowered_or_neutral",
+      "performance": {
+        "control": {
+          "seconds": 1.6833874549993197,
+          "users_per_second": 594040.3066627368,
+          "requests_per_second": 12969593.50336184,
+          "peak_gpu_memory_bytes": 95403008
+        },
+        "treatment": {
+          "seconds": 1.7099337480012764,
+          "users_per_second": 584817.9797427178,
+          "requests_per_second": 12768243.813843776,
+          "peak_gpu_memory_bytes": 95403008
+        }
+      }
+    },
+    {
+      "spec": {
+        "launch_id": "L-CHAIN-001",
+        "category": "chain_diagnosis",
+        "title": "Remove cold-user UID collision score",
+        "hypothesis": "Removing unrelated hashed UID noise restores candidate quality.",
+        "change": "Remove a 0.35 random collision term from cold-user ranking.",
+        "owner": "feed-consistency",
+        "control": {
+          "name": "uid_collision_bug",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.35
+        },
+        "treatment": {
+          "name": "uid_collision_fixed",
+          "affinity_weight": 1.0,
+          "quality_weight": 0.45,
+          "freshness_weight": 0.1,
+          "fatigue_match_penalty": 0.12,
+          "eligible_fraction": 0.01,
+          "observation_noise": 0.12,
+          "realtime_interest_rate": 0.06,
+          "uid_collision_weight": 0.0
+        },
+        "primary_metric": "stay_per_exposure",
+        "training_mode": "reuse_control_model_chain_fix_only",
+        "product_dependency": "none",
+        "short_term_value": "stay and LT",
+        "long_term_value": "HLT, negative feedback, and return behavior"
+      },
+      "protocol": {
+        "training": "reuse_control_model_chain_fix_only",
+        "shadow": "common_random_potential_worlds",
+        "experiment": "stable_user_50_50",
+        "gate": "primary_plus_hlt_and_negative_guardrails",
+        "review": "required"
+      },
+      "known_dgp_effect": {
+        "stay_per_exposure": {
+          "control": 3.4641601579676156,
+          "treatment": 3.4713830129623244,
+          "relative_effect": 0.0020850234011543047
+        },
+        "lt_rate": {
+          "control": 0.05303438089256649,
+          "treatment": 0.053403424042054795,
+          "relative_effect": 0.006958564298806205
+        },
+        "hlt_rate": {
+          "control": 0.00859045962110225,
+          "treatment": 0.008637534328430126,
+          "relative_effect": 0.005479882265232743
+        },
+        "negative_rate": {
+          "control": 0.003651467494102395,
+          "treatment": 0.003646981331022687,
+          "relative_effect": -0.001228591816017551
+        }
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 3.4618588610651697,
+          "treatment_mean": 3.4701157385762462,
+          "relative_lift": 0.002385099405391696,
+          "standard_error": 0.0017587220023877117,
+          "confidence_interval": [
+            0.004809782386396596,
+            0.011703972635756425
+          ],
+          "p_value": 2.6684583244553005e-06
+        },
+        "lt_rate": {
+          "control_mean": 0.05279730871258591,
+          "treatment_mean": 0.05322544793815767,
+          "relative_lift": 0.00810911078635535,
+          "standard_error": 0.0001126458712041005,
+          "confidence_interval": [
+            0.00020735331801172667,
+            0.0006489251331318006
+          ],
+          "p_value": 0.00014425656536082009
+        },
+        "hlt_rate": {
+          "control_mean": 0.008531622841237206,
+          "treatment_mean": 0.008632624501752272,
+          "relative_lift": 0.011838505099742484,
+          "standard_error": 4.675834923821838e-05,
+          "confidence_interval": [
+            9.35529600815811e-06,
+            0.00019264802502197415
+          ],
+          "p_value": 0.030766666553606204
+        },
+        "negative_rate": {
+          "control_mean": 0.003785762194138546,
+          "treatment_mean": 0.0037691996949142394,
+          "relative_lift": -0.004374944429935485,
+          "standard_error": 3.36636125090265e-05,
+          "confidence_interval": [
+            -8.254317974199872e-05,
+            4.941818129338518e-05
+          ],
+          "p_value": 0.6227193042744983
+        }
+      },
+      "decision": "pass_primary_metric",
+      "performance": {
+        "control": {
+          "seconds": 1.8243754119994264,
+          "users_per_second": 548132.7984485654,
+          "requests_per_second": 11967159.750345761,
+          "peak_gpu_memory_bytes": 95403008
+        },
+        "treatment": {
+          "seconds": 1.6657587419995252,
+          "users_per_second": 600327.0310318954,
+          "requests_per_second": 13106850.619791748,
+          "peak_gpu_memory_bytes": 95403008
+        }
+      }
+    }
+  ]
+}

@@ -257,7 +257,7 @@ def _row_events(row, catalog, timestamp: int, observable: bool):
     return actions, commerce, clicks, pixels
 
 
-def _joiner_report(
+def build_feed_joiner(
     config: SimulationConfig,
     catalog,
     observed: list[Trajectory],
@@ -289,6 +289,11 @@ def _joiner_report(
     report = EvolutionJoiner().build(
         decisions, actions, commerce, clicks, pixels, watermark=1_900_000_000
     )
+    return report
+
+
+def _joiner_report(config, catalog, observed, policies, assigned):
+    report = build_feed_joiner(config, catalog, observed, policies, assigned)
     tasks = tuple(report.fine[0].labels) if report.fine else ()
     label_rates = {}
     mask_coverage = {}

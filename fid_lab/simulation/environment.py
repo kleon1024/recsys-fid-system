@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import deque
+from dataclasses import asdict
 from math import erfc, exp, log, sqrt
 
 import gymnasium as gym
@@ -11,6 +12,7 @@ import numpy as np
 
 from .cascade import CascadeCandidateProvider
 from .contracts import Catalog, Response, SimulationConfig
+from .experimentation.contracts import FeedParameters
 
 
 FEATURE_NAMES = (
@@ -65,11 +67,18 @@ class StatefulFeedEnv(gym.Env):
 
     metadata = {"render_modes": []}
 
-    def __init__(self, config: SimulationConfig, catalog: Catalog) -> None:
+    def __init__(
+        self,
+        config: SimulationConfig,
+        catalog: Catalog,
+        parameters: FeedParameters | None = None,
+    ) -> None:
         super().__init__()
         self.config = config
         self.catalog = catalog
-        self.candidate_provider = CascadeCandidateProvider(config, catalog)
+        self.parameters = parameters
+        self.parameter_snapshot = asdict(parameters) if parameters is not None else None
+        self.candidate_provider = CascadeCandidateProvider(config, catalog, parameters)
         self.action_space = spaces.Discrete(config.candidates)
         self.observation_space = spaces.Box(
             low=-1.0,

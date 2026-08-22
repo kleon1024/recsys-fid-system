@@ -23,6 +23,7 @@ class TensorFeedConfig:
     batch_users: int = 25_000
     seed: int = 20260823
     device: str = "cuda:0"
+    count_inactive_play_bug: bool = False
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,9 @@ class TensorPolicy:
     freshness_weight: float
     fatigue_match_penalty: float = 0.0
     eligible_fraction: float = 1.0
+    observation_noise: float = 0.12
+    realtime_interest_rate: float = 0.06
+    uid_collision_weight: float = 0.0
 
 
 POPULAR = TensorPolicy("quality_baseline", 0.0, 1.0, 0.15)
@@ -47,7 +51,9 @@ def _sync(device: torch.device) -> None:
         torch.cuda.synchronize(device)
 
 
-def _choose(policy, eligible, observed_interest, fatigue, topics, quality, freshness):
+def _choose(
+    policy, eligible, user_ids, observed_interest, fatigue, topics, quality, freshness
+):
     observed_affinity = torch.einsum("bkd,bd->bk", topics, observed_interest)
     affinity_weight = eligible * policy.affinity_weight
     quality_weight = eligible * policy.quality_weight + (1.0 - eligible)
@@ -61,16 +67,20 @@ def _choose(policy, eligible, observed_interest, fatigue, topics, quality, fresh
         * fatigue[:, None]
         * observed_affinity.clamp_min(0)
     )
+    candidate_index = torch.arange(score.shape[1], device=score.device)[None, :]
+    collision = torch.sin(user_ids[:, None] * 0.013 + candidate_index * 12.9898)
+    score += eligible * policy.uid_collision_weight * collision
     return score.argmax(dim=1)
 
 
 def _sample_response(generator, active, fatigue, satisfaction, affinity, quality, device):
     users = len(active)
     duration = 3.0 + 177.0 * torch.rand(users, generator=generator, device=device)
-    played = (
+    play_draw = (
         torch.rand(users, generator=generator, device=device)
         < torch.sigmoid(3.0 + 0.4 * affinity - 0.6 * fatigue)
-    ) & active
+    )
+    played = play_draw & active
     stay_log_mean = (
         0.45 + 1.7 * affinity + 0.55 * quality + 0.20 * satisfaction - fatigue
     )
@@ -91,7 +101,7 @@ def _sample_response(generator, active, fatigue, satisfaction, affinity, quality
         torch.rand(users, generator=generator, device=device)
         < torch.sigmoid(-5.0 - 1.7 * affinity - 0.8 * quality + 2.0 * fatigue)
     ) & active
-    return stay, long_view, hlt, like, negative, played
+    return stay, long_view, hlt, like, negative, played, play_draw
 
 
 def _accumulate_cells(cell_stats, user_ids, user_metrics):
@@ -164,7 +174,9 @@ def _simulate_batches(config, policy, generator, device):
             torch.randn(users, config.topics, generator=generator, device=device), dim=1
         )
         observed_interest = torch.nn.functional.normalize(
-            interest + 0.12 * torch.randn(interest.shape, generator=generator, device=device),
+            interest
+            + policy.observation_noise
+            * torch.randn(interest.shape, generator=generator, device=device),
             dim=1,
         )
         satisfaction = torch.zeros(users, device=device)
@@ -189,6 +201,7 @@ def _simulate_batches(config, policy, generator, device):
             choice = _choose(
                 policy,
                 eligible,
+                user_ids,
                 observed_interest,
                 fatigue,
                 topics,
@@ -199,7 +212,7 @@ def _simulate_batches(config, policy, generator, device):
             selected_topic = topics[batch_index, choice]
             selected_quality = quality[batch_index, choice]
             true_affinity = (selected_topic * interest).sum(dim=1)
-            stay, long_view, hlt, like, negative, played = _sample_response(
+            stay, long_view, hlt, like, negative, played, play_draw = _sample_response(
                 generator,
                 active,
                 fatigue,
@@ -219,7 +232,7 @@ def _simulate_batches(config, policy, generator, device):
                     hlt.sum(),
                     like.sum(),
                     negative.sum(),
-                    played.sum(),
+                    (play_draw if config.count_inactive_play_bug else played).sum(),
                     (stay >= 3.0).sum(),
                     sessions.sum() * 0.0,
                     returned_sessions.sum() * 0.0,
@@ -238,8 +251,8 @@ def _simulate_batches(config, policy, generator, device):
                 dim=1,
             )
             observed_interest = torch.nn.functional.normalize(
-                observed_interest * (1.0 - 0.06 * update)
-                + selected_topic * 0.06 * update,
+                observed_interest * (1.0 - policy.realtime_interest_rate * update)
+                + selected_topic * policy.realtime_interest_rate * update,
                 dim=1,
             )
             leave = (

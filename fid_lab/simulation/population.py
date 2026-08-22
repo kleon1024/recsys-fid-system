@@ -8,6 +8,7 @@ import numpy as np
 
 from .contracts import TraceRow, Trajectory
 from .environment import StatefulFeedEnv
+from .policies import ParameterizedPolicy
 
 
 @dataclass
@@ -124,6 +125,7 @@ def _record_step(
             float(propensities[action]),
             response,
             returned,
+            environment.parameter_snapshot,
         )
     )
     accumulator.watch_minutes += response.watch_minutes
@@ -163,10 +165,13 @@ def _record_step(
     return next_observation, terminated
 
 
-def run_population(config, catalog, policy, user_ids, explore: bool = False):
+def run_population(
+    config, catalog, policy, user_ids, explore: bool = False, parameters=None
+):
     """Batch model inference by request depth while preserving per-user dynamics."""
     users = [int(user_id) for user_id in user_ids]
-    environments = [StatefulFeedEnv(config, catalog) for _ in users]
+    serving_policy = ParameterizedPolicy(policy, parameters) if parameters else policy
+    environments = [StatefulFeedEnv(config, catalog, parameters) for _ in users]
     observations = []
     for environment, user_id in zip(environments, users):
         observation, _ = environment.reset(
@@ -179,7 +184,9 @@ def run_population(config, catalog, policy, user_ids, explore: bool = False):
     while active.any():
         indices = np.flatnonzero(active)
         batch = np.concatenate([observations[index] for index in indices], axis=0)
-        batch_scores = policy.score(batch).reshape(len(indices), config.candidates)
+        batch_scores = serving_policy.score(batch).reshape(
+            len(indices), config.candidates
+        )
         for row_index, user_index in enumerate(indices):
             observation, terminated = _record_step(
                 environments[user_index],

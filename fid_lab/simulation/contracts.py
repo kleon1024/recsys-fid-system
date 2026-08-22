@@ -80,6 +80,7 @@ class TraceRow:
     selection_probability: float
     response: Response
     returned_next_session: bool
+    parameter_snapshot: Mapping[str, object] | None = None
 
 
 @dataclass(frozen=True)

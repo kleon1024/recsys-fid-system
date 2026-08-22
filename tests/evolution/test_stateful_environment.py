@@ -4,6 +4,9 @@ import numpy as np
 
 from fid_lab.simulation.contracts import SimulationConfig
 from fid_lab.simulation.environment import StatefulFeedEnv, build_catalog
+from fid_lab.simulation.experimentation import FeedParameters
+from fid_lab.simulation.policies import ParameterizedPolicy, PopularPolicy
+from fid_lab.simulation.population import run_population
 
 
 class StatefulEnvironmentTest(unittest.TestCase):
@@ -38,6 +41,43 @@ class StatefulEnvironmentTest(unittest.TestCase):
         self.assertEqual(environment.coarse_count, 20)
         self.assertGreater(environment.recall_count, environment.coarse_count)
         self.assertEqual(routes, {"ann", "graph", "geo", "fresh", "long_tail", "popular"})
+
+    def test_resolved_parameters_drive_recall_and_are_logged(self):
+        config = SimulationConfig(users=1, items=500, candidates=10)
+        parameters = FeedParameters(
+            enabled_routes=("ann", "popular"),
+            recall_budget=60,
+            coarse_budget=10,
+            fine_model="popular_baseline",
+        )
+        catalog = build_catalog(config)
+        environment = StatefulFeedEnv(config, catalog, parameters)
+        environment.reset(options={"user_id": 5})
+        self.assertEqual(set(environment.candidate_provider._routes(environment)), {"ann", "popular"})
+        trajectory = run_population(
+            config, catalog, PopularPolicy(), [5], parameters=parameters
+        )[0]
+        self.assertEqual(trajectory.rows[0].parameter_snapshot["recall_budget"], 60)
+        self.assertEqual(
+            trajectory.rows[0].parameter_snapshot["enabled_routes"],
+            ("ann", "popular"),
+        )
+
+    def test_fine_model_binding_fails_closed_and_value_parameters_change_score(self):
+        policy = PopularPolicy()
+        features = np.zeros((2, 18), dtype=np.float32)
+        features[:, 0] = (0.2, 0.8)
+        features[:, 1] = (0.7, 0.4)
+        features[:, 3] = (0.3, 0.3)
+        parameters = FeedParameters(
+            fine_model=policy.name,
+            hlt_weight=2.0,
+            diversity_strength=0.1,
+        )
+        configured = ParameterizedPolicy(policy, parameters)
+        self.assertFalse(np.allclose(configured.score(features), policy.score(features)))
+        with self.assertRaises(ValueError):
+            ParameterizedPolicy(policy, FeedParameters(fine_model="wrong-model"))
 
 
 if __name__ == "__main__":

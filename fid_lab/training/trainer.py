@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .contracts import TASKS, TrainingExample
+from .contracts import TrainingExample
 from .parameter_server import ParameterSnapshot, UpdateResult, VersionedParameterServer
 
 
@@ -48,7 +48,9 @@ class OnlineMultiTaskTrainer:
             raise ValueError("training microbatch must not be empty")
         state = self.server.snapshot()
         features = np.stack([self.vectorize(example) for example in examples])
-        labels = np.asarray([[example.labels[task] for task in TASKS] for example in examples])
+        labels = np.asarray(
+            [[example.labels[task] for task in self.server.tasks] for example in examples]
+        )
         weights = np.asarray([example.sample_weight for example in examples])[:, None]
         predictions = sigmoid(features @ state.weights.T + state.bias)
         error = (predictions - labels) * weights
