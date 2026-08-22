@@ -5,6 +5,7 @@ entry_points = [
   "fid_lab/evolution/data/joiner.py",
   "fid_lab/scale/dataset.py",
   "fid_lab/scale/diagnostics.py",
+  "fid_lab/simulation/experimentation/assignment.py",
 ]
 authority_modules = [
   "fid_lab.fid",
@@ -17,4 +18,5 @@ authority_modules = [
   "fid_lab.surfaces.contracts",
   "fid_lab.scale.contracts",
   "fid_lab.evolution.data.contracts",
+  "fid_lab.simulation.experimentation.contracts",
 ]

@@ -1,5 +1,11 @@
 """Stateful request/session/cross-session recommendation simulation."""
 
-from .experiment import run_closed_loop_experiment
-
 __all__ = ["run_closed_loop_experiment"]
+
+
+def __getattr__(name):
+    if name == "run_closed_loop_experiment":
+        from .experiment import run_closed_loop_experiment
+
+        return run_closed_loop_experiment
+    raise AttributeError(name)

@@ -4,6 +4,38 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
+## Main Feed first
+
+The current acceptance boundary is the short-video main Feed. Local Service
+posting, POI distribution, detail, product, and review models remain downstream
+experiments and cannot make the main-Feed gate pass.
+
+```mermaid
+flowchart LR
+    U["User state: interest, satisfaction, fatigue"] --> Q["Feed request"]
+    Q --> R["Six-route recall"]
+    R --> C["Coarse Top 20"]
+    C --> F["LR / W&D / DeepFM / DCNv2 / MMoE"]
+    F --> V["Calibration and Value Tree"]
+    V --> E["Exposure"]
+    E --> A["Play, 3s, slide, stay, LT, HLT, interactions, negative"]
+    A --> S["State transition, leave, return"]
+    A --> J["Point-in-time Joiner and delayed labels"]
+    J --> T["Retrain, shadow replay, user-level A/B"]
+    T --> F
+```
+
+There are three deliberately separate execution tiers:
+
+- a debuggable stateful trajectory engine for request, session, and retention semantics;
+- an RTX 4090 tensor engine for million-user sequential simulation;
+- a vectorized experiment engine for orthogonal layers, CUPED, and 0.1%-1% effects.
+
+The latest synthetic [main-Feed Launch Review](docs/launch-reviews/2026-08-23-main-feed-foundation.md)
+records both wins and rejected launches. It does not claim company-internal
+metrics. The [simulation evidence review](docs/research/main-feed-simulation-evidence.md)
+defines the public evidence boundary and why Rust is conditional on profiling.
+
 The runnable [POI posting recommendation reconstruction](docs/architecture/poi-posting.md) adds multimodal draft fusion, permission-aware geographic features, impression-derived labels, hard-negative sampling, entire-space sparse publication, and a multi-task ranker.
 
 The [production model suite](docs/architecture/model-suite.md) extends that supply-side model into POI-anchored Feed distribution, map/detail, YMAL, product, and review recommendation with separate model families, streaming samples, long sequences, cascade audits, and full-path consistency.
@@ -185,6 +217,9 @@ python3 -m fid_lab.evolution.evaluation.benchmark --profile ci
 python3 -m fid_lab.evolution.cli.generative_demo
 python3 -m fid_lab.evolution.cli.ab_demo
 python3 -m fid_lab.simulation.cli --users 2000 --items 4000
+python3 -m fid_lab.feed_loop.cli --users 3000 --items 4000 --ab-users 500 --epochs 10 --device cuda:0
+python3 -m fid_lab.feed_loop.tensor_cli --users 1000000 --steps 24 --device cuda:0
+python3 -m fid_lab.feed_loop.power_cli --users 1000000
 python3 -m fid_lab.check
 ```
 

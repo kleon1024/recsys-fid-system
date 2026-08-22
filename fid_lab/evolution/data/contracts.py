@@ -7,9 +7,20 @@ from typing import Mapping
 
 
 TASK_WINDOWS_SECONDS = {
+    "play": 300,
+    "play_3s": 300,
+    "stay_seconds": 300,
+    "slide": 300,
     "long_view": 300,
+    "high_quality_long_view": 300,
+    "like": 600,
+    "comment": 600,
+    "share": 600,
+    "negative_feedback": 600,
+    "anchor_impression": 600,
     "anchor_click": 600,
-    "detail": 1_800,
+    "poi_detail": 1_800,
+    "poi_favorite": 86_400,
     "favorite": 86_400,
     "submit": 86_400,
     "order": 604_800,
@@ -18,9 +29,20 @@ TASK_WINDOWS_SECONDS = {
 }
 
 BEHAVIOR_STRENGTH = {
+    "play": 0.25,
+    "play_3s": 0.5,
+    "stay_seconds": 0.75,
+    "slide": 0.0,
     "long_view": 1.0,
+    "high_quality_long_view": 1.5,
+    "like": 2.0,
+    "comment": 2.5,
+    "share": 3.0,
+    "negative_feedback": 0.0,
+    "anchor_impression": 0.0,
     "anchor_click": 2.0,
-    "detail": 3.0,
+    "poi_detail": 3.0,
+    "poi_favorite": 4.0,
     "favorite": 4.0,
     "submit": 5.0,
     "order": 6.0,
@@ -65,6 +87,7 @@ class ActionEvent:
     action: str
     event_time: int
     received_at: int
+    value: float = 1.0
 
     @property
     def key(self) -> tuple[str, int, int]:

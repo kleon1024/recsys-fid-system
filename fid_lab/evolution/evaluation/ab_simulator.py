@@ -34,8 +34,9 @@ class MetricLift:
     control_mean: float
     treatment_mean: float
     absolute_lift: float
-    relative_lift: float
+    relative_lift: float | None
     true_itt: float
+    true_relative_itt: float | None
     standard_error: float
     confidence_interval: tuple[float, float]
     p_value: float
@@ -54,6 +55,8 @@ def metric_lift(
     control_mean = float(control.mean())
     treatment_mean = float(treatment.mean())
     lift = treatment_mean - control_mean
+    true_itt = float((potential_one - potential_zero).mean())
+    potential_control_mean = float(potential_zero.mean())
     standard_error = sqrt(float(control.var(ddof=1) / len(control) + treatment.var(ddof=1) / len(treatment)))
     z_score = lift / max(standard_error, 1e-12)
     interval = (lift - 1.96 * standard_error, lift + 1.96 * standard_error)
@@ -61,8 +64,11 @@ def metric_lift(
         control_mean,
         treatment_mean,
         lift,
-        lift / max(abs(control_mean), 1e-12),
-        float((potential_one - potential_zero).mean()),
+        None if abs(control_mean) < 1e-6 else lift / abs(control_mean),
+        true_itt,
+        None
+        if abs(potential_control_mean) < 1e-6
+        else true_itt / abs(potential_control_mean),
         standard_error,
         interval,
         float(2.0 * norm.sf(abs(z_score))),

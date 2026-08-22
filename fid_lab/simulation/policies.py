@@ -20,23 +20,83 @@ class HeuristicPolicy:
             1.8 * features[:, 0]
             + 0.7 * features[:, 1]
             + 0.2 * features[:, 3]
-            + 0.1 * features[:, 4]
-            - 0.5 * features[:, 6]
+            + 0.1 * features[:, 5]
         )
 
 
+class PopularPolicy:
+    name = "popular_baseline"
+
+    def score(self, features: np.ndarray) -> np.ndarray:
+        return features[:, 3]
+
+
+class LocalConstrainedValuePolicy:
+    """Boost Local value only inside an explicit Feed-value tolerance."""
+
+    name = "feed_guarded_local_value_tree"
+
+    def __init__(
+        self,
+        feed_policy,
+        local_weight: float = 0.15,
+        maximum_feed_score_loss: float = 0.03,
+    ) -> None:
+        self.feed_policy = feed_policy
+        self.local_weight = local_weight
+        self.maximum_feed_score_loss = maximum_feed_score_loss
+
+    def score(self, features: np.ndarray) -> np.ndarray:
+        feed_score = self.feed_policy.score(features)
+        local_proxy = features[:, 13] * (
+            0.35 * features[:, 0]
+            + 0.25 * features[:, 2]
+            + 0.20 * features[:, 5]
+            + 0.20 * features[:, 1]
+        )
+        eligible = feed_score >= float(feed_score.max()) - self.maximum_feed_score_loss
+        return feed_score + self.local_weight * local_proxy * eligible
+
+
 class LearnedPolicy:
-    def __init__(self, name: str, model, training_device: str, serving_device: str) -> None:
+    def __init__(
+        self,
+        name: str,
+        model,
+        training_device: str,
+        serving_device: str,
+        columns: tuple[int, ...] | None = None,
+    ) -> None:
         self.name = name
         self.model = model
         self.training_device = training_device
         self.serving_device = serving_device
+        self.columns = columns
 
     def score(self, features: np.ndarray) -> np.ndarray:
-        return self.model.predict_proba(features)[:, 1]
+        model_features = features if self.columns is None else features[:, self.columns]
+        return self.model.predict_proba(model_features)[:, 1]
 
 
-def fit_policies(features: np.ndarray, labels: np.ndarray, seed: int):
+def fit_logistic_policy(
+    name: str,
+    features: np.ndarray,
+    labels: np.ndarray,
+    columns: tuple[int, ...],
+    seed: int,
+    sample_weight: np.ndarray | None = None,
+) -> LearnedPolicy:
+    model = LogisticRegression(max_iter=300, random_state=seed)
+    model.fit(features[:, columns], labels, sample_weight=sample_weight)
+    return LearnedPolicy(name, model, "cpu", "cpu", columns)
+
+
+def fit_policies(
+    features: np.ndarray,
+    labels: np.ndarray,
+    seed: int,
+    sample_weight: np.ndarray | None = None,
+):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logistic = LogisticRegression(max_iter=300, random_state=seed)
     xgboost = XGBClassifier(
@@ -50,30 +110,34 @@ def fit_policies(features: np.ndarray, labels: np.ndarray, seed: int):
         n_jobs=4,
         random_state=seed,
     )
-    logistic.fit(features, labels)
-    xgboost.fit(features, labels)
+    logistic.fit(features, labels, sample_weight=sample_weight)
+    xgboost.fit(features, labels, sample_weight=sample_weight)
     # Candidate batches are small NumPy arrays. Make the CPU serving contract
     # explicit after GPU training instead of accepting an implicit device fallback.
-    xgboost.set_params(device="cpu")
+    xgboost.set_params(device="cpu", n_jobs=1)
     return (
         LearnedPolicy("logistic_regression", logistic, "cpu", "cpu"),
         LearnedPolicy("xgboost", xgboost, device, "cpu"),
     )
 
 
-def serialized_replay_delta(policies, features: np.ndarray) -> float:
-    control, treatment = policies
-    before = (control.score(features), treatment.score(features))
+def serialized_replay_deltas(policies, features: np.ndarray) -> dict[str, float]:
+    report = {}
     with TemporaryDirectory() as directory:
-        logistic_path = Path(directory) / "control.joblib"
-        xgboost_path = Path(directory) / "treatment.json"
-        joblib.dump(control.model, logistic_path)
-        treatment.model.save_model(xgboost_path)
-        loaded_logistic = joblib.load(logistic_path)
-        loaded_xgboost = XGBClassifier(device="cpu")
-        loaded_xgboost.load_model(xgboost_path)
-        after = (
-            loaded_logistic.predict_proba(features)[:, 1],
-            loaded_xgboost.predict_proba(features)[:, 1],
-        )
-    return max(float(np.max(np.abs(left - right))) for left, right in zip(before, after))
+        for policy in policies:
+            before = policy.score(features)
+            model_features = (
+                features if policy.columns is None else features[:, policy.columns]
+            )
+            if isinstance(policy.model, XGBClassifier):
+                path = Path(directory) / f"{policy.name}.json"
+                policy.model.save_model(path)
+                loaded = XGBClassifier(device="cpu", n_jobs=1)
+                loaded.load_model(path)
+            else:
+                path = Path(directory) / f"{policy.name}.joblib"
+                joblib.dump(policy.model, path)
+                loaded = joblib.load(path)
+            after = loaded.predict_proba(model_features)[:, 1]
+            report[policy.name] = float(np.max(np.abs(before - after)))
+    return report

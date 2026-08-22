@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Mapping
 
 import numpy as np
 
@@ -25,6 +26,10 @@ class Catalog:
     topics: np.ndarray
     quality: np.ndarray
     commerce_value: np.ndarray
+    popularity: np.ndarray
+    freshness: np.ndarray
+    duration_seconds: np.ndarray
+    is_poi_video: np.ndarray
     category: np.ndarray
     city: np.ndarray
     author: np.ndarray
@@ -33,16 +38,26 @@ class Catalog:
 
 @dataclass(frozen=True)
 class Response:
+    play: bool
+    play_3s: bool
+    stay_seconds: float
+    slide: bool
     long_view: bool
-    anchor_click: bool
-    detail: bool
+    high_quality_long_view: bool
+    like: bool
     favorite: bool
+    comment: bool
+    share: bool
+    anchor_impression: bool
+    anchor_click: bool
+    poi_detail: bool
+    poi_favorite: bool
     order: bool
     payment: bool
     pixel_conversion: bool
     negative_feedback: bool
     watch_minutes: float
-    probabilities: tuple[float, ...]
+    probabilities: Mapping[str, float]
 
 
 @dataclass(frozen=True)
@@ -55,8 +70,14 @@ class TraceRow:
     candidate_ids: tuple[int, ...]
     candidate_features: tuple[tuple[float, ...], ...]
     candidate_scores: tuple[float, ...]
+    candidate_propensities: tuple[float, ...]
+    candidate_oracle_long_view: tuple[float, ...]
+    candidate_routes: tuple[tuple[str, ...], ...]
+    recall_count: int
+    coarse_count: int
     features: tuple[float, ...]
     score: float
+    selection_probability: float
     response: Response
     returned_next_session: bool
 
@@ -66,8 +87,33 @@ class Trajectory:
     rows: tuple[TraceRow, ...]
     sessions: int
     returned_sessions: int
+    plays: int
+    play_3s: int
+    stay_seconds: float
+    slides: int
+    long_views: int
+    high_quality_long_views: int
+    likes: int
+    favorites: int
+    comments: int
+    shares: int
     watch_minutes: float
+    anchor_impressions: int
     anchor_clicks: int
+    poi_details: int
+    poi_favorites: int
     orders: int
     negative_feedback: int
     discounted_value: float
+    local_service_value: float
+
+
+@dataclass(frozen=True)
+class PostingResponse:
+    entered_posting_page: bool
+    poi_candidates_shown: int
+    poi_selected: bool
+    submitted: bool
+    published: bool
+    selected_poi_id: int | None
+    predicted_content_quality: float

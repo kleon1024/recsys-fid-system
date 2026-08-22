@@ -21,6 +21,14 @@ from .contracts import (
 from .sampling import mixed_negative_sample
 
 
+def _positive_tasks(labels: dict[str, float], masks: dict[str, bool]) -> list[str]:
+    return [
+        task
+        for task, label in labels.items()
+        if masks[task] and label > 0.0 and BEHAVIOR_STRENGTH.get(task, 0.0) > 0.0
+    ]
+
+
 @dataclass(frozen=True)
 class AttributionReport:
     matched_conversions: int
@@ -119,7 +127,7 @@ class EvolutionJoiner:
     def _labels(
         self,
         decision: StageDecision,
-        events: list[tuple[str, int, int]],
+        events: list[tuple[str, int, int, float]],
         pixel_weight: float,
         watermark: int,
     ) -> tuple[dict[str, float], dict[str, bool], int]:
@@ -134,8 +142,8 @@ class EvolutionJoiner:
             immature += int(not mature)
             labels[task] = float(
                 sum(
-                    1.0
-                    for action, event_time, received_at in events
+                    value
+                    for action, event_time, received_at, value in events
                     if action == task
                     and decision.impression_time <= event_time <= decision.impression_time + window
                     and received_at <= event_time + self.allowed_lateness_seconds
@@ -173,13 +181,20 @@ class EvolutionJoiner:
             attribution.late_pixels,
             attribution.attributed_weight,
         )
-        by_key: dict[tuple[str, int, int], list[tuple[str, int, int]]] = defaultdict(list)
+        by_key: dict[tuple[str, int, int], list[tuple[str, int, int, float]]] = defaultdict(list)
         orphan = 0
         for event in (*actions_unique, *commerce_unique):
             if event.key not in decision_by_key:
                 orphan += 1
                 continue
-            by_key[event.key].append((event.action, event.event_time, event.received_at))
+            by_key[event.key].append(
+                (
+                    event.action,
+                    event.event_time,
+                    event.received_at,
+                    float(getattr(event, "value", 1.0)),
+                )
+            )
         coarse: list[CoarseRankExample] = []
         fine: list[FineRankExample] = []
         recall: list[RecallExample] = []
@@ -225,9 +240,7 @@ class EvolutionJoiner:
                     decision.manifest,
                 )
             )
-            positive_tasks = [
-                task for task, label in labels.items() if masks[task] and label > 0.0
-            ]
+            positive_tasks = _positive_tasks(labels, masks)
             if positive_tasks:
                 positive = max(BEHAVIOR_STRENGTH[task] for task in positive_tasks)
                 hard = tuple(
