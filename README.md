@@ -4,6 +4,8 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
+The runnable [POI posting recommendation reconstruction](POI_POSTING_MODEL.md) adds multimodal draft fusion, permission-aware geographic features, impression-derived labels, hard-negative sampling, entire-space sparse publication, and a multi-task ranker.
+
 Public procurement package:
 
 - [REQUEST_FOR_PROPOSAL.md](REQUEST_FOR_PROPOSAL.md): scope, delivery gates, acceptance criteria, security, commercial response, and vendor evaluation.
