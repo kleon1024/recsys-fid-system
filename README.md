@@ -4,15 +4,15 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
-The runnable [POI posting recommendation reconstruction](POI_POSTING_MODEL.md) adds multimodal draft fusion, permission-aware geographic features, impression-derived labels, hard-negative sampling, entire-space sparse publication, and a multi-task ranker.
+The runnable [POI posting recommendation reconstruction](docs/architecture/poi-posting.md) adds multimodal draft fusion, permission-aware geographic features, impression-derived labels, hard-negative sampling, entire-space sparse publication, and a multi-task ranker.
 
-The [production model suite](PRODUCTION_MODEL_SUITE.md) extends that supply-side model into POI-anchored Feed distribution, map/detail, YMAL, product, and review recommendation with separate model families, streaming samples, long sequences, cascade audits, and full-path consistency.
+The [production model suite](docs/architecture/model-suite.md) extends that supply-side model into POI-anchored Feed distribution, map/detail, YMAL, product, and review recommendation with separate model families, streaming samples, long sequences, cascade audits, and full-path consistency.
 
 Public procurement package:
 
 - [REQUEST_FOR_PROPOSAL.md](REQUEST_FOR_PROPOSAL.md): scope, delivery gates, acceptance criteria, security, commercial response, and vendor evaluation.
-- [BIDDER_RESPONSE_TEMPLATE.md](BIDDER_RESPONSE_TEMPLATE.md): mandatory response format.
-- [ARCHITECTURE_VISUALS.md](ARCHITECTURE_VISUALS.md): visual system atlas for technical and delivery review.
+- [Bidder response template](docs/procurement/bidder-response-template.md): mandatory response format.
+- [Architecture visual atlas](docs/architecture/visual-atlas.md): visual system atlas for technical and delivery review.
 
 ## Procurement status
 
@@ -108,12 +108,12 @@ catalog (1,200 items)
   -> calibrated organic/live/ad mixed ranking (20)
 ```
 
-See [SYSTEM_DESIGN.md](SYSTEM_DESIGN.md) for contracts and evidence boundaries.
+See the [system design](docs/architecture/system-design.md) for contracts and evidence boundaries.
 
 Production engineering and interview references:
 
-- [PRACTICAL_ENGINEERING.md](PRACTICAL_ENGINEERING.md): Joiner, training examples, online PS, consistency, offline/online AUC, Feed growth, multi-objective learning, X/ByteDance references, Euclidean distance, Lagrangian constraints, and generative recommendation.
-- [COMMON_INTERVIEW_QA.md](COMMON_INTERVIEW_QA.md): 48 compact production and fundamentals questions with answer boundaries.
+- [Practical engineering](docs/interview/practical-engineering.md): Joiner, training examples, online PS, consistency, offline/online AUC, Feed growth, multi-objective learning, public industry references, Euclidean distance, Lagrangian constraints, and generative recommendation.
+- [Common interview Q&A](docs/interview/common-qa.md): compact production and fundamentals questions with answer boundaries.
 
 This lab reproduces the **public FID bit contract**, not a proprietary internal framework. The name "SEO" and its predefined feature-combination functions could not be identified from public evidence, so their semantics are not guessed here.
 

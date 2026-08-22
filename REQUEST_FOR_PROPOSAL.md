@@ -11,7 +11,7 @@
 | Delivery model | Remote-first, milestone-gated outsourcing engagement |
 | Source repository | [kleon1024/recsys-fid-system](https://github.com/kleon1024/recsys-fid-system) |
 | Questions | Open a GitHub issue labeled `rfp-question`; do not post confidential information |
-| Proposal format | [BIDDER_RESPONSE_TEMPLATE.md](BIDDER_RESPONSE_TEMPLATE.md) |
+| Proposal format | [Bidder response template](docs/procurement/bidder-response-template.md) |
 
 ## 1. Purpose
 
@@ -364,7 +364,7 @@ Production access and private artifacts will be provided only after contract, id
 ## 13. Proposal instructions
 
 1. Fork or review the repository without submitting implementation work.
-2. Complete [BIDDER_RESPONSE_TEMPLATE.md](BIDDER_RESPONSE_TEMPLATE.md).
+2. Complete the [bidder response template](docs/procurement/bidder-response-template.md).
 3. Open a concise `rfp-capability` GitHub issue containing only public capability information and a link to public evidence.
 4. Request the private commercial submission channel.
 5. Identify every exception, assumption, and owner decision required.

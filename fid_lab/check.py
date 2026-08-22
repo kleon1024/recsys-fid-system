@@ -15,11 +15,11 @@ SOURCE_DIRS = (ROOT / "fid_lab", ROOT / "tests")
 PUBLIC_DOCS = (
     "README.md",
     "REQUEST_FOR_PROPOSAL.md",
-    "BIDDER_RESPONSE_TEMPLATE.md",
-    "ARCHITECTURE_VISUALS.md",
+    "docs/procurement/bidder-response-template.md",
+    "docs/architecture/visual-atlas.md",
     "SECURITY.md",
-    "POI_POSTING_MODEL.md",
-    "PRODUCTION_MODEL_SUITE.md",
+    "docs/architecture/poi-posting.md",
+    "docs/architecture/model-suite.md",
 )
 
 

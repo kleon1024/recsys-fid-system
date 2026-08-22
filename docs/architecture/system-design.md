@@ -49,7 +49,7 @@ impression + delayed actions
   -> manifest + replay consistency audit
 ```
 
-See [PRACTICAL_ENGINEERING.md](PRACTICAL_ENGINEERING.md) and run `python3 -m fid_lab.training.demo`.
+See [practical engineering](../interview/practical-engineering.md) and run `python3 -m fid_lab.training.demo`.
 
 ## Stage contracts
 
