@@ -20,6 +20,9 @@ PUBLIC_DOCS = (
     "SECURITY.md",
     "docs/architecture/poi-posting.md",
     "docs/architecture/model-suite.md",
+    "docs/architecture/model-evolution.md",
+    "docs/operations/failure-runbook.md",
+    "docs/interview/project-deep-dive.md",
 )
 
 
@@ -101,6 +104,16 @@ def main() -> None:
     poi_feed = json.loads(poi_feed_demo.stdout)
     surface_demo = run([sys.executable, "-m", "fid_lab.surfaces.demo"], capture=True)
     surfaces = json.loads(surface_demo.stdout)
+    evolution_demo = run(
+        [sys.executable, "-m", "fid_lab.evolution.evaluation.benchmark", "--profile", "ci"],
+        capture=True,
+    )
+    evolution = json.loads(evolution_demo.stdout)
+    ab_demo = run(
+        [sys.executable, "-m", "fid_lab.evolution.cli.ab_demo", "--users", "200000"],
+        capture=True,
+    )
+    ab = json.loads(ab_demo.stdout)
     required = {
         "full_slate_rate": result["full_slate_rate"] == 1.0,
         "unsafe_items": result["unsafe_items"] == 0,
@@ -123,6 +136,9 @@ def main() -> None:
         "poi_feed_full_path_consistency": poi_feed["consistency"]["passed"],
         "surface_models_learn": surfaces["all_tasks_above_random"],
         "surface_model_count": len(surfaces["surfaces"]) == 5,
+        "model_evolution_count": len(evolution["ranking"]) == 8,
+        "retrieval_evolution_count": len(evolution["retrieval"]["models"]) == 5,
+        "ab_recovers_known_truth": ab["all_truth_covered"],
     }
     failed = [name for name, passed in required.items() if not passed]
     if failed:

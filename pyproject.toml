@@ -1,6 +1,11 @@
 [tool.maestro_dataeng.architecture]
 source_roots = ["."]
 oracle_paths = ["tests/test_*.py"]
+entry_points = [
+  "fid_lab/evolution/data/joiner.py",
+  "fid_lab/scale/dataset.py",
+  "fid_lab/scale/diagnostics.py",
+]
 authority_modules = [
   "fid_lab.fid",
   "fid_lab.schema",
@@ -10,4 +15,6 @@ authority_modules = [
   "fid_lab.poi_posting.contracts",
   "fid_lab.poi_feed.contracts",
   "fid_lab.surfaces.contracts",
+  "fid_lab.scale.contracts",
+  "fid_lab.evolution.data.contracts",
 ]

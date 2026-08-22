@@ -8,6 +8,14 @@ The runnable [POI posting recommendation reconstruction](docs/architecture/poi-p
 
 The [production model suite](docs/architecture/model-suite.md) extends that supply-side model into POI-anchored Feed distribution, map/detail, YMAL, product, and review recommendation with separate model families, streaming samples, long sequences, cascade audits, and full-path consistency.
 
+The [model evolution laboratory](docs/architecture/model-evolution.md) compares
+mature open-source LR, XGBoost, WDL, DeepFM, DCN-Mix, DIN, MMoE, and PLE
+implementations on one synthetic distribution. It also adds trained Semantic-ID
+generation, closed/open-loop attribution, and potential-outcome A/B simulation.
+Use the [failure runbook](docs/operations/failure-runbook.md) and
+[senior project deep dive](docs/interview/project-deep-dive.md) for production
+diagnosis and interview practice.
+
 Public procurement package:
 
 - [REQUEST_FOR_PROPOSAL.md](REQUEST_FOR_PROPOSAL.md): scope, delivery gates, acceptance criteria, security, commercial response, and vendor evaluation.
@@ -156,7 +164,10 @@ This preserves the main production invariant: offline training and online infere
 
 `DeepFM` and `DeepFFM` are not synonyms. DeepFM shares one embedding per feature across pairwise interactions. FFM-style models use field-dependent embeddings, which cost substantially more parameters. Add DeepFFM only when field-aware interactions are a measured requirement, rather than treating it as the default successor.
 
-This is a ranking lab, not a full recommendation platform. The next meaningful extensions would be behavior-sequence models (DIN/DIEN or Transformer), multi-task objectives (MMoE/PLE), and retrieval/index consistency. They should be added as separate stages only when the data contract includes histories, multiple labels, or an ANN index.
+The production suite now adds separate retrieval, coarse-rank, fine-rank,
+sequence, multi-task, Joiner, and experiment boundaries. The original compact
+models remain as teaching baselines; the evolution benchmark uses
+DeepCTR-Torch rather than maintaining another local copy of its model zoo.
 
 ## Run
 
@@ -170,6 +181,9 @@ python3 -m fid_lab.online.demo
 python3 -m fid_lab.online.benchmark
 python3 -m fid_lab.training.demo
 python3 -m fid_lab.generative.demo
+python3 -m fid_lab.evolution.evaluation.benchmark --profile ci
+python3 -m fid_lab.evolution.cli.generative_demo
+python3 -m fid_lab.evolution.cli.ab_demo
 python3 -m fid_lab.check
 ```
 
