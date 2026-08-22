@@ -29,6 +29,11 @@ catalog (1,200 items)
 
 See [SYSTEM_DESIGN.md](SYSTEM_DESIGN.md) for contracts and evidence boundaries.
 
+Production engineering and interview references:
+
+- [PRACTICAL_ENGINEERING.md](PRACTICAL_ENGINEERING.md): Joiner, training examples, online PS, consistency, offline/online AUC, Feed growth, multi-objective learning, X/ByteDance references, Euclidean distance, Lagrangian constraints, and generative recommendation.
+- [COMMON_INTERVIEW_QA.md](COMMON_INTERVIEW_QA.md): 48 compact production and fundamentals questions with answer boundaries.
+
 This lab reproduces the **public FID bit contract**, not a proprietary internal framework. The name "SEO" and its predefined feature-combination functions could not be identified from public evidence, so their semantics are not guessed here.
 
 ## What FID means
@@ -81,6 +86,8 @@ python3 -m unittest discover -s tests -v
 python3 -m fid_lab.experiment
 python3 -m fid_lab.online.demo
 python3 -m fid_lab.online.benchmark
+python3 -m fid_lab.training.demo
+python3 -m fid_lab.generative.demo
 python3 -m fid_lab.check
 ```
 

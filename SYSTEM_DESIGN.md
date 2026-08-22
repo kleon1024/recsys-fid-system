@@ -38,6 +38,19 @@ Catalog -> Viking vector recall ---------|-+--+
 
 Every returned candidate retains recall routes, FIDs, intermediate scores, predictions, and final score. Every request returns stage counts, timings, and artifact versions.
 
+The feedback loop is executable as a separate authority-safe path:
+
+```text
+impression + delayed actions
+  -> event-time Joiner
+  -> mature multi-task examples
+  -> online trainer
+  -> versioned Parameter Server
+  -> manifest + replay consistency audit
+```
+
+See [PRACTICAL_ENGINEERING.md](PRACTICAL_ENGINEERING.md) and run `python3 -m fid_lab.training.demo`.
+
 ## Stage contracts
 
 ### 1. Viking-compatible recall

@@ -1,4 +1,10 @@
 [tool.maestro_dataeng.architecture]
 source_roots = ["."]
 oracle_paths = ["tests/test_*.py"]
-authority_modules = ["fid_lab.fid", "fid_lab.schema", "fid_lab.online.config"]
+authority_modules = [
+  "fid_lab.fid",
+  "fid_lab.schema",
+  "fid_lab.online.config",
+  "fid_lab.training.contracts",
+  "fid_lab.training.joiner",
+]

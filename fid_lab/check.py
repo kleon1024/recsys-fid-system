@@ -55,11 +55,21 @@ def main() -> None:
     run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
     benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)
     result = json.loads(benchmark.stdout)
+    training_demo = run([sys.executable, "-m", "fid_lab.training.demo"], capture=True)
+    training = json.loads(training_demo.stdout)
+    generative_demo = run([sys.executable, "-m", "fid_lab.generative.demo"], capture=True)
+    generative = json.loads(generative_demo.stdout)
     required = {
         "full_slate_rate": result["full_slate_rate"] == 1.0,
         "unsafe_items": result["unsafe_items"] == 0,
         "duplicates": result["slates_with_duplicates"] == 0,
         "category_coverage": result["mean_categories_per_slate"] >= 4.0,
+        "joined_examples": training["joiner"]["examples"] == 600,
+        "online_model_updated": training["parameter_server"]["model_version"] > 0,
+        "training_consistency": training["consistency"]["passed"],
+        "semantic_ids_unique": generative["items"] == generative["unique_codes"],
+        "generative_items_valid": generative["valid_generated"],
+        "generative_recall_complete": generative["generated"] == 20,
     }
     failed = [name for name, passed in required.items() if not passed]
     if failed:
