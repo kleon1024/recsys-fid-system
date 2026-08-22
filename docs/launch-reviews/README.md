@@ -17,5 +17,7 @@ boundary that prevents it from being presented as company production evidence.
 | [L-PRODUCT-001](2026-08-23-main-feed-suite/l-product-001.md) | Product cooperation | Pass |
 | [L-VALUE-001](2026-08-23-main-feed-suite/l-value-001.md) | Business Value Tree | Hold |
 | [L-LONGTERM-001](2026-08-23-main-feed-suite/l-longterm-001.md) | Long-term value | Hold |
+| [L-LOCAL-SUPPLY-001](2026-08-23-main-feed-suite/l-local-supply-001.md) | POI posting / supply | Pass to cluster switchback |
+| [L-LOCAL-VALUE-001](2026-08-23-main-feed-suite/l-local-value-001.md) | POI Feed Value Tree | Hold |
 
 Raw immutable evidence is under `reports/launches/`.

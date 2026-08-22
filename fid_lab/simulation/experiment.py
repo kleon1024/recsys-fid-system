@@ -306,7 +306,7 @@ def _joiner_report(config, catalog, observed, policies, assigned):
             else None
         )
     return {
-        "stage_decisions": len(decisions),
+        "stage_decisions": len(report.coarse),
         "recall_examples": len(report.recall),
         "coarse_examples": len(report.coarse),
         "fine_examples": len(report.fine),
