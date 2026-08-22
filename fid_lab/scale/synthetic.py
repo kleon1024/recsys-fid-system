@@ -22,9 +22,11 @@ class ScaleDataset:
     sequences: np.ndarray
     sequence_mask: np.ndarray
     labels: np.ndarray
+    label_probabilities: np.ndarray
     label_masks: np.ndarray
     sample_weight: np.ndarray
     served_scores: np.ndarray
+    diagnostic_features: np.ndarray
 
     @property
     def examples(self) -> int:
@@ -37,10 +39,14 @@ def _long_tail_ids(rng: np.random.Generator, size: int, cardinality: int) -> np.
     return permutation[ranks].astype(np.int64)
 
 
-def _scaled_probability(base: float, signal: np.ndarray) -> np.ndarray:
+def _scaled_probability(
+    base: float,
+    signal: np.ndarray,
+    ceiling: float = 0.95,
+) -> np.ndarray:
     multiplier = np.exp(0.45 * signal)
     multiplier /= float(multiplier.mean())
-    return np.clip(base * multiplier, 0.0, 0.95)
+    return np.clip(base * multiplier, 0.0, ceiling)
 
 
 def build_scale_dataset(config: ScaleConfig = ScaleConfig()) -> ScaleDataset:
@@ -65,27 +71,43 @@ def build_scale_dataset(config: ScaleConfig = ScaleConfig()) -> ScaleDataset:
     quality = 0.8 * dense[:, 0] + 0.6 * dense[:, 4] - 0.4 * dense[:, 9]
     quality += 1.20 * sequence_match
     labels = np.zeros((anchored, len(FEED_TASKS)), dtype=np.float32)
-    long_view = rng.random(anchored) < _scaled_probability(
-        config.long_view_rate, 0.6 * quality + 0.4 * intent
+    probabilities = np.zeros_like(labels)
+    long_view_probability = _scaled_probability(
+        config.long_view_rate, 0.6 * quality + 0.4 * intent, 0.75
     )
-    anchor_click = rng.random(anchored) < _scaled_probability(
-        config.anchor_click_rate, intent
+    anchor_probability = _scaled_probability(config.anchor_click_rate, intent, 0.12)
+    detail_conditional = _scaled_probability(config.detail_given_click, intent, 0.55)
+    favorite_conditional = _scaled_probability(config.favorite_given_detail, quality, 0.35)
+    order_conditional = _scaled_probability(
+        config.order_given_detail, intent + quality, 0.12
     )
+    negative_probability = _scaled_probability(
+        config.negative_feedback_rate, dense[:, 9] - dense[:, 2], 0.08
+    )
+    long_view = rng.random(anchored) < long_view_probability
+    anchor_click = rng.random(anchored) < anchor_probability
     detail = anchor_click & (
-        rng.random(anchored) < _scaled_probability(config.detail_given_click, intent)
+        rng.random(anchored) < detail_conditional
     )
     favorite = detail & (
-        rng.random(anchored) < _scaled_probability(config.favorite_given_detail, quality)
+        rng.random(anchored) < favorite_conditional
     )
     order = detail & (
-        rng.random(anchored) < _scaled_probability(config.order_given_detail, intent + quality)
+        rng.random(anchored) < order_conditional
     )
-    negative = rng.random(anchored) < _scaled_probability(
-        config.negative_feedback_rate, dense[:, 9] - dense[:, 2]
-    )
+    negative = rng.random(anchored) < negative_probability
     outcomes = (long_view, anchor_click, detail, favorite, order, negative)
+    marginal_probabilities = (
+        long_view_probability,
+        anchor_probability,
+        anchor_probability * detail_conditional,
+        anchor_probability * detail_conditional * favorite_conditional,
+        anchor_probability * detail_conditional * order_conditional,
+        negative_probability,
+    )
     for index, outcome in enumerate(outcomes):
         labels[:, index] = outcome
+        probabilities[:, index] = marginal_probabilities[index]
     sparse_ids = np.stack(
         [viewer_ids, author_ids, video_ids, poi_ids, video_ids % 64, poi_ids % 128], axis=1
     )
@@ -95,6 +117,9 @@ def build_scale_dataset(config: ScaleConfig = ScaleConfig()) -> ScaleDataset:
     served_scores = np.stack(
         [dense[:, 0], intent, 0.5 * quality + 0.5 * intent, quality],
         axis=1,
+    ).astype(np.float32)
+    diagnostic_features = np.stack(
+        [cross_signal, sequence_match.astype(np.float32)], axis=1
     ).astype(np.float32)
     return ScaleDataset(
         config,
@@ -108,9 +133,11 @@ def build_scale_dataset(config: ScaleConfig = ScaleConfig()) -> ScaleDataset:
         sequences,
         sequence_mask,
         labels,
+        probabilities,
         label_masks,
         sample_weight,
         served_scores,
+        diagnostic_features,
     )
 
 

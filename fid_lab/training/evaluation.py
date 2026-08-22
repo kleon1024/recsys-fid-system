@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from dataclasses import dataclass
 
 import numpy as np
 from sklearn.metrics import roc_auc_score
 
+from ..evolution.evaluation.metrics import grouped_auc
 from .contracts import PredictionRecord
 
 
@@ -17,6 +17,8 @@ class MetricSet:
     gauc: float | None
     calibration_error: float
     records: int
+    gauc_eligible_user_rate: float | None = None
+    gauc_eligible_record_rate: float | None = None
 
 
 @dataclass(frozen=True)
@@ -35,18 +37,13 @@ def auc(records: list[PredictionRecord]) -> float | None:
 
 
 def gauc(records: list[PredictionRecord]) -> float | None:
-    by_user: dict[int, list[PredictionRecord]] = defaultdict(list)
-    for record in records:
-        by_user[record.user_id].append(record)
-    weighted_auc = 0.0
-    total = 0
-    for user_records in by_user.values():
-        user_auc = auc(user_records)
-        if user_auc is None:
-            continue
-        weighted_auc += user_auc * len(user_records)
-        total += len(user_records)
-    return weighted_auc / total if total else None
+    if not records:
+        return None
+    return grouped_auc(
+        np.asarray([record.label for record in records]),
+        np.asarray([record.score for record in records]),
+        np.asarray([record.user_id for record in records]),
+    )["value"]
 
 
 def calibration_error(records: list[PredictionRecord], bins: int = 10) -> float:
@@ -66,7 +63,19 @@ def calibration_error(records: list[PredictionRecord], bins: int = 10) -> float:
 
 
 def metric_set(records: list[PredictionRecord]) -> MetricSet:
-    return MetricSet(auc(records), gauc(records), calibration_error(records), len(records))
+    coverage = grouped_auc(
+        np.asarray([record.label for record in records]),
+        np.asarray([record.score for record in records]),
+        np.asarray([record.user_id for record in records]),
+    ) if records else None
+    return MetricSet(
+        auc(records),
+        None if coverage is None else coverage["value"],
+        calibration_error(records),
+        len(records),
+        None if coverage is None else float(coverage["eligible_group_rate"]),
+        None if coverage is None else float(coverage["eligible_record_rate"]),
+    )
 
 
 def compare(

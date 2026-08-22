@@ -15,6 +15,9 @@ root-cause evidence.
 | Future feature leakage | Feature timestamp exceeds impression | Reject the snapshot | Point-in-time query and replay oracle |
 | MMoE gate collapse | One expert dominates | Restore simpler baseline | Expert utilization monitoring and PLE comparison |
 | AUC rises, online does not | Replay stable but slate unchanged | Stop extension and localize causal stage | Match metric to opportunity, value, or guardrail |
+| GAUC looks healthy on little data | Eligible group/record coverage collapses | Stop model comparison | Report GAUC value and both coverage rates together |
+| Simulator predicts impossible lift | Funnel rates or state transitions miss logged slices | Do not use the forecast | Calibrate dynamics on held-out logs and retain sensitivity ranges |
+| Offline and served XGBoost devices differ | Device-fallback warning and latency jump | Serve the accepted CPU path | Use a device-matched input/runtime and gate P99 plus score replay |
 | PS shard unavailable | Missing shard and lookup errors | Use compatible cached snapshot | Replication, checkpoint and staleness policy |
 
 ```mermaid

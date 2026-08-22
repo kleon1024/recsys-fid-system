@@ -45,7 +45,7 @@ def _sigmoid(values: np.ndarray) -> np.ndarray:
     return 1.0 / (1.0 + np.exp(-values))
 
 
-def _metric_lift(
+def metric_lift(
     control: np.ndarray,
     treatment: np.ndarray,
     potential_zero: np.ndarray,
@@ -115,7 +115,7 @@ def simulate_experiment(
         "creator_diversity": (diversity_zero, diversity_one),
     }
     metrics = {
-        name: asdict(_metric_lift(zero[~assigned], one[assigned], zero, one))
+        name: asdict(metric_lift(zero[~assigned], one[assigned], zero, one))
         for name, (zero, one) in potential.items()
     }
     triggered_metrics = {

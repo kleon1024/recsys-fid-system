@@ -11,7 +11,7 @@ The [production model suite](docs/architecture/model-suite.md) extends that supp
 The [model evolution laboratory](docs/architecture/model-evolution.md) compares
 mature open-source LR, XGBoost, WDL, DeepFM, DCN-Mix, DIN, MMoE, and PLE
 implementations on one synthetic distribution. It also adds trained Semantic-ID
-generation, closed/open-loop attribution, and potential-outcome A/B simulation.
+generation, closed/open-loop attribution, and stateful request/session A/B simulation.
 Use the [failure runbook](docs/operations/failure-runbook.md) and
 [senior project deep dive](docs/interview/project-deep-dive.md) for production
 diagnosis and interview practice.
@@ -184,6 +184,7 @@ python3 -m fid_lab.generative.demo
 python3 -m fid_lab.evolution.evaluation.benchmark --profile ci
 python3 -m fid_lab.evolution.cli.generative_demo
 python3 -m fid_lab.evolution.cli.ab_demo
+python3 -m fid_lab.simulation.cli --users 2000 --items 4000
 python3 -m fid_lab.check
 ```
 
@@ -204,3 +205,5 @@ The generated data contains user and item latent effects plus country-category, 
 - [DeepFM](https://arxiv.org/abs/1703.04247): shared embedding input for FM and deep components.
 - [FAT-DeepFFM](https://arxiv.org/abs/1905.06336): evidence that DeepFFM is a field-aware branch, not another name for DeepFM.
 - [Viking AI Search documentation](https://docs.byteplus.com/en/docs/viking-aisearch/Recommended_Input): public product boundary for recommendation input, recall strategies, merging, filtering, deduplication, reranking, and diversity.
+- [SARDINE](https://github.com/naver/sardine): packaged Gymnasium runtime for dynamic recommendation environments.
+- [KuaiSim](https://proceedings.neurips.cc/paper_files/paper/2023/hash/8c7f8f98f9a8f5650922dd4545254f28-Abstract.html): request-level, session-level, and cross-session simulator evaluation protocol.

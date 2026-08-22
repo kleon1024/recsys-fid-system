@@ -56,6 +56,7 @@ def run_retrieval_benchmark(
 ) -> dict[str, object]:
     if device == "cpu":
         torch.set_num_threads(1)
+    torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
     item_features = rng.normal(size=(items, 24)).astype(np.float32)
     item_features /= np.linalg.norm(item_features, axis=1, keepdims=True)

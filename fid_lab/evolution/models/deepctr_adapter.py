@@ -8,6 +8,7 @@ import io
 
 import numpy as np
 import torch
+from deepctr_torch.callbacks import EarlyStopping
 from deepctr_torch.inputs import DenseFeat, SparseFeat, VarLenSparseFeat
 from deepctr_torch.models import DCNMix, DIN, DeepFM, MMOE, PLE, WDL
 
@@ -36,7 +37,7 @@ class DeepCTRFeatureBundle:
 def build_feature_bundle(
     sparse: np.ndarray,
     dense: np.ndarray,
-    bucket_size: int = 4_096,
+    bucket_size: int = 1_024,
 ) -> DeepCTRFeatureBundle:
     sparse_columns = tuple(
         SparseFeat(f"fid_{index}", vocabulary_size=bucket_size, embedding_dim=8)
@@ -62,7 +63,7 @@ def build_din_bundle(
     dense: np.ndarray,
     history_item_ids: np.ndarray,
     sequence_mask: np.ndarray,
-    bucket_size: int = 4_096,
+    bucket_size: int = 1_024,
 ) -> DeepCTRFeatureBundle:
     item = SparseFeat("item_id", bucket_size, embedding_dim=8)
     columns = (
@@ -103,6 +104,9 @@ def _create_model(
             history_feature_list=["item_id"],
             device=device,
             seed=seed,
+            l2_reg_embedding=1e-4,
+            l2_reg_dnn=1e-4,
+            dnn_dropout=0.15,
         )
     if name in {"mmoe", "ple"}:
         if len(tasks) < 2:
@@ -113,12 +117,18 @@ def _create_model(
             task_names=tasks,
             device=device,
             seed=seed,
+            l2_reg_embedding=1e-4,
+            l2_reg_dnn=1e-4,
+            dnn_dropout=0.15,
         )
     return MODEL_BUILDERS[name](
         bundle.linear_columns,
         bundle.deep_columns,
         device=device,
         seed=seed,
+        l2_reg_embedding=1e-4,
+        l2_reg_dnn=1e-4,
+        dnn_dropout=0.15,
     )
 
 
@@ -137,6 +147,7 @@ class DeepCTRModelAdapter:
             self.model = _create_model(name, bundle, tasks, device, seed)
         self.name = name
         self.tasks = tasks
+        self.loss_history: list[float] = []
         self.model.compile("adam", "binary_crossentropy", metrics=["auc"])
 
     def fit(
@@ -145,9 +156,29 @@ class DeepCTRModelAdapter:
         labels: np.ndarray,
         batch_size: int = 1_024,
         epochs: int = 1,
+        validation: tuple[dict[str, np.ndarray], np.ndarray] | None = None,
     ) -> None:
+        callbacks = []
+        if validation is not None:
+            callbacks.append(
+                EarlyStopping(
+                    monitor="val_auc",
+                    patience=2,
+                    mode="max",
+                    restore_best_weights=True,
+                )
+            )
         with redirect_stdout(io.StringIO()):
-            self.model.fit(inputs, labels, batch_size=batch_size, epochs=epochs, verbose=0)
+            history = self.model.fit(
+                inputs,
+                labels,
+                batch_size=batch_size,
+                epochs=epochs,
+                verbose=0,
+                validation_data=validation,
+                callbacks=callbacks,
+            )
+        self.loss_history.extend(float(value) for value in history.history.get("loss", ()))
 
     def predict(
         self,
@@ -191,6 +222,8 @@ class DeepCTRModelAdapter:
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
+                batch_loss = float(loss.detach().cpu())
+            self.loss_history.append(batch_loss)
 
     @property
     def parameters(self) -> int:

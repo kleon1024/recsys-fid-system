@@ -27,6 +27,7 @@ def tensor_schema() -> tuple[TensorSchema, ...]:
         TensorSchema("behavior_sequence", "float32", (None, 24, 8)),
         TensorSchema("sequence_mask", "bool", (None, 24)),
         TensorSchema("labels", "float32", (None, 6)),
+        TensorSchema("label_probabilities", "float32", (None, 6)),
         TensorSchema("label_masks", "bool", (None, 6)),
         TensorSchema("sample_weight", "float32", (None,)),
         TensorSchema("served_scores", "float32", (None, 4)),
@@ -48,6 +49,9 @@ class FeedTensorDataset(Dataset[dict[str, torch.Tensor]]):
             "behavior_sequence": torch.from_numpy(self.dataset.sequences[index]),
             "sequence_mask": torch.from_numpy(self.dataset.sequence_mask[index]),
             "labels": torch.from_numpy(self.dataset.labels[index]),
+            "label_probabilities": torch.from_numpy(
+                self.dataset.label_probabilities[index]
+            ),
             "label_masks": torch.from_numpy(self.dataset.label_masks[index]),
             "sample_weight": torch.as_tensor(self.dataset.sample_weight[index]),
             "served_scores": torch.from_numpy(self.dataset.served_scores[index]),
@@ -64,6 +68,7 @@ def tensorflow_generator(dataset: ScaleDataset):
             "behavior_sequence": dataset.sequences[index],
             "sequence_mask": dataset.sequence_mask[index],
             "labels": dataset.labels[index],
+            "label_probabilities": dataset.label_probabilities[index],
             "label_masks": dataset.label_masks[index],
             "sample_weight": dataset.sample_weight[index],
             "served_scores": dataset.served_scores[index],

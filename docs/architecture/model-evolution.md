@@ -75,19 +75,26 @@ exposure share.
 
 Signals contain linear, feature-cross, and sequence components. This matters:
 on the earlier linear scenario, logistic regression correctly matched or beat
-larger models. After adding explicit cross and history-match signal, the
-one-million-impression, three-seed GPU benchmark produced mean AUC of 0.641 for
-logistic regression, 0.657 for XGBoost, and 0.644 for distilled DCN-Mix.
-Complexity is accepted only when the data mechanism makes it useful.
+larger models. A 20-epoch diagnostic then exposed severe neural overfit: DIN
+training loss fell from 0.648 to 0.245 while test AUC fell to 0.540. The adapter
+now uses temporal validation, early stopping, embedding/DNN regularization,
+dropout, and masked history pooling.
 
-The ten-million-impression run produced 200,481 anchor examples. Across three
-seeds, mean AUC was 0.661 for XGBoost, 0.641 for MMoE, 0.639 for logistic
-regression, 0.638 for distilled DCN-Mix, 0.634 for PLE, and 0.633 for DIN. At an
-equal Recall@20 budget, popular recall reached 0.005, co-visit graph 0.208,
-two-tower 0.592, and multi-interest two-tower 0.762; exact content search reached
-0.996 because the synthetic query is a noisy form of its target embedding.
-These results describe the checked-in synthetic mechanism, not an expected
-ordering on production data.
+On the corrected one-million-impression run, LR, XGBoost, WDL, DeepFM,
+distilled DCN-Mix, DIN, MMoE, and PLE reached AUC 0.6436, 0.6542, 0.6454,
+0.6453, 0.6519, 0.6437, 0.6417, and 0.6402 respectively. The neural models stop
+after 4-12 recorded loss points instead of driving training loss downward for
+20 epochs. XGBoost is still the best model at this sample size; model complexity
+is accepted only when the data and validation result justify it.
+
+The earlier ten-million-impression throughput run produced 200,481 anchor
+examples, but predates this regularization change and is retained only as scale
+evidence, not the current model-selection leaderboard. At an equal Recall@20
+budget, deterministic evaluation now reaches 0.005 for popular, 0.208 for
+co-visit graph, 0.637 for two-tower, and 0.735 for multi-interest two-tower;
+exact content search reaches 0.996 because the synthetic query is a noisy form
+of its target embedding. These results describe the checked-in synthetic
+mechanism, not an expected ordering on production data.
 
 ```bash
 python3 -m fid_lab.evolution.evaluation.benchmark --profile ci
@@ -120,29 +127,58 @@ click identity is preferred; otherwise eligible touches for the same observable
 identity and merchant share one normalized fractional label. Missing identity,
 orphan conversion, duplication, and late arrival are reported separately.
 
-## Simulated online increment
+## Stateful policy iteration and online increment
 
 ```mermaid
-flowchart LR
-    Population[Fixed synthetic population] --> Potential[Generate Y0 and Y1]
-    Potential --> Assignment[Stable 50/50 assignment]
-    Assignment --> Product[Product treatment]
-    Assignment --> Model[Model treatment]
-    Assignment --> Strategy[Strategy treatment]
-    Product --> Estimate[Observed ITT and guardrails]
-    Model --> Estimate
-    Strategy --> Estimate
-    Potential --> Truth[Known true ITT]
-    Estimate --> Coverage{Confidence interval covers truth?}
-    Truth --> Coverage
+flowchart TB
+    State[Interest, satisfaction, fatigue, trust] --> Request[Request and candidate set]
+    Request --> Policy[Served LR or XGBoost policy]
+    Policy --> Response[View, anchor, detail, order, negative]
+    Response --> State
+    Response --> Leave[Leave and next-session return]
+    Leave --> State
+    Response --> Log[Stage decisions and events]
+    Log --> Joiner[Point-in-time Joiner]
+    Joiner --> Samples[Recall, coarse, fine samples]
+    Samples --> Train[Next policy iteration]
+    Train --> Replay[Serialize, reload, score replay]
+    Replay --> Policy
 ```
 
-`python3 -m fid_lab.evolution.cli.ab_demo` reports the injected true effect and the
-observed A/B estimate. At 200,000 users, the model scenario currently estimates
-about +9.7% watch minutes, +10.7% anchor clicks, and -33.4% negative feedback;
-the sparse order lift is not statistically significant. Those numbers validate
-the experiment recovery mechanism only. They are not forecasts or actual
-business results.
+`python3 -m fid_lab.simulation.cli --users 2000 --items 4000` runs the full
+logging-policy to training to serving to A/B loop. SARDINE 1.0.8 supplies the
+packaged Gymnasium environment boundary; the POI, commerce, Pixel, and Joiner
+dynamics remain explicit domain contracts. Evaluation follows KuaiSim's three
+levels: request ranking, whole-session behavior, and cross-session return/value.
+
+The checked RTX 4090 run generated 37,291 logging-policy exposures with a 42.6%
+long-view rate. XGBoost moved AUC from 0.6853 to 0.6880, user GAUC from 0.6631 to
+0.6666, and session GAUC from 0.6534 to 0.6548. Serialization and reload changed
+scores by at most `1.94e-7`. The observed user-level test showed +4.24% watch
+minutes but was not significant at five percent; orders were underpowered, and
+negative feedback failed the guardrail. The release decision was therefore to
+reject the treatment, despite higher offline metrics.
+
+XGBoost trains on CUDA in the 4090 profile, then publishes an explicit CPU
+serving artifact because online candidate batches are small NumPy arrays. This
+removes the silent GPU-to-CPU prediction fallback; replay and P99 latency are
+both release gates rather than consequences of the training device.
+
+The simulator retains both policy trajectories under common exogenous random
+draws, so true synthetic ITT is available for estimator audits. Five hundred
+fresh user assignments recovered every true effect inside its randomization
+interval. A single assignment did not cover every true effect: that is a useful
+demonstration of false positives, not a reason to tune the seed. These results
+validate mechanics under declared assumptions; only calibration against real
+logs plus a live randomized experiment can establish production lift.
+
+GAUC is record-weighted AUC within users or sessions. Single-class groups have
+no AUC and are excluded. A scalar GAUC is therefore incomplete: every report
+also publishes eligible-group and eligible-record coverage. In this run user
+coverage was 97.35% of groups and 99.49% of records; session coverage was 88.53%
+of groups and 94.83% of records. Request GAUC is intentionally absent because
+the Feed exposes one selected item per sequential request; inventing labels for
+unexposed candidates would make the metric invalid.
 
 ## Primary open-source references
 
@@ -150,3 +186,5 @@ business results.
 - [DCNv2](https://arxiv.org/abs/2008.13535)
 - [Meta Generative Recommenders and HSTU](https://github.com/meta-recsys/generative-recommenders)
 - [OneRec](https://arxiv.org/abs/2502.18965)
+- [SARDINE](https://github.com/naver/sardine)
+- [KuaiSim](https://proceedings.neurips.cc/paper_files/paper/2023/hash/8c7f8f98f9a8f5650922dd4545254f28-Abstract.html)

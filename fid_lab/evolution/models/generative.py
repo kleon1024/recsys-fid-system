@@ -166,7 +166,9 @@ def train_semantic_decoder(
     item_ids: np.ndarray,
     epochs: int = 20,
     device: str = "cpu",
+    seed: int = 20260823,
 ) -> tuple[AutoregressiveSemanticDecoder, list[float]]:
+    torch.manual_seed(seed)
     vocabulary = SemanticVocabulary.from_index(index)
     model = AutoregressiveSemanticDecoder(queries.shape[1], vocabulary).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=0.003)

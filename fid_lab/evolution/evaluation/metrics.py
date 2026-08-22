@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict, dataclass
+
 import numpy as np
 from sklearn.metrics import (
     average_precision_score,
@@ -9,6 +11,57 @@ from sklearn.metrics import (
     ndcg_score,
     roc_auc_score,
 )
+
+
+@dataclass(frozen=True)
+class GroupedAUC:
+    """GAUC plus the coverage hidden by a single scalar."""
+
+    value: float | None
+    total_groups: int
+    eligible_groups: int
+    eligible_group_rate: float
+    total_records: int
+    eligible_records: int
+    eligible_record_rate: float
+
+
+def grouped_auc(
+    labels: np.ndarray,
+    scores: np.ndarray,
+    group_ids: np.ndarray,
+) -> dict[str, float | int | None]:
+    """Record-weighted within-group AUC; single-class groups are reported, not hidden."""
+    labels = np.asarray(labels)
+    scores = np.asarray(scores)
+    group_ids = np.asarray(group_ids)
+    if not (len(labels) == len(scores) == len(group_ids)):
+        raise ValueError("labels, scores, and group_ids must have equal length")
+    auc_weight = 0.0
+    eligible_records = 0
+    eligible_groups = 0
+    unique_groups = np.unique(group_ids)
+    for group in unique_groups:
+        mask = group_ids == group
+        group_labels = labels[mask]
+        if np.unique(group_labels).size < 2:
+            continue
+        records = int(mask.sum())
+        auc_weight += float(roc_auc_score(group_labels, scores[mask])) * records
+        eligible_records += records
+        eligible_groups += 1
+    total_records = len(labels)
+    total_groups = len(unique_groups)
+    result = GroupedAUC(
+        value=auc_weight / eligible_records if eligible_records else None,
+        total_groups=total_groups,
+        eligible_groups=eligible_groups,
+        eligible_group_rate=eligible_groups / total_groups if total_groups else 0.0,
+        total_records=total_records,
+        eligible_records=eligible_records,
+        eligible_record_rate=eligible_records / total_records if total_records else 0.0,
+    )
+    return asdict(result)
 
 
 def expected_calibration_error(

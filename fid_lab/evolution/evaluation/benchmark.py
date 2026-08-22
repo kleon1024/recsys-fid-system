@@ -36,6 +36,7 @@ class ModelResult:
     parameters: int | None
     train_seconds: float
     milliseconds_per_1k_predictions: float
+    training_loss: tuple[float, ...]
 
 
 def _matrix(sparse: np.ndarray, dense: np.ndarray) -> np.ndarray:
@@ -75,6 +76,8 @@ def _traditional_models(
         started = perf_counter()
         model.fit(features[:train_end], target[:train_end])
         train_seconds = perf_counter() - started
+        train_scores = model.predict_proba(features[:train_end])[:, 1]
+        train_loss = binary_metrics(target[:train_end], train_scores)["log_loss"]
         started = perf_counter()
         scores = model.predict_proba(features[test_start:])[:, 1]
         prediction_ms = (perf_counter() - started) * 1_000_000.0 / len(scores)
@@ -87,6 +90,7 @@ def _traditional_models(
                 None,
                 train_seconds,
                 prediction_ms,
+                (train_loss,),
             )
         )
     return results
@@ -104,21 +108,33 @@ def _deepctr_models(
     epochs: int,
 ) -> list[ModelResult]:
     train_end = int(len(labels) * 0.70)
+    validation_end = int(len(labels) * 0.85)
     test_start = int(len(labels) * 0.85)
     bundle = build_feature_bundle(sparse, dense)
     din_bundle = build_din_bundle(sparse, dense, history_item_ids, sequence_mask)
     results = []
     for name in ("wide_deep", "deepfm", "dcnv2", "din", "mmoe", "ple"):
-        model_bundle = din_bundle if name == "din" else bundle
+        model_bundle = din_bundle if name in {"din", "mmoe", "ple"} else bundle
         train_inputs = _split_inputs(model_bundle.inputs, 0, train_end)
+        validation_inputs = _split_inputs(
+            model_bundle.inputs, train_end, validation_end
+        )
         test_inputs = _split_inputs(model_bundle.inputs, test_start, len(labels))
         tasks = FEED_TASKS[:3] if name in {"mmoe", "ple"} else ("long_view",)
         model = DeepCTRModelAdapter(name, model_bundle, tasks, device=device, seed=seed)
         target = labels[:train_end, : len(tasks)]
         if len(tasks) == 1:
             target = target[:, 0]
+        validation_target = labels[train_end:validation_end, : len(tasks)]
+        if len(tasks) == 1:
+            validation_target = validation_target[:, 0]
         started = perf_counter()
-        model.fit(train_inputs, target, epochs=epochs)
+        model.fit(
+            train_inputs,
+            target,
+            epochs=epochs,
+            validation=(validation_inputs, validation_target),
+        )
         if name == "dcnv2":
             teacher = served_scores[:train_end, 2]
             ranks = np.argsort(np.argsort(-teacher))
@@ -127,7 +143,7 @@ def _deepctr_models(
                 labels[:train_end, 0],
                 teacher,
                 ranks,
-                epochs=epochs,
+                epochs=min(epochs, 3),
             )
         train_seconds = perf_counter() - started
         started = perf_counter()
@@ -142,6 +158,7 @@ def _deepctr_models(
                 model.parameters,
                 train_seconds,
                 prediction_ms,
+                tuple(model.loss_history),
             )
         )
     return results
@@ -197,14 +214,15 @@ def to_markdown(report: dict[str, object]) -> str:
     lines = [
         "# Model evolution leaderboard",
         "",
-        "| Model | Library | AUC | PR-AUC | LogLoss | ECE | Train seconds |",
-        "|---|---|---:|---:|---:|---:|---:|",
+        "| Model | Library | AUC | PR-AUC | LogLoss | ECE | Final train loss | Train seconds |",
+        "|---|---|---:|---:|---:|---:|---:|---:|",
     ]
     for result in report["ranking"]:
         metric = result["metrics"]
         lines.append(
             f"| {result['name']} | {result['library']} | {metric['auc']:.4f} | "
             f"{metric['pr_auc']:.4f} | {metric['log_loss']:.4f} | {metric['ece']:.4f} | "
+            f"{result['training_loss'][-1]:.4f} | "
             f"{result['train_seconds']:.3f} |"
         )
     return "\n".join(lines) + "\n"
