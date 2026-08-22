@@ -6,6 +6,8 @@ An executable reference architecture and public outsourcing RFP for an industria
 
 The runnable [POI posting recommendation reconstruction](POI_POSTING_MODEL.md) adds multimodal draft fusion, permission-aware geographic features, impression-derived labels, hard-negative sampling, entire-space sparse publication, and a multi-task ranker.
 
+The [production model suite](PRODUCTION_MODEL_SUITE.md) extends that supply-side model into POI-anchored Feed distribution, map/detail, YMAL, product, and review recommendation with separate model families, streaming samples, long sequences, cascade audits, and full-path consistency.
+
 Public procurement package:
 
 - [REQUEST_FOR_PROPOSAL.md](REQUEST_FOR_PROPOSAL.md): scope, delivery gates, acceptance criteria, security, commercial response, and vendor evaluation.

@@ -11,6 +11,7 @@ class StageLimits:
     vector_recall: int = 240
     popular_recall: int = 80
     fresh_recall: int = 80
+    long_tail_recall: int = 80
     merged_recall: int = 300
     coarse_rank: int = 240
     # Keep the full coarse pool so downstream policy constraints have coverage.
@@ -21,7 +22,12 @@ class StageLimits:
 @dataclass(frozen=True)
 class RecallConfig:
     route_weights: Mapping[str, float] = field(
-        default_factory=lambda: {"viking": 1.0, "popular": 0.35, "fresh": 0.25}
+        default_factory=lambda: {
+            "viking": 1.0,
+            "popular": 0.35,
+            "fresh": 0.25,
+            "long_tail": 0.30,
+        }
     )
     reciprocal_rank_constant: float = 20.0
 

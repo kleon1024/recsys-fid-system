@@ -34,7 +34,9 @@ class PoiPostingTest(unittest.TestCase):
         outputs = model(tensor_batch(self.data, np.arange(12)))
         for task in ("select", "publish", "relevance"):
             self.assertEqual(tuple(outputs[task].shape), (12,))
-        attention = outputs["frame_attention"].detach().numpy()
+            gate = outputs[f"gate:{task}"].detach().numpy()
+            np.testing.assert_allclose(gate.sum(axis=1), 1.0, atol=1e-6)
+        attention = self.data.frame_attention[:12]
         np.testing.assert_allclose(attention.sum(axis=1), 1.0, atol=1e-6)
 
 

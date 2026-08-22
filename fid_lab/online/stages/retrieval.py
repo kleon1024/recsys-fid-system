@@ -77,6 +77,28 @@ class FreshRecall:
         ]
 
 
+class LongTailRecall:
+    """Recover high-quality candidates suppressed by popularity-driven routes."""
+
+    name = "long_tail"
+
+    def __init__(self, catalog: ItemCatalog) -> None:
+        self.catalog = catalog
+
+    def recall(self, request: RequestContext, limit: int) -> list[RecallHit]:
+        scored = []
+        for item in self.catalog.items:
+            affinity = request.category_affinity.get(item.category, 0.0)
+            tailness = 1.0 - item.popularity
+            score = 0.50 * item.quality + 0.30 * tailness + 0.20 * affinity
+            scored.append((score, item))
+        scored.sort(key=lambda value: (-value[0], value[1].item_id))
+        return [
+            RecallHit(item.item_id, score, self.name, "quality_tail_recovery")
+            for score, item in scored[:limit]
+        ]
+
+
 class RecallMerger:
     def __init__(self, config: RecallConfig) -> None:
         self.config = config

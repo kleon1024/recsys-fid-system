@@ -18,6 +18,8 @@ PUBLIC_DOCS = (
     "BIDDER_RESPONSE_TEMPLATE.md",
     "ARCHITECTURE_VISUALS.md",
     "SECURITY.md",
+    "POI_POSTING_MODEL.md",
+    "PRODUCTION_MODEL_SUITE.md",
 )
 
 
@@ -95,6 +97,10 @@ def main() -> None:
     generative = json.loads(generative_demo.stdout)
     poi_demo = run([sys.executable, "-m", "fid_lab.poi_posting.demo"], capture=True)
     poi = json.loads(poi_demo.stdout)
+    poi_feed_demo = run([sys.executable, "-m", "fid_lab.poi_feed.demo"], capture=True)
+    poi_feed = json.loads(poi_feed_demo.stdout)
+    surface_demo = run([sys.executable, "-m", "fid_lab.surfaces.demo"], capture=True)
+    surfaces = json.loads(surface_demo.stdout)
     required = {
         "full_slate_rate": result["full_slate_rate"] == 1.0,
         "unsafe_items": result["unsafe_items"] == 0,
@@ -111,6 +117,12 @@ def main() -> None:
         > poi["baseline_ndcg_at_3"],
         "poi_sparse_publish_task": poi["task_metrics"]["publish"]["positive_rate"]
         < 0.1,
+        "poi_feed_extracted_from_main": poi_feed["anchored_impressions"]
+        == poi_feed["examples"],
+        "poi_feed_sparse_order": poi_feed["label_rates"]["order"] < 0.02,
+        "poi_feed_full_path_consistency": poi_feed["consistency"]["passed"],
+        "surface_models_learn": surfaces["all_tasks_above_random"],
+        "surface_model_count": len(surfaces["surfaces"]) == 5,
     }
     failed = [name for name, passed in required.items() if not passed]
     if failed:

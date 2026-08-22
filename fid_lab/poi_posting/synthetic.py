@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from ..media.materializer import MediaAsset, MediaFeatureMaterializer
 from .contracts import PERMISSIONS, PoiPostingConfig, PostingBatch
 
 
@@ -120,6 +121,8 @@ def append_candidate(
     location: np.ndarray,
     frames: np.ndarray,
     text: np.ndarray,
+    content: np.ndarray,
+    frame_attention: np.ndarray,
     draft: np.ndarray,
     preferences: np.ndarray,
     catalog: Catalog,
@@ -152,6 +155,8 @@ def append_candidate(
         "permission_id": permission,
         "frame_features": frames,
         "text_features": text,
+        "content_features": content,
+        "frame_attention": frame_attention,
         "poi_features": catalog.semantic[poi],
         "numeric_features": (
             np.log1p(distance),
@@ -172,6 +177,12 @@ def build_dataset(config: PoiPostingConfig = PoiPostingConfig()) -> PostingBatch
     catalog = make_catalog(config, rng)
     author_city = rng.integers(config.cities, size=config.authors)
     author_preferences = rng.normal(0.0, 0.7, size=(config.authors, config.categories))
+    materializer = MediaFeatureMaterializer(
+        config.raw_semantic_dim,
+        config.representation_dim,
+        version="posting-media-v1",
+        seed=config.seed,
+    )
     rows: dict[str, list[object]] = {
         name: [] for name in PostingBatch.__dataclass_fields__
     }
@@ -197,6 +208,9 @@ def build_dataset(config: PoiPostingConfig = PoiPostingConfig()) -> PostingBatch
         frames[informative] = normalize(
             draft
             + rng.normal(0.0, 0.32, size=(2, config.raw_semantic_dim))
+        )
+        media = materializer.materialize(
+            MediaAsset(session, frames.astype(np.float32), text.astype(np.float32), session)
         )
         permission = int(rng.choice(3, p=(0.56, 0.29, 0.15)))
         location, observed_city = location_context(target, permission, catalog, rng)
@@ -229,6 +243,8 @@ def build_dataset(config: PoiPostingConfig = PoiPostingConfig()) -> PostingBatch
                 location,
                 frames,
                 text,
+                media.content_embedding,
+                media.frame_attention,
                 draft,
                 author_preferences[author],
                 catalog,

@@ -8,4 +8,6 @@ authority_modules = [
   "fid_lab.training.contracts",
   "fid_lab.training.joiner",
   "fid_lab.poi_posting.contracts",
+  "fid_lab.poi_feed.contracts",
+  "fid_lab.surfaces.contracts",
 ]

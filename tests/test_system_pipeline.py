@@ -15,7 +15,12 @@ from fid_lab.online.stages.retrieval import LocalVikingIndex, RecallHit, RecallM
 
 
 RECALL_RULE = RecallConfig(
-    route_weights={"viking": 1.0, "popular": 0.35, "fresh": 0.25},
+    route_weights={
+        "viking": 1.0,
+        "popular": 0.35,
+        "fresh": 0.25,
+        "long_tail": 0.30,
+    },
     reciprocal_rank_constant=20.0,
 )
 VALUE_RULE = ValueTreeConfig(

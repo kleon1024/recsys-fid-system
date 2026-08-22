@@ -12,7 +12,13 @@ from .features import OnlineFeatureService
 from .stages.mixing import MixedRanker
 from .stages.policy import ConstrainedPolicyOptimizer, RankingRuleEngine
 from .stages.ranking import CoarseRanker, EligibilityFilter, FineRanker, ValueTree
-from .stages.retrieval import FreshRecall, LocalVikingIndex, PopularRecall, RecallMerger
+from .stages.retrieval import (
+    FreshRecall,
+    LocalVikingIndex,
+    LongTailRecall,
+    PopularRecall,
+    RecallMerger,
+)
 
 
 T = TypeVar("T")
@@ -27,6 +33,7 @@ class RecommendationPipeline:
         self.viking = LocalVikingIndex(catalog)
         self.popular = PopularRecall(catalog)
         self.fresh = FreshRecall(catalog)
+        self.long_tail = LongTailRecall(catalog)
         self.merger = RecallMerger(config.recall)
         self.filter = EligibilityFilter(catalog)
         self.features = OnlineFeatureService(catalog)
@@ -63,6 +70,7 @@ class RecommendationPipeline:
                 "viking": self.viking.recall(request, limits.vector_recall),
                 "popular": self.popular.recall(request, limits.popular_recall),
                 "fresh": self.fresh.recall(request, limits.fresh_recall),
+                "long_tail": self.long_tail.recall(request, limits.long_tail_recall),
             },
         )
         trace = StageTrace(trace.stage, trace.input_count, sum(map(len, route_hits.values())), trace.latency_ms)

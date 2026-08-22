@@ -18,7 +18,7 @@ The online decision is a ranking over POIs already retrieved for one posting dra
 flowchart LR
     V[Draft frames] --> E[Offline or nearline frame encoder]
     T[Caption ASR OCR] --> X[Text encoder]
-    E --> F[Gated content fusion]
+    E --> F[Versioned content fusion]
     X --> F
     P[POI text category city media] --> PE[POI encoder]
     F --> R[Candidate pair ranker]
@@ -28,13 +28,13 @@ flowchart LR
     R --> M[Select publish relevance heads]
 ```
 
-The demo starts from frame-level and text-level feature vectors because downloading and running a large proprietary video foundation model is not the ranking problem being tested. The trainable model still performs real frame attention, gated text/video fusion, POI encoding, sparse-ID embedding, MMoE routing, and multi-task optimization. In production, raw frame vectors would be produced asynchronously by a versioned encoder such as a CLIP-like image-text model or a video encoder; they would not be computed inside the latency-sensitive ranking request.
+The demo starts from frame-level and text-level feature vectors because downloading and running a large proprietary video foundation model is not the ranking problem being tested. A separate materializer performs frame attention and text/video projection, records the encoder version and content hash, and writes a normalized content vector. The online ranker consumes that vector together with POI encoding, sparse-ID embeddings, MMoE routing, and multi-task objectives. In production, raw frame vectors would be produced asynchronously by a versioned encoder such as a CLIP-like image-text model or a video encoder; they are not computed inside the latency-sensitive ranking request.
 
 The local representation dimension is 32 because the synthetic catalog is small. It is not a claimed production dimension. A production choice must sweep dimensions such as 64, 128, and 256 against retrieval Recall@K, hard-slice recall, index bytes, build time, and p99 serving latency. The smallest dimension on the quality-latency Pareto frontier wins.
 
 ## Features versus labels
 
-Features known before ranking include author, POI, city, category and permission FIDs; permission-aware distance; POI popularity; author-category affinity; frame vectors; text vectors; and POI semantic vectors. The model learns attention over draft frames, fuses video and text through a gate, and maps content and POIs into one normalized space.
+Features known before ranking include author, POI, city, category and permission FIDs; permission-aware distance; POI popularity; author-category affinity; a materialized content vector; and POI semantic vectors. The upstream media pipeline owns frame attention and content-vector versioning; the online model owns POI adaptation and candidate ranking.
 
 Labels are outcomes after exposure. The model does not call an unselected candidate a failed conditional publication. Instead, it learns selection on the full exposure space and learns the joint `selected and published` probability as the product of selection probability and conditional publication probability. The joint label is valid for every exposure and avoids training the sparse head only on a selected, biased subset.
 

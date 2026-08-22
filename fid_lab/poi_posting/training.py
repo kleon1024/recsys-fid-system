@@ -52,6 +52,7 @@ def tensor_batch(data: PostingBatch, indices: np.ndarray) -> dict[str, torch.Ten
     float_names = (
         "frame_features",
         "text_features",
+        "content_features",
         "poi_features",
         "numeric_features",
     )
@@ -190,7 +191,7 @@ def predict(
             relevance = torch.sigmoid(outputs["relevance"])
             task_scores = torch.stack([select, publish, relevance], dim=1)
             scores.append(task_scores.numpy())
-            attention.append(outputs["frame_attention"].numpy())
+            attention.append(data.frame_attention[batch_indices])
     return np.concatenate(scores), np.concatenate(attention)
 
 

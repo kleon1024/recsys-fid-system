@@ -45,6 +45,8 @@ class PostingBatch:
     permission_id: np.ndarray
     frame_features: np.ndarray
     text_features: np.ndarray
+    content_features: np.ndarray
+    frame_attention: np.ndarray
     poi_features: np.ndarray
     numeric_features: np.ndarray
     labels: np.ndarray
