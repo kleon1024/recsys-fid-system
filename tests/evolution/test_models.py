@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import numpy as np
+import pandas as pd
 import torch
 
 from fid_lab.evolution.models.deepctr_adapter import (
@@ -28,11 +29,69 @@ from fid_lab.feed_loop.models.artifact import (
 )
 from fid_lab.feed_loop.models.deep_policy import DENSE_INDICES, SPARSE_SPECS
 from fid_lab.feed_loop.world_model.benchmark.contracts import capacity_gates
+from fid_lab.feed_loop.world_model.external.kuairand.dataset import _history
+from fid_lab.feed_loop.world_model.external.kuairand.models import (
+    KuaiSequenceTransformer,
+    KuaiWideDeep,
+)
+from fid_lab.feed_loop.world_model.external.kuairand.kernel import (
+    KuaiBehaviorKernel,
+    SlateResponse,
+)
+from fid_lab.feed_loop.world_model.external.replay import _guard_mask
 from fid_lab.simulation.environment import FEATURE_NAMES
 from fid_lab.simulation.policies import fit_logistic_policy
 
 
 class MatureModelAdapterTest(unittest.TestCase):
+    def test_external_history_is_point_in_time_and_user_bounded(self) -> None:
+        logs = pd.DataFrame({"user_id": [1, 1, 1, 2]})
+        items = np.asarray([11, 12, 13, 21], dtype=np.int64)
+        feedback = np.zeros((4, 7), dtype=np.uint8)
+        feedback[0, 1] = 1
+        history_items, history_feedback = _history(
+            logs, items, feedback, length=3
+        )
+        self.assertEqual(history_items[2].tolist(), [0, 11, 12])
+        self.assertEqual(history_feedback[2, 1, 1], 1)
+        self.assertEqual(history_items[3].tolist(), [0, 0, 0])
+
+    def test_external_behavior_models_share_multitask_contract(self) -> None:
+        sparse = torch.tensor([[1, 2, 3, 1, 1, 1, 1]] * 4)
+        dense = torch.rand(4, 11)
+        history_items = torch.tensor([[0, 0, 2, 3]] * 4)
+        history_feedback = torch.zeros(4, 4, 7)
+        for model in (
+            KuaiWideDeep((10, 10, 10, 5, 5, 5, 5), 11),
+            KuaiSequenceTransformer((10, 10, 10, 5, 5, 5, 5), 11, 4),
+        ):
+            output = model(sparse, dense, history_items, history_feedback)
+            self.assertEqual(output.shape, (4, 8))
+            self.assertTrue(torch.isfinite(output).all())
+
+    def test_external_kernel_updates_only_selected_point_in_time_history(self) -> None:
+        history_items = torch.tensor([[0, 2, 3], [0, 4, 5]])
+        history_feedback = torch.zeros(2, 3, 7)
+        actions = torch.tensor([
+            [1, 1, 0, 0, 0, 0, 0],
+            [1, 0, 1, 0, 0, 0, 0],
+        ])
+        next_items, next_feedback = KuaiBehaviorKernel.advance_history(
+            history_items, history_feedback, torch.tensor([7, 8]), actions
+        )
+        self.assertEqual(next_items.tolist(), [[2, 3, 7], [4, 5, 8]])
+        self.assertEqual(next_feedback[:, -1].tolist(), actions.tolist())
+        response = SlateResponse(torch.rand(2, 3, 7), torch.rand(2, 3))
+        self.assertEqual(response.probabilities.shape, (2, 3, 7))
+
+    def test_external_treatment_guard_rejects_predicted_hate_regression(self) -> None:
+        base = SlateResponse(torch.zeros(1, 2, 7), torch.full((1, 2), 0.5))
+        candidate_probability = torch.zeros(1, 2, 7)
+        candidate_probability[0, 1, 6] = 0.9
+        candidate = SlateResponse(candidate_probability, torch.full((1, 2), 0.5))
+        eligible = _guard_mask(base, candidate, torch.tensor([0]))
+        self.assertEqual(eligible.tolist(), [[True, False]])
+
     def test_v4_capacity_gate_rejects_an_unused_sequence(self) -> None:
         context = {
             "permuted_sequence": {"relative_to_baseline_std": 0.01},

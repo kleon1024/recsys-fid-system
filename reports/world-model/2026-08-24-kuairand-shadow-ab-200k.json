@@ -1,0 +1,85 @@
+{
+  "schema": "kuairand-external-stateful-shadow-ab-v1",
+  "users": 200000,
+  "steps": 8,
+  "candidates": 20,
+  "metrics": {
+    "click": {
+      "absolute_delta": 4.907054972136393e-05,
+      "standard_error": 3.7501967305785984e-06,
+      "confidence_interval_95": [
+        4.172016412942988e-05,
+        5.642093531329798e-05
+      ],
+      "control_mean": 0.6142868995666504
+    },
+    "long_view": {
+      "absolute_delta": 5.325231177266687e-05,
+      "standard_error": 4.0821637236504725e-06,
+      "confidence_interval_95": [
+        4.5251270874311944e-05,
+        6.12533526710218e-05
+      ],
+      "control_mean": 0.5905898213386536
+    },
+    "like": {
+      "absolute_delta": -9.469056749367155e-06,
+      "standard_error": 1.3500500396524489e-05,
+      "confidence_interval_95": [
+        -3.593003752655515e-05,
+        1.6991924027820843e-05
+      ],
+      "control_mean": 0.43516862392425537
+    },
+    "hate": {
+      "absolute_delta": -4.231662387610413e-05,
+      "standard_error": 2.6866038095083135e-05,
+      "confidence_interval_95": [
+        -9.497405854246707e-05,
+        1.034081079025881e-05
+      ],
+      "control_mean": 0.2995498776435852
+    },
+    "stay_norm": {
+      "absolute_delta": 1.5606969100190327e-05,
+      "standard_error": 2.3153566903866965e-06,
+      "confidence_interval_95": [
+        1.1068869987032401e-05,
+        2.014506821334825e-05
+      ],
+      "control_mean": 0.8237040638923645
+    }
+  },
+  "gates": {
+    "long_view_nonnegative": true,
+    "stay_nonnegative": true,
+    "hate_nonpositive": false,
+    "click_guardrail": true,
+    "like_guardrail": true
+  },
+  "decision": "shadow_ab_hold",
+  "selection_value": {
+    "weights": {
+      "click": 0.1,
+      "long_view": 0.27,
+      "like": 0.3,
+      "hate": -0.1,
+      "stay_norm": 0.28
+    },
+    "semantics": "ranking utility only, not unified LT",
+    "control_feasibility_tolerances": {
+      "click": 0.02,
+      "long_view": 0.02,
+      "like": 0.02,
+      "hate": -0.005,
+      "stay_norm": -0.005
+    }
+  },
+  "evidence_boundary": "Independent-seed learned-world replay; not randomized-log causal evidence.",
+  "artifacts": {
+    "control_sha256": "925b958506b818e574ad539237e7b64621e95986a837d5aed957bddec7d16802",
+    "treatment_sha256": "cccc5b5cd071c543cdfc1acb936cf7daead8773e00d7d3c0de3d31167b23317b",
+    "world_sha256": "3a94878e8c5c0cf368b8ef869b2180b7d734ffc33fa6a4245d397085b5955f45"
+  },
+  "candidate_seed": 20260824
+}

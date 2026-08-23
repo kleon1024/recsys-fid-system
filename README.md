@@ -89,6 +89,25 @@ response surface and effectively ignores sequence; all sequence-capacity gates
 fail and V4 remains held. See
 [L-SIMULATOR-006](docs/launch-reviews/2026-08-23-main-feed-suite/l-simulator-006.md).
 
+The first external sequence lane now uses the official KuaiSim KuaiRand-Pure
+snapshot with point-in-time 64-event histories and a date-disjoint test period.
+On 1,079,797 training interactions, W&D reaches long-view AUC 0.70236 and the
+sequence Transformer reaches 0.73868, versus 0.64832 for XGBoost. Shuffling
+history reduces Transformer AUC to 0.59807, proving that the gain is genuinely
+sequential. The kernel passes all capacity gates but remains outside simulator
+authority because Pure does not contain the randomized logs required for causal
+promotion. See
+[L-SIMULATOR-007](docs/launch-reviews/2026-08-23-main-feed-suite/l-simulator-007.md).
+
+The external kernel now also closes a stateful request/slate shadow A/B. The
+final independent-world run covers 200,000 users, eight sequential feedback
+steps, and 20 candidates per request. Click, long view, and normalized stay are
+significantly positive at roughly 0.001--0.005 percentage points, while like
+stays inside its guardrail. Hate improves on average but its 95% upper bound is
+still positive, so the release correctly holds. Pure also lacks randomized
+exposure logs, and the ranking utility is not unified LT. See
+[L-SIMULATOR-008](docs/launch-reviews/2026-08-23-main-feed-suite/l-simulator-008.md).
+
 The Feature LR release ladder now trains every legal combination of four atomic
 feature proposals on one immutable sample snapshot. Each A/B compares a proposal
 with the last accepted control. Sequence is held; realtime promotes over Basic;

@@ -46,6 +46,10 @@ entry_points = [
   "fid_lab/feed_loop/world_model/cli.py",
   "fid_lab/feed_loop/world_model/validation/evaluation.py",
   "fid_lab/feed_loop/world_model/benchmark/cli.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/dataset_cli.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/benchmark_cli.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/kernel.py",
+  "fid_lab/feed_loop/world_model/external/replay.py",
   "fid_lab/simulation/features/groups.py",
   "fid_lab/feed_loop/models/feature_lr.py",
   "fid_lab/feed_loop/models/feature_lr_cli.py",
@@ -74,4 +78,6 @@ authority_modules = [
   "fid_lab.value.tree",
   "fid_lab.feed_loop.world_model.contracts",
   "fid_lab.feed_loop.world_model.benchmark.contracts",
+  "fid_lab.feed_loop.world_model.external.kuairand.contracts",
+  "fid_lab.feed_loop.world_model.external.kuairand.kernel",
 ]

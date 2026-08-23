@@ -1,0 +1,251 @@
+{
+  "schema": "kuairand-external-capacity-benchmark-v1",
+  "dataset_manifest": {
+    "schema": "kuairand-external-sequence-v1",
+    "source": "Applied-Machine-Learning-Lab/KuaiSim bundled KuaiRand-Pure",
+    "source_commit": "2ae32aa25a0aac103194a66e6864e3d2ac6d6580",
+    "license": "CC-BY-SA-4.0",
+    "source_files": {
+      "log_standard_4_08_to_4_21_pure.csv": "5bb6eb0b3d9f47e5436cb5dc82ee1899b845ebf9750a5560b801e929e18bd41c",
+      "log_standard_4_22_to_5_08_pure.csv": "429e3b948828942e572f2c3a5be5a25799ffe75591d22d18cf417b9b534d31fd",
+      "user_features_pure.csv": "dc729a656301b4c6d07f713fe41d05ec9bfaab670b90e531c70037caf033c011",
+      "video_features_basic_pure.csv": "a6f7ee02684c5777422306cdc416e170302288aa89aca9dfea995edbd625bcc2"
+    },
+    "sequence_length": 64,
+    "feedback_names": [
+      "is_click",
+      "long_view",
+      "is_like",
+      "is_comment",
+      "is_forward",
+      "is_follow",
+      "is_hate"
+    ],
+    "sparse_names": [
+      "user_id",
+      "video_id",
+      "author_id",
+      "tag",
+      "video_type",
+      "upload_type",
+      "music_type"
+    ],
+    "sparse_vocabularies": [
+      27286,
+      7584,
+      6490,
+      45,
+      4,
+      15,
+      7
+    ],
+    "dense_names": [
+      "duration_log_norm",
+      "hour_sin",
+      "hour_cos",
+      "aspect_ratio",
+      "account_age_log_norm",
+      "follow_count_log_norm",
+      "fan_count_log_norm",
+      "friend_count_log_norm",
+      "low_activity",
+      "live_streamer",
+      "video_author"
+    ],
+    "splits": {
+      "train": {
+        "rows": 1079797,
+        "date_min": 20220409,
+        "date_max": 20220418,
+        "sha256": "22d3d542acb3f92e3c2eb0aae8c426610dd2be16e7017bf6fff12ec34e6bdfba"
+      },
+      "validation": {
+        "rows": 61315,
+        "date_min": 20220419,
+        "date_max": 20220421,
+        "sha256": "b75f60594aeb5bb48ecc2a2a2dd74b32a5c88df43a2b03ba2f4a8e636c37b6bb"
+      },
+      "test": {
+        "rows": 295497,
+        "date_min": 20220422,
+        "date_max": 20220508,
+        "sha256": "9eeebcc9ab2c2780dbe7a0581c2beba6b9a68163933bc4d41f33e1f294e66390"
+      }
+    },
+    "evidence_boundary": "External chronological behavior evidence; Pure lacks randomized logs and is not sufficient for final causal-authority promotion."
+  },
+  "rows": {
+    "train": 1079797,
+    "validation": 61315,
+    "test": 295497
+  },
+  "models": {
+    "logistic_regression": {
+      "long_view_auc": 0.5529150899517044,
+      "long_view_log_loss": 0.6193790713564382,
+      "train_seconds": 0.5604994620080106
+    },
+    "xgboost": {
+      "long_view_auc": 0.6483221136536188,
+      "long_view_log_loss": 0.592994319678381,
+      "train_seconds": 1.4042983849940356
+    },
+    "wide_deep": {
+      "tasks": {
+        "is_click": {
+          "auc": 0.6901899492699175,
+          "log_loss": 0.6381966441810778,
+          "positive_rate": 0.44500282406806946
+        },
+        "long_view": {
+          "auc": 0.7023615389883826,
+          "log_loss": 0.6265163408193095,
+          "positive_rate": 0.31338050961494446
+        },
+        "is_like": {
+          "auc": 0.8142292561443667,
+          "log_loss": 0.4431234756758529,
+          "positive_rate": 0.017712531611323357
+        },
+        "is_comment": {
+          "auc": 0.6797127865854333,
+          "log_loss": 0.24854728269282475,
+          "positive_rate": 0.002460261806845665
+        },
+        "is_forward": {
+          "auc": 0.669680734371992,
+          "log_loss": 0.07980037215106352,
+          "positive_rate": 0.0008324957452714443
+        },
+        "is_follow": {
+          "auc": 0.76234593888934,
+          "log_loss": 0.09099358065018258,
+          "positive_rate": 0.0013333468232303858
+        },
+        "is_hate": {
+          "auc": 0.6098807254922258,
+          "log_loss": 0.030378418908131748,
+          "positive_rate": 0.0007783496985211968
+        },
+        "stay_norm": {
+          "mae": 0.18985649943351746
+        }
+      },
+      "long_view_auc": 0.7023615389883826,
+      "train_seconds": 12.326089346999652,
+      "parameters": 688856,
+      "training_history": [
+        {
+          "epoch": 1,
+          "training_loss": 2.0830135051951264,
+          "validation_loss": 1.7144439220428467
+        },
+        {
+          "epoch": 2,
+          "training_loss": 1.707942280579697,
+          "validation_loss": 1.6283706903457642
+        },
+        {
+          "epoch": 3,
+          "training_loss": 1.5930816513119321,
+          "validation_loss": 1.587595804532369
+        },
+        {
+          "epoch": 4,
+          "training_loss": 1.5249866750655752,
+          "validation_loss": 1.551906156539917
+        },
+        {
+          "epoch": 5,
+          "training_loss": 1.475216055006692,
+          "validation_loss": 1.530901845296224
+        }
+      ],
+      "artifact_sha256": "925b958506b818e574ad539237e7b64621e95986a837d5aed957bddec7d16802"
+    },
+    "sequence_transformer": {
+      "tasks": {
+        "is_click": {
+          "auc": 0.7314854895604592,
+          "log_loss": 0.6038852096630829,
+          "positive_rate": 0.44500282406806946
+        },
+        "long_view": {
+          "auc": 0.7386762609062076,
+          "log_loss": 0.585688774676819,
+          "positive_rate": 0.31338050961494446
+        },
+        "is_like": {
+          "auc": 0.883916809447044,
+          "log_loss": 0.39634960718987977,
+          "positive_rate": 0.017712531611323357
+        },
+        "is_comment": {
+          "auc": 0.7511250885975073,
+          "log_loss": 0.18742874262454237,
+          "positive_rate": 0.002460261806845665
+        },
+        "is_forward": {
+          "auc": 0.7058523142208367,
+          "log_loss": 0.08320538647438588,
+          "positive_rate": 0.0008324957452714443
+        },
+        "is_follow": {
+          "auc": 0.8127934974987913,
+          "log_loss": 0.08284821804444918,
+          "positive_rate": 0.0013333468232303858
+        },
+        "is_hate": {
+          "auc": 0.7819407519296095,
+          "log_loss": 0.034923755691041676,
+          "positive_rate": 0.0007783496985211968
+        },
+        "stay_norm": {
+          "mae": 0.18579484522342682
+        }
+      },
+      "long_view_auc": 0.7386762609062076,
+      "train_seconds": 37.454605537001044,
+      "parameters": 790264,
+      "training_history": [
+        {
+          "epoch": 1,
+          "training_loss": 1.5575285454591115,
+          "validation_loss": 1.4947865645090739
+        },
+        {
+          "epoch": 2,
+          "training_loss": 1.4862356501998324,
+          "validation_loss": 1.4521610498428346
+        },
+        {
+          "epoch": 3,
+          "training_loss": 1.454195543446324,
+          "validation_loss": 1.4409968535105386
+        },
+        {
+          "epoch": 4,
+          "training_loss": 1.432073790918697,
+          "validation_loss": 1.428281553586324
+        },
+        {
+          "epoch": 5,
+          "training_loss": 1.4139787511843624,
+          "validation_loss": 1.4324561913808187
+        }
+      ],
+      "artifact_sha256": "cccc5b5cd071c543cdfc1acb936cf7daead8773e00d7d3c0de3d31167b23317b"
+    }
+  },
+  "history_permutation": {
+    "mean_absolute_long_view_delta": 0.18012605607509613,
+    "p95_absolute_long_view_delta": 0.446102499961853,
+    "shuffled_long_view_auc": 0.5980692753820533
+  },
+  "gates": {
+    "wide_deep_beats_logistic": true,
+    "sequence_beats_best_tabular": true,
+    "history_is_material": true
+  },
+  "decision": "external_sequence_capacity_pass"
+}
