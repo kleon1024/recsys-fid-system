@@ -53,6 +53,7 @@ class V3LoggingConfig:
     sequence_length: int = 24
     seed: int = 20260823
     device: str = "cuda:0"
+    signal_version: str = "kuairand-calibrated-v3"
 
     def __post_init__(self):
         if not 0.0 < self.epsilon < 1.0:
@@ -276,7 +277,8 @@ def build_v3_logging_dataset(root: Path, output_dir: Path, config: V3LoggingConf
     authority_bundle_id = authority["active_bundle_id"]
     tensor_config = TensorFeedConfig(
         users=config.users, steps=config.steps, batch_users=config.batch_users,
-        seed=config.seed, device=config.device, signal_version="kuairand-calibrated-v3",
+        seed=config.seed, device=config.device,
+        signal_version=config.signal_version,
     )
     device, generator, catalog = prepare_run(tensor_config, None, 0, None)
     storage = {}

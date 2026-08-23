@@ -144,6 +144,21 @@ def _candidate_model_scores(ensemble, split, device, limit, request_batch=128):
 
 def policy_order_agreement(ensemble: WorldModelEnsemble, split: WorldModelSplit,
                            device: torch.device, limit=10_000):
+    if split.candidate_utility_source != "synthetic_oracle" or not torch.isfinite(
+        split.candidate_audit_utility
+    ).all():
+        return {
+            "world": split.candidate_utility_source,
+            "available": False,
+            "reason": (
+                "candidate-level counterfactual utility is not observed in "
+                "the external randomized bridge"
+            ),
+            "policies": [],
+            "kendall_tau": None,
+            "pass": False,
+            "production_evidence": False,
+        }
     count = min(len(split), limit)
     features = split.slate_features[:count]
     model_scores = _candidate_model_scores(ensemble, split, device, count)

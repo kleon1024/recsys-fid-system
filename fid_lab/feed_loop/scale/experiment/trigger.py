@@ -81,6 +81,14 @@ def combine_tensor_ab(control_report, treatment_report):
     )
 
 
+def combine_tensor_counterfactual_ab(control_report, treatment_report):
+    """Compare the same hashed users across common-random policy worlds."""
+    return _combine_experiment_cells(
+        control_report["experiment_cells"]["treatment"],
+        treatment_report["experiment_cells"]["treatment"],
+    )
+
+
 def combine_tensor_trigger_ab(control_report, treatment_report):
     control = control_report["trigger_experiment"]
     treatment = treatment_report["trigger_experiment"]

@@ -1,7 +1,7 @@
 {
   "schema": "simulated-feed-posting-authority-v1",
   "active_key": "trending_i2i_plus_linear",
-  "active_bundle_id": "sha256:eb82feb08799ac3c5eee29cd2a68664753716cc94e54cc646ed300ef536d8f82",
+  "active_bundle_id": "sha256:a3c3d3e44f6aaf2593015101675592af0156e70fbcbffa2e1be30a7fd0085431",
   "active_bundle": {
     "candidate_policy": "trending_i2i",
     "fine_model": "linear",
@@ -34,7 +34,7 @@
       },
       {
         "path": "fid_lab/feed_posting/release.py",
-        "sha256": "46ccc434ef3e15c76e734b8634996c617bb1a879c1750807a2d45d023cc3ceaa"
+        "sha256": "de2bb42e5fece5e3ba54d23a0baec1f07dfa54ac6130937f9dd25b5fe0357e12"
       },
       {
         "path": "fid_lab/feed_posting/simulation/__init__.py",
@@ -55,6 +55,10 @@
       {
         "path": "fid_lab/feed_posting/simulation/world.py",
         "sha256": "22b05c1ee27c5fdd0686644dcad0cd43a4138a7c5d4a2dea6d42bbfe8fcd603d"
+      },
+      {
+        "path": "fid_lab/launches/release_resources.py",
+        "sha256": "ad1b3f40b9ba9a3bbc931e164f60bb832dc88ca362cbd012f04eb504e8b3dee9"
       },
       {
         "path": "fid_lab/launches/statistics.py",

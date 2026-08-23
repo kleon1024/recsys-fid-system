@@ -1,7 +1,7 @@
 {
   "schema": "simulated-poi-posting-authority-v1",
   "active_key": "history_recall_plus_wide_deep",
-  "active_bundle_id": "sha256:653618e543f0b5b90b51269cb78a7c76027052936d7cefed6f2df27f378ff951",
+  "active_bundle_id": "sha256:edcae7518dab6f0f3dd78791d350ebc401ea1aa6c862ec544017e6f35ea6da02",
   "active_bundle": {
     "candidate_policy": "history_recall",
     "fine_model": "wide_deep",
@@ -12,6 +12,10 @@
     "model_seed": 20260824,
     "world_version": "teacher-hidden-posting-v1",
     "sources": [
+      {
+        "path": "fid_lab/launches/release_resources.py",
+        "sha256": "ad1b3f40b9ba9a3bbc931e164f60bb832dc88ca362cbd012f04eb504e8b3dee9"
+      },
       {
         "path": "fid_lab/launches/statistics.py",
         "sha256": "178ddd48d2aca9415f88cd1c95360fd3c239fa517e2809ade1022bb3b1fce10c"
@@ -46,7 +50,7 @@
       },
       {
         "path": "fid_lab/poi_posting/world/release.py",
-        "sha256": "0f4be906cc1a8055adeea75a499ef3dd72239523fe84ab0c9d4570c9d8cca0cf"
+        "sha256": "7f080bfb003d1a894739700f632a5330f88d4f7175e25f7dd9ee98a54f695cdd"
       },
       {
         "path": "fid_lab/training/common/tensor_ops.py",

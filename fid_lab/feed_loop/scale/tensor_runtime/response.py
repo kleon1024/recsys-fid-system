@@ -7,6 +7,7 @@ import torch
 from ....value import BUSINESS_TREE_WEIGHTS, DEFAULT_LT_CONFIG
 from ..calibration.behavior import response_parameters
 from ..graph.random import normal, uniform
+from .local_response import sample_local_response
 
 
 def sample_response(
@@ -36,7 +37,7 @@ def sample_response(
             + parameters.stay_noise * normal(user_ids, step, 32, seed)
         ),
     ) * played
-    long_threshold = 18.0 if signal_version == "kuairand-calibrated-v3" else 10.0
+    long_threshold = 18.0 if signal_version.startswith("kuairand-") else 10.0
     long_view = (
         stay >= torch.minimum(torch.full_like(stay, long_threshold), duration)
     ) & active
@@ -53,59 +54,6 @@ def sample_response(
         )
     ) & active
     return stay, long_view, hlt, like, negative, played, play_draw
-
-
-def sample_local_response(
-    user_ids,
-    step,
-    seed,
-    active,
-    affinity,
-    is_poi,
-    commerce,
-    poi_quality,
-    inventory,
-    same_city,
-    search_match,
-    retarget_match,
-    fulfillment,
-):
-    anchor = (
-        uniform(user_ids, step, 40, seed)
-        < torch.sigmoid(
-            -5.0
-            + 1.7 * affinity
-            + 0.7 * same_city
-            + 0.5 * commerce
-            + 1.4 * search_match
-            + 1.1 * retarget_match
-        )
-    ) & active & is_poi.bool()
-    detail = (
-        uniform(user_ids, step, 41, seed)
-        < torch.sigmoid(-1.3 + affinity + 0.8 * poi_quality + 0.7 * search_match)
-    ) & anchor
-    favorite = (
-        uniform(user_ids, step, 42, seed)
-        < torch.sigmoid(-3.2 + 0.8 * affinity + poi_quality)
-    ) & detail
-    order = (
-        uniform(user_ids, step, 43, seed)
-        < torch.sigmoid(
-            -4.5
-            + 1.2 * commerce
-            + 0.9 * poi_quality
-            + 0.9 * retarget_match
-            + 1.2 * inventory
-        )
-    ) & detail
-    paid = order & (fulfillment == 1) & (
-        uniform(user_ids, step, 44, seed) < 0.92
-    )
-    pixel = order & (fulfillment == 2) & (
-        uniform(user_ids, step, 45, seed) < 0.35
-    )
-    return anchor, detail, favorite, paid, pixel
 
 
 def business_and_lt_values(
@@ -150,4 +98,3 @@ def business_and_lt_values(
     commercialization = converted.float() * commerce * 8.0
     lt_value = stay / 60.0 * lt_rates["stay_minute"].unit_value
     return lt_value, feed_tree, local_tree, commercialization
-

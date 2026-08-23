@@ -20,6 +20,9 @@ from fid_lab.feed_loop.world_model.training import (
 )
 from fid_lab.feed_loop.world_model.validation import evaluate_world_model
 from fid_lab.feed_loop.world_model.validation.evaluation import _distribution_report
+from fid_lab.feed_loop.world_model.validation.synthetic import (
+    synthetic_causal_validation,
+)
 from fid_lab.feed_loop.world_model.benchmark.neural import (
     DINRequestRanker,
     SlateTransformerRanker,
@@ -253,3 +256,28 @@ def test_external_bridge_preserves_observed_actions_and_masks_unknown_business_l
     assert payload["label_masks"][:, 9:16].sum() == 0
     assert payload["label_masks"][:, 16:20].all()
     assert payload["labels"][:, 20].tolist() == [1, 0, 0, 0]
+    assert payload["candidate_utility_source"] == (
+        "unavailable_external_randomized_bridge"
+    )
+    assert torch.isnan(payload["candidate_audit_utility"]).all()
+
+
+def test_external_bridge_cannot_claim_synthetic_policy_order():
+    split = _split()
+    split = WorldModelSplit(
+        **{
+            **split.__dict__,
+            "candidate_audit_utility": torch.full_like(
+                split.candidate_audit_utility, torch.nan
+            ),
+            "candidate_utility_source": (
+                "unavailable_external_randomized_bridge"
+            ),
+        }
+    )
+    report = synthetic_causal_validation(
+        WorldModelEnsemble(_config()), split, "cpu"
+    )["policy_order"]
+    assert report["available"] is False
+    assert report["pass"] is False
+    assert report["kendall_tau"] is None

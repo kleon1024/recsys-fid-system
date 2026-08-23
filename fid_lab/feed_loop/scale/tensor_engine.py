@@ -6,6 +6,7 @@ from time import perf_counter
 
 import torch
 
+from ...simulation.experimentation.assignment import assign_binary_torch
 from ...value import BUSINESS_TREE_WEIGHTS, DEFAULT_LT_CONFIG
 from .artifact.features import build_tensor_features
 from .calibration.nonlinear import nonlinear_stay_adjustment
@@ -19,6 +20,7 @@ from .graph.trace import append_trace
 from .graph.random import uniform_for_items
 from .experiment.trigger import (
     combine_tensor_ab,
+    combine_tensor_counterfactual_ab,
     combine_tensor_trigger_ab,
     refresh_search_state,
     trigger_mask,
@@ -57,6 +59,7 @@ __all__ = [
     "TensorFeedConfig",
     "TensorPolicy",
     "combine_tensor_ab",
+    "combine_tensor_counterfactual_ab",
     "combine_tensor_trigger_ab",
     "candidate_batch",
     "new_user_state",
@@ -72,9 +75,16 @@ def _sync(device: torch.device) -> None:
 
 
 
-def _accumulate_cells(cell_stats, user_ids, user_metrics, cohort=None):
-    bucket = torch.remainder(user_ids * 1_664_525 + 1_013_904_223, 2**31)
-    assigned = bucket < 2**30
+def _accumulate_cells(
+    cell_stats, user_ids, user_metrics, cohort=None, assignment_version="legacy",
+):
+    if assignment_version == "avalanche_v2":
+        assigned = assign_binary_torch(user_ids)
+    else:
+        bucket = torch.remainder(
+            user_ids * 1_664_525 + 1_013_904_223, 2**31
+        )
+        assigned = bucket < 2**30
     rates = user_metrics[:, 1:].clone()
     rates[:, :16] /= user_metrics[:, :1].clamp_min(1.0)
     rates[:, 19:23] /= user_metrics[:, :1].clamp_min(1.0)
@@ -86,6 +96,21 @@ def _accumulate_cells(cell_stats, user_ids, user_metrics, cohort=None):
         cell_stats[cell, :, 0] += mask.sum()
         cell_stats[cell, :, 1] += values.sum(dim=0)
         cell_stats[cell, :, 2] += values.square().sum(dim=0)
+
+
+def _accumulate_batch_cells(
+    config, cells, trigger_cells, user_ids, metrics, trigger_cohort,
+    trigger_kind,
+):
+    version = (
+        "avalanche_v2"
+        if config.signal_version == "kuairand-local-neural-v4" else "legacy"
+    )
+    _accumulate_cells(cells, user_ids, metrics, assignment_version=version)
+    if trigger_kind:
+        _accumulate_cells(
+            trigger_cells, user_ids, metrics, trigger_cohort, version
+        )
 
 
 
@@ -127,7 +152,7 @@ def candidate_batch(config, generator, device, state, catalog, step, policy=None
         "author": catalog.author[item_ids],
     }
     batch.update(graph)
-    if config.signal_version == "kuairand-calibrated-v3":
+    if config.signal_version.startswith("kuairand-"):
         features = build_tensor_features(
             config, state["user_ids"], state, batch, step
         )
@@ -159,6 +184,7 @@ def sample_step(config, policy, generator, device, state, selected, step):
         state["user_ids"],
         step,
         config.seed,
+        config.signal_version,
         state["active"],
         response_affinity,
         *(selected[name] for name in (
@@ -352,11 +378,10 @@ def _simulate_batches(
                 user_metrics[:, 17] += returned
                 user_metrics[:, 19] += return_value
                 user_metrics[:, 25] += return_value
-        _accumulate_cells(cell_stats, user_ids, user_metrics)
-        if trigger_kind:
-            _accumulate_cells(
-                trigger_cell_stats, user_ids, user_metrics, trigger_cohort
-            )
+        _accumulate_batch_cells(
+            config, cell_stats, trigger_cell_stats, user_ids, user_metrics,
+            trigger_cohort, trigger_kind,
+        )
         accumulate_lt_exchange_components(
             lt_exchange_stats, user_ids, user_metrics
         )

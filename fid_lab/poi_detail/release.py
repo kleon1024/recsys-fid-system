@@ -15,6 +15,7 @@ from ..launches.release_resources import (
 
 
 SHARED_SOURCES = (
+    "fid_lab/launches/release_resources.py",
     "fid_lab/launches/statistics.py",
     "fid_lab/training/common/tensor_ops.py",
     "fid_lab/multitask.py",

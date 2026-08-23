@@ -187,7 +187,10 @@ def bridge_split(split: RandomizedSplit, catalog, candidates=8):
         "request_step": request_steps,
         "session_id": torch.zeros(len(split), dtype=torch.long),
         "candidate_fine_scores": popularity.to(torch.float16),
-        "candidate_audit_utility": features[:, :, 0].to(torch.float16),
+        "candidate_audit_utility": torch.full(
+            (len(split), candidates), torch.nan, dtype=torch.float16
+        ),
+        "candidate_utility_source": "unavailable_external_randomized_bridge",
     }
 
 

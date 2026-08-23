@@ -1,6 +1,7 @@
 import unittest
 
 import numpy as np
+import torch
 
 from fid_lab.feed_loop.scale.small_effect_ab import run_small_effect_ab
 from fid_lab.simulation.experimentation import (
@@ -8,6 +9,7 @@ from fid_lab.simulation.experimentation import (
     ExperimentLayer,
     FeedParameters,
     Variant,
+    assign_binary_torch,
     assign_layer_numpy,
     assign_layers,
 )
@@ -79,6 +81,14 @@ class ExperimentationTest(unittest.TestCase):
         self.assertLess(abs(report["cuped_relative_lift"] - 0.01), 0.005)
         self.assertGreater(report["variance_reduction"], 0.25)
         self.assertTrue(report["truth_inside_cuped_interval"])
+
+    def test_gpu_binary_assignment_is_orthogonal_to_uid_cohorts(self):
+        identifiers = torch.arange(200_000)
+        treatment = assign_binary_torch(identifiers).numpy()
+        phase = np.remainder(np.arange(len(identifiers)), 997) / 997.0
+        cohort = np.sin(2.0 * np.pi * phase)
+        self.assertLess(abs(treatment.mean() - 0.5), 0.005)
+        self.assertLess(abs(np.corrcoef(treatment, cohort)[0, 1]), 0.01)
 
     def test_two_layers_cannot_own_the_same_parameter(self):
         layers = tuple(

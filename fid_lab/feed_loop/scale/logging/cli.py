@@ -17,6 +17,9 @@ def main():
     parser.add_argument("--batch-users", type=int, default=25_000)
     parser.add_argument("--epsilon", type=float, default=0.20)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument(
+        "--signal-version", default="kuairand-calibrated-v3"
+    )
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[4]
     manifest = build_v3_logging_dataset(
@@ -25,6 +28,7 @@ def main():
         V3LoggingConfig(
             users=args.users, steps=args.steps, batch_users=args.batch_users,
             epsilon=args.epsilon, device=args.device,
+            signal_version=args.signal_version,
         ),
     )
     print(json.dumps(manifest, indent=2))

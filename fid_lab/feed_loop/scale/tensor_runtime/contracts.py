@@ -40,6 +40,7 @@ class TensorFeedConfig:
             "industrial-cross-sequence-v1",
             "heterogeneous-nonlinear-v2",
             "kuairand-calibrated-v3",
+            "kuairand-local-neural-v4",
         }:
             raise ValueError(f"unsupported signal version: {self.signal_version}")
         if not 0.0 <= self.search_event_rate <= 1.0:
@@ -56,4 +57,3 @@ class TensorFeedConfig:
             raise ValueError("unsupported candidate graph version")
         if self.trace_users < 0 or self.trace_requests_per_user < 1:
             raise ValueError("trace sampling limits are invalid")
-

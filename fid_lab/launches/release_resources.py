@@ -16,14 +16,24 @@ def resource(root: Path, relative: str) -> dict[str, str]:
 
 
 def source_resources(
-    root: Path, package_relative: str, shared: tuple[str, ...] = (),
+    root: Path, package_relative: str | tuple[str, ...],
+    shared: tuple[str, ...] = (),
 ) -> list[dict[str, str]]:
-    package = root / package_relative
-    relatives = {
-        path.relative_to(root).as_posix()
-        for path in package.rglob("*.py")
-        if "__pycache__" not in path.parts
-    }
+    packages = (
+        (package_relative,) if isinstance(package_relative, str)
+        else package_relative
+    )
+    relatives = set()
+    for relative in packages:
+        package = root / relative
+        if package.is_file():
+            relatives.add(relative)
+        else:
+            relatives.update(
+                path.relative_to(root).as_posix()
+                for path in package.rglob("*.py")
+                if "__pycache__" not in path.parts
+            )
     relatives.update(shared)
     return [resource(root, relative) for relative in sorted(relatives)]
 

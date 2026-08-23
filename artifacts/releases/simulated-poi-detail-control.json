@@ -1,7 +1,7 @@
 {
   "schema": "simulated-poi-detail-authority-v1",
   "active_key": "quota_mix_plus_rule",
-  "active_bundle_id": "sha256:5fff680edc7cb079c153ec0d4ec435e204026d9c6526c842f3d7897a06fab79d",
+  "active_bundle_id": "sha256:49e239ee9e0d13af161f01798a7ef0a81af404f831994cba78f66b4c20a30ca8",
   "active_bundle": {
     "mix_policy": "fixed_quota_4_2_2",
     "fine_model": "rule",
@@ -12,6 +12,10 @@
     "model_seed": 20260824,
     "world_version": "teacher-hidden-poi-detail-v1",
     "sources": [
+      {
+        "path": "fid_lab/launches/release_resources.py",
+        "sha256": "ad1b3f40b9ba9a3bbc931e164f60bb832dc88ca362cbd012f04eb504e8b3dee9"
+      },
       {
         "path": "fid_lab/launches/statistics.py",
         "sha256": "178ddd48d2aca9415f88cd1c95360fd3c239fa517e2809ade1022bb3b1fce10c"
@@ -50,7 +54,7 @@
       },
       {
         "path": "fid_lab/poi_detail/release.py",
-        "sha256": "a2a303afdccba796088e73ca4ca7804718cb68eb9f323f0bfa7c79cab2b5b1c6"
+        "sha256": "ddea1db3dded55c2f4bd6d60466df3dc3108cd026ca655f82d102ed7a70390e4"
       },
       {
         "path": "fid_lab/poi_detail/simulation/__init__.py",

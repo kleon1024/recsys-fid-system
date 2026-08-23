@@ -25,6 +25,7 @@ class WorldModelSplit:
     exposed_index: torch.Tensor
     candidate_fine_scores: torch.Tensor
     candidate_audit_utility: torch.Tensor
+    candidate_utility_source: str = "synthetic_oracle"
 
     def __len__(self) -> int:
         return len(self.labels)
@@ -79,6 +80,9 @@ def load_world_split(dataset_dir: Path, split: str, max_rows: int | None = None,
         exposed_index=choice,
         candidate_fine_scores=payload["candidate_fine_scores"][row_index].float(),
         candidate_audit_utility=payload["candidate_audit_utility"][row_index].float(),
+        candidate_utility_source=payload.get(
+            "candidate_utility_source", "synthetic_oracle"
+        ),
     )
 
 

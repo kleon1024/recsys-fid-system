@@ -19,6 +19,6 @@ KUAI_STANDARD_V1 = ResponseParameters(1.7, 0.8, 2.8, -5.5, -6.1)
 
 
 def response_parameters(signal_version: str) -> ResponseParameters:
-    if signal_version == "kuairand-calibrated-v3":
+    if signal_version.startswith("kuairand-"):
         return KUAI_STANDARD_V1
     return LEGACY_RESPONSE
