@@ -479,6 +479,12 @@ Review](docs/launch-reviews/2026-08-24-poi-detail-request-ladder.md) closes the
 remaining surface in the launch ledger without promoting a model that failed
 safety or incremental-value gates.
 
+The [POI distribution neural V4 Launch Review](docs/launch-reviews/2026-08-24-poi-distribution-neural-v4.md)
+shows the full request-log → IPS/listwise training → coarse/fine/mix A/B →
+combined release path. It includes the important result that W&D, DCNv2, and
+MMoE beat Linear on offline AUC but fail the online LT gate, while the accepted
+Linear coarse and fine stack produces positive pooled simulator lift.
+
 ## Run
 
 ```bash

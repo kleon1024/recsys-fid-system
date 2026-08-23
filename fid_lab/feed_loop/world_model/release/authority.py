@@ -17,6 +17,21 @@ EVIDENCE_REPORTS = {
         "reports/world-model/v4/world-adapter-rejected-seed31.json"
     ),
     "core_challenger": "reports/world-model/v4/core-bridge-challenger.json",
+    "local_v4_dataset": (
+        "reports/datasets/2026-08-24-local-neural-v4-request-log-manifest.json"
+    ),
+    "local_v4_training": (
+        "reports/training/2026-08-24-poi-distribution-v4-training.json"
+    ),
+    "local_v4_coarse": (
+        "reports/launches/2026-08-24-poi-distribution-v4-coarse-1m.json"
+    ),
+    "local_v4_fine": (
+        "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json"
+    ),
+    "local_v4_end_to_end": (
+        "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json"
+    ),
 }
 
 
@@ -117,16 +132,62 @@ def _feed_component(reports):
     }
 
 
+def _launch_pass(report, stage, treatment):
+    return any(
+        row["stage"] == stage
+        and row["treatment"] == treatment
+        and row["decision"].startswith("pass")
+        for row in report["launches"]
+    )
+
+
+def _local_component(root, reports):
+    dataset = reports["local_v4_dataset"]
+    training = reports["local_v4_training"]
+    artifact = training["models"]["linear"]["artifact"]
+    artifact_path = root / "artifacts/models/poi-distribution-v4" / artifact[
+        "artifact_file"
+    ]
+    gates = {
+        "hidden_neural_dgp": dataset["config"]["signal_version"]
+        == "kuairand-local-neural-v4",
+        "propensity_request_log": dataset["config"]["epsilon"] > 0,
+        "model_artifact_bound": artifact_path.exists()
+        and _hash(artifact_path) == artifact["sha256"],
+        "coarse_launch": _launch_pass(
+            reports["local_v4_coarse"], "coarse", "poi_coarse_linear"
+        ),
+        "fine_launch": _launch_pass(
+            reports["local_v4_fine"], "fine", "poi_fine_linear"
+        ),
+        "end_to_end_launch": _launch_pass(
+            reports["local_v4_end_to_end"], "end_to_end",
+            "poi_e2e_linear_coarse_fine",
+        ),
+    }
+    return {
+        "scope": "local_response_and_poi_distribution",
+        "status": "eligible_simulator_authority" if all(gates.values())
+        else "hold_research_challenger",
+        "world_version": "kuairand-local-neural-v4",
+        "artifact_sha256": artifact["sha256"],
+        "gates": gates,
+        "external_validation": "missing",
+        "not_authorized": (
+            "production_local_lift", "real_transaction_lift",
+            "production_exchange_rate",
+        ),
+    }
+
+
 def build_composite_world_review(root: Path) -> dict:
     reports, lineage = _load_evidence(root)
     feed = _feed_component(reports)
+    local = _local_component(root, reports)
     core = reports["core_challenger"]
     components = {
         "feed_behavior": feed,
-        "local_response": {
-            "status": "synthetic_v3_authority",
-            "external_validation": "missing",
-        },
+        "local_response": local,
         "supply_response": {
             "status": "synthetic_v3_authority",
             "external_validation": "missing",
@@ -148,28 +209,32 @@ def build_composite_world_review(root: Path) -> dict:
         "schema": "composite-recommendation-world-review-v1",
         "epoch": "v4",
         "decision": (
-            "promote_feed_kernel_only"
+            "promote_feed_and_local_kernels"
             if feed["status"] == "eligible_simulator_authority"
+            and local["status"] == "eligible_simulator_authority"
             else "hold_v3_authority"
         ),
         "components": components,
         "lineage": lineage,
         "rollback_epoch": "v3",
         "evidence_boundary": (
-            "This promotes one external-data-calibrated Feed behavior kernel "
-            "inside the simulator. It is not a production deployment, live A/B, "
-            "unified LT estimate, or validation of Local and supply kernels."
+            "This promotes an external-data-calibrated Feed kernel and a "
+            "causally tested synthetic neural Local kernel inside the simulator. "
+            "It is not a production deployment, live A/B, or production LT estimate."
         ),
     }
 
 
 def build_world_release(review_path: Path) -> dict:
     review = json.loads(review_path.read_text())
-    if review.get("decision") != "promote_feed_kernel_only":
-        raise ValueError("simulator world release requires an accepted Feed kernel")
+    if review.get("decision") != "promote_feed_and_local_kernels":
+        raise ValueError("simulator world release requires accepted task kernels")
     feed = review["components"]["feed_behavior"]
     if feed.get("status") != "eligible_simulator_authority":
         raise ValueError("Feed behavior component is not eligible")
+    local = review["components"]["local_response"]
+    if local.get("status") != "eligible_simulator_authority":
+        raise ValueError("Local response component is not eligible")
     return {
         "schema": "composite-simulator-world-authority-v1",
         "epoch": review["epoch"],
@@ -178,7 +243,10 @@ def build_world_release(review_path: Path) -> dict:
                 "authority": "external_randomized_v4",
                 "artifact_sha256": feed["artifact_sha256"],
             },
-            "local_response": {"authority": "synthetic_v3"},
+            "local_response": {
+                "authority": "synthetic_neural_v4",
+                "artifact_sha256": local["artifact_sha256"],
+            },
             "supply_response": {"authority": "synthetic_v3"},
             "retention_and_commercialization": {"authority": "measurement_only"},
         },

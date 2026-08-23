@@ -1,0 +1,123 @@
+{
+  "schema": "simulated-poi-distribution-v4-authority-v1",
+  "active_key": "eight_route_linear_coarse_linear_fine_feed_guarded_mix",
+  "active_bundle_id": "sha256:b482ab509178eff6773bc3ed309a78093633aaa66bb432226c415fb98e9e5937",
+  "active_bundle": {
+    "retrieval_policy": "ann_graph_geo_fresh_long_tail_popular_search_retarget",
+    "coarse_model": "linear",
+    "fine_model": "linear",
+    "mix_policy": "feed_guarded_no_extra_local_weight",
+    "model_artifact": {
+      "path": "artifacts/models/poi-distribution-v4/linear.pt",
+      "sha256": "f21e5d6ae0aac2d0034261e0e0d8fa95c6843cfb03c4aa0e91f5f8c7e31ca28b"
+    },
+    "world_version": "kuairand-local-neural-v4",
+    "training_dataset": {
+      "path": "reports/datasets/2026-08-24-local-neural-v4-request-log-manifest.json",
+      "sha256": "8dfa992b4ef0e01528040824a33a3d3c6a7c723d52b9ad2d43fa7b2cdf13ae59"
+    },
+    "evidence_reports": [
+      {
+        "path": "reports/training/2026-08-24-poi-distribution-v4-training.json",
+        "sha256": "286ec078acde7e8fdc8137247e898953139d0c89529077d82fda7a1152a595c3"
+      },
+      {
+        "path": "reports/launches/2026-08-24-poi-distribution-v4-coarse-1m.json",
+        "sha256": "f42782bd353b6a3265e90713e9b7d202603f4f58b23212d86ba5af20fbc806e0"
+      },
+      {
+        "path": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
+        "sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+      },
+      {
+        "path": "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json",
+        "sha256": "a12cfef36f86fc7ff709f52a48fe0dbfec6deae2d021a300dd1cb7e11843d4b4"
+      }
+    ],
+    "sources": [
+      {
+        "path": "fid_lab/feed_loop/scale/tensor_engine.py",
+        "sha256": "dce310c2dc3514eadfa0c2a34bc75527415183d10435eecffb6c38501aedb691"
+      },
+      {
+        "path": "fid_lab/feed_loop/scale/tensor_runtime/local_response.py",
+        "sha256": "d5ab61bc6f840d430253b351b3f4ae26a4924f7eb94942a5c618840ff0dd6f98"
+      },
+      {
+        "path": "fid_lab/feed_loop/tensor_cascade.py",
+        "sha256": "d0ef2404a4c8d21a07206d54dcb2eb1d823e3b56ec957fa0ad5a9d577ead34a6"
+      },
+      {
+        "path": "fid_lab/launches/release_resources.py",
+        "sha256": "ad1b3f40b9ba9a3bbc931e164f60bb832dc88ca362cbd012f04eb504e8b3dee9"
+      },
+      {
+        "path": "fid_lab/poi_distribution/__init__.py",
+        "sha256": "31f9db32e45ee20105085ed39c825f5cb5c89b05f68b5cc4077b14b531842730"
+      },
+      {
+        "path": "fid_lab/poi_distribution/contracts.py",
+        "sha256": "9a6d61c0cbb8e4057a2abd6693cc6586d10536074018dd72ac56c48c10d2ea15"
+      },
+      {
+        "path": "fid_lab/poi_distribution/data.py",
+        "sha256": "43c709e6df08b82f87a82e7622b7ba9a033cde16d6aab2c70cf95f76b5922aa6"
+      },
+      {
+        "path": "fid_lab/poi_distribution/launch.py",
+        "sha256": "743357538ebdd9c124a6afef6bd4514e24abec9e938eb13e60cc8e984882c920"
+      },
+      {
+        "path": "fid_lab/poi_distribution/launch_analysis.py",
+        "sha256": "40470abaae7e16f0de3468b2e085f238417e03b53a232d4c9b4525c83168dda1"
+      },
+      {
+        "path": "fid_lab/poi_distribution/launch_cli.py",
+        "sha256": "5fecd2a263347bcd45b1e375d01bb68f74a13d568d268452dd56e9fdc000be5b"
+      },
+      {
+        "path": "fid_lab/poi_distribution/models/__init__.py",
+        "sha256": "6f41c68a7bfebaee53a47f1c963c8273c3d573687c04619e4cff73f8d4272c6c"
+      },
+      {
+        "path": "fid_lab/poi_distribution/models/architectures.py",
+        "sha256": "65fe0a3d9a5c7969a5d17a3b2cfe27da10ce46d73d4d1bc48c026581baa9520f"
+      },
+      {
+        "path": "fid_lab/poi_distribution/models/evaluation.py",
+        "sha256": "ba9f7ed06776936a86c510a1ea25c1c137680d05e5b4c7e6c41b4fc010eb488a"
+      },
+      {
+        "path": "fid_lab/poi_distribution/models/objectives.py",
+        "sha256": "469f27d716f1ea0211ea7b61b0ef9dbb21cdc6523a657d22379c64f5d105c771"
+      },
+      {
+        "path": "fid_lab/poi_distribution/models/training.py",
+        "sha256": "0468415b98989d60fc998cf9f52e91f1688334d81d6373d25e43faad3ea9fccb"
+      },
+      {
+        "path": "fid_lab/poi_distribution/policy.py",
+        "sha256": "c8ff9ce2f89687dd947152bd30282407ee7d72c1d5aa6505a244116efae107c5"
+      },
+      {
+        "path": "fid_lab/poi_distribution/release.py",
+        "sha256": "40dac83fd2d9ac854c5de7369d047251a4cc6e5121a4de2a238fb2d5da5cc8a5"
+      },
+      {
+        "path": "fid_lab/poi_distribution/train_cli.py",
+        "sha256": "4aeda5f456ce645b8eabcdcaf1004f785c55763203cbfba6aa95897218752cb7"
+      },
+      {
+        "path": "fid_lab/simulation/experimentation/assignment.py",
+        "sha256": "8dd3ccee95a41498e81729c324612dfb84c9b48f7ca6d05243322951f53f98cf"
+      }
+    ]
+  },
+  "rollback_key": "eight_route_quality_coarse_rule_fine",
+  "source_report": {
+    "path": "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json",
+    "sha256": "a12cfef36f86fc7ff709f52a48fe0dbfec6deae2d021a300dd1cb7e11843d4b4"
+  },
+  "production_readiness": "simulator_only_external_local_validation_required",
+  "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+}

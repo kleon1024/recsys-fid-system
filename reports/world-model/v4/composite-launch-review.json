@@ -1,7 +1,7 @@
 {
   "schema": "composite-recommendation-world-review-v1",
   "epoch": "v4",
-  "decision": "promote_feed_kernel_only",
+  "decision": "promote_feed_and_local_kernels",
   "components": {
     "feed_behavior": {
       "scope": "feed_behavior_only",
@@ -77,8 +77,24 @@
       ]
     },
     "local_response": {
-      "status": "synthetic_v3_authority",
-      "external_validation": "missing"
+      "scope": "local_response_and_poi_distribution",
+      "status": "eligible_simulator_authority",
+      "world_version": "kuairand-local-neural-v4",
+      "artifact_sha256": "f21e5d6ae0aac2d0034261e0e0d8fa95c6843cfb03c4aa0e91f5f8c7e31ca28b",
+      "gates": {
+        "hidden_neural_dgp": true,
+        "propensity_request_log": true,
+        "model_artifact_bound": true,
+        "coarse_launch": true,
+        "fine_launch": true,
+        "end_to_end_launch": true
+      },
+      "external_validation": "missing",
+      "not_authorized": [
+        "production_local_lift",
+        "real_transaction_lift",
+        "production_exchange_rate"
+      ]
     },
     "supply_response": {
       "status": "synthetic_v3_authority",
@@ -130,8 +146,28 @@
     "core_challenger": {
       "logical_key": "core_challenger",
       "sha256": "4d75ddf32c445a63b1eb8b456bf12a6e01d5106dbd0599590577e03bbf31b41f"
+    },
+    "local_v4_dataset": {
+      "logical_key": "local_v4_dataset",
+      "sha256": "8dfa992b4ef0e01528040824a33a3d3c6a7c723d52b9ad2d43fa7b2cdf13ae59"
+    },
+    "local_v4_training": {
+      "logical_key": "local_v4_training",
+      "sha256": "286ec078acde7e8fdc8137247e898953139d0c89529077d82fda7a1152a595c3"
+    },
+    "local_v4_coarse": {
+      "logical_key": "local_v4_coarse",
+      "sha256": "f42782bd353b6a3265e90713e9b7d202603f4f58b23212d86ba5af20fbc806e0"
+    },
+    "local_v4_fine": {
+      "logical_key": "local_v4_fine",
+      "sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+    },
+    "local_v4_end_to_end": {
+      "logical_key": "local_v4_end_to_end",
+      "sha256": "a12cfef36f86fc7ff709f52a48fe0dbfec6deae2d021a300dd1cb7e11843d4b4"
     }
   },
   "rollback_epoch": "v3",
-  "evidence_boundary": "This promotes one external-data-calibrated Feed behavior kernel inside the simulator. It is not a production deployment, live A/B, unified LT estimate, or validation of Local and supply kernels."
+  "evidence_boundary": "This promotes an external-data-calibrated Feed kernel and a causally tested synthetic neural Local kernel inside the simulator. It is not a production deployment, live A/B, or production LT estimate."
 }

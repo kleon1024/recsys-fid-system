@@ -1,0 +1,72 @@
+{
+  "schema": "v3-request-candidate-log-v1",
+  "storage_root": "external://v3-request-log",
+  "config": {
+    "users": 50000,
+    "steps": 24,
+    "batch_users": 25000,
+    "epsilon": 0.2,
+    "sequence_length": 24,
+    "seed": 20260823,
+    "device": "cuda:0",
+    "signal_version": "kuairand-local-neural-v4"
+  },
+  "authority_bundle_id": "sha256:dc9cf5737a34d250fb8314f66d1295f79792ca7824740c0fc250923dbb31389f",
+  "label_names": [
+    "play",
+    "play_3s",
+    "stay_seconds",
+    "play_completion_ratio",
+    "complete_play",
+    "long_view",
+    "quality_long_view",
+    "like",
+    "negative_feedback",
+    "anchor_click",
+    "poi_detail",
+    "poi_favorite",
+    "conversion",
+    "returned_next_session",
+    "accepted_commercialization"
+  ],
+  "evaluation_value_names": [
+    "lt_stay_component",
+    "lt_active_day_component",
+    "lt_accepted_commercialization_component",
+    "lt_total_evaluation_only"
+  ],
+  "training_contract": {
+    "primitive_labels_only": true,
+    "lt_total_is_training_label": false,
+    "returned_next_session_requires_delayed_maturity": true,
+    "evaluation_values_are_ab_outcomes_not_ranker_targets": true
+  },
+  "sequence_fields": [
+    "topic_norm",
+    "stay_norm",
+    "long_view",
+    "quality_long_view",
+    "like",
+    "negative_feedback",
+    "anchor_click",
+    "conversion"
+  ],
+  "candidate_label_contract": "only exposed candidate has mask=1",
+  "tables": {
+    "train": {
+      "path": "train.pt",
+      "requests": 709730,
+      "sha256": "28bb4c0ec3a637b58a278cb5ca407dcbcb655d6fa47b6f17d7379dc8668ec9c4"
+    },
+    "validation": {
+      "path": "validation.pt",
+      "requests": 219455,
+      "sha256": "acf82594641c13934a2687046f8d5fb8153b4e59f88dd124180ca7da7140bb91"
+    },
+    "test": {
+      "path": "test.pt",
+      "requests": 170115,
+      "sha256": "3cd01af9c930c57adbc54cf6c98a807ddb57ff8d9fbe394a37678856551193ad"
+    }
+  }
+}

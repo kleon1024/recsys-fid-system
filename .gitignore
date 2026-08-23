@@ -50,6 +50,9 @@ artifacts/models/*
 !artifacts/models/poi-detail-request-v1/
 !artifacts/models/poi-detail-request-v1/MANIFEST.sha256
 !artifacts/models/poi-detail-request-v1/*.pt
+!artifacts/models/poi-distribution-v4/
+!artifacts/models/poi-distribution-v4/MANIFEST.sha256
+!artifacts/models/poi-distribution-v4/*.pt
 !artifacts/releases/
 !artifacts/releases/*.json
 !artifacts/releases/historical/

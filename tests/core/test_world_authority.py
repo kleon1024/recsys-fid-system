@@ -12,13 +12,15 @@ from fid_lab.feed_loop.world_model.release import (
 
 
 class CompositeWorldAuthorityTest(unittest.TestCase):
-    def test_feed_kernel_promotes_without_claiming_full_world_authority(self):
+    def test_task_kernels_promote_without_claiming_production_authority(self):
         root = Path(__file__).resolve().parents[2]
         review = build_composite_world_review(root)
         self.assertEqual(
             review["schema"], "composite-recommendation-world-review-v1"
         )
-        self.assertEqual(review["decision"], "promote_feed_kernel_only")
+        self.assertEqual(
+            review["decision"], "promote_feed_and_local_kernels"
+        )
         self.assertEqual(
             review["components"]["feed_behavior"]["status"],
             "eligible_simulator_authority",
@@ -34,5 +36,5 @@ class CompositeWorldAuthorityTest(unittest.TestCase):
         self.assertEqual(release["production_readiness"], "simulator_only")
         self.assertEqual(
             release["active_components"]["local_response"]["authority"],
-            "synthetic_v3",
+            "synthetic_neural_v4",
         )

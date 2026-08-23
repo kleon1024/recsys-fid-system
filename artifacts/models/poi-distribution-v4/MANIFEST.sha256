@@ -1,0 +1,4 @@
+7b0cc3a484288b812884eb2e421a265cd56a8685b45541b01bb4ca4ab3de4663  artifacts/models/poi-distribution-v4/wide_deep.pt
+9cff9653e44e1d25b77fe8174daaf247f296e636c50a317f8561e328a92fb561  artifacts/models/poi-distribution-v4/dcnv2.pt
+9f2a7eab42ae789bf2defee0ee398185bf50f591facad3573644df37c2ce1225  artifacts/models/poi-distribution-v4/mmoe.pt
+f21e5d6ae0aac2d0034261e0e0d8fa95c6843cfb03c4aa0e91f5f8c7e31ca28b  artifacts/models/poi-distribution-v4/linear.pt

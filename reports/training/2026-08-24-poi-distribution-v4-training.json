@@ -1,0 +1,346 @@
+{
+  "schema": "poi-distribution-model-training-v1",
+  "config": {
+    "feature_dim": 28,
+    "epochs": 4,
+    "batch_size": 8192,
+    "learning_rate": 0.0015,
+    "seed": 20260824,
+    "device": "cuda:0"
+  },
+  "dataset_manifest": {
+    "schema": "v3-request-candidate-log-v1",
+    "storage_root": "external://v3-request-log",
+    "config": {
+      "users": 50000,
+      "steps": 24,
+      "batch_users": 25000,
+      "epsilon": 0.2,
+      "sequence_length": 24,
+      "seed": 20260823,
+      "device": "cuda:0",
+      "signal_version": "kuairand-local-neural-v4"
+    },
+    "authority_bundle_id": "sha256:dc9cf5737a34d250fb8314f66d1295f79792ca7824740c0fc250923dbb31389f",
+    "label_names": [
+      "play",
+      "play_3s",
+      "stay_seconds",
+      "play_completion_ratio",
+      "complete_play",
+      "long_view",
+      "quality_long_view",
+      "like",
+      "negative_feedback",
+      "anchor_click",
+      "poi_detail",
+      "poi_favorite",
+      "conversion",
+      "returned_next_session",
+      "accepted_commercialization"
+    ],
+    "evaluation_value_names": [
+      "lt_stay_component",
+      "lt_active_day_component",
+      "lt_accepted_commercialization_component",
+      "lt_total_evaluation_only"
+    ],
+    "training_contract": {
+      "primitive_labels_only": true,
+      "lt_total_is_training_label": false,
+      "returned_next_session_requires_delayed_maturity": true,
+      "evaluation_values_are_ab_outcomes_not_ranker_targets": true
+    },
+    "sequence_fields": [
+      "topic_norm",
+      "stay_norm",
+      "long_view",
+      "quality_long_view",
+      "like",
+      "negative_feedback",
+      "anchor_click",
+      "conversion"
+    ],
+    "candidate_label_contract": "only exposed candidate has mask=1",
+    "tables": {
+      "train": {
+        "path": "train.pt",
+        "requests": 709730,
+        "sha256": "28bb4c0ec3a637b58a278cb5ca407dcbcb655d6fa47b6f17d7379dc8668ec9c4"
+      },
+      "validation": {
+        "path": "validation.pt",
+        "requests": 219455,
+        "sha256": "acf82594641c13934a2687046f8d5fb8153b4e59f88dd124180ca7da7140bb91"
+      },
+      "test": {
+        "path": "test.pt",
+        "requests": 170115,
+        "sha256": "3cd01af9c930c57adbc54cf6c98a807ddb57ff8d9fbe394a37678856551193ad"
+      }
+    }
+  },
+  "models": {
+    "linear": {
+      "parameters": 174,
+      "loss_history_tail": [
+        0.45796990394592285,
+        0.3229397237300873,
+        0.336872935295105,
+        0.36300280690193176,
+        0.3837154507637024,
+        0.3901102840900421,
+        0.33076995611190796,
+        0.3330972194671631,
+        0.339148610830307,
+        0.33407509326934814
+      ],
+      "calibration_biases": {
+        "anchor_click": -4.658426046371389,
+        "poi_detail": -0.26449020206932516,
+        "poi_favorite": -4.102836847305369,
+        "conversion": -3.4086109399795106,
+        "negative_feedback": -7.509090662002578,
+        "stay_norm": -2.0916954278946065
+      },
+      "listwise_positive_requests": 7389,
+      "validation": {
+        "anchor_click": {
+          "auc": 0.8137643263415557,
+          "pr_auc": 0.04243332560415438,
+          "positive_rate": 0.012439907528460026,
+          "positive_rows": 2730
+        },
+        "poi_detail": {
+          "auc": 0.851304407731233,
+          "pr_auc": 0.019069560336015284,
+          "positive_rate": 0.00513544911518693,
+          "positive_rows": 1127
+        },
+        "poi_favorite": {
+          "auc": 0.8150778998613672,
+          "pr_auc": 0.001760044191655565,
+          "positive_rate": 0.00042833382030948997,
+          "positive_rows": 94
+        },
+        "conversion": {
+          "auc": 0.8519769952781296,
+          "pr_auc": 0.002408194846409118,
+          "positive_rate": 0.0004328905779402703,
+          "positive_rows": 95
+        },
+        "negative_feedback": {
+          "auc": 0.3660706245697064,
+          "pr_auc": 0.0004276718056368567,
+          "positive_rate": 0.0005832630558870733,
+          "positive_rows": 128
+        },
+        "stay_norm": {
+          "mae": 0.15892602503299713,
+          "mean": 0.12630662322044373
+        }
+      },
+      "artifact": {
+        "artifact_file": "linear.pt",
+        "sha256": "f21e5d6ae0aac2d0034261e0e0d8fa95c6843cfb03c4aa0e91f5f8c7e31ca28b"
+      }
+    },
+    "wide_deep": {
+      "parameters": 7908,
+      "loss_history_tail": [
+        0.22603638470172882,
+        0.2725631296634674,
+        0.2346085011959076,
+        0.2593810260295868,
+        0.2503049075603485,
+        0.23780298233032227,
+        0.21063275635242462,
+        0.23265884816646576,
+        0.26507866382598877,
+        0.22151127457618713
+      ],
+      "calibration_biases": {
+        "anchor_click": -4.060988187789931,
+        "poi_detail": -0.8480174243450023,
+        "poi_favorite": -0.08712685480709581,
+        "conversion": -0.5462649762630889,
+        "negative_feedback": -4.039027929306016,
+        "stay_norm": 0.23666756600142946
+      },
+      "listwise_positive_requests": 7389,
+      "validation": {
+        "anchor_click": {
+          "auc": 0.8664545640079151,
+          "pr_auc": 0.04687321953783361,
+          "positive_rate": 0.012439907528460026,
+          "positive_rows": 2730
+        },
+        "poi_detail": {
+          "auc": 0.8644614818364509,
+          "pr_auc": 0.019763077880646015,
+          "positive_rate": 0.00513544911518693,
+          "positive_rows": 1127
+        },
+        "poi_favorite": {
+          "auc": 0.8667803689381353,
+          "pr_auc": 0.0023316603077501684,
+          "positive_rate": 0.00042833382030948997,
+          "positive_rows": 94
+        },
+        "conversion": {
+          "auc": 0.8769324638181888,
+          "pr_auc": 0.0021943705079681434,
+          "positive_rate": 0.0004328905779402703,
+          "positive_rows": 95
+        },
+        "negative_feedback": {
+          "auc": 0.4887714391638968,
+          "pr_auc": 0.0007018767532010177,
+          "positive_rate": 0.0005832630558870733,
+          "positive_rows": 128
+        },
+        "stay_norm": {
+          "mae": 0.14289478957653046,
+          "mean": 0.12630662322044373
+        }
+      },
+      "artifact": {
+        "artifact_file": "wide_deep.pt",
+        "sha256": "7b0cc3a484288b812884eb2e421a265cd56a8685b45541b01bb4ca4ab3de4663"
+      }
+    },
+    "dcnv2": {
+      "parameters": 10338,
+      "loss_history_tail": [
+        0.2702096104621887,
+        0.1962728202342987,
+        0.25288403034210205,
+        0.268199622631073,
+        0.262481689453125,
+        0.22900605201721191,
+        0.2200891524553299,
+        0.20924849808216095,
+        0.23560830950737,
+        0.20669087767601013
+      ],
+      "calibration_biases": {
+        "anchor_click": -3.982991576194692,
+        "poi_detail": -1.1948146224022338,
+        "poi_favorite": -0.00430262065485465,
+        "conversion": -0.38212890923027487,
+        "negative_feedback": -3.9240435361862325,
+        "stay_norm": 0.4906297475100274
+      },
+      "listwise_positive_requests": 7389,
+      "validation": {
+        "anchor_click": {
+          "auc": 0.8644198987846468,
+          "pr_auc": 0.045485264146247796,
+          "positive_rate": 0.012439907528460026,
+          "positive_rows": 2730
+        },
+        "poi_detail": {
+          "auc": 0.8633167814683358,
+          "pr_auc": 0.0189555248715313,
+          "positive_rate": 0.00513544911518693,
+          "positive_rows": 1127
+        },
+        "poi_favorite": {
+          "auc": 0.874509394646947,
+          "pr_auc": 0.0019917400068612196,
+          "positive_rate": 0.00042833382030948997,
+          "positive_rows": 94
+        },
+        "conversion": {
+          "auc": 0.8768236304656609,
+          "pr_auc": 0.0018751869652449994,
+          "positive_rate": 0.0004328905779402703,
+          "positive_rows": 95
+        },
+        "negative_feedback": {
+          "auc": 0.5199200993265763,
+          "pr_auc": 0.0007318619103806301,
+          "positive_rate": 0.0005832630558870733,
+          "positive_rows": 128
+        },
+        "stay_norm": {
+          "mae": 0.1482580602169037,
+          "mean": 0.12630662322044373
+        }
+      },
+      "artifact": {
+        "artifact_file": "dcnv2.pt",
+        "sha256": "9cff9653e44e1d25b77fe8174daaf247f296e636c50a317f8561e328a92fb561"
+      }
+    },
+    "mmoe": {
+      "parameters": 31194,
+      "loss_history_tail": [
+        0.23901773989200592,
+        0.23374684154987335,
+        0.2311452329158783,
+        0.25695300102233887,
+        0.2187739759683609,
+        0.23103255033493042,
+        0.23773373663425446,
+        0.2787132263183594,
+        0.24498476088047028,
+        0.27859553694725037
+      ],
+      "calibration_biases": {
+        "anchor_click": -4.072897672653184,
+        "poi_detail": -1.0515177845955037,
+        "poi_favorite": -0.37657608091826944,
+        "conversion": -0.5068081319331696,
+        "negative_feedback": -3.7732070684432273,
+        "stay_norm": 0.3837670534849025
+      },
+      "listwise_positive_requests": 7389,
+      "validation": {
+        "anchor_click": {
+          "auc": 0.8657533124006767,
+          "pr_auc": 0.04668626604329499,
+          "positive_rate": 0.012439907528460026,
+          "positive_rows": 2730
+        },
+        "poi_detail": {
+          "auc": 0.8638069774750474,
+          "pr_auc": 0.01929096480261617,
+          "positive_rate": 0.00513544911518693,
+          "positive_rows": 1127
+        },
+        "poi_favorite": {
+          "auc": 0.8674817775847391,
+          "pr_auc": 0.001751422945367771,
+          "positive_rate": 0.00042833382030948997,
+          "positive_rows": 94
+        },
+        "conversion": {
+          "auc": 0.8797616511190449,
+          "pr_auc": 0.001930170587473973,
+          "positive_rate": 0.0004328905779402703,
+          "positive_rows": 95
+        },
+        "negative_feedback": {
+          "auc": 0.5803171641259398,
+          "pr_auc": 0.0009020210168163356,
+          "positive_rate": 0.0005832630558870733,
+          "positive_rows": 128
+        },
+        "stay_norm": {
+          "mae": 0.1451561003923416,
+          "mean": 0.12630662322044373
+        }
+      },
+      "artifact": {
+        "artifact_file": "mmoe.pt",
+        "sha256": "9f2a7eab42ae789bf2defee0ee398185bf50f591facad3573644df37c2ce1225"
+      }
+    }
+  },
+  "performance": {
+    "load_seconds": 2.5308948879974196,
+    "total_seconds": 13.812756231985986
+  },
+  "evidence_boundary": "GPU training on propensity-carrying synthetic V4 request logs; not external Local business evidence."
+}

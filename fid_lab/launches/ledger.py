@@ -318,6 +318,46 @@ def _poi_detail_stage_records(root: Path) -> list[dict]:
     )
 
 
+def _poi_distribution_v4_records(root: Path) -> list[dict]:
+    specifications = (
+        (
+            "reports/launches/2026-08-24-poi-distribution-v4-coarse-1m.json",
+            {"coarse"},
+        ),
+        (
+            "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
+            {"fine", "mix"},
+        ),
+        (
+            "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json",
+            {"end_to_end"},
+        ),
+    )
+    counters = {stage: 0 for stage in ("coarse", "fine", "mix", "end_to_end")}
+    records = []
+    for relative, included in specifications:
+        report, evidence = _load(root, relative)
+        for row in report["launches"]:
+            stage = row["stage"]
+            if stage not in included:
+                continue
+            counters[stage] += 1
+            records.append(_record(
+                launch_id=f"L-POI-V4-{stage.upper()}-{counters[stage]:03d}",
+                surface="poi_distribution", stage=stage,
+                change_type=f"trained_v4_{stage}", control=row["control"],
+                treatment=row["treatment"], decision=row["decision"],
+                evidence=evidence,
+                primary_metric=(
+                    "coarse_oracle_recall_with_platform_lt"
+                    if stage == "coarse" else
+                    "local_action_with_platform_lt_and_safety"
+                ),
+                evidence_boundary=report["evidence_boundary"],
+            ))
+    return records
+
+
 def build_launch_ledger(root: Path) -> dict:
     records = [
         *_main_feed_policy_records(root),
@@ -332,6 +372,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_feed_posting_stage_records(root),
         *_local_search_stage_records(root),
         *_poi_detail_stage_records(root),
+        *_poi_distribution_v4_records(root),
     ]
     identifiers = [record["launch_id"] for record in records]
     if len(identifiers) != len(set(identifiers)):

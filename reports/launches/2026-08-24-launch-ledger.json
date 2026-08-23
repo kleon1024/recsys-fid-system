@@ -399,12 +399,12 @@
       "control": "synthetic_v3_feed_behavior",
       "treatment": "external_randomized_v4_feed_behavior",
       "primary_metric": "randomized_stay_with_behavior_guardrails",
-      "decision": "pass_feed_kernel_only",
+      "decision": "hold_world_authority",
       "evidence": {
         "report": "reports/world-model/v4/composite-launch-review.json",
-        "report_sha256": "958ce1bea8d4c4b905ca562d65b2ad1e912dd6ec2e38676d9028a3b7054622c8"
+        "report_sha256": "ede7f2caa6f67ff1978830291030ca9621d80bec5a58e26f2dfa4b5dd97f9ff1"
       },
-      "evidence_boundary": "This promotes one external-data-calibrated Feed behavior kernel inside the simulator. It is not a production deployment, live A/B, unified LT estimate, or validation of Local and supply kernels. Feed status: eligible_simulator_authority"
+      "evidence_boundary": "This promotes an external-data-calibrated Feed kernel and a causally tested synthetic neural Local kernel inside the simulator. It is not a production deployment, live A/B, or production LT estimate. Feed status: eligible_simulator_authority"
     },
     {
       "launch_id": "L-RECALL-EXT-001",
@@ -960,6 +960,141 @@
         "report_sha256": "9adedfdba75c8cd07f9e193d87a18e22d80a5b8d013b43921ae10deabaab5d6b"
       },
       "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
+    },
+    {
+      "launch_id": "L-POI-V4-COARSE-001",
+      "surface": "poi_distribution",
+      "stage": "coarse",
+      "change_type": "trained_v4_coarse",
+      "control": "poi_coarse_quality_control",
+      "treatment": "poi_coarse_linear",
+      "primary_metric": "coarse_oracle_recall_with_platform_lt",
+      "decision": "pass_pooled_three_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-v4-coarse-1m.json",
+        "report_sha256": "f42782bd353b6a3265e90713e9b7d202603f4f58b23212d86ba5af20fbc806e0"
+      },
+      "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+    },
+    {
+      "launch_id": "L-POI-V4-COARSE-002",
+      "surface": "poi_distribution",
+      "stage": "coarse",
+      "change_type": "trained_v4_coarse",
+      "control": "poi_coarse_linear",
+      "treatment": "poi_coarse_dcnv2",
+      "primary_metric": "coarse_oracle_recall_with_platform_lt",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-v4-coarse-1m.json",
+        "report_sha256": "f42782bd353b6a3265e90713e9b7d202603f4f58b23212d86ba5af20fbc806e0"
+      },
+      "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+    },
+    {
+      "launch_id": "L-POI-V4-FINE-001",
+      "surface": "poi_distribution",
+      "stage": "fine",
+      "change_type": "trained_v4_fine",
+      "control": "poi_fine_rule_control",
+      "treatment": "poi_fine_linear",
+      "primary_metric": "local_action_with_platform_lt_and_safety",
+      "decision": "pass_pooled_three_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
+        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+      },
+      "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+    },
+    {
+      "launch_id": "L-POI-V4-FINE-002",
+      "surface": "poi_distribution",
+      "stage": "fine",
+      "change_type": "trained_v4_fine",
+      "control": "poi_fine_linear",
+      "treatment": "poi_fine_wide_deep",
+      "primary_metric": "local_action_with_platform_lt_and_safety",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
+        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+      },
+      "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+    },
+    {
+      "launch_id": "L-POI-V4-FINE-003",
+      "surface": "poi_distribution",
+      "stage": "fine",
+      "change_type": "trained_v4_fine",
+      "control": "poi_fine_wide_deep",
+      "treatment": "poi_fine_dcnv2",
+      "primary_metric": "local_action_with_platform_lt_and_safety",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
+        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+      },
+      "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+    },
+    {
+      "launch_id": "L-POI-V4-FINE-004",
+      "surface": "poi_distribution",
+      "stage": "fine",
+      "change_type": "trained_v4_fine",
+      "control": "poi_fine_wide_deep",
+      "treatment": "poi_fine_mmoe",
+      "primary_metric": "local_action_with_platform_lt_and_safety",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
+        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+      },
+      "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+    },
+    {
+      "launch_id": "L-POI-V4-MIX-001",
+      "surface": "poi_distribution",
+      "stage": "mix",
+      "change_type": "trained_v4_mix",
+      "control": "poi_fine_wide_deep",
+      "treatment": "poi_mix_wide_deep_a003",
+      "primary_metric": "local_action_with_platform_lt_and_safety",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
+        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+      },
+      "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+    },
+    {
+      "launch_id": "L-POI-V4-MIX-002",
+      "surface": "poi_distribution",
+      "stage": "mix",
+      "change_type": "trained_v4_mix",
+      "control": "poi_mix_wide_deep_a003",
+      "treatment": "poi_mix_wide_deep_a006",
+      "primary_metric": "local_action_with_platform_lt_and_safety",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
+        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+      },
+      "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+    },
+    {
+      "launch_id": "L-POI-V4-END_TO_END-001",
+      "surface": "poi_distribution",
+      "stage": "end_to_end",
+      "change_type": "trained_v4_end_to_end",
+      "control": "poi_coarse_quality_control",
+      "treatment": "poi_e2e_linear_coarse_fine",
+      "primary_metric": "local_action_with_platform_lt_and_safety",
+      "decision": "pass_pooled_three_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json",
+        "report_sha256": "a12cfef36f86fc7ff709f52a48fe0dbfec6deae2d021a300dd1cb7e11843d4b4"
+      },
+      "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     }
   ],
   "coverage": {
@@ -998,10 +1133,10 @@
     }
   },
   "summary": {
-    "records": 64,
-    "passed": 18,
-    "held": 27,
-    "rejected": 19,
+    "records": 73,
+    "passed": 20,
+    "held": 28,
+    "rejected": 25,
     "missing_cells": 0
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."

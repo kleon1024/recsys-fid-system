@@ -98,6 +98,8 @@ def check_report_manifests() -> None:
         "reports/benchmarks/MANIFEST.sha256",
         "reports/calibration/MANIFEST.sha256",
         "reports/world-model/v4/MANIFEST.sha256",
+        "reports/training/MANIFEST.sha256",
+        "reports/datasets/MANIFEST.sha256",
     ):
         manifest = ROOT / manifest_name
         failures = []
@@ -165,6 +167,7 @@ def check_model_artifacts() -> None:
         "artifacts/models/feed-posting-request-v1/MANIFEST.sha256",
         "artifacts/models/local-search-request-v1/MANIFEST.sha256",
         "artifacts/models/poi-detail-request-v1/MANIFEST.sha256",
+        "artifacts/models/poi-distribution-v4/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
@@ -266,14 +269,20 @@ def check_simulator_world_release() -> None:
         review_path.read_bytes()
     ).hexdigest():
         failures.append("simulator world release is not bound to its review")
-    if review.get("decision") != "promote_feed_kernel_only":
-        failures.append("simulator world review did not accept the Feed kernel")
+    if review.get("decision") != "promote_feed_and_local_kernels":
+        failures.append("simulator world review did not accept task kernels")
     feed = review.get("components", {}).get("feed_behavior", {})
     active_feed = release.get("active_components", {}).get("feed_behavior", {})
     if feed.get("status") != "eligible_simulator_authority":
         failures.append("Feed kernel is not eligible for simulator authority")
     if active_feed.get("artifact_sha256") != feed.get("artifact_sha256"):
         failures.append("active Feed kernel differs from the accepted review")
+    local = review.get("components", {}).get("local_response", {})
+    active_local = release.get("active_components", {}).get("local_response", {})
+    if local.get("status") != "eligible_simulator_authority":
+        failures.append("Local kernel is not eligible for simulator authority")
+    if active_local.get("artifact_sha256") != local.get("artifact_sha256"):
+        failures.append("active Local kernel differs from the accepted review")
     if release.get("production_readiness") != "simulator_only":
         failures.append("simulator world release overstates production readiness")
     if failures:
@@ -292,8 +301,11 @@ def _check_simulated_surface_release(
     if release["active_bundle_id"] != f"sha256:{sha256(encoded).hexdigest()}":
         failures.append(f"{label} bundle id mismatch")
     resources = [
-        bundle["model_artifact"], *bundle["sources"], release["source_report"]
+        bundle["model_artifact"], *bundle["sources"],
+        *bundle.get("evidence_reports", []), release["source_report"]
     ]
+    if "training_dataset" in bundle:
+        resources.append(bundle["training_dataset"])
     for resource in resources:
         path = ROOT / resource["path"]
         if not path.exists():
@@ -326,6 +338,11 @@ def check_simulated_surface_releases() -> None:
         "artifacts/releases/simulated-poi-detail-control.json",
         "simulated-poi-detail-authority-v1", "POI Detail",
         "hold_external_page_transaction_and_review_validation",
+    )
+    _check_simulated_surface_release(
+        "artifacts/releases/simulated-poi-distribution-v4.json",
+        "simulated-poi-distribution-v4-authority-v1", "POI distribution V4",
+        "simulator_only_external_local_validation_required",
     )
 
 
