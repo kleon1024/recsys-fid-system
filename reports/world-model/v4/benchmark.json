@@ -1,0 +1,1113 @@
+{
+  "schema": "kuairand-1k-randomized-capacity-v1",
+  "seed": 20260824,
+  "dataset_manifest": {
+    "schema": "kuairand-1k-randomized-sequence-v1",
+    "source": "https://zenodo.org/records/10439422",
+    "license": "CC-BY-4.0",
+    "source_files": {
+      "log_standard_4_08_to_4_21_1k.csv": "355355897a84baa4df26b78b0271bb9a27b127a39cd7aa4a898cf86db0bc1810",
+      "log_standard_4_22_to_5_08_1k.csv": "548daf771e54e2b73086cc8e7c6f56787d44421f5026c2100421810e47ae9dd4",
+      "log_random_4_22_to_5_08_1k.csv": "e98841eabb3b078c812c4646bf0c5e3f0c947a4183dd950cb091e32377b9a849",
+      "user_features_1k.csv": "07813068ac9ca1071dd456c6d84bd20d0dd81a8ff6596a22e1bbe2b12dc5ea6d",
+      "video_features_basic_1k.csv": "18cb8b9133635a5e53d4e33b1644137b8673b615cc1aaa500b6d3d09695efae3"
+    },
+    "sequence_length": 64,
+    "feedback_names": [
+      "is_click",
+      "long_view",
+      "is_like",
+      "is_comment",
+      "is_forward",
+      "is_follow",
+      "is_hate"
+    ],
+    "sparse_names": [
+      "user_id",
+      "video_id",
+      "author_id",
+      "tag",
+      "video_type",
+      "upload_type",
+      "music_type"
+    ],
+    "sparse_vocabularies": [
+      1002,
+      262145,
+      262145,
+      8193,
+      4,
+      33,
+      1025
+    ],
+    "dense_names": [
+      "duration_log_norm",
+      "hour_sin",
+      "hour_cos",
+      "aspect_ratio",
+      "account_age_log_norm",
+      "follow_count_log_norm",
+      "fan_count_log_norm",
+      "friend_count_log_norm",
+      "low_activity",
+      "live_streamer",
+      "video_author"
+    ],
+    "sampling_rates": {
+      "train": 0.25,
+      "validation": 0.2,
+      "standard_test": 0.05
+    },
+    "random_item_pool_size": 7388,
+    "random_logging_propensity": 0.0001353546291283162,
+    "duplicate_random_rows_removed": 1,
+    "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+    "categorical_maps": {
+      "video_type": {
+        "AD": 1,
+        "NORMAL": 2,
+        "UNKNOWN": 3
+      },
+      "upload_type": {
+        "ALBUM2021": 1,
+        "AiCutVideo": 2,
+        "CommonAvatar": 3,
+        "Copy": 4,
+        "FlashPhoto": 5,
+        "FollowShoot": 6,
+        "Karaoke": 7,
+        "Kmovie": 8,
+        "LipsSync": 9,
+        "LiveClip": 10,
+        "LocalCollection": 11,
+        "LocalIntelligenceAlbum": 12,
+        "LongCamera": 13,
+        "LongImport": 14,
+        "LongPicture": 15,
+        "OriginPicture": 16,
+        "PhotoCopy": 17,
+        "PictureCopy": 18,
+        "PictureSet": 19,
+        "Recreation": 20,
+        "ResidentChange": 21,
+        "SameFrame": 22,
+        "ShareFromOtherApp": 23,
+        "ShootRecognition": 24,
+        "ShortCamera": 25,
+        "ShortImport": 26,
+        "ShortOriginImport": 27,
+        "Solitaire": 28,
+        "Status": 29,
+        "StoryMoodTemplate": 30,
+        "UNKNOWN": 31,
+        "Web": 32
+      }
+    },
+    "splits": {
+      "train": {
+        "rows": 1010285,
+        "date_min": 20220408,
+        "date_max": 20220418,
+        "sha256": "e611ceaef4722b778b1f31b2a3e07ae8ac7de026ccf8744b73014de6fb16de7f"
+      },
+      "validation": {
+        "rows": 204541,
+        "date_min": 20220419,
+        "date_max": 20220421,
+        "sha256": "2c20f7cecb679821b3320bd710337e210c93a05adf5b1f7253583f7925dd50d9"
+      },
+      "standard_test": {
+        "rows": 332199,
+        "date_min": 20220422,
+        "date_max": 20220508,
+        "sha256": "fce5c9c1b4ce735683ea57cff69a026e433a5c6c6c1fe47d0966be4935a5b277"
+      },
+      "random_test": {
+        "rows": 43027,
+        "date_min": 20220422,
+        "date_max": 20220508,
+        "sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076"
+      }
+    },
+    "evidence_boundary": "Standard exposure trains models; the untouched randomized lane is the causal-generalization and off-policy evaluation authority."
+  },
+  "rows": {
+    "train": 1010285,
+    "validation": 204541,
+    "standard_test": 332199,
+    "random_test": 43027
+  },
+  "tabular_models": {
+    "standard_test": {
+      "logistic_regression": {
+        "long_view_auc": 0.5879952432217928,
+        "long_view_log_loss": 0.563113498811929,
+        "train_seconds": 0.6135134880023543
+      },
+      "xgboost": {
+        "long_view_auc": 0.7341655420612402,
+        "long_view_log_loss": 0.5080457953248733,
+        "train_seconds": 1.4060062979988288
+      }
+    },
+    "random_test": {
+      "logistic_regression": {
+        "long_view_auc": 0.5210806533358401,
+        "long_view_log_loss": 0.4471058131380314,
+        "train_seconds": 0.6135134880023543
+      },
+      "xgboost": {
+        "long_view_auc": 0.6590964471952825,
+        "long_view_log_loss": 0.45492952057327296,
+        "train_seconds": 1.4060062979988288
+      }
+    }
+  },
+  "neural_models": {
+    "wide_deep": {
+      "train_seconds": 10.768861874006689,
+      "parameters": 8578712,
+      "training_history": [
+        {
+          "epoch": 1,
+          "training_loss": 3.319605185917997,
+          "validation_loss": 1.7351069092750548
+        },
+        {
+          "epoch": 2,
+          "training_loss": 1.719414870266007,
+          "validation_loss": 1.6393303966522217
+        },
+        {
+          "epoch": 3,
+          "training_loss": 1.6140271010186509,
+          "validation_loss": 1.611997241973877
+        },
+        {
+          "epoch": 4,
+          "training_loss": 1.5694981639684453,
+          "validation_loss": 1.59205561876297
+        }
+      ],
+      "evaluations": {
+        "standard_test": {
+          "is_click": {
+            "auc": 0.7146780700755148,
+            "log_loss": 0.625054057167676,
+            "positive_rate": 0.3776441216468811
+          },
+          "long_view": {
+            "auc": 0.7307537275944935,
+            "log_loss": 0.6369774326326682,
+            "positive_rate": 0.26113563776016235
+          },
+          "is_like": {
+            "auc": 0.8845754799130111,
+            "log_loss": 0.35562786009041575,
+            "positive_rate": 0.015891076996922493
+          },
+          "is_comment": {
+            "auc": 0.7922297085918589,
+            "log_loss": 0.18953754810381432,
+            "positive_rate": 0.002817588159814477
+          },
+          "is_forward": {
+            "auc": 0.6454276085907655,
+            "log_loss": 0.06315348388051853,
+            "positive_rate": 0.0007947043632157147
+          },
+          "is_follow": {
+            "auc": 0.7580043454308355,
+            "log_loss": 0.10289242807464856,
+            "positive_rate": 0.000851899036206305
+          },
+          "is_hate": {
+            "auc": 0.6394912599215636,
+            "log_loss": 0.02804433744679974,
+            "positive_rate": 0.0004274546226952225
+          },
+          "stay_norm": {
+            "mae": 0.2438879758119583
+          }
+        },
+        "random_test": {
+          "is_click": {
+            "auc": 0.6708900506490257,
+            "log_loss": 0.8250893096284662,
+            "positive_rate": 0.17412322759628296
+          },
+          "long_view": {
+            "auc": 0.6787032040549467,
+            "log_loss": 0.9055212148716774,
+            "positive_rate": 0.08415646106004715
+          },
+          "is_like": {
+            "auc": 0.8922953997581928,
+            "log_loss": 0.4405583384256476,
+            "positive_rate": 0.005554651841521263
+          },
+          "is_comment": {
+            "auc": 0.7647045148091318,
+            "log_loss": 0.2326517323758131,
+            "positive_rate": 0.0003021358570549637
+          },
+          "is_forward": {
+            "auc": 0.7014407311797949,
+            "log_loss": 0.07429029835283392,
+            "positive_rate": 0.0006507541984319687
+          },
+          "is_follow": {
+            "auc": 0.6368900950742695,
+            "log_loss": 0.1321929058880334,
+            "positive_rate": 0.00018592976266518235
+          },
+          "is_hate": {
+            "auc": 0.7535262374395235,
+            "log_loss": 0.024150333787272684,
+            "positive_rate": 0.0008134427480399609
+          },
+          "stay_norm": {
+            "mae": 0.13304856419563293
+          }
+        }
+      },
+      "artifact_sha256": "ae342b2d5006af9726d90401a10f635abfc715f2aef35e5fcdb96901f4dfdc71"
+    },
+    "sequence_transformer": {
+      "train_seconds": 30.81842329900246,
+      "parameters": 8680120,
+      "training_history": [
+        {
+          "epoch": 1,
+          "training_loss": 1.5605204974108862,
+          "validation_loss": 1.489298129081726
+        },
+        {
+          "epoch": 2,
+          "training_loss": 1.4737574233699906,
+          "validation_loss": 1.4754563403129577
+        },
+        {
+          "epoch": 3,
+          "training_loss": 1.4483188163896321,
+          "validation_loss": 1.4596198511123657
+        },
+        {
+          "epoch": 4,
+          "training_loss": 1.419024706610784,
+          "validation_loss": 1.4610511589050292
+        }
+      ],
+      "evaluations": {
+        "standard_test": {
+          "is_click": {
+            "auc": 0.775117744790273,
+            "log_loss": 0.5751359375951024,
+            "positive_rate": 0.3776441216468811
+          },
+          "long_view": {
+            "auc": 0.7875148624867927,
+            "log_loss": 0.5635429791019556,
+            "positive_rate": 0.26113563776016235
+          },
+          "is_like": {
+            "auc": 0.9118941432787981,
+            "log_loss": 0.4265338938040168,
+            "positive_rate": 0.015891076996922493
+          },
+          "is_comment": {
+            "auc": 0.8254213377621742,
+            "log_loss": 0.23820323743853175,
+            "positive_rate": 0.002817588159814477
+          },
+          "is_forward": {
+            "auc": 0.7184510612930333,
+            "log_loss": 0.07779128207731877,
+            "positive_rate": 0.0007947043632157147
+          },
+          "is_follow": {
+            "auc": 0.7972486929619087,
+            "log_loss": 0.07867628248515855,
+            "positive_rate": 0.000851899036206305
+          },
+          "is_hate": {
+            "auc": 0.8251987705996684,
+            "log_loss": 0.01761256409604262,
+            "positive_rate": 0.0004274546226952225
+          },
+          "stay_norm": {
+            "mae": 0.2123585194349289
+          }
+        },
+        "random_test": {
+          "is_click": {
+            "auc": 0.7151676031939815,
+            "log_loss": 0.8435331317338325,
+            "positive_rate": 0.17412322759628296
+          },
+          "long_view": {
+            "auc": 0.7266588170145495,
+            "log_loss": 0.8587611541647532,
+            "positive_rate": 0.08415646106004715
+          },
+          "is_like": {
+            "auc": 0.9066299627275938,
+            "log_loss": 0.5299561331945521,
+            "positive_rate": 0.005554651841521263
+          },
+          "is_comment": {
+            "auc": 0.7814879591975421,
+            "log_loss": 0.2933965506074963,
+            "positive_rate": 0.0003021358570549637
+          },
+          "is_forward": {
+            "auc": 0.685155053439781,
+            "log_loss": 0.09283988919977829,
+            "positive_rate": 0.0006507541984319687
+          },
+          "is_follow": {
+            "auc": 0.6071328947674284,
+            "log_loss": 0.10730822979582964,
+            "positive_rate": 0.00018592976266518235
+          },
+          "is_hate": {
+            "auc": 0.7630004253283003,
+            "log_loss": 0.023571733913830172,
+            "positive_rate": 0.0008134427480399609
+          },
+          "stay_norm": {
+            "mae": 0.13858403265476227
+          }
+        }
+      },
+      "artifact_sha256": "e41e8a325da3f793fdd8e061ad76827aaf08c17c904e38f14cd93e4073f534fa"
+    },
+    "sequence_mmoe": {
+      "train_seconds": 40.861523542989744,
+      "parameters": 8792920,
+      "training_history": [
+        {
+          "epoch": 1,
+          "training_loss": 1.5575568012380407,
+          "validation_loss": 1.4829973459243775
+        },
+        {
+          "epoch": 2,
+          "training_loss": 1.4714593090991743,
+          "validation_loss": 1.4666584157943725
+        },
+        {
+          "epoch": 3,
+          "training_loss": 1.4447102119565494,
+          "validation_loss": 1.4636797332763671
+        },
+        {
+          "epoch": 4,
+          "training_loss": 1.409177084200778,
+          "validation_loss": 1.487846677303314
+        }
+      ],
+      "evaluations": {
+        "standard_test": {
+          "is_click": {
+            "auc": 0.7763082517101737,
+            "log_loss": 0.5590700830486753,
+            "positive_rate": 0.3776441216468811
+          },
+          "long_view": {
+            "auc": 0.7887463878226788,
+            "log_loss": 0.5345166759376412,
+            "positive_rate": 0.26113563776016235
+          },
+          "is_like": {
+            "auc": 0.9101907832091988,
+            "log_loss": 0.3684829576579373,
+            "positive_rate": 0.015891076996922493
+          },
+          "is_comment": {
+            "auc": 0.8108902663674853,
+            "log_loss": 0.16953135097311256,
+            "positive_rate": 0.002817588159814477
+          },
+          "is_forward": {
+            "auc": 0.7213770916722926,
+            "log_loss": 0.10038830613099019,
+            "positive_rate": 0.0007947043632157147
+          },
+          "is_follow": {
+            "auc": 0.8050416838829799,
+            "log_loss": 0.08498036644798569,
+            "positive_rate": 0.000851899036206305
+          },
+          "is_hate": {
+            "auc": 0.803626144365932,
+            "log_loss": 0.0574873928921613,
+            "positive_rate": 0.0004274546226952225
+          },
+          "stay_norm": {
+            "mae": 0.2078527808189392
+          }
+        },
+        "random_test": {
+          "is_click": {
+            "auc": 0.7183073229426993,
+            "log_loss": 0.7882761080260791,
+            "positive_rate": 0.17412322759628296
+          },
+          "long_view": {
+            "auc": 0.7302988175847401,
+            "log_loss": 0.7902750626243017,
+            "positive_rate": 0.08415646106004715
+          },
+          "is_like": {
+            "auc": 0.8940496944554508,
+            "log_loss": 0.4744442702538731,
+            "positive_rate": 0.005554651841521263
+          },
+          "is_comment": {
+            "auc": 0.7723442457017572,
+            "log_loss": 0.21515704131166793,
+            "positive_rate": 0.0003021358570549637
+          },
+          "is_forward": {
+            "auc": 0.6213616263501145,
+            "log_loss": 0.12358104584412674,
+            "positive_rate": 0.0006507541984319687
+          },
+          "is_follow": {
+            "auc": 0.538192426602199,
+            "log_loss": 0.11597983431510467,
+            "positive_rate": 0.00018592976266518235
+          },
+          "is_hate": {
+            "auc": 0.8126734541974586,
+            "log_loss": 0.05380040710649838,
+            "positive_rate": 0.0008134427480399609
+          },
+          "stay_norm": {
+            "mae": 0.1370115876197815
+          }
+        }
+      },
+      "artifact_sha256": "aaffffc9260b34b76cde81ab94a3544120ba4afb3e50d39de9984380f826f564"
+    },
+    "independent_world": {
+      "train_seconds": 30.77354405701044,
+      "parameters": 8680120,
+      "training_history": [
+        {
+          "epoch": 1,
+          "training_loss": 1.554243898584775,
+          "validation_loss": 1.4853543519973755
+        },
+        {
+          "epoch": 2,
+          "training_loss": 1.4711767198585788,
+          "validation_loss": 1.4673926973342895
+        },
+        {
+          "epoch": 3,
+          "training_loss": 1.4452856238554364,
+          "validation_loss": 1.4620588731765747
+        },
+        {
+          "epoch": 4,
+          "training_loss": 1.4067646515996832,
+          "validation_loss": 1.4872162055969238
+        }
+      ],
+      "evaluations": {
+        "standard_test": {
+          "is_click": {
+            "auc": 0.7765254651285153,
+            "log_loss": 0.5746816092984667,
+            "positive_rate": 0.3776441216468811
+          },
+          "long_view": {
+            "auc": 0.788952704334333,
+            "log_loss": 0.5720930283713105,
+            "positive_rate": 0.26113563776016235
+          },
+          "is_like": {
+            "auc": 0.9081305198551675,
+            "log_loss": 0.31586365442307107,
+            "positive_rate": 0.015891076996922493
+          },
+          "is_comment": {
+            "auc": 0.811065597335306,
+            "log_loss": 0.1865310843397741,
+            "positive_rate": 0.002817588159814477
+          },
+          "is_forward": {
+            "auc": 0.7093782109129617,
+            "log_loss": 0.07453963224098815,
+            "positive_rate": 0.0007947043632157147
+          },
+          "is_follow": {
+            "auc": 0.7781102615813605,
+            "log_loss": 0.0771230115739286,
+            "positive_rate": 0.000851899036206305
+          },
+          "is_hate": {
+            "auc": 0.8404585700902276,
+            "log_loss": 0.053723890388821124,
+            "positive_rate": 0.0004274546226952225
+          },
+          "stay_norm": {
+            "mae": 0.2075652927160263
+          }
+        },
+        "random_test": {
+          "is_click": {
+            "auc": 0.717393366488346,
+            "log_loss": 0.869198181109847,
+            "positive_rate": 0.17412322759628296
+          },
+          "long_view": {
+            "auc": 0.7279193054977434,
+            "log_loss": 0.8890150926981831,
+            "positive_rate": 0.08415646106004715
+          },
+          "is_like": {
+            "auc": 0.9073808673530256,
+            "log_loss": 0.41617292392225486,
+            "positive_rate": 0.005554651841521263
+          },
+          "is_comment": {
+            "auc": 0.7544323672793474,
+            "log_loss": 0.241032691815076,
+            "positive_rate": 0.0003021358570549637
+          },
+          "is_forward": {
+            "auc": 0.7180407850016445,
+            "log_loss": 0.08736988651028851,
+            "positive_rate": 0.0006507541984319687
+          },
+          "is_follow": {
+            "auc": 0.6408214974778585,
+            "log_loss": 0.09768877751907266,
+            "positive_rate": 0.00018592976266518235
+          },
+          "is_hate": {
+            "auc": 0.7849493593492478,
+            "log_loss": 0.061183495352088335,
+            "positive_rate": 0.0008134427480399609
+          },
+          "stay_norm": {
+            "mae": 0.13838113844394684
+          }
+        }
+      },
+      "artifact_sha256": "c227d74eccd453e7214624a415e358bbcf2d081abd66bc3f23c1a19796370b97"
+    }
+  },
+  "randomized_calibration": {
+    "wide_deep": {
+      "is_click": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.7770747976068706,
+          "intercept": -1.983073310224622
+        },
+        "calibration_positives": 3491,
+        "evaluation_positives": 4001,
+        "auc": 0.6707957065059692,
+        "log_loss": 0.4486806203267233,
+        "brier": 0.1411614716053009,
+        "predicted_rate": 0.172561377286911,
+        "observed_rate": 0.18275247514247894
+      },
+      "long_view": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.7447404666432813,
+          "intercept": -2.8721131723021633
+        },
+        "calibration_positives": 1667,
+        "evaluation_positives": 1954,
+        "auc": 0.6801109556101073,
+        "log_loss": 0.2846686147200586,
+        "brier": 0.07853098213672638,
+        "predicted_rate": 0.08248038589954376,
+        "observed_rate": 0.08925227075815201
+      },
+      "is_like": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.9433888144486607,
+          "intercept": -5.802932303048156
+        },
+        "calibration_positives": 61,
+        "evaluation_positives": 178,
+        "auc": 0.897217012006923,
+        "log_loss": 0.035522017259084784,
+        "brier": 0.007468762341886759,
+        "predicted_rate": 0.006063669919967651,
+        "observed_rate": 0.00813045259565115
+      },
+      "is_comment": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -7.238085031509399
+        },
+        "calibration_positives": 4,
+        "evaluation_positives": 9,
+        "auc": 0.7109455919088528,
+        "log_loss": 0.0032313964475604454,
+        "brier": 0.00040891001117415726,
+        "predicted_rate": 0.0003486194182187319,
+        "observed_rate": 0.000411090295528993
+      },
+      "is_forward": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -5.688427686691284
+        },
+        "calibration_positives": 5,
+        "evaluation_positives": 23,
+        "auc": 0.7276575018389297,
+        "log_loss": 0.00856514490542083,
+        "brier": 0.0010497900657355785,
+        "predicted_rate": 0.00028973573353141546,
+        "observed_rate": 0.0010505641112104058
+      },
+      "is_follow": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -6.633586645126343
+        },
+        "calibration_positives": 4,
+        "evaluation_positives": 4,
+        "auc": 0.6702453287039152,
+        "log_loss": 0.0017285380521103774,
+        "brier": 0.0001828367676353082,
+        "predicted_rate": 0.00027944831526838243,
+        "observed_rate": 0.00018270680448040366
+      },
+      "is_hate": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -3.7651153802871704
+        },
+        "calibration_positives": 9,
+        "evaluation_positives": 26,
+        "auc": 0.7692448403108301,
+        "log_loss": 0.00852621883678453,
+        "brier": 0.0012028274359181523,
+        "predicted_rate": 0.0006896225968375802,
+        "observed_rate": 0.0011875942582264543
+      },
+      "stay_norm": {
+        "rule": {
+          "method": "linear",
+          "coefficient": 0.2896536886692047,
+          "intercept": 0.5070368647575378
+        },
+        "mae": 0.10062780231237411,
+        "predicted_mean": 0.7213546633720398,
+        "observed_mean": 0.7266286015510559
+      }
+    },
+    "sequence_transformer": {
+      "is_click": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.8874259431311629,
+          "intercept": -2.1356528752518877
+        },
+        "calibration_positives": 3491,
+        "evaluation_positives": 4001,
+        "auc": 0.7176495125603799,
+        "log_loss": 0.43111697441424157,
+        "brier": 0.1365990787744522,
+        "predicted_rate": 0.17907288670539856,
+        "observed_rate": 0.18275247514247894
+      },
+      "long_view": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.903959439206504,
+          "intercept": -2.934026793781314
+        },
+        "calibration_positives": 1667,
+        "evaluation_positives": 1954,
+        "auc": 0.7303563227105723,
+        "log_loss": 0.27348125664914635,
+        "brier": 0.07687938213348389,
+        "predicted_rate": 0.08641628175973892,
+        "observed_rate": 0.08925227075815201
+      },
+      "is_like": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 1.0242721581918983,
+          "intercept": -6.148191972691969
+        },
+        "calibration_positives": 61,
+        "evaluation_positives": 178,
+        "auc": 0.9182419339399317,
+        "log_loss": 0.032992615679910575,
+        "brier": 0.007350236177444458,
+        "predicted_rate": 0.00510431919246912,
+        "observed_rate": 0.00813045259565115
+      },
+      "is_comment": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -7.616615533828735
+        },
+        "calibration_positives": 4,
+        "evaluation_positives": 9,
+        "auc": 0.7310516054347165,
+        "log_loss": 0.003133694771208751,
+        "brier": 0.00040553940925747156,
+        "predicted_rate": 0.0003586095117498189,
+        "observed_rate": 0.000411090295528993
+      },
+      "is_forward": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -5.989118337631226
+        },
+        "calibration_positives": 5,
+        "evaluation_positives": 23,
+        "auc": 0.6938291485258743,
+        "log_loss": 0.00872591025991026,
+        "brier": 0.0010498794727027416,
+        "predicted_rate": 0.0002542734146118164,
+        "observed_rate": 0.0010505641112104058
+      },
+      "is_follow": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -6.7883994579315186
+        },
+        "calibration_positives": 4,
+        "evaluation_positives": 4,
+        "auc": 0.7700443144958655,
+        "log_loss": 0.001732123270123027,
+        "brier": 0.00019006308866664767,
+        "predicted_rate": 0.0002655079879332334,
+        "observed_rate": 0.00018270680448040366
+      },
+      "is_hate": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -3.951626420021057
+        },
+        "calibration_positives": 9,
+        "evaluation_positives": 26,
+        "auc": 0.7620571567272075,
+        "log_loss": 0.00916322997656836,
+        "brier": 0.001194397103972733,
+        "predicted_rate": 0.0005122755537740886,
+        "observed_rate": 0.0011875942582264543
+      },
+      "stay_norm": {
+        "rule": {
+          "method": "linear",
+          "coefficient": 0.3157249093055725,
+          "intercept": 0.48803484439849854
+        },
+        "mae": 0.09977162629365921,
+        "predicted_mean": 0.7244500517845154,
+        "observed_mean": 0.7266286015510559
+      }
+    },
+    "sequence_mmoe": {
+      "is_click": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.855208540851394,
+          "intercept": -2.009421841694637
+        },
+        "calibration_positives": 3491,
+        "evaluation_positives": 4001,
+        "auc": 0.7200536315172269,
+        "log_loss": 0.42982243184748425,
+        "brier": 0.13602648675441742,
+        "predicted_rate": 0.17675772309303284,
+        "observed_rate": 0.18275247514247894
+      },
+      "long_view": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.8783007559638762,
+          "intercept": -2.804626732825748
+        },
+        "calibration_positives": 1667,
+        "evaluation_positives": 1954,
+        "auc": 0.7320299918846649,
+        "log_loss": 0.2729850512792764,
+        "brier": 0.07663435488939285,
+        "predicted_rate": 0.08515667915344238,
+        "observed_rate": 0.08925227075815201
+      },
+      "is_like": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.8504859644357743,
+          "intercept": -5.933952971385902
+        },
+        "calibration_positives": 61,
+        "evaluation_positives": 178,
+        "auc": 0.906663182649595,
+        "log_loss": 0.033134652858557524,
+        "brier": 0.007357384078204632,
+        "predicted_rate": 0.0051852623000741005,
+        "observed_rate": 0.00813045259565115
+      },
+      "is_comment": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -7.1772987842559814
+        },
+        "calibration_positives": 4,
+        "evaluation_positives": 9,
+        "auc": 0.7433208432340218,
+        "log_loss": 0.0032274599530371126,
+        "brier": 0.0004080146609339863,
+        "predicted_rate": 0.0003720207023434341,
+        "observed_rate": 0.000411090295528993
+      },
+      "is_forward": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -6.29149317741394
+        },
+        "calibration_positives": 5,
+        "evaluation_positives": 23,
+        "auc": 0.6281962585236873,
+        "log_loss": 0.00885779392361589,
+        "brier": 0.0010498787742108107,
+        "predicted_rate": 0.0002713855355978012,
+        "observed_rate": 0.0010505641112104058
+      },
+      "is_follow": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -6.586007833480835
+        },
+        "calibration_positives": 4,
+        "evaluation_positives": 4,
+        "auc": 0.6455982456941842,
+        "log_loss": 0.0018126015744057509,
+        "brier": 0.00018739695951808244,
+        "predicted_rate": 0.00032338802702724934,
+        "observed_rate": 0.00018270680448040366
+      },
+      "is_hate": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -4.964764833450317
+        },
+        "calibration_positives": 9,
+        "evaluation_positives": 26,
+        "auc": 0.8303748887505232,
+        "log_loss": 0.009137361975777763,
+        "brier": 0.0011879720259457827,
+        "predicted_rate": 0.00040895165875554085,
+        "observed_rate": 0.0011875942582264543
+      },
+      "stay_norm": {
+        "rule": {
+          "method": "linear",
+          "coefficient": 0.2952704131603241,
+          "intercept": 0.5065047144889832
+        },
+        "mae": 0.10017690062522888,
+        "predicted_mean": 0.723106861114502,
+        "observed_mean": 0.7266286015510559
+      }
+    },
+    "independent_world": {
+      "is_click": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.8021856175488102,
+          "intercept": -2.1462209580779823
+        },
+        "calibration_positives": 3491,
+        "evaluation_positives": 4001,
+        "auc": 0.7194667421340506,
+        "log_loss": 0.4303641354488269,
+        "brier": 0.13624060153961182,
+        "predicted_rate": 0.17663000524044037,
+        "observed_rate": 0.18275247514247894
+      },
+      "long_view": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.8582631463540777,
+          "intercept": -2.9764938715712717
+        },
+        "calibration_positives": 1667,
+        "evaluation_positives": 1954,
+        "auc": 0.7309370986832253,
+        "log_loss": 0.2733620538929982,
+        "brier": 0.07671293616294861,
+        "predicted_rate": 0.08493059128522873,
+        "observed_rate": 0.08925227075815201
+      },
+      "is_like": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.9270544553983842,
+          "intercept": -5.781847301469042
+        },
+        "calibration_positives": 61,
+        "evaluation_positives": 178,
+        "auc": 0.9133008819564998,
+        "log_loss": 0.032839969733213015,
+        "brier": 0.007201953325420618,
+        "predicted_rate": 0.0055190809071063995,
+        "observed_rate": 0.00813045259565115
+      },
+      "is_comment": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -7.2534849643707275
+        },
+        "calibration_positives": 4,
+        "evaluation_positives": 9,
+        "auc": 0.7146215398363086,
+        "log_loss": 0.0031446922968445257,
+        "brier": 0.0004059649654664099,
+        "predicted_rate": 0.0003301304823253304,
+        "observed_rate": 0.000411090295528993
+      },
+      "is_forward": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -5.915120840072632
+        },
+        "calibration_positives": 5,
+        "evaluation_positives": 23,
+        "auc": 0.7689548915528519,
+        "log_loss": 0.008320969960397606,
+        "brier": 0.0010493566514924169,
+        "predicted_rate": 0.0002640343445818871,
+        "observed_rate": 0.0010505641112104058
+      },
+      "is_follow": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -6.247047662734985
+        },
+        "calibration_positives": 4,
+        "evaluation_positives": 4,
+        "auc": 0.7636826716615652,
+        "log_loss": 0.0017813175769278034,
+        "brier": 0.00019036474986933172,
+        "predicted_rate": 0.00035867129918187857,
+        "observed_rate": 0.00018270680448040366
+      },
+      "is_hate": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -5.118812322616577
+        },
+        "calibration_positives": 9,
+        "evaluation_positives": 26,
+        "auc": 0.788881032535855,
+        "log_loss": 0.009424138648685286,
+        "brier": 0.0013138187350705266,
+        "predicted_rate": 0.000800299399998039,
+        "observed_rate": 0.0011875942582264543
+      },
+      "stay_norm": {
+        "rule": {
+          "method": "linear",
+          "coefficient": 0.32348617911338806,
+          "intercept": 0.48026978969573975
+        },
+        "mae": 0.0996878519654274,
+        "predicted_mean": 0.7235673069953918,
+        "observed_mean": 0.7266286015510559
+      }
+    }
+  },
+  "random_intervention_effect": {
+    "is_click": {
+      "absolute_effect": -0.2958359122276306,
+      "confidence_interval_95": [
+        -0.3058789774775505,
+        -0.28645457699894905
+      ]
+    },
+    "long_view": {
+      "absolute_effect": -0.2606591582298279,
+      "confidence_interval_95": [
+        -0.2703847333788872,
+        -0.250542925298214
+      ]
+    },
+    "is_like": {
+      "absolute_effect": -0.01765056885778904,
+      "confidence_interval_95": [
+        -0.021519204881042243,
+        -0.013787763309665026
+      ]
+    },
+    "is_comment": {
+      "absolute_effect": -0.003490283153951168,
+      "confidence_interval_95": [
+        -0.0044297352200374,
+        -0.0026661075593438
+      ]
+    },
+    "is_forward": {
+      "absolute_effect": -0.0011498855892568827,
+      "confidence_interval_95": [
+        -0.0019851808552630245,
+        -0.00047299444049713266
+      ]
+    },
+    "is_follow": {
+      "absolute_effect": -0.0015889483038336039,
+      "confidence_interval_95": [
+        -0.0023150397173594683,
+        -0.0009571857313858349
+      ]
+    },
+    "is_hate": {
+      "absolute_effect": 0.00021363647829275578,
+      "confidence_interval_95": [
+        -0.00014263321172620634,
+        0.0006358484286465681
+      ]
+    },
+    "stay_norm": {
+      "absolute_effect": -0.024450790137052536,
+      "confidence_interval_95": [
+        -0.03398240124806762,
+        -0.013578258268535141
+      ]
+    }
+  },
+  "gates": {
+    "sequence_beats_wide_deep_randomized": true,
+    "random_intervention_reduces_long_view": true,
+    "random_intervention_reduces_stay": true,
+    "randomized_hate_has_positive_support": true,
+    "policy_order_from_randomized_ope": false
+  },
+  "decision": "hold_randomized_ope_pending",
+  "evidence_boundary": "Random intervention recovery and randomized generalization are measured; policy ordering remains closed until DR/OPE is executed."
+}

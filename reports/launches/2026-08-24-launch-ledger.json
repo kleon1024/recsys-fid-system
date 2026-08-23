@@ -1,0 +1,453 @@
+{
+  "schema": "recommendation-launch-ledger-v1",
+  "records": [
+    {
+      "launch_id": "L-FEATURE-001",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "feature",
+      "control": "feature_v1",
+      "treatment": "feature_v2",
+      "primary_metric": "stay_per_exposure",
+      "decision": "hold_underpowered_or_neutral",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-main-feed-launch-suite.json",
+        "report_sha256": "1c8445a267513b660743b241a87b7fcfecf6fd8e610277c07a65986228dc69d0"
+      },
+      "evidence_boundary": "synthetic common-random user A/B"
+    },
+    {
+      "launch_id": "L-STRATEGY-001",
+      "surface": "main_feed",
+      "stage": "mix",
+      "change_type": "strategy",
+      "control": "strategy_v1",
+      "treatment": "strategy_v2",
+      "primary_metric": "quality_long_view_rate",
+      "decision": "hold_underpowered_or_neutral",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-main-feed-launch-suite.json",
+        "report_sha256": "1c8445a267513b660743b241a87b7fcfecf6fd8e610277c07a65986228dc69d0"
+      },
+      "evidence_boundary": "synthetic common-random user A/B"
+    },
+    {
+      "launch_id": "L-REALTIME-001",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "realtime",
+      "control": "realtime_v1",
+      "treatment": "realtime_v2",
+      "primary_metric": "stay_per_exposure",
+      "decision": "hold_underpowered_or_neutral",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-main-feed-launch-suite.json",
+        "report_sha256": "1c8445a267513b660743b241a87b7fcfecf6fd8e610277c07a65986228dc69d0"
+      },
+      "evidence_boundary": "synthetic common-random user A/B"
+    },
+    {
+      "launch_id": "L-PRODUCT-001",
+      "surface": "main_feed",
+      "stage": "end_to_end",
+      "change_type": "product",
+      "control": "trigger_0_5pct",
+      "treatment": "trigger_1pct",
+      "primary_metric": "stay_per_exposure",
+      "decision": "pass_primary_metric",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-main-feed-launch-suite.json",
+        "report_sha256": "1c8445a267513b660743b241a87b7fcfecf6fd8e610277c07a65986228dc69d0"
+      },
+      "evidence_boundary": "synthetic common-random user A/B"
+    },
+    {
+      "launch_id": "L-VALUE-001",
+      "surface": "main_feed",
+      "stage": "mix",
+      "change_type": "business_value",
+      "control": "value_v1",
+      "treatment": "value_v2",
+      "primary_metric": "quality_long_view_rate",
+      "decision": "hold_underpowered_or_neutral",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-main-feed-launch-suite.json",
+        "report_sha256": "1c8445a267513b660743b241a87b7fcfecf6fd8e610277c07a65986228dc69d0"
+      },
+      "evidence_boundary": "synthetic common-random user A/B"
+    },
+    {
+      "launch_id": "L-LONGTERM-001",
+      "surface": "main_feed",
+      "stage": "mix",
+      "change_type": "long_term_value",
+      "control": "longterm_v1",
+      "treatment": "longterm_v2",
+      "primary_metric": "quality_long_view_rate",
+      "decision": "hold_underpowered_or_neutral",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-main-feed-launch-suite.json",
+        "report_sha256": "1c8445a267513b660743b241a87b7fcfecf6fd8e610277c07a65986228dc69d0"
+      },
+      "evidence_boundary": "synthetic common-random user A/B"
+    },
+    {
+      "launch_id": "L-CHAIN-001",
+      "surface": "main_feed",
+      "stage": "end_to_end",
+      "change_type": "chain_diagnosis",
+      "control": "uid_collision_bug",
+      "treatment": "uid_collision_fixed",
+      "primary_metric": "stay_per_exposure",
+      "decision": "pass_primary_metric",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-main-feed-launch-suite.json",
+        "report_sha256": "1c8445a267513b660743b241a87b7fcfecf6fd8e610277c07a65986228dc69d0"
+      },
+      "evidence_boundary": "synthetic common-random user A/B"
+    },
+    {
+      "launch_id": "L-FINE-001",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "rule_personalized_v1",
+      "treatment": "lr_v3_long_view",
+      "primary_metric": "unified_lt",
+      "decision": "reject_unified_lt_negative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-FINE-002",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "rule_personalized_v1",
+      "treatment": "xgboost_v3_long_view",
+      "primary_metric": "unified_lt",
+      "decision": "reject_unified_lt_negative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-FINE-003",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "rule_personalized_v1",
+      "treatment": "wide_deep",
+      "primary_metric": "unified_lt",
+      "decision": "reject_unified_lt_negative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-FINE-004",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "rule_personalized_v1",
+      "treatment": "deepfm",
+      "primary_metric": "unified_lt",
+      "decision": "reject_unified_lt_negative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-FINE-005",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "rule_personalized_v1",
+      "treatment": "dcnv2",
+      "primary_metric": "unified_lt",
+      "decision": "reject_unified_lt_negative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-FINE-006",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "rule_personalized_v1",
+      "treatment": "mmoe_value_tree",
+      "primary_metric": "unified_lt",
+      "decision": "reject_unified_lt_negative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-FINE-007",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "rule_personalized_v1",
+      "treatment": "mmoe_feed_multitask_stay_v2",
+      "primary_metric": "unified_lt",
+      "decision": "hold_reward_hacking_duration_shift",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-FINE-008",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "rule_personalized_v1",
+      "treatment": "mmoe_multitask_guarded_a005_t003",
+      "primary_metric": "unified_lt",
+      "decision": "pass_unified_lt_nonnegative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-FINE-009",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "mmoe_multitask_guarded_a005_t003",
+      "treatment": "mmoe_multitask_guarded_a010_t005",
+      "primary_metric": "unified_lt",
+      "decision": "pass_unified_lt_nonnegative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-FINE-010",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "model",
+      "control": "mmoe_multitask_guarded_a010_t005",
+      "treatment": "mmoe_multitask_guarded_a015_t008",
+      "primary_metric": "unified_lt",
+      "decision": "pass_unified_lt_nonnegative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+        "report_sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
+      },
+      "evidence_boundary": "Synthetic V3 A/B, not production lift evidence."
+    },
+    {
+      "launch_id": "L-COARSE-GPU-001",
+      "surface": "main_feed",
+      "stage": "coarse",
+      "change_type": "model_or_budget",
+      "control": "coarse_quality_top20_c0",
+      "treatment": "coarse_lr_top20_c1",
+      "primary_metric": "coarse_oracle_recall_and_unified_lt",
+      "decision": "pass_lt_value",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-coarse-cascade-ladder.json",
+        "report_sha256": "3e2e8c31d0b9f65dde229cbfaf4ed20a81f03a382f84140aa9de185138dd5a3b"
+      },
+      "evidence_boundary": "These are explicit structural coarse scorers over a synthetic candidate pool, not trained W&D, DeepFM, or DCNv2 artifacts."
+    },
+    {
+      "launch_id": "L-COARSE-GPU-002",
+      "surface": "main_feed",
+      "stage": "coarse",
+      "change_type": "model_or_budget",
+      "control": "coarse_lr_top20_c1",
+      "treatment": "coarse_local_cross_top20_c2",
+      "primary_metric": "coarse_oracle_recall_and_unified_lt",
+      "decision": "hold_underpowered_or_neutral",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-coarse-cascade-ladder.json",
+        "report_sha256": "3e2e8c31d0b9f65dde229cbfaf4ed20a81f03a382f84140aa9de185138dd5a3b"
+      },
+      "evidence_boundary": "These are explicit structural coarse scorers over a synthetic candidate pool, not trained W&D, DeepFM, or DCNv2 artifacts."
+    },
+    {
+      "launch_id": "L-COARSE-GPU-003",
+      "surface": "main_feed",
+      "stage": "coarse",
+      "change_type": "model_or_budget",
+      "control": "coarse_local_cross_top20_c2",
+      "treatment": "coarse_local_cross_top40_c3",
+      "primary_metric": "coarse_oracle_recall_and_unified_lt",
+      "decision": "hold_underpowered_or_neutral",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-coarse-cascade-ladder.json",
+        "report_sha256": "3e2e8c31d0b9f65dde229cbfaf4ed20a81f03a382f84140aa9de185138dd5a3b"
+      },
+      "evidence_boundary": "These are explicit structural coarse scorers over a synthetic candidate pool, not trained W&D, DeepFM, or DCNv2 artifacts."
+    },
+    {
+      "launch_id": "F-LR-001",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "feature",
+      "control": "basic",
+      "treatment": "basic__sequence",
+      "primary_metric": "unified_lt",
+      "decision": "hold_unified_lt_uncertain",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json",
+        "report_sha256": "78d46fc58dc576626f0f9879c88eb15d53cf6e9cbb5789622edf214d61404af3"
+      },
+      "evidence_boundary": "Synthetic A/B validates launch mechanics; production readiness requires accepted causal LT exchange rates and live holdout evidence."
+    },
+    {
+      "launch_id": "F-LR-002",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "feature",
+      "control": "basic",
+      "treatment": "basic__realtime",
+      "primary_metric": "unified_lt",
+      "decision": "pass_unified_lt_nonnegative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json",
+        "report_sha256": "78d46fc58dc576626f0f9879c88eb15d53cf6e9cbb5789622edf214d61404af3"
+      },
+      "evidence_boundary": "Synthetic A/B validates launch mechanics; production readiness requires accepted causal LT exchange rates and live holdout evidence."
+    },
+    {
+      "launch_id": "F-LR-003",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "feature",
+      "control": "basic__realtime",
+      "treatment": "basic__realtime__local_context",
+      "primary_metric": "unified_lt",
+      "decision": "pass_unified_lt_nonnegative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json",
+        "report_sha256": "78d46fc58dc576626f0f9879c88eb15d53cf6e9cbb5789622edf214d61404af3"
+      },
+      "evidence_boundary": "Synthetic A/B validates launch mechanics; production readiness requires accepted causal LT exchange rates and live holdout evidence."
+    },
+    {
+      "launch_id": "F-LR-004",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "feature",
+      "control": "basic__realtime__local_context",
+      "treatment": "basic__realtime__local_context__hash_content",
+      "primary_metric": "unified_lt",
+      "decision": "reject_unified_lt_negative",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json",
+        "report_sha256": "78d46fc58dc576626f0f9879c88eb15d53cf6e9cbb5789622edf214d61404af3"
+      },
+      "evidence_boundary": "Synthetic A/B validates launch mechanics; production readiness requires accepted causal LT exchange rates and live holdout evidence."
+    },
+    {
+      "launch_id": "L-POI-DIST-E2E-001",
+      "surface": "poi_distribution",
+      "stage": "end_to_end",
+      "change_type": "model_and_value_tree",
+      "control": "lr_plus_sequence",
+      "treatment": "local_value_tree_policy",
+      "primary_metric": "unified_lt_with_feed_guardrails",
+      "decision": "hold_quality_long_view_risk",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-local-service-supply-launch.json",
+        "report_sha256": "9a53ebbe63f8641b764321f844c7364c715c511743546e7477ba034f70ae76cb"
+      },
+      "evidence_boundary": "The environment validates mechanics and estimator recovery under explicit dynamics; it does not establish real production lift without logged-data calibration and a live randomized test."
+    },
+    {
+      "launch_id": "L-POI-POST-E2E-001",
+      "surface": "poi_posting",
+      "stage": "end_to_end",
+      "change_type": "supply_strategy",
+      "control": "control_posting",
+      "treatment": "treatment_posting",
+      "primary_metric": "published_supply_then_distribution_lt",
+      "decision": "hold_quality_long_view_risk",
+      "evidence": {
+        "report": "reports/launches/2026-08-23-local-service-supply-launch.json",
+        "report_sha256": "9a53ebbe63f8641b764321f844c7364c715c511743546e7477ba034f70ae76cb"
+      },
+      "evidence_boundary": "The environment validates mechanics and estimator recovery under explicit dynamics; it does not establish real production lift without logged-data calibration and a live randomized test."
+    },
+    {
+      "launch_id": "L-SIMULATOR-009",
+      "surface": "main_feed",
+      "stage": "end_to_end",
+      "change_type": "simulator_world",
+      "control": "synthetic_v3_feed_behavior",
+      "treatment": "external_randomized_v4_feed_behavior",
+      "primary_metric": "randomized_stay_with_behavior_guardrails",
+      "decision": "pass_feed_kernel_only",
+      "evidence": {
+        "report": "reports/world-model/v4/composite-launch-review.json",
+        "report_sha256": "958ce1bea8d4c4b905ca562d65b2ad1e912dd6ec2e38676d9028a3b7054622c8"
+      },
+      "evidence_boundary": "This promotes one external-data-calibrated Feed behavior kernel inside the simulator. It is not a production deployment, live A/B, unified LT estimate, or validation of Local and supply kernels. Feed status: eligible_simulator_authority"
+    }
+  ],
+  "coverage": {
+    "main_feed": {
+      "retrieval": "missing",
+      "coarse": "evidenced",
+      "fine": "evidenced",
+      "mix": "evidenced",
+      "end_to_end": "evidenced"
+    },
+    "poi_distribution": {
+      "retrieval": "missing",
+      "coarse": "missing",
+      "fine": "missing",
+      "mix": "missing",
+      "end_to_end": "evidenced"
+    },
+    "poi_posting": {
+      "candidate": "missing",
+      "fine": "missing",
+      "end_to_end": "evidenced"
+    },
+    "feed_posting": {
+      "candidate": "missing",
+      "fine": "missing",
+      "end_to_end": "missing"
+    },
+    "local_search": {
+      "retrieval": "missing",
+      "fine": "missing",
+      "end_to_end": "missing"
+    },
+    "poi_detail": {
+      "fine": "missing",
+      "end_to_end": "missing"
+    }
+  },
+  "summary": {
+    "records": 27,
+    "passed": 9,
+    "held": 11,
+    "rejected": 7,
+    "missing_cells": 15
+  },
+  "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."
+}

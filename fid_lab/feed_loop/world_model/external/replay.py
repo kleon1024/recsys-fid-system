@@ -31,7 +31,7 @@ def _selection_value(response):
     return policy_utility(response, "raw_probability")
 
 
-def _selected_metrics(response, choice):
+def selected_metrics(response, choice):
     rows = torch.arange(len(choice), device=choice.device)
     probability = response.probabilities[rows, choice]
     return torch.stack((
@@ -83,7 +83,7 @@ def _arm_step(policy, world, request_sparse, request_dense, candidate_sparse,
         request_sparse, request_dense, candidate_sparse, candidate_dense,
         history_items, history_feedback,
     )
-    metrics = _selected_metrics(world_response, choice)
+    metrics = selected_metrics(world_response, choice)
     actions, _ = world.sample_selected(world_response, choice, seed)
     choice_cpu = choice.cpu()
     rows = torch.arange(len(choice_cpu))

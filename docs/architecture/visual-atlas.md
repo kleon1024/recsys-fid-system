@@ -206,3 +206,26 @@ flowchart LR
     Scale -- "Yes" --> Million["Million-user CRN A/B"]
     Million --> Gate["Feed, quality, negative, LT, and cost gate"]
 ```
+
+## 12. Composite V4 world authority
+
+```mermaid
+flowchart LR
+    Dataset["Request-level candidate dataset"] --> FeedKernel["External Feed kernel"]
+    Dataset --> LocalKernel["Synthetic Local kernel"]
+    Dataset --> SupplyKernel["Synthetic supply kernel"]
+    FeedKernel --> Randomized["Randomized DR/OPE"]
+    FeedKernel --> Shadows["Two independent stateful shadows"]
+    Randomized --> WorldManifest["Simulator world manifest"]
+    Shadows --> WorldManifest
+    LocalKernel --> WorldManifest
+    SupplyKernel --> WorldManifest
+    PolicyManifest["Serving policy manifest"] --> Simulator["Tensor replay and A/B"]
+    WorldManifest --> Simulator
+    Simulator --> Stage["Recall, coarse, fine, mix attribution"]
+    Stage --> Review["Launch Review and rollback"]
+```
+
+World-model authority and serving-policy authority are deliberately separate.
+The external Feed kernel can validate Feed policy ordering without claiming POI,
+supply, retention, commercialization, unified LT, or production deployment.

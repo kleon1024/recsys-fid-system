@@ -1,0 +1,195 @@
+{
+  "schema": "kuairand-randomized-sequence-adapter-v1",
+  "seed": 20260831,
+  "rows": {
+    "train": 17684,
+    "validation": 4132,
+    "evaluation": 21211
+  },
+  "training_history": [
+    {
+      "epoch": 1,
+      "training_loss": 1.8903060621685452,
+      "validation_loss": 1.178122118115425
+    },
+    {
+      "epoch": 2,
+      "training_loss": 1.845494118001726,
+      "validation_loss": 1.195755496621132
+    },
+    {
+      "epoch": 3,
+      "training_loss": 1.8315179745356243,
+      "validation_loss": 1.1808079928159714
+    }
+  ],
+  "train_seconds": 1.2554334510059562,
+  "pairwise": {
+    "pairs": 1189,
+    "loss": [
+      0.9387649496396383,
+      0.9245597720146179
+    ],
+    "scope": "same-user same-day random exposures; not a request slate"
+  },
+  "evaluation": {
+    "is_click": {
+      "auc": 0.7092419776412976,
+      "log_loss": 0.6485839044744272,
+      "positive_rate": 0.1940973997116089
+    },
+    "long_view": {
+      "auc": 0.7216171563352572,
+      "log_loss": 0.6384415276181429,
+      "positive_rate": 0.09438499063253403
+    },
+    "is_like": {
+      "auc": 0.8912322121743476,
+      "log_loss": 0.27824644238728036,
+      "positive_rate": 0.005185988266021013
+    },
+    "is_comment": {
+      "auc": 0.6035153487056161,
+      "log_loss": 0.16272180365206532,
+      "positive_rate": 0.00018858139810618013
+    },
+    "is_forward": {
+      "auc": 0.6573988493822503,
+      "log_loss": 0.07844821816133886,
+      "positive_rate": 0.00023572675127070397
+    },
+    "is_follow": {
+      "auc": 0.3915083219387996,
+      "log_loss": 0.08277374008444437,
+      "positive_rate": 9.429069905309007e-05
+    },
+    "is_hate": {
+      "auc": 0.8617659544361115,
+      "log_loss": 0.06584518967186688,
+      "positive_rate": 0.00047145350254140794
+    },
+    "stay_norm": {
+      "mae": 0.12162178754806519
+    }
+  },
+  "randomized_calibration": {
+    "sequence_randomized_adapter": {
+      "is_click": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 1.0710877533888363,
+          "intercept": -1.6658270393561445
+        },
+        "calibration_positives": 3375,
+        "evaluation_positives": 4117,
+        "auc": 0.7092419776412976,
+        "log_loss": 0.45056995649323084,
+        "brier": 0.14406366646289825,
+        "predicted_rate": 0.17479753494262695,
+        "observed_rate": 0.1940973997116089
+      },
+      "long_view": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 1.088993824144919,
+          "intercept": -2.448960918549323
+        },
+        "calibration_positives": 1619,
+        "evaluation_positives": 2002,
+        "auc": 0.7216171563352572,
+        "log_loss": 0.2863023760533889,
+        "brier": 0.08094886690378189,
+        "predicted_rate": 0.0852205902338028,
+        "observed_rate": 0.09438499063253403
+      },
+      "is_like": {
+        "rule": {
+          "method": "platt",
+          "coefficient": 0.9305425942426835,
+          "intercept": -4.774858323860895
+        },
+        "calibration_positives": 129,
+        "evaluation_positives": 110,
+        "auc": 0.8912322121743477,
+        "log_loss": 0.023750885995119254,
+        "brier": 0.004777343478053808,
+        "predicted_rate": 0.005206002853810787,
+        "observed_rate": 0.005185988266021013
+      },
+      "is_comment": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -6.363993406295776
+        },
+        "calibration_positives": 9,
+        "evaluation_positives": 4,
+        "auc": 0.6035153487056161,
+        "log_loss": 0.0018772124942382019,
+        "brier": 0.00018882082076743245,
+        "predicted_rate": 0.00035136446240358055,
+        "observed_rate": 0.00018858139810618013
+      },
+      "is_forward": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -4.3072731494903564
+        },
+        "calibration_positives": 23,
+        "evaluation_positives": 5,
+        "auc": 0.6573988493822502,
+        "log_loss": 0.002722396290280748,
+        "brier": 0.0002378967619733885,
+        "predicted_rate": 0.001135381986387074,
+        "observed_rate": 0.00023572675127070397
+      },
+      "is_follow": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -5.687819242477417
+        },
+        "calibration_positives": 6,
+        "evaluation_positives": 2,
+        "auc": 0.3915083219387996,
+        "log_loss": 0.0013009146658009149,
+        "brier": 0.00010229104373138398,
+        "predicted_rate": 0.00041451313882134855,
+        "observed_rate": 9.429069905309007e-05
+      },
+      "is_hate": {
+        "rule": {
+          "method": "prior_intercept",
+          "coefficient": 1.0,
+          "intercept": -4.592293977737427
+        },
+        "calibration_positives": 25,
+        "evaluation_positives": 10,
+        "auc": 0.8617659544361116,
+        "log_loss": 0.0039054894272211467,
+        "brier": 0.0005844443803653121,
+        "predicted_rate": 0.001033072010613978,
+        "observed_rate": 0.00047145350254140794
+      },
+      "stay_norm": {
+        "rule": {
+          "method": "linear",
+          "coefficient": 0.2967831790447235,
+          "intercept": 0.5125020742416382
+        },
+        "mae": 0.10193879157304764,
+        "predicted_mean": 0.724297285079956,
+        "observed_mean": 0.7254851460456848
+      }
+    }
+  },
+  "parent_artifact_sha256": "c227d74eccd453e7214624a415e358bbcf2d081abd66bc3f23c1a19796370b97",
+  "artifact_sha256": "bd7f24758ef3413cfcff8e40807e48b7fe89a7a7df1519de640c9f51e0efb6d0",
+  "gates": {
+    "user_disjoint_evaluation": true,
+    "randomized_long_view_auc_improves": false
+  },
+  "decision": "adapter_reject",
+  "evidence_boundary": "Fine-tuned only on calibration users; policy value is decided by randomized OPE on the disjoint evaluation users."
+}

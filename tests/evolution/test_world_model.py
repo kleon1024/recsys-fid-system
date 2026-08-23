@@ -14,13 +14,21 @@ from fid_lab.feed_loop.world_model.data import (
 from fid_lab.feed_loop.world_model.ensemble import StructuralNoise, WorldModelEnsemble
 from fid_lab.feed_loop.world_model.loss import world_model_loss
 from fid_lab.feed_loop.world_model.training import (
+    _sample_stay,
     load_world_ensemble,
     save_world_ensemble,
 )
 from fid_lab.feed_loop.world_model.validation import evaluate_world_model
+from fid_lab.feed_loop.world_model.validation.evaluation import _distribution_report
 from fid_lab.feed_loop.world_model.benchmark.neural import (
     DINRequestRanker,
     SlateTransformerRanker,
+)
+from fid_lab.feed_loop.world_model.external.kuairand.data.core_bridge import (
+    bridge_split,
+)
+from fid_lab.feed_loop.world_model.external.kuairand.data.randomized import (
+    RandomizedSplit,
 )
 
 
@@ -35,7 +43,7 @@ def _split(rows=16) -> WorldModelSplit:
     generator = torch.Generator().manual_seed(7)
     selected = torch.rand(rows, 28, generator=generator)
     selected[:, 12] = 0.7
-    labels = torch.zeros(rows, 16)
+    labels = torch.zeros(rows, 21)
     labels[:, 0] = torch.arange(rows) % 2
     labels[:, 1] = labels[:, 0]
     labels[:, 2] = labels[:, 0] * 12.0
@@ -103,6 +111,29 @@ def test_evaluation_fails_closed_without_randomized_causal_evidence():
     assert report["gates"]["policy_order"] is False
 
 
+def test_distribution_evaluation_ignores_unobserved_labels():
+    config = _config()
+    ensemble = WorldModelEnsemble(config)
+    baseline = _split()
+    masks = baseline.label_masks.clone()
+    masks[:, 9:] = 0.0
+    first = WorldModelSplit(**{
+        **baseline.__dict__, "label_masks": masks,
+    })
+    changed_labels = baseline.labels.clone()
+    changed_labels[:, 9:] = 1.0
+    second = WorldModelSplit(**{
+        **baseline.__dict__, "labels": changed_labels, "label_masks": masks,
+    })
+    first_report = _distribution_report(ensemble, first, "cpu", len(first))
+    second_report = _distribution_report(ensemble, second, "cpu", len(second))
+    assert first_report["binary_ece"] == second_report["binary_ece"]
+    assert first_report["joint_correlation_mae"] == second_report[
+        "joint_correlation_mae"
+    ]
+    assert first_report["binary_ece"]["anchor_click"] is None
+
+
 def test_artifact_round_trip_preserves_member_predictions():
     config = _config()
     ensemble = WorldModelEnsemble(config)
@@ -117,6 +148,15 @@ def test_artifact_round_trip_preserves_member_predictions():
         replay = load_world_ensemble(Path(directory), "cpu")
         after = replay.predict(batch)["probability_mean"]
     torch.testing.assert_close(before, after)
+
+
+def test_stay_calibration_handles_split_smaller_than_global_limit():
+    config = _config()
+    ensemble = WorldModelEnsemble(config)
+    generated = _sample_stay(
+        ensemble, _split(rows=5), torch.device("cpu"), limit=100_000
+    )
+    assert len(generated) == 5 * config.ensemble_members
 
 
 def test_ensemble_initialization_is_bound_to_the_declared_seed():
@@ -138,6 +178,7 @@ def test_session_exit_is_point_in_time_and_last_request_is_masked():
         "session_id": torch.tensor([1, 1, 2, 1]),
     }
     labels, masks = _with_session_exit(payload, 4)
+    assert labels.shape[1] == 21
     assert labels[:, 15].tolist() == [1.0, 0.0, 0.0, 0.0]
     assert masks[:, 15].tolist() == [1.0, 1.0, 0.0, 0.0]
 
@@ -172,3 +213,43 @@ def test_uniform_row_selection_preserves_full_split_support():
         torch.save({"tensors": payload}, Path(directory) / "train.pt")
         split = load_world_split(Path(directory), "train", 3, "uniform")
     assert split.request_steps.tolist() == [0, 3, 6]
+
+
+def test_external_bridge_preserves_observed_actions_and_masks_unknown_business_labels():
+    rows = 4
+    sparse = torch.tensor([
+        [1, 10, 20, 30, 1, 1, 1],
+        [2, 11, 21, 31, 1, 1, 1],
+        [3, 12, 22, 32, 1, 1, 1],
+        [4, 13, 23, 33, 1, 1, 1],
+    ])
+    dense = torch.zeros(rows, 11)
+    dense[:, 0] = 0.7
+    labels = torch.zeros(rows, 8)
+    labels[:, 0] = torch.tensor([1, 0, 1, 0])
+    labels[:, 1] = torch.tensor([1, 0, 0, 0])
+    labels[:, 2:7] = 1
+    labels[:, 7] = 0.5
+    history_items = torch.zeros(rows, 64, dtype=torch.int32)
+    history_items[:, -1] = sparse[:, 1].int()
+    history_feedback = torch.zeros(rows, 64, 7, dtype=torch.uint8)
+    history_feedback[:, -1, 0] = 1
+    split = RandomizedSplit(
+        sparse, dense, history_items, history_feedback, labels,
+        torch.arange(rows), torch.arange(rows) * 1_000,
+        torch.full((rows,), 20220422), torch.arange(10, 14),
+        torch.full((rows,), 1 / 100),
+    )
+    catalog = {
+        "sparse": sparse,
+        "dense": dense,
+        "raw_video_ids": torch.arange(10, 14),
+        "standard_exposure_count": torch.arange(1, 5),
+    }
+    payload = bridge_split(split, catalog, candidates=3)
+    assert payload["candidate_features"].shape == (rows, 3, 28)
+    assert payload["behavior_sequence"].shape == (rows, 24, 8)
+    assert payload["labels"][:, 19].tolist() == [1, 0, 1, 0]
+    assert payload["label_masks"][:, 9:16].sum() == 0
+    assert payload["label_masks"][:, 16:20].all()
+    assert payload["labels"][:, 20].tolist() == [1, 0, 0, 0]

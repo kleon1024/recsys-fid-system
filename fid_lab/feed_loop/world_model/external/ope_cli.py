@@ -27,6 +27,7 @@ def main():
     parser.add_argument(
         "--treatment-calibration-key", default="sequence_transformer"
     )
+    parser.add_argument("--world-calibration-report", type=Path)
     parser.add_argument(
         "--utility-mode", choices=("raw_probability", "standardized_feed"),
         default="raw_probability",
@@ -34,13 +35,22 @@ def main():
     parser.add_argument("--minimum-standard-exposures", type=int, default=5)
     args = parser.parse_args()
     report = run_randomized_ope(
-        args.dataset_dir, args.control_artifact, args.treatment_artifact,
-        args.world_artifact, args.benchmark_report, args.device, args.rows,
-        args.batch_size, args.seed, args.temperature, args.uniform_mixture,
-        args.treatment_calibration_report,
-        args.treatment_calibration_key,
-        args.utility_mode,
-        args.minimum_standard_exposures,
+        args.dataset_dir,
+        args.control_artifact,
+        args.treatment_artifact,
+        args.world_artifact,
+        args.benchmark_report,
+        device=args.device,
+        rows=args.rows,
+        batch_size=args.batch_size,
+        seed=args.seed,
+        temperature=args.temperature,
+        uniform_mixture=args.uniform_mixture,
+        treatment_calibration_report=args.treatment_calibration_report,
+        treatment_calibration_key=args.treatment_calibration_key,
+        world_calibration_report=args.world_calibration_report,
+        utility_mode=args.utility_mode,
+        minimum_standard_exposures=args.minimum_standard_exposures,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

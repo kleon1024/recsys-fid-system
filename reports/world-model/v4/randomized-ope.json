@@ -1,0 +1,285 @@
+{
+  "schema": "kuairand-1k-randomized-dr-ope-v1",
+  "rows": 20000,
+  "requested_rows": 20000,
+  "users": 500,
+  "candidate_corpus": 7388,
+  "eligible_learned_items": 2426,
+  "minimum_standard_exposures": 5,
+  "metrics": {
+    "click": {
+      "control_dr": 0.2060670703649521,
+      "treatment_dr": 0.20583119988441467,
+      "absolute_delta": -0.00023585274175275117,
+      "cluster_standard_error": 0.00016642417412288913,
+      "confidence_interval_95": [
+        -0.0005620441230336138,
+        9.033863952811149e-05
+      ]
+    },
+    "long_view": {
+      "control_dr": 0.10625559091567993,
+      "treatment_dr": 0.10617151111364365,
+      "absolute_delta": -8.408838039031252e-05,
+      "cluster_standard_error": 0.00014248059022792226,
+      "confidence_interval_95": [
+        -0.00036335033723704013,
+        0.00019517357645641508
+      ]
+    },
+    "like": {
+      "control_dr": 0.008959018625319004,
+      "treatment_dr": 0.00897568091750145,
+      "absolute_delta": 1.6662886991980486e-05,
+      "cluster_standard_error": 3.869041247811183e-05,
+      "confidence_interval_95": [
+        -5.91703214651187e-05,
+        9.249609544907967e-05
+      ]
+    },
+    "comment": {
+      "control_dr": 0.0005250641261227429,
+      "treatment_dr": 0.0005203516338951886,
+      "absolute_delta": -4.7125436140049715e-06,
+      "cluster_standard_error": 5.518602767355474e-06,
+      "confidence_interval_95": [
+        -1.55290050380217e-05,
+        6.103917810011757e-06
+      ]
+    },
+    "forward": {
+      "control_dr": 0.0010226693702861667,
+      "treatment_dr": 0.0010240648407489061,
+      "absolute_delta": 1.3954937685412006e-06,
+      "cluster_standard_error": 1.186955055004477e-05,
+      "confidence_interval_95": [
+        -2.186882530954655e-05,
+        2.465981284662895e-05
+      ]
+    },
+    "follow": {
+      "control_dr": 0.0002577817067503929,
+      "treatment_dr": 0.0002558378328103572,
+      "absolute_delta": -1.9438721210462973e-06,
+      "cluster_standard_error": 1.7182371289749018e-06,
+      "confidence_interval_95": [
+        -5.311616893837105e-06,
+        1.4238726517445102e-06
+      ]
+    },
+    "hate": {
+      "control_dr": 0.0010494990274310112,
+      "treatment_dr": 0.001060734735801816,
+      "absolute_delta": 1.1235665624553803e-05,
+      "cluster_standard_error": 2.0934610793168487e-05,
+      "confidence_interval_95": [
+        -2.9796171530056432e-05,
+        5.226750277916404e-05
+      ]
+    },
+    "stay_norm": {
+      "control_dr": 0.7327241897583008,
+      "treatment_dr": 0.7332336902618408,
+      "absolute_delta": 0.0005094851367175579,
+      "cluster_standard_error": 7.650110124734791e-05,
+      "confidence_interval_95": [
+        0.000359542978272756,
+        0.0006594272951623598
+      ]
+    }
+  },
+  "importance_sampling": {
+    "control": {
+      "effective_sample_size": 13160.0595703125,
+      "effective_sample_fraction": 0.658002978515625,
+      "maximum_importance_weight": 2.9586434364318848,
+      "mean_importance_weight": 0.9901931881904602
+    },
+    "treatment": {
+      "effective_sample_size": 13164.2802734375,
+      "effective_sample_fraction": 0.658214013671875,
+      "maximum_importance_weight": 2.685473918914795,
+      "mean_importance_weight": 0.9901861548423767
+    }
+  },
+  "gates": {
+    "stay_primary_positive": true,
+    "long_view_guardrail": true,
+    "hate_guardrail": true,
+    "click_guardrail": true,
+    "like_guardrail": true,
+    "importance_support": true
+  },
+  "decision": "randomized_ope_pass",
+  "policy": {
+    "temperature": 0.2,
+    "uniform_mixture": 0.5,
+    "utility_mode": "raw_probability",
+    "standardized_feed_weights": {
+      "click": 0.25,
+      "long_view": 0.4,
+      "stay_norm": 0.3,
+      "hate": -0.05
+    },
+    "treatment_guard_tolerances": {
+      "click": 0.02,
+      "long_view": 0.02,
+      "like": 0.02,
+      "hate": 0.0005,
+      "stay_norm": 0.005
+    },
+    "guard_scope": "Not applied inside OPE because the hard feasible set violates random-log support; the guard is evaluated by stateful shadow.",
+    "utility_semantics": "ranking utility only, not LT"
+  },
+  "artifacts": {
+    "dataset_manifest": {
+      "schema": "kuairand-1k-randomized-sequence-v1",
+      "source": "https://zenodo.org/records/10439422",
+      "license": "CC-BY-4.0",
+      "source_files": {
+        "log_standard_4_08_to_4_21_1k.csv": "355355897a84baa4df26b78b0271bb9a27b127a39cd7aa4a898cf86db0bc1810",
+        "log_standard_4_22_to_5_08_1k.csv": "548daf771e54e2b73086cc8e7c6f56787d44421f5026c2100421810e47ae9dd4",
+        "log_random_4_22_to_5_08_1k.csv": "e98841eabb3b078c812c4646bf0c5e3f0c947a4183dd950cb091e32377b9a849",
+        "user_features_1k.csv": "07813068ac9ca1071dd456c6d84bd20d0dd81a8ff6596a22e1bbe2b12dc5ea6d",
+        "video_features_basic_1k.csv": "18cb8b9133635a5e53d4e33b1644137b8673b615cc1aaa500b6d3d09695efae3"
+      },
+      "sequence_length": 64,
+      "feedback_names": [
+        "is_click",
+        "long_view",
+        "is_like",
+        "is_comment",
+        "is_forward",
+        "is_follow",
+        "is_hate"
+      ],
+      "sparse_names": [
+        "user_id",
+        "video_id",
+        "author_id",
+        "tag",
+        "video_type",
+        "upload_type",
+        "music_type"
+      ],
+      "sparse_vocabularies": [
+        1002,
+        262145,
+        262145,
+        8193,
+        4,
+        33,
+        1025
+      ],
+      "dense_names": [
+        "duration_log_norm",
+        "hour_sin",
+        "hour_cos",
+        "aspect_ratio",
+        "account_age_log_norm",
+        "follow_count_log_norm",
+        "fan_count_log_norm",
+        "friend_count_log_norm",
+        "low_activity",
+        "live_streamer",
+        "video_author"
+      ],
+      "sampling_rates": {
+        "train": 0.25,
+        "validation": 0.2,
+        "standard_test": 0.05
+      },
+      "random_item_pool_size": 7388,
+      "random_logging_propensity": 0.0001353546291283162,
+      "duplicate_random_rows_removed": 1,
+      "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+      "categorical_maps": {
+        "video_type": {
+          "AD": 1,
+          "NORMAL": 2,
+          "UNKNOWN": 3
+        },
+        "upload_type": {
+          "ALBUM2021": 1,
+          "AiCutVideo": 2,
+          "CommonAvatar": 3,
+          "Copy": 4,
+          "FlashPhoto": 5,
+          "FollowShoot": 6,
+          "Karaoke": 7,
+          "Kmovie": 8,
+          "LipsSync": 9,
+          "LiveClip": 10,
+          "LocalCollection": 11,
+          "LocalIntelligenceAlbum": 12,
+          "LongCamera": 13,
+          "LongImport": 14,
+          "LongPicture": 15,
+          "OriginPicture": 16,
+          "PhotoCopy": 17,
+          "PictureCopy": 18,
+          "PictureSet": 19,
+          "Recreation": 20,
+          "ResidentChange": 21,
+          "SameFrame": 22,
+          "ShareFromOtherApp": 23,
+          "ShootRecognition": 24,
+          "ShortCamera": 25,
+          "ShortImport": 26,
+          "ShortOriginImport": 27,
+          "Solitaire": 28,
+          "Status": 29,
+          "StoryMoodTemplate": 30,
+          "UNKNOWN": 31,
+          "Web": 32
+        }
+      },
+      "splits": {
+        "train": {
+          "rows": 1010285,
+          "date_min": 20220408,
+          "date_max": 20220418,
+          "sha256": "e611ceaef4722b778b1f31b2a3e07ae8ac7de026ccf8744b73014de6fb16de7f"
+        },
+        "validation": {
+          "rows": 204541,
+          "date_min": 20220419,
+          "date_max": 20220421,
+          "sha256": "2c20f7cecb679821b3320bd710337e210c93a05adf5b1f7253583f7925dd50d9"
+        },
+        "standard_test": {
+          "rows": 332199,
+          "date_min": 20220422,
+          "date_max": 20220508,
+          "sha256": "fce5c9c1b4ce735683ea57cff69a026e433a5c6c6c1fe47d0966be4935a5b277"
+        },
+        "random_test": {
+          "rows": 43027,
+          "date_min": 20220422,
+          "date_max": 20220508,
+          "sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076"
+        }
+      },
+      "evidence_boundary": "Standard exposure trains models; the untouched randomized lane is the causal-generalization and off-policy evaluation authority."
+    },
+    "control": "ae342b2d5006af9726d90401a10f635abfc715f2aef35e5fcdb96901f4dfdc71",
+    "treatment": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b",
+    "world": "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6"
+  },
+  "policy_contract": {
+    "utility_mode": "raw_probability",
+    "temperature": 0.2,
+    "uniform_mixture": 0.5,
+    "minimum_standard_exposures": 5
+  },
+  "launch_state": {
+    "active_authority": "v3",
+    "completed": [
+      "offline_capacity",
+      "randomized_calibration",
+      "randomized_ope"
+    ],
+    "decision": "pending"
+  },
+  "evidence_boundary": "Doubly robust estimates use uniform random-exposure propensities, user-disjoint calibration/evaluation, and a softened full-support policy."
+}

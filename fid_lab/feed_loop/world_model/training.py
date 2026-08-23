@@ -90,7 +90,8 @@ def _train_epoch(member, train, sampled, config, device, optimizer):
 
 
 def train_world_ensemble(train: WorldModelSplit, validation: WorldModelSplit,
-                         config: WorldModelConfig, device_name: str):
+                         config: WorldModelConfig, device_name: str,
+                         calibration_split: WorldModelSplit | None = None):
     device = torch.device(device_name)
     ensemble = WorldModelEnsemble(config).to(device)
     histories = []
@@ -99,16 +100,52 @@ def train_world_ensemble(train: WorldModelSplit, validation: WorldModelSplit,
         histories.append(_train_member(
             member, train, validation, config, device, member_index
         ))
-    calibration = _calibrate_stay(ensemble, validation, device)
+    calibration = _calibrate_stay(
+        ensemble, calibration_split or validation, device
+    )
     return ensemble, histories, calibration, perf_counter() - started
 
 
 def _calibrate_stay(ensemble, validation, device, limit=100_000):
-    observed = validation.labels[:limit, 2]
+    observable = validation.label_masks[:limit, 2] > 0.5
+    observed = validation.labels[:limit, 2][observable]
+    if not len(observed):
+        raise ValueError("stay calibration requires observable stay labels")
+    generated = _sample_stay(ensemble, validation, device, limit)
+    observed_normalized = torch.log1p(observed) / math.log(181.0)
+    generated_normalized = torch.log1p(generated) / math.log(181.0)
+    observed_quantiles = torch.quantile(
+        observed_normalized, torch.tensor((0.5, 0.9))
+    )
+    generated_quantiles = torch.quantile(
+        generated_normalized, torch.tensor((0.5, 0.9))
+    )
+    scale = float((
+        (observed_quantiles[1] - observed_quantiles[0])
+        / (generated_quantiles[1] - generated_quantiles[0]).clamp_min(1e-4)
+    ).clamp(0.1, 4.0))
+    shift = float(observed_quantiles[0] - scale * generated_quantiles[0])
+    for member in ensemble.members:
+        member.stay_calibration_scale.fill_(scale)
+        member.stay_calibration_shift.fill_(shift)
+    calibrated = _sample_stay(ensemble, validation, device, limit)
+    return {
+        "method": "heldout_log_stay_p50_p90_affine",
+        "rows": len(observed),
+        "observed_seconds": _stay_quantiles(observed),
+        "uncalibrated_seconds": _stay_quantiles(generated),
+        "calibrated_seconds": _stay_quantiles(calibrated),
+        "normalized_scale": scale,
+        "normalized_shift": shift,
+    }
+
+
+def _sample_stay(ensemble, split, device, limit):
     generated = []
-    for start in range(0, min(len(validation), limit), ensemble.config.batch_size):
-        index = torch.arange(start, min(start + ensemble.config.batch_size, limit))
-        batch = validation.batch(index, device)
+    rows = min(len(split), limit)
+    for start in range(0, rows, ensemble.config.batch_size):
+        index = torch.arange(start, min(start + ensemble.config.batch_size, rows))
+        batch = split.batch(index, device)
         noise = StructuralNoise.generate(
             len(index), ensemble.config, device, ensemble.config.seed + 700_000 + start
         )
@@ -116,20 +153,12 @@ def _calibrate_stay(ensemble, validation, device, limit=100_000):
             sample["stay_seconds"].detach().cpu()
             for sample in ensemble.sample_members(batch, noise)
         )
-    observed_median = float(observed.median())
-    simulated_median = float(torch.cat(generated).median())
-    shift = (
-        math.log1p(observed_median) - math.log1p(simulated_median)
-    ) / math.log(181.0)
-    for member in ensemble.members:
-        member.stay_calibration_shift.fill_(shift)
-    return {
-        "method": "validation_log_stay_median_shift",
-        "rows": min(len(validation), limit),
-        "observed_median_seconds": observed_median,
-        "uncalibrated_median_seconds": simulated_median,
-        "normalized_log_shift": shift,
-    }
+    return torch.cat(generated)
+
+
+def _stay_quantiles(values):
+    quantiles = torch.quantile(values, torch.tensor((0.5, 0.9)))
+    return {"p50": float(quantiles[0]), "p90": float(quantiles[1])}
 
 
 def save_world_ensemble(
@@ -166,5 +195,5 @@ def load_world_ensemble(artifact_dir: Path, device_name: str):
     config = WorldModelConfig(**payload["config"])
     ensemble = WorldModelEnsemble(config).to(device_name)
     for member, state in zip(ensemble.members, payload["members"], strict=True):
-        member.load_state_dict(state)
+        member.load_state_dict(state, strict=False)
     return ensemble

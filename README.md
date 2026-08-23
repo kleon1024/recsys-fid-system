@@ -9,13 +9,53 @@ An executable reference architecture and public outsourcing RFP for an industria
 The external world-model lane follows explicit
 [data, modeling, evaluation, and launch boundaries](docs/architecture/external-world-model-boundaries.md).
 Artifact and dataset identities fail closed before scoring, and V3 remains the
-active simulator authority while V4 is held.
+rollback epoch. V4 now promotes only the external-data-calibrated Feed behavior
+kernel; Local, supply, retention, commercialization, and the unified neural SCM
+remain held or synthetic. The serving policy is a separate authority.
 
 The [scale and orchestration decision](docs/architecture/simulation-scale-and-orchestration.md)
 keeps a future asset DAG outside the GPU request hot path. The refactored tensor
 runtime has a measured ten-million-user RTX 4090 scale report.
 
 ## What the checked evidence says
+
+### V4 is a composite world, not one universal model
+
+The 2026-08-24 randomized lane closes the missing Feed evidence. One treatment
+artifact is evaluated by doubly robust OPE and two independently trained shadow
+worlds. All three estimate positive normalized stay with nonnegative 95%
+confidence bounds; click, long-view, like, and hate guardrails pass. The two
+stateful shadows also recover their paired-world truth in a one-million-user
+power simulation. This promotes the Feed behavior kernel inside the simulator,
+not into production and not as unified LT.
+
+The attempted universal NeuralSCM remains held. A request-level bridge with
+1,010,285 training requests corrected stay p50 error from 158% to 8.5%, p90
+error from 466% to 4.6%, and observed-task uncertainty p99 from 0.115 to 0.055.
+It still failed joint-action calibration and free-running sequence gates because
+Kuai Feed history does not observe Local, retention, or commercialization state.
+Those missing labels remain masked instead of being manufactured.
+
+```mermaid
+flowchart LR
+    Random["Randomized Feed logs"] --> Feed["V4 Feed behavior kernel"]
+    Feed --> OPE["DR/OPE"]
+    Feed --> W1["Shadow world seed 25"]
+    Feed --> W2["Shadow world seed 27"]
+    OPE --> Authority["Composite simulator authority"]
+    W1 --> Authority
+    W2 --> Authority
+    Local["Local and supply V3 synthetic kernels"] --> Authority
+    Measure["Retention and commercialization measurement"] --> Authority
+    Authority --> AB["Stage-specific replay and simulated A/B"]
+```
+
+The content-bound decision is
+[`composite-launch-review.json`](reports/world-model/v4/composite-launch-review.json),
+and [`simulator-world.json`](artifacts/releases/simulator-world.json) is the
+separate world authority manifest. The active ranking policy remains in its own
+release manifest, so changing a behavior evaluator cannot silently deploy a
+ranker.
 
 `LR` is ambiguous in recommendation work. This repository writes **logistic
 regression** for the model and **Launch Review** for the release record.

@@ -1,0 +1,137 @@
+{
+  "schema": "composite-recommendation-world-review-v1",
+  "epoch": "v4",
+  "decision": "promote_feed_kernel_only",
+  "components": {
+    "feed_behavior": {
+      "scope": "feed_behavior_only",
+      "status": "eligible_simulator_authority",
+      "dataset_catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+      "artifact_sha256": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b",
+      "independent_world_sha256": [
+        "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6",
+        "e41e8a325da3f793fdd8e061ad76827aaf08c17c904e38f14cd93e4073f534fa"
+      ],
+      "gates": {
+        "one_dataset_catalog": true,
+        "one_treatment_artifact": true,
+        "two_independent_shadow_worlds": true,
+        "randomized_ope": true,
+        "shadow_seed25": true,
+        "shadow_seed27": true,
+        "million_user_power_simulation": true,
+        "failed_seed_retained": true,
+        "primary_direction_agrees": true
+      },
+      "stay_norm_effects": {
+        "randomized_dr_ope": {
+          "control_dr": 0.7327241897583008,
+          "treatment_dr": 0.7332336902618408,
+          "absolute_delta": 0.0005094851367175579,
+          "cluster_standard_error": 7.650110124734791e-05,
+          "confidence_interval_95": [
+            0.000359542978272756,
+            0.0006594272951623598
+          ]
+        },
+        "shadow_seed25": {
+          "absolute_delta": 0.0016024360666051507,
+          "cluster_standard_error": 0.00011205949966136138,
+          "confidence_interval_95": [
+            0.0013827994472688824,
+            0.001822072685941419
+          ],
+          "control_mean": 0.7301017642021179
+        },
+        "shadow_seed27": {
+          "absolute_delta": 0.002029689494520426,
+          "cluster_standard_error": 0.00013619489809992184,
+          "confidence_interval_95": [
+            0.001762747494244579,
+            0.0022966314947962725
+          ],
+          "control_mean": 0.7329667210578918
+        }
+      },
+      "shadow_to_ope_magnitude_ratio": [
+        3.145206702062222,
+        3.9838051166654935
+      ],
+      "labels": [
+        "click",
+        "long_view",
+        "like",
+        "comment",
+        "forward",
+        "follow",
+        "hate",
+        "stay_norm"
+      ],
+      "not_authorized": [
+        "unified_lt",
+        "retention",
+        "poi",
+        "supply",
+        "transaction",
+        "commercialization"
+      ]
+    },
+    "local_response": {
+      "status": "synthetic_v3_authority",
+      "external_validation": "missing"
+    },
+    "supply_response": {
+      "status": "synthetic_v3_authority",
+      "external_validation": "missing"
+    },
+    "retention_and_commercialization": {
+      "status": "measurement_only",
+      "external_validation": "missing"
+    },
+    "unified_neural_scm": {
+      "status": "hold_research_challenger",
+      "gates": {
+        "distribution": false,
+        "free_running_sequence": false,
+        "uncertainty": true,
+        "synthetic_intervention_recovery": false,
+        "synthetic_policy_order": false,
+        "intervention_recovery": false,
+        "policy_order": false
+      },
+      "reason": "External Feed and synthetic Local feature semantics cannot be merged into one causal artifact without task-specific evidence."
+    }
+  },
+  "lineage": {
+    "benchmark": {
+      "logical_key": "benchmark",
+      "sha256": "10edce48fa3a60b33ec5edb6386ef357f1bb90daf85246b530e018273a556e3b"
+    },
+    "policy_adapter": {
+      "logical_key": "policy_adapter",
+      "sha256": "9ec10d636935b5cd823e584e54bbca02accfe1fa4681cd3bed0ab5afbd5ebbeb"
+    },
+    "ope": {
+      "logical_key": "ope",
+      "sha256": "04f5c1b0a7014ac309b36f5ff70a4dcfc28afd086a888169a15d714b481a601c"
+    },
+    "shadow_seed25": {
+      "logical_key": "shadow_seed25",
+      "sha256": "b842724e9e60d6e65244ff5b0b60e9f84fa64e532a1e43dd84b29b54fca2e794"
+    },
+    "shadow_seed27": {
+      "logical_key": "shadow_seed27",
+      "sha256": "02b4bcfa7736bc9b77143c2845b43dca473b1d86ad38cd5f5aec1a3df60732a6"
+    },
+    "rejected_world_adapter": {
+      "logical_key": "rejected_world_adapter",
+      "sha256": "0ac034fb153f93f24e31544fdff201466b6dbaa897f884feb071b7d388dc232a"
+    },
+    "core_challenger": {
+      "logical_key": "core_challenger",
+      "sha256": "4d75ddf32c445a63b1eb8b456bf12a6e01d5106dbd0599590577e03bbf31b41f"
+    }
+  },
+  "rollback_epoch": "v3",
+  "evidence_boundary": "This promotes one external-data-calibrated Feed behavior kernel inside the simulator. It is not a production deployment, live A/B, unified LT estimate, or validation of Local and supply kernels."
+}

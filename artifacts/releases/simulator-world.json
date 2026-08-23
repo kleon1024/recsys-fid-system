@@ -1,0 +1,23 @@
+{
+  "schema": "composite-simulator-world-authority-v1",
+  "epoch": "v4",
+  "active_components": {
+    "feed_behavior": {
+      "authority": "external_randomized_v4",
+      "artifact_sha256": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b"
+    },
+    "local_response": {
+      "authority": "synthetic_v3"
+    },
+    "supply_response": {
+      "authority": "synthetic_v3"
+    },
+    "retention_and_commercialization": {
+      "authority": "measurement_only"
+    }
+  },
+  "rollback_epoch": "v3",
+  "source_review_sha256": "958ce1bea8d4c4b905ca562d65b2ad1e912dd6ec2e38676d9028a3b7054622c8",
+  "production_readiness": "simulator_only",
+  "evidence_boundary": "This promotes one external-data-calibrated Feed behavior kernel inside the simulator. It is not a production deployment, live A/B, unified LT estimate, or validation of Local and supply kernels."
+}

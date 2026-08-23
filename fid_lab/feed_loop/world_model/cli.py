@@ -54,8 +54,15 @@ def main():
         validation = load_world_split(
             args.dataset_dir, "validation", args.max_eval_rows
         )
+        calibration_split = (
+            "calibration" if (args.dataset_dir / "calibration.pt").exists()
+            else "validation"
+        )
+        calibration_data = load_world_split(
+            args.dataset_dir, calibration_split, args.max_eval_rows
+        )
         ensemble, histories, calibration, training_seconds = train_world_ensemble(
-            train, validation, config, args.device
+            train, validation, config, args.device, calibration_data
         )
         artifact_manifest = save_world_ensemble(
             ensemble, histories, args.artifact_dir, dataset_manifest, calibration

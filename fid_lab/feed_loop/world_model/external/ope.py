@@ -15,6 +15,7 @@ from .kuairand.evaluation.policy import (
     calibrate_response,
     policy_distribution,
 )
+from .kuairand.evaluation.statistics import cluster_interval
 from .kuairand.launch.contracts import (
     PolicySpec,
     assert_artifact_compatible,
@@ -23,7 +24,6 @@ from .kuairand.launch.contracts import (
 from .kuairand.launch.pipeline import LaunchStage, LaunchState
 from .replay import (
     GUARD_TOLERANCES,
-    MAX_INTERACTION_REGRESSION,
 )
 
 
@@ -99,17 +99,33 @@ def _dr_batch(split, indices, catalog, control, treatment, world, rules,
     return outputs
 
 
-def _cluster_interval(delta, users):
-    mean = float(delta.mean())
-    unique, inverse = np.unique(users, return_inverse=True)
-    centered = delta - mean
-    cluster_sums = np.bincount(inverse, weights=centered)
-    groups, rows = len(unique), len(delta)
-    variance = groups / max(groups - 1, 1) * np.square(cluster_sums).sum() / rows**2
-    standard_error = float(np.sqrt(variance))
-    return mean, standard_error, [
-        mean - 1.96 * standard_error, mean + 1.96 * standard_error
-    ]
+def policy_value_gates(metrics: dict, diagnostics: dict) -> dict[str, bool]:
+    """One primary outcome plus bounded multi-objective guardrails."""
+    return {
+        "stay_primary_positive": (
+            metrics["stay_norm"]["confidence_interval_95"][0] > 0
+        ),
+        "long_view_guardrail": (
+            metrics["long_view"]["confidence_interval_95"][0]
+            >= -GUARD_TOLERANCES["long_view"]
+        ),
+        "hate_guardrail": (
+            metrics["hate"]["confidence_interval_95"][1]
+            <= GUARD_TOLERANCES["hate"]
+        ),
+        "click_guardrail": (
+            metrics["click"]["confidence_interval_95"][0]
+            >= -GUARD_TOLERANCES["click"]
+        ),
+        "like_guardrail": (
+            metrics["like"]["confidence_interval_95"][0]
+            >= -GUARD_TOLERANCES["like"]
+        ),
+        "importance_support": all(
+            value["effective_sample_fraction"] >= MIN_ESS_FRACTION
+            for value in diagnostics.values()
+        ),
+    }
 
 
 def _report(estimates, weights, users, corpus_size, requested_rows,
@@ -118,7 +134,7 @@ def _report(estimates, weights, users, corpus_size, requested_rows,
     metrics = {}
     delta = estimates["treatment"] - estimates["control"]
     for index, name in enumerate(METRIC_NAMES):
-        mean, standard_error, interval = _cluster_interval(
+        mean, standard_error, interval = cluster_interval(
             delta[:, index], users
         )
         metrics[name] = {
@@ -137,19 +153,7 @@ def _report(estimates, weights, users, corpus_size, requested_rows,
             "maximum_importance_weight": float(value.max()),
             "mean_importance_weight": float(value.mean()),
         }
-    gates = {
-        "long_view_nonnegative": metrics["long_view"]["confidence_interval_95"][0] >= 0,
-        "stay_nonnegative": metrics["stay_norm"]["confidence_interval_95"][0] >= 0,
-        "hate_nonpositive": metrics["hate"]["confidence_interval_95"][1] <= 0,
-        "click_guardrail": metrics["click"]["confidence_interval_95"][0]
-        >= -MAX_INTERACTION_REGRESSION,
-        "like_guardrail": metrics["like"]["confidence_interval_95"][0]
-        >= -MAX_INTERACTION_REGRESSION,
-        "importance_support": all(
-            value["effective_sample_fraction"] >= MIN_ESS_FRACTION
-            for value in diagnostics.values()
-        ),
-    }
+    gates = policy_value_gates(metrics, diagnostics)
     return {
         "schema": "kuairand-1k-randomized-dr-ope-v1",
         "rows": len(users), "requested_rows": requested_rows,
@@ -183,6 +187,7 @@ def run_randomized_ope(dataset_dir: Path, control_artifact: Path,
                        uniform_mixture=UNIFORM_MIXTURE,
                        treatment_calibration_report: Path | None = None,
                        treatment_calibration_key="sequence_transformer",
+                       world_calibration_report: Path | None = None,
                        utility_mode="raw_probability",
                        minimum_standard_exposures=5):
     policy_spec = PolicySpec(
@@ -218,6 +223,11 @@ def run_randomized_ope(dataset_dir: Path, control_artifact: Path,
     if treatment_calibration_report is not None:
         adapter = json.loads(treatment_calibration_report.read_text())
         rules["treatment"] = adapter["randomized_calibration"][
+            "sequence_randomized_adapter"
+        ]
+    if world_calibration_report is not None:
+        world_adapter = json.loads(world_calibration_report.read_text())
+        rules["independent_world"] = world_adapter["randomized_calibration"][
             "sequence_randomized_adapter"
         ]
     estimates = {name: [] for name in ("control", "treatment")}

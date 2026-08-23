@@ -50,8 +50,11 @@ def world_model_loss(output, batch, config: WorldModelConfig):
         task_losses[action.name] = float(_weighted_mean(loss.detach(), task_weights))
         total += loss * batch["label_masks"][:, action.label_index]
     stay = _stay_nll(output, batch["labels"])
-    total += config.stay_loss_weight * stay
+    stay_mask = batch["label_masks"][:, STAY_LABEL_INDEX]
+    total += config.stay_loss_weight * stay * stay_mask
     return _weighted_mean(total, weights), {
         **task_losses,
-        "stay_nll": float(_weighted_mean(stay.detach(), weights)),
+        "stay_nll": float(_weighted_mean(
+            stay.detach(), weights * stay_mask
+        )),
     }

@@ -26,6 +26,7 @@ class NeuralSCM(nn.Module):
         super().__init__()
         self.config = config
         self.register_buffer("stay_calibration_shift", torch.zeros(()))
+        self.register_buffer("stay_calibration_scale", torch.ones(()))
         width = config.width
         self.feature_encoder = nn.Sequential(
             nn.LayerNorm(config.feature_dim), nn.Linear(config.feature_dim, width),
@@ -94,9 +95,13 @@ class NeuralSCM(nn.Module):
         )
         stay_mixture_logits = stay_parameters[:, :, 0]
         stay_mean = (
-            torch.sigmoid(stay_parameters[:, :, 1]) + self.stay_calibration_shift
+            torch.sigmoid(stay_parameters[:, :, 1]) * self.stay_calibration_scale
+            + self.stay_calibration_shift
         ).clamp(0.0, 1.0)
-        stay_log_scale = stay_parameters[:, :, 2].clamp(-4.0, 0.5)
+        stay_log_scale = (
+            stay_parameters[:, :, 2].clamp(-4.0, 0.5)
+            + torch.log(self.stay_calibration_scale.clamp_min(1e-4))
+        )
         logits = {}
         for action in STOCHASTIC_ACTIONS:
             logit = self.action_heads[action.name](hidden).squeeze(1)
@@ -129,11 +134,12 @@ class NeuralSCM(nn.Module):
         rows = torch.arange(len(hidden), device=hidden.device)
         stay_mean = (
             torch.sigmoid(stay_parameters[rows, mixture_choice, 1])
+            * self.stay_calibration_scale
             + self.stay_calibration_shift
         ).clamp(0.0, 1.0)
         stay_scale = torch.exp(
             stay_parameters[rows, mixture_choice, 2].clamp(-4.0, 0.5)
-        )
+        ) * self.stay_calibration_scale
         normalized_stay = (stay_mean + stay_scale * stay_noise).clamp(0.0, 1.0)
         duration = torch.expm1(
             batch["selected_features"][:, 12].clamp(0.0, 1.0) * torch.log(

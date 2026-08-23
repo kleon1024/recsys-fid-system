@@ -42,6 +42,34 @@ feature schema, vocabulary, model state, calibration rules, and policy parameter
 form one evidence closure. A rebuilt catalog invalidates old artifacts even when
 the training split hashes are unchanged.
 
-V3 remains the active simulator authority. The external V4 sequence lane has
-passed capacity checks but remains held by randomized policy-value and safety
-evidence. Refactoring cannot change that decision.
+## Composite authority after randomized evaluation
+
+V4 does not replace every behavior surface with one neural model. It composes
+task kernels with independent evidence scopes:
+
+```mermaid
+flowchart TB
+    Feed["Feed behavior\nexternal randomized V4"] --> World["Composite simulator world"]
+    Local["POI and Local response\nsynthetic V3"] --> World
+    Supply["Posting and supply\nsynthetic V3"] --> World
+    Measure["Retention and commercialization\nmeasurement only"] --> World
+    World --> Replay["request-level replay"]
+    Replay --> Experiment["stage-specific simulated A/B"]
+    Experiment --> Review["Launch Review"]
+```
+
+The Feed component is eligible because one frozen treatment artifact passes
+randomized DR/OPE, two independent stateful shadow worlds, behavior guardrails,
+and a one-million-user power simulation. Shadow stay effects are 3.1--4.0 times
+the randomized OPE estimate, so the review preserves magnitude disagreement and
+uses agreement only for primary direction and guardrails.
+
+The unified NeuralSCM remains a challenger. Its external bridge has request-level
+slates, point-in-time features, histories, observed labels, and masks, but the
+source has no POI, supply, retention, or commercialization outcomes. Missing
+tasks have `label_mask=0`; they are never written as negatives or proxy-mapped
+to unrelated Feed actions.
+
+`artifacts/releases/simulator-world.json` owns world-kernel selection.
+`artifacts/releases/simulated-feed-control.json` owns the active ranking policy.
+Neither file may mutate the other. V3 is the executable rollback epoch.

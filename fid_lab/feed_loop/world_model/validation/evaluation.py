@@ -36,6 +36,23 @@ def _safe_corr(values):
     return standardized.T @ standardized / max(len(values) - 1, 1)
 
 
+def _masked_correlation_mae(observed, generated, masks):
+    errors = []
+    for left in range(observed.shape[1]):
+        for right in range(left + 1, observed.shape[1]):
+            common = masks[:, left] & masks[:, right]
+            if common.sum() < 3:
+                continue
+            actual = observed[common][:, (left, right)]
+            simulated = generated[common][:, :, (left, right)].reshape(-1, 2)
+            if actual[:, 0].std() < 1e-8 or actual[:, 1].std() < 1e-8:
+                continue
+            errors.append(abs(
+                _safe_corr(actual)[0, 1] - _safe_corr(simulated)[0, 1]
+            ))
+    return (float(np.mean(errors)) if errors else math.inf, len(errors))
+
+
 def _lag1(values):
     output = []
     for column in range(values.shape[2]):
@@ -64,16 +81,16 @@ def _collect_predictions(ensemble, split, device, limit):
             len(index), ensemble.config, device, ensemble.config.seed + start
         )
         sampled_members = ensemble.sample_members(batch, noise)
-        generated_actions.append(torch.cat([
+        generated_actions.append(torch.stack([
             torch.stack([
                 sampled["actions"][action.name].float()
                 for action in BINARY_ACTIONS
             ], dim=1)
             for sampled in sampled_members
-        ]).cpu())
-        generated_stay.append(torch.cat([
+        ], dim=1).cpu())
+        generated_stay.append(torch.stack([
             sampled["stay_seconds"] for sampled in sampled_members
-        ]).cpu())
+        ], dim=1).cpu())
     return (
         torch.cat(probabilities).numpy(), torch.cat(deviations).numpy(),
         torch.cat(generated_actions).numpy(), torch.cat(generated_stay).numpy(),
@@ -86,39 +103,58 @@ def _distribution_report(ensemble, split, device, limit):
         ensemble, split, device, count
     )
     labels = split.labels[:count].numpy()
+    label_masks = split.label_masks[:count].numpy() > 0.5
     binary_labels = np.stack(
         [labels[:, action.label_index] for action in BINARY_ACTIONS], axis=1
     )
-    repeated_binary_labels = np.tile(
-        binary_labels, (ensemble.config.ensemble_members, 1)
+    binary_masks = np.stack(
+        [label_masks[:, action.label_index] for action in BINARY_ACTIONS], axis=1
     )
     ece = {
-        action.name: _ece(binary_labels[:, index], probabilities[:, index])
+        action.name: (
+            _ece(binary_labels[binary_masks[:, index], index],
+                 probabilities[binary_masks[:, index], index])
+            if binary_masks[:, index].any() else None
+        )
         for index, action in enumerate(BINARY_ACTIONS)
     }
-    correlation_mae = float(np.abs(
-        _safe_corr(repeated_binary_labels) - _safe_corr(generated)
-    ).mean())
-    observed_stay = labels[:, 2]
+    supported_ece = [value for value in ece.values() if value is not None]
+    correlation_mae, correlation_pairs = _masked_correlation_mae(
+        binary_labels, generated, binary_masks,
+    )
+    stay_observable = label_masks[:, 2]
+    observed_stay = labels[stay_observable, 2]
+    simulated_stay = generated_stay[stay_observable].reshape(-1)
+    if not len(observed_stay):
+        raise ValueError("distribution evaluation requires observable stay labels")
     observed_quantiles = np.quantile(observed_stay, (0.5, 0.9))
-    simulated_quantiles = np.quantile(generated_stay, (0.5, 0.9))
+    simulated_quantiles = np.quantile(simulated_stay, (0.5, 0.9))
     relative = np.abs(simulated_quantiles - observed_quantiles) / np.maximum(
         observed_quantiles, 1.0
     )
+    observable_deviations = deviations[binary_masks]
     return {
         "rows": count,
         "binary_ece": ece,
-        "mean_binary_ece": float(np.mean(tuple(ece.values()))),
+        "binary_label_coverage": {
+            action.name: float(binary_masks[:, index].mean())
+            for index, action in enumerate(BINARY_ACTIONS)
+        },
+        "stay_label_coverage": float(stay_observable.mean()),
+        "mean_binary_ece": (
+            float(np.mean(supported_ece)) if supported_ece else math.inf
+        ),
         "joint_correlation_mae": correlation_mae,
+        "joint_correlation_pairs": correlation_pairs,
         "stay_quantiles": {
             "observed": {"p50": float(observed_quantiles[0]), "p90": float(observed_quantiles[1])},
             "simulated": {"p50": float(simulated_quantiles[0]), "p90": float(simulated_quantiles[1])},
             "relative_error": {"p50": float(relative[0]), "p90": float(relative[1])},
         },
         "ensemble_probability_std": {
-            "mean": float(deviations.mean()),
-            "p99": float(np.quantile(deviations, 0.99)),
-            "maximum": float(deviations.max()),
+            "mean": float(observable_deviations.mean()),
+            "p99": float(np.quantile(observable_deviations, 0.99)),
+            "maximum": float(observable_deviations.max()),
         },
     }
 

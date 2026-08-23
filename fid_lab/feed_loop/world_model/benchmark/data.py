@@ -10,7 +10,7 @@ import torch
 
 from ....evolution.models.deepctr_adapter import build_feature_bundle
 from ...models.deep_policy import DENSE_INDICES, SPARSE_SPECS
-from ..contracts import BINARY_ACTIONS
+from ..contracts import BINARY_ACTIONS, WORLD_LABEL_COUNT
 from ..data import WorldModelSplit
 
 
@@ -77,7 +77,7 @@ def candidate_oracle(ensemble, split, device, rows: int, request_batch: int = 12
             "lifecycle": lifecycle[:, None].expand(-1, candidates).reshape(-1),
             "region": region[:, None].expand(-1, candidates).reshape(-1),
             "labels": torch.zeros(
-                (stop - start) * candidates, 16, device=device
+                (stop - start) * candidates, WORLD_LABEL_COUNT, device=device
             ),
         }
         probability = ensemble.predict(repeated)["probability_mean"]

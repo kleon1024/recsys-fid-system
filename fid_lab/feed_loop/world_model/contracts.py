@@ -5,7 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-WORLD_MODEL_VERSION = "neural-scm-v4-research"
+WORLD_MODEL_VERSION = "neural-scm-v4.1-research"
+
+WORLD_LABEL_NAMES = (
+    "play", "play_3s", "stay_seconds", "play_completion_ratio",
+    "complete_play", "long_view", "quality_long_view", "like",
+    "negative_feedback", "anchor_click", "poi_detail", "poi_favorite",
+    "conversion", "returned_next_session", "accepted_commercialization",
+    "session_exit", "comment", "share", "follow",
+    "content_click",
+    "source_long_view",
+)
+WORLD_LABEL_COUNT = len(WORLD_LABEL_NAMES)
 
 
 @dataclass(frozen=True)
@@ -29,6 +40,11 @@ BINARY_ACTIONS = (
     BinaryAction("conversion", 12, "poi_detail"),
     BinaryAction("session_exit", 15),
     BinaryAction("returned_next_session", 13, "session_exit"),
+    BinaryAction("comment", 16, "play"),
+    BinaryAction("share", 17, "play"),
+    BinaryAction("follow", 18, "play"),
+    BinaryAction("content_click", 19, "play"),
+    BinaryAction("source_long_view", 20, "play"),
 )
 
 STOCHASTIC_ACTIONS = tuple(

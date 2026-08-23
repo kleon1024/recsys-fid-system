@@ -96,6 +96,7 @@ def check_report_manifests() -> None:
         "reports/launches/MANIFEST.sha256",
         "reports/benchmarks/MANIFEST.sha256",
         "reports/calibration/MANIFEST.sha256",
+        "reports/world-model/v4/MANIFEST.sha256",
     ):
         manifest = ROOT / manifest_name
         failures = []
@@ -244,6 +245,32 @@ def check_simulated_release() -> None:
             failures.append(f"V3 request log manifest differs at {field}")
     for historical in release["historical_releases"]:
         verify(historical, f"historical {historical['epoch']} release")
+    if failures:
+        raise SystemExit("\n".join(failures))
+
+
+def check_simulator_world_release() -> None:
+    release_path = ROOT / "artifacts/releases/simulator-world.json"
+    review_path = ROOT / "reports/world-model/v4/composite-launch-review.json"
+    release = json.loads(release_path.read_text())
+    review = json.loads(review_path.read_text())
+    failures = []
+    if release.get("schema") != "composite-simulator-world-authority-v1":
+        failures.append("simulator world release schema mismatch")
+    if release.get("source_review_sha256") != sha256(
+        review_path.read_bytes()
+    ).hexdigest():
+        failures.append("simulator world release is not bound to its review")
+    if review.get("decision") != "promote_feed_kernel_only":
+        failures.append("simulator world review did not accept the Feed kernel")
+    feed = review.get("components", {}).get("feed_behavior", {})
+    active_feed = release.get("active_components", {}).get("feed_behavior", {})
+    if feed.get("status") != "eligible_simulator_authority":
+        failures.append("Feed kernel is not eligible for simulator authority")
+    if active_feed.get("artifact_sha256") != feed.get("artifact_sha256"):
+        failures.append("active Feed kernel differs from the accepted review")
+    if release.get("production_readiness") != "simulator_only":
+        failures.append("simulator world release overstates production readiness")
     if failures:
         raise SystemExit("\n".join(failures))
 
@@ -426,6 +453,7 @@ def main() -> None:
     check_visual_manifest()
     check_model_artifacts()
     check_simulated_release()
+    check_simulator_world_release()
     run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
     run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
     benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)

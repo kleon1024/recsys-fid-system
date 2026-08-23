@@ -54,6 +54,7 @@ from fid_lab.feed_loop.world_model.external.kuairand.data.randomized import (
     validate_sparse,
 )
 from fid_lab.feed_loop.world_model.external.replay import treatment_guard_mask
+from fid_lab.feed_loop.world_model.external.ope import policy_value_gates
 from fid_lab.simulation.environment import FEATURE_NAMES
 from fid_lab.simulation.policies import fit_logistic_policy
 
@@ -62,6 +63,22 @@ EXPECTED_HASH_VOCABULARIES = (1_002, 262_145, 262_145, 8_193, 4, 33, 1_025)
 
 
 class MatureModelAdapterTest(unittest.TestCase):
+    def test_ope_uses_one_primary_metric_and_bounded_guardrails(self) -> None:
+        metrics = {
+            "stay_norm": {"confidence_interval_95": [0.0003, 0.0007]},
+            "long_view": {"confidence_interval_95": [-0.0004, 0.0002]},
+            "hate": {"confidence_interval_95": [-0.00003, 0.00006]},
+            "click": {"confidence_interval_95": [-0.0006, 0.0001]},
+            "like": {"confidence_interval_95": [-0.0001, 0.0001]},
+        }
+        diagnostics = {
+            "control": {"effective_sample_fraction": 0.65},
+            "treatment": {"effective_sample_fraction": 0.64},
+        }
+        self.assertTrue(all(policy_value_gates(metrics, diagnostics).values()))
+        metrics["hate"]["confidence_interval_95"][1] = 0.001
+        self.assertFalse(policy_value_gates(metrics, diagnostics)["hate_guardrail"])
+
     def test_external_launch_state_is_ordered_and_hold_is_terminal(self) -> None:
         state = LaunchState().record(LaunchStage.OFFLINE_CAPACITY, True)
         state = state.record(LaunchStage.RANDOMIZED_CALIBRATION, True)

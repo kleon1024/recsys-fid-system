@@ -7,6 +7,8 @@ from pathlib import Path
 
 import torch
 
+from .contracts import WORLD_LABEL_COUNT
+
 
 @dataclass(frozen=True)
 class WorldModelSplit:
@@ -83,6 +85,8 @@ def load_world_split(dataset_dir: Path, split: str, max_rows: int | None = None,
 def _with_session_exit(payload, rows):
     labels = payload["labels"][:rows].float()
     masks = payload["label_masks"][:rows].float()
+    if labels.shape[1] >= 16:
+        return _pad_world_labels(labels, masks)
     users = payload["user_id"][:rows].long()
     steps = payload["request_step"][:rows].long()
     sessions = payload["session_id"][:rows].long()
@@ -95,7 +99,21 @@ def _with_session_exit(payload, rows):
     following = order[1:][same_user]
     next_observed[current] = True
     exits[current] = (sessions[current] != sessions[following]).float()
-    return (
+    labels, masks = (
         torch.cat((labels, exits[:, None]), dim=1),
         torch.cat((masks, next_observed.float()[:, None]), dim=1),
     )
+    return _pad_world_labels(labels, masks)
+
+
+def _pad_world_labels(labels, masks):
+    missing = WORLD_LABEL_COUNT - labels.shape[1]
+    if missing < 0:
+        raise ValueError(
+            f"world labels have {labels.shape[1]} columns; expected at most "
+            f"{WORLD_LABEL_COUNT}"
+        )
+    if not missing:
+        return labels, masks
+    zeros = torch.zeros((len(labels), missing), dtype=labels.dtype)
+    return torch.cat((labels, zeros), dim=1), torch.cat((masks, zeros), dim=1)

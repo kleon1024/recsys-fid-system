@@ -1,0 +1,279 @@
+{
+  "schema": "kuairand-randomized-stateful-shadow-v1",
+  "rows": 20000,
+  "users": 500,
+  "steps": 8,
+  "candidates": 50,
+  "eligible_items": 2426,
+  "metrics": {
+    "click": {
+      "absolute_delta": 0.0015234012389555573,
+      "cluster_standard_error": 0.0001300292788170326,
+      "confidence_interval_95": [
+        0.0012685438524741735,
+        0.0017782586254369412
+      ],
+      "control_mean": 0.16732287406921387
+    },
+    "long_view": {
+      "absolute_delta": 0.0014062711270526052,
+      "cluster_standard_error": 0.00010450959675236485,
+      "confidence_interval_95": [
+        0.00120143231741797,
+        0.0016111099366872403
+      ],
+      "control_mean": 0.08638931810855865
+    },
+    "like": {
+      "absolute_delta": 3.745863796211779e-05,
+      "cluster_standard_error": 2.3541639156604142e-05,
+      "confidence_interval_95": [
+        -8.682974784826326e-06,
+        8.360025070906191e-05
+      ],
+      "control_mean": 0.004356106743216515
+    },
+    "hate": {
+      "absolute_delta": -7.270032710948726e-06,
+      "cluster_standard_error": 1.9322339069083987e-06,
+      "confidence_interval_95": [
+        -1.1057211168489188e-05,
+        -3.482854253408265e-06
+      ],
+      "control_mean": 0.00048189033987000585
+    },
+    "stay_norm": {
+      "absolute_delta": 0.0016024360666051507,
+      "cluster_standard_error": 0.00011205949966136138,
+      "confidence_interval_95": [
+        0.0013827994472688824,
+        0.001822072685941419
+      ],
+      "control_mean": 0.7301017642021179
+    }
+  },
+  "gates": {
+    "stay_primary_positive": true,
+    "long_view_guardrail": true,
+    "hate_guardrail": true,
+    "click_guardrail": true,
+    "like_guardrail": true
+  },
+  "decision": "stateful_shadow_pass",
+  "simulated_ab": {
+    "experiment_unit": "user_id",
+    "users": 1000000,
+    "source_randomized_profiles": 500,
+    "population_source": "bootstrap over user-level randomized-evaluation profiles; synthetic power evidence only",
+    "control_users": 499827,
+    "treatment_users": 500173,
+    "metrics": {
+      "click": {
+        "control_mean": 0.1685168034462882,
+        "treatment_mean": 0.16994802936730213,
+        "absolute_effect": 0.00143122592101394,
+        "standard_error": 0.00016480461932187813,
+        "confidence_interval_95": [
+          0.0011082088671430588,
+          0.0017542429748848211
+        ],
+        "paired_world_truth": 0.0015437983415926189,
+        "truth_inside_interval": true
+      },
+      "long_view": {
+        "control_mean": 0.08724003898500804,
+        "treatment_mean": 0.0885861653399535,
+        "absolute_effect": 0.001346126354945465,
+        "standard_error": 9.417603709118455e-05,
+        "confidence_interval_95": [
+          0.0011615413222467433,
+          0.0015307113876441866
+        ],
+        "paired_world_truth": 0.0014144692591672372,
+        "truth_inside_interval": true
+      },
+      "like": {
+        "control_mean": 0.002899390924008222,
+        "treatment_mean": 0.002923572980472261,
+        "absolute_effect": 2.4182056464038936e-05,
+        "standard_error": 2.417296313684968e-05,
+        "confidence_interval_95": [
+          -2.319695128418644e-05,
+          7.156106421226432e-05
+        ],
+        "paired_world_truth": 1.7457922621921603e-05,
+        "truth_inside_interval": true
+      },
+      "hate": {
+        "control_mean": 0.00043820339975448957,
+        "treatment_mean": 0.0004297357635559845,
+        "absolute_effect": -8.467636198505077e-06,
+        "standard_error": 2.04965169557419e-06,
+        "confidence_interval_95": [
+          -1.2484953521830488e-05,
+          -4.4503188751796645e-06
+        ],
+        "paired_world_truth": -8.158841334276824e-06,
+        "truth_inside_interval": true
+      },
+      "stay_norm": {
+        "control_mean": 0.7295091852753066,
+        "treatment_mean": 0.7311348486933136,
+        "absolute_effect": 0.0016256634180069618,
+        "standard_error": 6.42568051903961e-05,
+        "confidence_interval_95": [
+          0.0014997200798337854,
+          0.0017516067561801382
+        ],
+        "paired_world_truth": 0.0016510870180699688,
+        "truth_inside_interval": true
+      }
+    },
+    "gates": {
+      "stay_primary_positive": true,
+      "long_view_guardrail": true,
+      "hate_guardrail": true,
+      "click_guardrail": true,
+      "like_guardrail": true,
+      "randomization_recovers_truth": true
+    },
+    "decision": "simulated_ab_pass",
+    "value_semantics": "behavior outcomes only; not unified LT"
+  },
+  "artifacts": {
+    "dataset_manifest": {
+      "schema": "kuairand-1k-randomized-sequence-v1",
+      "source": "https://zenodo.org/records/10439422",
+      "license": "CC-BY-4.0",
+      "source_files": {
+        "log_standard_4_08_to_4_21_1k.csv": "355355897a84baa4df26b78b0271bb9a27b127a39cd7aa4a898cf86db0bc1810",
+        "log_standard_4_22_to_5_08_1k.csv": "548daf771e54e2b73086cc8e7c6f56787d44421f5026c2100421810e47ae9dd4",
+        "log_random_4_22_to_5_08_1k.csv": "e98841eabb3b078c812c4646bf0c5e3f0c947a4183dd950cb091e32377b9a849",
+        "user_features_1k.csv": "07813068ac9ca1071dd456c6d84bd20d0dd81a8ff6596a22e1bbe2b12dc5ea6d",
+        "video_features_basic_1k.csv": "18cb8b9133635a5e53d4e33b1644137b8673b615cc1aaa500b6d3d09695efae3"
+      },
+      "sequence_length": 64,
+      "feedback_names": [
+        "is_click",
+        "long_view",
+        "is_like",
+        "is_comment",
+        "is_forward",
+        "is_follow",
+        "is_hate"
+      ],
+      "sparse_names": [
+        "user_id",
+        "video_id",
+        "author_id",
+        "tag",
+        "video_type",
+        "upload_type",
+        "music_type"
+      ],
+      "sparse_vocabularies": [
+        1002,
+        262145,
+        262145,
+        8193,
+        4,
+        33,
+        1025
+      ],
+      "dense_names": [
+        "duration_log_norm",
+        "hour_sin",
+        "hour_cos",
+        "aspect_ratio",
+        "account_age_log_norm",
+        "follow_count_log_norm",
+        "fan_count_log_norm",
+        "friend_count_log_norm",
+        "low_activity",
+        "live_streamer",
+        "video_author"
+      ],
+      "sampling_rates": {
+        "train": 0.25,
+        "validation": 0.2,
+        "standard_test": 0.05
+      },
+      "random_item_pool_size": 7388,
+      "random_logging_propensity": 0.0001353546291283162,
+      "duplicate_random_rows_removed": 1,
+      "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+      "categorical_maps": {
+        "video_type": {
+          "AD": 1,
+          "NORMAL": 2,
+          "UNKNOWN": 3
+        },
+        "upload_type": {
+          "ALBUM2021": 1,
+          "AiCutVideo": 2,
+          "CommonAvatar": 3,
+          "Copy": 4,
+          "FlashPhoto": 5,
+          "FollowShoot": 6,
+          "Karaoke": 7,
+          "Kmovie": 8,
+          "LipsSync": 9,
+          "LiveClip": 10,
+          "LocalCollection": 11,
+          "LocalIntelligenceAlbum": 12,
+          "LongCamera": 13,
+          "LongImport": 14,
+          "LongPicture": 15,
+          "OriginPicture": 16,
+          "PhotoCopy": 17,
+          "PictureCopy": 18,
+          "PictureSet": 19,
+          "Recreation": 20,
+          "ResidentChange": 21,
+          "SameFrame": 22,
+          "ShareFromOtherApp": 23,
+          "ShootRecognition": 24,
+          "ShortCamera": 25,
+          "ShortImport": 26,
+          "ShortOriginImport": 27,
+          "Solitaire": 28,
+          "Status": 29,
+          "StoryMoodTemplate": 30,
+          "UNKNOWN": 31,
+          "Web": 32
+        }
+      },
+      "splits": {
+        "train": {
+          "rows": 1010285,
+          "date_min": 20220408,
+          "date_max": 20220418,
+          "sha256": "e611ceaef4722b778b1f31b2a3e07ae8ac7de026ccf8744b73014de6fb16de7f"
+        },
+        "validation": {
+          "rows": 204541,
+          "date_min": 20220419,
+          "date_max": 20220421,
+          "sha256": "2c20f7cecb679821b3320bd710337e210c93a05adf5b1f7253583f7925dd50d9"
+        },
+        "standard_test": {
+          "rows": 332199,
+          "date_min": 20220422,
+          "date_max": 20220508,
+          "sha256": "fce5c9c1b4ce735683ea57cff69a026e433a5c6c6c1fe47d0966be4935a5b277"
+        },
+        "random_test": {
+          "rows": 43027,
+          "date_min": 20220422,
+          "date_max": 20220508,
+          "sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076"
+        }
+      },
+      "evidence_boundary": "Standard exposure trains models; the untouched randomized lane is the causal-generalization and off-policy evaluation authority."
+    },
+    "control": "ae342b2d5006af9726d90401a10f635abfc715f2aef35e5fcdb96901f4dfdc71",
+    "treatment": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b",
+    "world": "e41e8a325da3f793fdd8e061ad76827aaf08c17c904e38f14cd93e4073f534fa"
+  },
+  "evidence_boundary": "Common-random stateful replay in an independently trained world model; ranking utility is not LT and the result is not a live A/B test."
+}
