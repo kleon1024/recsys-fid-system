@@ -164,6 +164,7 @@ def check_model_artifacts() -> None:
         "artifacts/models/poi-posting-request-v1/MANIFEST.sha256",
         "artifacts/models/feed-posting-request-v1/MANIFEST.sha256",
         "artifacts/models/local-search-request-v1/MANIFEST.sha256",
+        "artifacts/models/poi-detail-request-v1/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:

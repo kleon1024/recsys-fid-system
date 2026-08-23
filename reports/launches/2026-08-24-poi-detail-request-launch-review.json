@@ -1,0 +1,4182 @@
+{
+  "schema": "poi-detail-request-launch-review-v1",
+  "seeds": [
+    20260824,
+    20260825,
+    20260826
+  ],
+  "config": {
+    "requests": 500000,
+    "users": 250000,
+    "entities_per_module": 8192,
+    "categories": 32,
+    "semantic_dim": 16,
+    "history_length": 24,
+    "candidates_per_module": 8,
+    "exposed_related": 4,
+    "exposed_product": 2,
+    "exposed_review": 2,
+    "train_epochs": 3,
+    "train_batch_requests": 4096,
+    "learning_rate": 0.0015,
+    "seed": 20260824,
+    "device": "cuda:0"
+  },
+  "launches": [
+    {
+      "stage": "fine",
+      "control": "rule",
+      "treatment": "linear",
+      "decision": "hold_seed_instability",
+      "seed_passes": 0,
+      "seed_decisions": [
+        "hold_or_reject",
+        "hold_or_reject",
+        "hold_or_reject"
+      ],
+      "metrics": {
+        "page_action_rate": {
+          "mean_effect": 0.0051066666666666665,
+          "seed_std": 0.0017285575232288655,
+          "per_seed": [
+            0.005013333333333333,
+            0.003426666666666667,
+            0.00688
+          ]
+        },
+        "deep_action_rate": {
+          "mean_effect": 0.009786666666666666,
+          "seed_std": 0.0027256151191571007,
+          "per_seed": [
+            0.00816,
+            0.008266666666666667,
+            0.012933333333333333
+          ]
+        },
+        "transaction_rate": {
+          "mean_effect": 0.002617777777777778,
+          "seed_std": 0.0009078750117923927,
+          "per_seed": [
+            0.0017866666666666667,
+            0.00248,
+            0.003586666666666667
+          ]
+        },
+        "negative_rate": {
+          "mean_effect": 0.0002222222222222222,
+          "seed_std": 0.00015453634356189962,
+          "per_seed": [
+            0.0002,
+            0.00038666666666666667,
+            8e-05
+          ]
+        },
+        "related_selection_rate": {
+          "mean_effect": -0.017822222222222222,
+          "seed_std": 0.005376398353847978,
+          "per_seed": [
+            -0.013253333333333334,
+            -0.023746666666666666,
+            -0.016466666666666668
+          ]
+        },
+        "product_selection_rate": {
+          "mean_effect": 0.020631111111111114,
+          "seed_std": 0.00916403921940619,
+          "per_seed": [
+            0.010933333333333333,
+            0.029146666666666668,
+            0.021813333333333334
+          ]
+        },
+        "review_selection_rate": {
+          "mean_effect": -0.0028088888888888885,
+          "seed_std": 0.004441828118808408,
+          "per_seed": [
+            0.00232,
+            -0.0054,
+            -0.005346666666666666
+          ]
+        },
+        "stay_seconds_per_request": {
+          "mean_effect": 0.11567118620448642,
+          "seed_std": 0.015129078339113559,
+          "per_seed": [
+            0.10948140588760376,
+            0.10461849790891012,
+            0.1329136548169454
+          ]
+        },
+        "active_day_per_request": {
+          "mean_effect": 1.18639999985074e-05,
+          "seed_std": 3.763259128582442e-06,
+          "per_seed": [
+            9.085333292993407e-06,
+            1.0360000018651287e-05,
+            1.6146666683877508e-05
+          ]
+        },
+        "selected_content_risk": {
+          "mean_effect": -0.002692937736113866,
+          "seed_std": 0.00022307934023704093,
+          "per_seed": [
+            -0.0027069769974549613,
+            -0.0029086658695091803,
+            -0.002463170341377457
+          ]
+        },
+        "platform_lt_per_request": {
+          "mean_effect": 0.0019871731591555807,
+          "seed_std": 0.00027001211369388723,
+          "per_seed": [
+            0.0018701167907814184,
+            0.0017954416851699352,
+            0.0022959610015153885
+          ]
+        }
+      }
+    },
+    {
+      "stage": "fine",
+      "control": "linear",
+      "treatment": "wide_deep",
+      "decision": "hold_seed_instability",
+      "seed_passes": 0,
+      "seed_decisions": [
+        "hold_or_reject",
+        "hold_or_reject",
+        "hold_or_reject"
+      ],
+      "metrics": {
+        "page_action_rate": {
+          "mean_effect": 0.006893333333333334,
+          "seed_std": 0.0016070400672596116,
+          "per_seed": [
+            0.006933333333333333,
+            0.00848,
+            0.005266666666666667
+          ]
+        },
+        "deep_action_rate": {
+          "mean_effect": 0.010213333333333333,
+          "seed_std": 0.0024722818969077492,
+          "per_seed": [
+            0.010866666666666667,
+            0.012293333333333333,
+            0.00748
+          ]
+        },
+        "transaction_rate": {
+          "mean_effect": 0.0016666666666666668,
+          "seed_std": 0.0010313313940942767,
+          "per_seed": [
+            0.0028266666666666666,
+            0.00132,
+            0.0008533333333333333
+          ]
+        },
+        "negative_rate": {
+          "mean_effect": 0.0001111111111111111,
+          "seed_std": 8.87777082463919e-05,
+          "per_seed": [
+            0.00013333333333333334,
+            1.3333333333333333e-05,
+            0.00018666666666666666
+          ]
+        },
+        "related_selection_rate": {
+          "mean_effect": -0.005831111111111111,
+          "seed_std": 0.0050127363710777695,
+          "per_seed": [
+            -0.010026666666666666,
+            -0.00028,
+            -0.007186666666666667
+          ]
+        },
+        "product_selection_rate": {
+          "mean_effect": 0.0003688888888888889,
+          "seed_std": 0.008535794783884661,
+          "per_seed": [
+            0.007893333333333334,
+            -0.008906666666666667,
+            0.00212
+          ]
+        },
+        "review_selection_rate": {
+          "mean_effect": 0.0054622222222222225,
+          "seed_std": 0.0035432648681584505,
+          "per_seed": [
+            0.0021333333333333334,
+            0.009186666666666666,
+            0.005066666666666666
+          ]
+        },
+        "stay_seconds_per_request": {
+          "mean_effect": 0.05538347697787815,
+          "seed_std": 0.012999801037276873,
+          "per_seed": [
+            0.05748356025377909,
+            0.06720538409233093,
+            0.04146148658752442
+          ]
+        },
+        "active_day_per_request": {
+          "mean_effect": 1.0371555450579359e-05,
+          "seed_std": 3.2713333884763594e-06,
+          "per_seed": [
+            1.3126666651417811e-05,
+            1.1231999814820787e-05,
+            6.755999885499477e-06
+          ]
+        },
+        "selected_content_risk": {
+          "mean_effect": 0.0009227765269494717,
+          "seed_std": 0.0001674418529976261,
+          "per_seed": [
+            0.0009837597099443276,
+            0.001051179751853148,
+            0.0007333901190509399
+          ]
+        },
+        "platform_lt_per_request": {
+          "mean_effect": 0.000974915799813138,
+          "seed_std": 0.00022964110541112727,
+          "per_seed": [
+            0.0010236927651862304,
+            0.0011762498083213965,
+            0.0007248048259317875
+          ]
+        }
+      }
+    },
+    {
+      "stage": "fine",
+      "control": "wide_deep",
+      "treatment": "specialized",
+      "decision": "hold_seed_instability",
+      "seed_passes": 0,
+      "seed_decisions": [
+        "hold_or_reject",
+        "hold_or_reject",
+        "hold_or_reject"
+      ],
+      "metrics": {
+        "page_action_rate": {
+          "mean_effect": 5.777777777777777e-05,
+          "seed_std": 0.00028105620895577566,
+          "per_seed": [
+            -0.0002666666666666667,
+            0.00022666666666666666,
+            0.00021333333333333333
+          ]
+        },
+        "deep_action_rate": {
+          "mean_effect": 4.444444444444445e-05,
+          "seed_std": 0.00037814361371388066,
+          "per_seed": [
+            -0.00038666666666666667,
+            0.00032,
+            0.0002
+          ]
+        },
+        "transaction_rate": {
+          "mean_effect": -5.7777777777777776e-05,
+          "seed_std": 8.572134009771516e-05,
+          "per_seed": [
+            -9.333333333333333e-05,
+            4e-05,
+            -0.00012
+          ]
+        },
+        "negative_rate": {
+          "mean_effect": 1.7777777777777777e-05,
+          "seed_std": 2.7755546659548436e-05,
+          "per_seed": [
+            -1.3333333333333333e-05,
+            2.6666666666666667e-05,
+            4e-05
+          ]
+        },
+        "related_selection_rate": {
+          "mean_effect": -1.7777777777777777e-05,
+          "seed_std": 9.459465179463451e-05,
+          "per_seed": [
+            0.0,
+            -0.00012,
+            6.666666666666667e-05
+          ]
+        },
+        "product_selection_rate": {
+          "mean_effect": -0.0017733333333333334,
+          "seed_std": 0.0015433873280691545,
+          "per_seed": [
+            0.0,
+            -0.0028133333333333335,
+            -0.0025066666666666666
+          ]
+        },
+        "review_selection_rate": {
+          "mean_effect": 0.0017911111111111112,
+          "seed_std": 0.001570637992569804,
+          "per_seed": [
+            0.0,
+            0.0029333333333333334,
+            0.00244
+          ]
+        },
+        "stay_seconds_per_request": {
+          "mean_effect": 5.2730386522081125e-05,
+          "seed_std": 0.002115237542701982,
+          "per_seed": [
+            -0.002355381333033244,
+            0.001610308977762858,
+            0.0009032635148366292
+          ]
+        },
+        "active_day_per_request": {
+          "mean_effect": -1.0222222759491868e-07,
+          "seed_std": 3.621475015687303e-07,
+          "per_seed": [
+            -4.439999970297019e-07,
+            2.7733332943171264e-07,
+            -1.4000001518676678e-07
+          ]
+        },
+        "selected_content_risk": {
+          "mean_effect": 2.0082957330677244e-05,
+          "seed_std": 6.540420643440947e-05,
+          "per_seed": [
+            -2.495880678296089e-05,
+            9.510279017190138e-05,
+            -9.89511139690876e-06
+          ]
+        },
+        "platform_lt_per_request": {
+          "mean_effect": 3.6772946516672667e-07,
+          "seed_std": 3.689573717734728e-05,
+          "per_seed": [
+            -4.147636105616888e-05,
+            2.8225154181321463e-05,
+            1.4354395270347595e-05
+          ]
+        }
+      }
+    },
+    {
+      "stage": "end_to_end",
+      "control": "quota_mix_plus_rule",
+      "treatment": "quota_mix_plus_rule",
+      "decision": "hold_seed_instability",
+      "seed_passes": 0,
+      "seed_decisions": [
+        "baseline",
+        "baseline",
+        "baseline"
+      ],
+      "metrics": {
+        "page_action_rate": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "deep_action_rate": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "transaction_rate": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "negative_rate": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "related_selection_rate": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "product_selection_rate": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "review_selection_rate": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "stay_seconds_per_request": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "active_day_per_request": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "selected_content_risk": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "platform_lt_per_request": {
+          "mean_effect": 0.0,
+          "seed_std": 0.0,
+          "per_seed": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    }
+  ],
+  "release_state": {
+    "fine": "rule",
+    "end_to_end": "quota_mix_plus_rule"
+  },
+  "seed_reports": [
+    {
+      "schema": "poi-detail-request-launch-ladder-v1",
+      "config": {
+        "requests": 500000,
+        "users": 250000,
+        "entities_per_module": 8192,
+        "categories": 32,
+        "semantic_dim": 16,
+        "history_length": 24,
+        "candidates_per_module": 8,
+        "exposed_related": 4,
+        "exposed_product": 2,
+        "exposed_review": 2,
+        "train_epochs": 3,
+        "train_batch_requests": 4096,
+        "learning_rate": 0.0015,
+        "seed": 20260824,
+        "device": "cuda:0"
+      },
+      "feature_names": [
+        "intent_semantic",
+        "history_semantic",
+        "category_match",
+        "quality",
+        "price_match",
+        "availability",
+        "trust",
+        "informativeness",
+        "toxicity",
+        "freshness",
+        "risk",
+        "activity",
+        "transaction_propensity",
+        "entry_feed",
+        "entry_search",
+        "entry_map",
+        "kind_related",
+        "kind_product",
+        "kind_review"
+      ],
+      "logging_policy": "quota_mix_plus_rule",
+      "logging_contract": {
+        "one_page_request_identity": true,
+        "module_models_have_separate_weights": true,
+        "labels_only_on_exposed_candidates": true,
+        "review_transaction_masked": true,
+        "fixed_module_exposure_quota": true,
+        "time_split": [
+          0.7,
+          0.15,
+          0.15
+        ]
+      },
+      "sample_profile": {
+        "requests": 500000,
+        "candidate_rows": 12000000,
+        "exposed_rows": 4000000,
+        "label_positive_rates": {
+          "click": 0.10999225080013275,
+          "deep_action": 0.039234500378370285,
+          "transaction": 0.005123333539813757,
+          "negative": 0.0002602500026114285
+        },
+        "module_candidate_rows": {
+          "related_poi": 4000000,
+          "product": 4000000,
+          "review": 4000000
+        },
+        "exposure_quota": {
+          "related_poi": 4,
+          "product": 2,
+          "review": 2
+        }
+      },
+      "models": {
+        "linear": {
+          "parameters": 240,
+          "final_loss": 1.002139839004068,
+          "metrics": {
+            "click": {
+              "auc": 0.8255281318643426,
+              "pr_auc": 0.38710580838216385,
+              "positive_rate": 0.10999500006437302,
+              "observable_rows": 600000,
+              "positive_rows": 65997
+            },
+            "deep_action": {
+              "auc": 0.8394860385503952,
+              "pr_auc": 0.18415162495125525,
+              "positive_rate": 0.03926499933004379,
+              "observable_rows": 600000,
+              "positive_rows": 23559
+            },
+            "transaction": {
+              "auc": 0.9080781052060077,
+              "pr_auc": 0.06037965960157672,
+              "positive_rate": 0.005064444616436958,
+              "observable_rows": 450000,
+              "positive_rows": 2279
+            },
+            "negative": {
+              "auc": 0.8170895811838155,
+              "pr_auc": 0.0033406413568464505,
+              "positive_rate": 0.000286666676402092,
+              "observable_rows": 600000,
+              "positive_rows": 172
+            }
+          },
+          "artifact": {
+            "artifact_file": "seed-20260824-linear.pt",
+            "sha256": "601831df9ced27a9ea935ed1baa19da7aeac2b9b3f66234e7c94f01d839f4adc"
+          },
+          "serialized_replay_max_abs_delta": 0.0
+        },
+        "wide_deep": {
+          "parameters": 6948,
+          "final_loss": 0.6865061100791482,
+          "metrics": {
+            "click": {
+              "auc": 0.8396870930438037,
+              "pr_auc": 0.408226586806376,
+              "positive_rate": 0.10999500006437302,
+              "observable_rows": 600000,
+              "positive_rows": 65997
+            },
+            "deep_action": {
+              "auc": 0.8776299695163046,
+              "pr_auc": 0.22941283622596062,
+              "positive_rate": 0.03926499933004379,
+              "observable_rows": 600000,
+              "positive_rows": 23559
+            },
+            "transaction": {
+              "auc": 0.9273486205320195,
+              "pr_auc": 0.07231885308012112,
+              "positive_rate": 0.005064444616436958,
+              "observable_rows": 450000,
+              "positive_rows": 2279
+            },
+            "negative": {
+              "auc": 0.8795821662675083,
+              "pr_auc": 0.0034509892673113512,
+              "positive_rate": 0.000286666676402092,
+              "observable_rows": 600000,
+              "positive_rows": 172
+            }
+          },
+          "artifact": {
+            "artifact_file": "seed-20260824-wide_deep.pt",
+            "sha256": "0ed1622a5a0fc55c5b19d190269d81cbc9b80f4657dd43c36205cff810eca70c"
+          },
+          "serialized_replay_max_abs_delta": 0.0
+        },
+        "specialized": {
+          "parameters": 20444,
+          "final_loss": 0.6861534721711102,
+          "metrics": {
+            "click": {
+              "auc": 0.840052525005833,
+              "pr_auc": 0.4105405735822568,
+              "positive_rate": 0.10999500006437302,
+              "observable_rows": 600000,
+              "positive_rows": 65997
+            },
+            "deep_action": {
+              "auc": 0.8776236811031117,
+              "pr_auc": 0.23006084204281105,
+              "positive_rate": 0.03926499933004379,
+              "observable_rows": 600000,
+              "positive_rows": 23559
+            },
+            "transaction": {
+              "auc": 0.9265658218073245,
+              "pr_auc": 0.07089198879821022,
+              "positive_rate": 0.005064444616436958,
+              "observable_rows": 450000,
+              "positive_rows": 2279
+            },
+            "negative": {
+              "auc": 0.8794339115585228,
+              "pr_auc": 0.00315049019565993,
+              "positive_rate": 0.000286666676402092,
+              "observable_rows": 600000,
+              "positive_rows": 172
+            }
+          },
+          "artifact": {
+            "artifact_file": "seed-20260824-specialized.pt",
+            "sha256": "b02bd882cd589ec002d7b3d3ae73d1e0890de06877e146aece2251c152713fbc"
+          },
+          "serialized_replay_max_abs_delta": 0.0
+        }
+      },
+      "launches": [
+        {
+          "stage": "fine",
+          "control": "rule",
+          "treatment": "linear",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.88032,
+              "treatment_mean": 0.8853333333333333,
+              "absolute_effect": 0.005013333333333333,
+              "relative_effect": 0.005694898824669817,
+              "standard_error": 0.0005878988436866325,
+              "confidence_interval": [
+                0.0038610515997075335,
+                0.006165615066959133
+              ],
+              "p_value": 1.494873087149291e-17
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31438666666666665,
+              "treatment_mean": 0.32254666666666665,
+              "absolute_effect": 0.00816,
+              "relative_effect": 0.025955299206921415,
+              "standard_error": 0.0008380993057875104,
+              "confidence_interval": [
+                0.00651732536065648,
+                0.00980267463934352
+              ],
+              "p_value": 2.1106695985387128e-22
+            },
+            "transaction_rate": {
+              "control_mean": 0.030493333333333334,
+              "treatment_mean": 0.03228,
+              "absolute_effect": 0.0017866666666666667,
+              "relative_effect": 0.05859204197638828,
+              "standard_error": 0.00041177627229553745,
+              "confidence_interval": [
+                0.0009795851729674132,
+                0.00259374816036592
+              ],
+              "p_value": 1.4318089042967772e-05
+            },
+            "negative_rate": {
+              "control_mean": 0.0019866666666666665,
+              "treatment_mean": 0.0021866666666666666,
+              "absolute_effect": 0.0002,
+              "relative_effect": 0.10067114093959732,
+              "standard_error": 0.00012436373889198577,
+              "confidence_interval": [
+                -4.375292822829209e-05,
+                0.00044375292822829214
+              ],
+              "p_value": 0.10779449030916703
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21086666666666667,
+              "treatment_mean": 0.19761333333333334,
+              "absolute_effect": -0.013253333333333334,
+              "relative_effect": -0.06285172304773949,
+              "standard_error": 0.001223687577594015,
+              "confidence_interval": [
+                -0.015651760985417602,
+                -0.010854905681249066
+              ],
+              "p_value": 2.463967325799847e-27
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42847999999999997,
+              "treatment_mean": 0.4394133333333333,
+              "absolute_effect": 0.010933333333333333,
+              "relative_effect": 0.025516554642768235,
+              "standard_error": 0.001457132277027701,
+              "confidence_interval": [
+                0.00807735407035904,
+                0.013789312596307626
+              ],
+              "p_value": 6.222024000362981e-14
+            },
+            "review_selection_rate": {
+              "control_mean": 0.3606533333333333,
+              "treatment_mean": 0.3629733333333333,
+              "absolute_effect": 0.00232,
+              "relative_effect": 0.006432770157861659,
+              "standard_error": 0.0014440531056226053,
+              "confidence_interval": [
+                -0.0005103440870203066,
+                0.005150344087020307
+              ],
+              "p_value": 0.1081445320233023
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.199544292093913,
+              "treatment_mean": 5.309025697981516,
+              "absolute_effect": 0.10948140588760376,
+              "relative_effect": 0.02105596177997253,
+              "standard_error": 0.005079613456694443,
+              "confidence_interval": [
+                0.09952536351248265,
+                0.11943744826272487
+              ],
+              "p_value": 4.952036545589062e-103
+            },
+            "active_day_per_request": {
+              "control_mean": 0.0002790706616220996,
+              "treatment_mean": 0.0002881559949119886,
+              "absolute_effect": 9.085333292993407e-06,
+              "relative_effect": 0.03255567332010059,
+              "standard_error": 1.0810807045685988e-06,
+              "confidence_interval": [
+                6.966415112038953e-06,
+                1.1204251473947861e-05
+              ],
+              "p_value": 4.317572338817891e-17
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029464367523218196,
+              "treatment_mean": 0.0267573905257384,
+              "absolute_effect": -0.0027069769974549613,
+              "relative_effect": -0.0918729036121966,
+              "standard_error": 2.100766817336231e-05,
+              "confidence_interval": [
+                -0.0027481520270747515,
+                -0.002665801967835171
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08805442948763569,
+              "treatment_mean": 0.08992454627841712,
+              "absolute_effect": 0.0018701167907814184,
+              "relative_effect": 0.021238190987814123,
+              "standard_error": 8.829753178792836e-05,
+              "confidence_interval": [
+                0.0016970536284770788,
+                0.002043179953085758
+              ],
+              "p_value": 1.4691035961324626e-99
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject",
+          "promoted": false
+        },
+        {
+          "stage": "fine",
+          "control": "linear",
+          "treatment": "wide_deep",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8853333333333333,
+              "treatment_mean": 0.8922666666666667,
+              "absolute_effect": 0.006933333333333333,
+              "relative_effect": 0.00783132530120482,
+              "standard_error": 0.00038882295437804603,
+              "confidence_interval": [
+                0.006171240342752363,
+                0.007695426323914303
+              ],
+              "p_value": 4.0179544618434734e-71
+            },
+            "deep_action_rate": {
+              "control_mean": 0.32254666666666665,
+              "treatment_mean": 0.33341333333333334,
+              "absolute_effect": 0.010866666666666667,
+              "relative_effect": 0.03369021536935224,
+              "standard_error": 0.0005725837356446252,
+              "confidence_interval": [
+                0.009744402544803202,
+                0.011988930788530132
+              ],
+              "p_value": 2.5779689722405327e-80
+            },
+            "transaction_rate": {
+              "control_mean": 0.03228,
+              "treatment_mean": 0.03510666666666667,
+              "absolute_effect": 0.0028266666666666666,
+              "relative_effect": 0.08756712102437009,
+              "standard_error": 0.00029796566705491345,
+              "confidence_interval": [
+                0.002242653959239036,
+                0.003410679374094297
+              ],
+              "p_value": 2.3880360483753027e-21
+            },
+            "negative_rate": {
+              "control_mean": 0.0021866666666666666,
+              "treatment_mean": 0.00232,
+              "absolute_effect": 0.00013333333333333334,
+              "relative_effect": 0.06097560975609757,
+              "standard_error": 8.432656098165373e-05,
+              "confidence_interval": [
+                -3.194672619070797e-05,
+                0.00029861339285737465
+              ],
+              "p_value": 0.11384268350157523
+            },
+            "related_selection_rate": {
+              "control_mean": 0.19761333333333334,
+              "treatment_mean": 0.18758666666666668,
+              "absolute_effect": -0.010026666666666666,
+              "relative_effect": -0.05073881654409284,
+              "standard_error": 0.0007908933750404839,
+              "confidence_interval": [
+                -0.011576817681746015,
+                -0.008476515651587318
+              ],
+              "p_value": 7.865827851166454e-37
+            },
+            "product_selection_rate": {
+              "control_mean": 0.4394133333333333,
+              "treatment_mean": 0.4473066666666667,
+              "absolute_effect": 0.007893333333333334,
+              "relative_effect": 0.017963345066148807,
+              "standard_error": 0.0010042932543866945,
+              "confidence_interval": [
+                0.0059249185547354125,
+                0.009861748111931256
+              ],
+              "p_value": 3.853924830245956e-15
+            },
+            "review_selection_rate": {
+              "control_mean": 0.3629733333333333,
+              "treatment_mean": 0.3651066666666667,
+              "absolute_effect": 0.0021333333333333334,
+              "relative_effect": 0.005877383095176873,
+              "standard_error": 0.000977773467946505,
+              "confidence_interval": [
+                0.0002168973361581835,
+                0.004049769330508483
+              ],
+              "p_value": 0.029122244111379647
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.309025697981516,
+              "treatment_mean": 5.366509258235296,
+              "absolute_effect": 0.05748356025377909,
+              "relative_effect": 0.010827515917964808,
+              "standard_error": 0.0033555672252212963,
+              "confidence_interval": [
+                0.05090664849234535,
+                0.06406047201521284
+              ],
+              "p_value": 8.743985954548728e-66
+            },
+            "active_day_per_request": {
+              "control_mean": 0.0002881559949119886,
+              "treatment_mean": 0.0003012826615696152,
+              "absolute_effect": 1.3126666651417811e-05,
+              "relative_effect": 0.04555402935631128,
+              "standard_error": 7.718251502353678e-07,
+              "confidence_interval": [
+                1.161388935695649e-05,
+                1.4639443945879133e-05
+              ],
+              "p_value": 7.2495324428500825e-65
+            },
+            "selected_content_risk": {
+              "control_mean": 0.0267573905257384,
+              "treatment_mean": 0.02774115023565789,
+              "absolute_effect": 0.0009837597099443276,
+              "relative_effect": 0.03676590618947061,
+              "standard_error": 1.3603514509896942e-05,
+              "confidence_interval": [
+                0.0009570968215049296,
+                0.0010104225983837256
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08992454627841712,
+              "treatment_mean": 0.09094823904360334,
+              "absolute_effect": 0.0010236927651862304,
+              "relative_effect": 0.011383908037931663,
+              "standard_error": 5.8491827946808456e-05,
+              "confidence_interval": [
+                0.0009090487824104859,
+                0.0011383367479619751
+              ],
+              "p_value": 1.3962744486257737e-68
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": false
+          },
+          "decision": "hold_or_reject",
+          "promoted": false
+        },
+        {
+          "stage": "fine",
+          "control": "wide_deep",
+          "treatment": "specialized",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8922666666666667,
+              "treatment_mean": 0.892,
+              "absolute_effect": -0.0002666666666666667,
+              "relative_effect": -0.0002988643156007173,
+              "standard_error": 0.00015434244942755276,
+              "confidence_interval": [
+                -0.0005691778675446701,
+                3.5844534211336725e-05
+              ],
+              "p_value": 0.08403131234297104
+            },
+            "deep_action_rate": {
+              "control_mean": 0.33341333333333334,
+              "treatment_mean": 0.3330266666666667,
+              "absolute_effect": -0.00038666666666666667,
+              "relative_effect": -0.001159721666799968,
+              "standard_error": 0.00023132192091119297,
+              "confidence_interval": [
+                -0.000840057631652605,
+                6.672429831927157e-05
+              ],
+              "p_value": 0.09461265645462931
+            },
+            "transaction_rate": {
+              "control_mean": 0.03510666666666667,
+              "treatment_mean": 0.035013333333333334,
+              "absolute_effect": -9.333333333333333e-05,
+              "relative_effect": -0.0026585643752373715,
+              "standard_error": 0.00011547032070529942,
+              "confidence_interval": [
+                -0.0003196551619157202,
+                0.00013298849524905353
+              ],
+              "p_value": 0.4189245160823172
+            },
+            "negative_rate": {
+              "control_mean": 0.00232,
+              "treatment_mean": 0.0023066666666666665,
+              "absolute_effect": -1.3333333333333333e-05,
+              "relative_effect": -0.005747126436781609,
+              "standard_error": 3.527688573069197e-05,
+              "confidence_interval": [
+                -8.24760293654896e-05,
+                5.580936269882293e-05
+              ],
+              "p_value": 0.7054585905908883
+            },
+            "related_selection_rate": {
+              "control_mean": 0.18758666666666668,
+              "treatment_mean": 0.18758666666666668,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.00034871424025260483,
+              "confidence_interval": [
+                -0.0006834799108951055,
+                0.0006834799108951055
+              ],
+              "p_value": 1.0
+            },
+            "product_selection_rate": {
+              "control_mean": 0.4473066666666667,
+              "treatment_mean": 0.4473066666666667,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0004336950504377231,
+              "confidence_interval": [
+                -0.0008500422988579373,
+                0.0008500422988579373
+              ],
+              "p_value": 1.0
+            },
+            "review_selection_rate": {
+              "control_mean": 0.3651066666666667,
+              "treatment_mean": 0.3651066666666667,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.00041483874389695256,
+              "confidence_interval": [
+                -0.000813083938038027,
+                0.000813083938038027
+              ],
+              "p_value": 1.0
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.366509258235296,
+              "treatment_mean": 5.364153876902263,
+              "absolute_effect": -0.002355381333033244,
+              "relative_effect": -0.00043890380500485323,
+              "standard_error": 0.001336663394308295,
+              "confidence_interval": [
+                -0.004975241585877503,
+                0.00026447891981101453
+              ],
+              "p_value": 0.07804649323742106
+            },
+            "active_day_per_request": {
+              "control_mean": 0.0003012826615696152,
+              "treatment_mean": 0.0003008386615710333,
+              "absolute_effect": -4.439999970297019e-07,
+              "relative_effect": -0.0014736991326237006,
+              "standard_error": 3.0698021692507597e-07,
+              "confidence_interval": [
+                -1.0456812222028507e-06,
+                1.5768122814344696e-07
+              ],
+              "p_value": 0.14807982515735602
+            },
+            "selected_content_risk": {
+              "control_mean": 0.02774115023565789,
+              "treatment_mean": 0.02771619142887493,
+              "absolute_effect": -2.495880678296089e-05,
+              "relative_effect": -0.000899703385437831,
+              "standard_error": 5.681183442942033e-06,
+              "confidence_interval": [
+                -3.609392633112728e-05,
+                -1.3823687234794505e-05
+              ],
+              "p_value": 1.1167332556295574e-05
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.09094823904360334,
+              "treatment_mean": 0.09090676268254717,
+              "absolute_effect": -4.147636105616888e-05,
+              "relative_effect": -0.0004560435858058104,
+              "standard_error": 2.3321408249324533e-05,
+              "confidence_interval": [
+                -8.718632122484496e-05,
+                4.233599112507209e-06
+              ],
+              "p_value": 0.07532714430864715
+            }
+          },
+          "gates": {
+            "deep_action_positive": false,
+            "platform_lt_nonnegative": false,
+            "transaction_nonnegative": false,
+            "negative_guardrail": true,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject",
+          "promoted": false
+        }
+      ],
+      "end_to_end_candidates": [
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_rule",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.88032,
+              "treatment_mean": 0.88032,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31438666666666665,
+              "treatment_mean": 0.31438666666666665,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "transaction_rate": {
+              "control_mean": 0.030493333333333334,
+              "treatment_mean": 0.030493333333333334,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "negative_rate": {
+              "control_mean": 0.0019866666666666665,
+              "treatment_mean": 0.0019866666666666665,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21086666666666667,
+              "treatment_mean": 0.21086666666666667,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42847999999999997,
+              "treatment_mean": 0.42847999999999997,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "review_selection_rate": {
+              "control_mean": 0.3606533333333333,
+              "treatment_mean": 0.3606533333333333,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.199544292093913,
+              "treatment_mean": 5.199544292093913,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "active_day_per_request": {
+              "control_mean": 0.0002790706616220996,
+              "treatment_mean": 0.0002790706616220996,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029464367523218196,
+              "treatment_mean": 0.029464367523218196,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08805442948763569,
+              "treatment_mean": 0.08805442948763569,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            }
+          },
+          "gates": {
+            "baseline": true
+          },
+          "decision": "baseline"
+        },
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_linear",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.88032,
+              "treatment_mean": 0.8853333333333333,
+              "absolute_effect": 0.005013333333333333,
+              "relative_effect": 0.005694898824669817,
+              "standard_error": 0.0005878988436866325,
+              "confidence_interval": [
+                0.0038610515997075335,
+                0.006165615066959133
+              ],
+              "p_value": 1.494873087149291e-17
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31438666666666665,
+              "treatment_mean": 0.32254666666666665,
+              "absolute_effect": 0.00816,
+              "relative_effect": 0.025955299206921415,
+              "standard_error": 0.0008380993057875104,
+              "confidence_interval": [
+                0.00651732536065648,
+                0.00980267463934352
+              ],
+              "p_value": 2.1106695985387128e-22
+            },
+            "transaction_rate": {
+              "control_mean": 0.030493333333333334,
+              "treatment_mean": 0.03228,
+              "absolute_effect": 0.0017866666666666667,
+              "relative_effect": 0.05859204197638828,
+              "standard_error": 0.00041177627229553745,
+              "confidence_interval": [
+                0.0009795851729674132,
+                0.00259374816036592
+              ],
+              "p_value": 1.4318089042967772e-05
+            },
+            "negative_rate": {
+              "control_mean": 0.0019866666666666665,
+              "treatment_mean": 0.0021866666666666666,
+              "absolute_effect": 0.0002,
+              "relative_effect": 0.10067114093959732,
+              "standard_error": 0.00012436373889198577,
+              "confidence_interval": [
+                -4.375292822829209e-05,
+                0.00044375292822829214
+              ],
+              "p_value": 0.10779449030916703
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21086666666666667,
+              "treatment_mean": 0.19761333333333334,
+              "absolute_effect": -0.013253333333333334,
+              "relative_effect": -0.06285172304773949,
+              "standard_error": 0.001223687577594015,
+              "confidence_interval": [
+                -0.015651760985417602,
+                -0.010854905681249066
+              ],
+              "p_value": 2.463967325799847e-27
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42847999999999997,
+              "treatment_mean": 0.4394133333333333,
+              "absolute_effect": 0.010933333333333333,
+              "relative_effect": 0.025516554642768235,
+              "standard_error": 0.001457132277027701,
+              "confidence_interval": [
+                0.00807735407035904,
+                0.013789312596307626
+              ],
+              "p_value": 6.222024000362981e-14
+            },
+            "review_selection_rate": {
+              "control_mean": 0.3606533333333333,
+              "treatment_mean": 0.3629733333333333,
+              "absolute_effect": 0.00232,
+              "relative_effect": 0.006432770157861659,
+              "standard_error": 0.0014440531056226053,
+              "confidence_interval": [
+                -0.0005103440870203066,
+                0.005150344087020307
+              ],
+              "p_value": 0.1081445320233023
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.199544292093913,
+              "treatment_mean": 5.309025697981516,
+              "absolute_effect": 0.10948140588760376,
+              "relative_effect": 0.02105596177997253,
+              "standard_error": 0.005079613456694443,
+              "confidence_interval": [
+                0.09952536351248265,
+                0.11943744826272487
+              ],
+              "p_value": 4.952036545589062e-103
+            },
+            "active_day_per_request": {
+              "control_mean": 0.0002790706616220996,
+              "treatment_mean": 0.0002881559949119886,
+              "absolute_effect": 9.085333292993407e-06,
+              "relative_effect": 0.03255567332010059,
+              "standard_error": 1.0810807045685988e-06,
+              "confidence_interval": [
+                6.966415112038953e-06,
+                1.1204251473947861e-05
+              ],
+              "p_value": 4.317572338817891e-17
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029464367523218196,
+              "treatment_mean": 0.0267573905257384,
+              "absolute_effect": -0.0027069769974549613,
+              "relative_effect": -0.0918729036121966,
+              "standard_error": 2.100766817336231e-05,
+              "confidence_interval": [
+                -0.0027481520270747515,
+                -0.002665801967835171
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08805442948763569,
+              "treatment_mean": 0.08992454627841712,
+              "absolute_effect": 0.0018701167907814184,
+              "relative_effect": 0.021238190987814123,
+              "standard_error": 8.829753178792836e-05,
+              "confidence_interval": [
+                0.0016970536284770788,
+                0.002043179953085758
+              ],
+              "p_value": 1.4691035961324626e-99
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject"
+        },
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_wide_deep",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.88032,
+              "treatment_mean": 0.8922666666666667,
+              "absolute_effect": 0.011946666666666666,
+              "relative_effect": 0.013570822731128074,
+              "standard_error": 0.0005531837127164767,
+              "confidence_interval": [
+                0.010862426589742371,
+                0.013030906743590961
+              ],
+              "p_value": 1.9500862456983142e-103
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31438666666666665,
+              "treatment_mean": 0.33341333333333334,
+              "absolute_effect": 0.019026666666666667,
+              "relative_effect": 0.06051995419653082,
+              "standard_error": 0.0007845049513638034,
+              "confidence_interval": [
+                0.017489036961993613,
+                0.020564296371339722
+              ],
+              "p_value": 6.1344762177464015e-130
+            },
+            "transaction_rate": {
+              "control_mean": 0.030493333333333334,
+              "treatment_mean": 0.03510666666666667,
+              "absolute_effect": 0.004613333333333333,
+              "relative_effect": 0.15128989943156973,
+              "standard_error": 0.0004023079915897877,
+              "confidence_interval": [
+                0.0038248096698173494,
+                0.005401856996849317
+              ],
+              "p_value": 1.9286821288055264e-30
+            },
+            "negative_rate": {
+              "control_mean": 0.0019866666666666665,
+              "treatment_mean": 0.00232,
+              "absolute_effect": 0.0003333333333333333,
+              "relative_effect": 0.16778523489932887,
+              "standard_error": 0.00011699397381321053,
+              "confidence_interval": [
+                0.0001040251446594407,
+                0.000562641522007226
+              ],
+              "p_value": 0.004383626328940727
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21086666666666667,
+              "treatment_mean": 0.18758666666666668,
+              "absolute_effect": -0.02328,
+              "relative_effect": -0.11040151754663294,
+              "standard_error": 0.0011205908996237315,
+              "confidence_interval": [
+                -0.025476358163262512,
+                -0.021083641836737485
+              ],
+              "p_value": 7.3238676153210295e-96
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42847999999999997,
+              "treatment_mean": 0.4473066666666667,
+              "absolute_effect": 0.018826666666666665,
+              "relative_effect": 0.04393826238486433,
+              "standard_error": 0.001390223751827832,
+              "confidence_interval": [
+                0.016101828113084114,
+                0.021551505220249217
+              ],
+              "p_value": 8.812849358004506e-42
+            },
+            "review_selection_rate": {
+              "control_mean": 0.3606533333333333,
+              "treatment_mean": 0.3651066666666667,
+              "absolute_effect": 0.0044533333333333334,
+              "relative_effect": 0.012347961107619506,
+              "standard_error": 0.0013488858974002036,
+              "confidence_interval": [
+                0.0018095169744289344,
+                0.007097149692237733
+              ],
+              "p_value": 0.0009617275495313649
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.199544292093913,
+              "treatment_mean": 5.366509258235296,
+              "absolute_effect": 0.16696496614138284,
+              "relative_effect": 0.03211146145927805,
+              "standard_error": 0.00478455464960903,
+              "confidence_interval": [
+                0.15758723902814914,
+                0.17634269325461654
+              ],
+              "p_value": 8.354969568678213e-267
+            },
+            "active_day_per_request": {
+              "control_mean": 0.0002790706616220996,
+              "treatment_mean": 0.0003012826615696152,
+              "absolute_effect": 2.221199994596342e-05,
+              "relative_effect": 0.07959274477960551,
+              "standard_error": 1.0435741089757376e-06,
+              "confidence_interval": [
+                2.0166594692370977e-05,
+                2.4257405199555866e-05
+              ],
+              "p_value": 1.5787230178326084e-100
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029464367523218196,
+              "treatment_mean": 0.02774115023565789,
+              "absolute_effect": -0.0017232172876099744,
+              "relative_effect": -0.05848478798168884,
+              "standard_error": 1.9696162475106417e-05,
+              "confidence_interval": [
+                -0.001761821766061183,
+                -0.0016846128091587659
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08805442948763569,
+              "treatment_mean": 0.09094823904360334,
+              "absolute_effect": 0.002893809555967649,
+              "relative_effect": 0.03286387263884309,
+              "standard_error": 8.324243349171927e-05,
+              "confidence_interval": [
+                0.002730654386323879,
+                0.0030569647256114187
+              ],
+              "p_value": 8.625381263024008e-265
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject"
+        },
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_specialized",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.88032,
+              "treatment_mean": 0.892,
+              "absolute_effect": 0.01168,
+              "relative_effect": 0.01326790258087968,
+              "standard_error": 0.0005516506372506132,
+              "confidence_interval": [
+                0.010598764750988797,
+                0.012761235249011202
+              ],
+              "p_value": 1.700681667601302e-99
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31438666666666665,
+              "treatment_mean": 0.3330266666666667,
+              "absolute_effect": 0.01864,
+              "relative_effect": 0.05929004622757539,
+              "standard_error": 0.0007836084433966797,
+              "confidence_interval": [
+                0.01710412745094251,
+                0.02017587254905749
+              ],
+              "p_value": 4.5107253939377207e-125
+            },
+            "transaction_rate": {
+              "control_mean": 0.030493333333333334,
+              "treatment_mean": 0.035013333333333334,
+              "absolute_effect": 0.00452,
+              "relative_effect": 0.14822912111937034,
+              "standard_error": 0.000398548395625207,
+              "confidence_interval": [
+                0.003738845144574594,
+                0.005301154855425406
+              ],
+              "p_value": 8.205222663911826e-30
+            },
+            "negative_rate": {
+              "control_mean": 0.0019866666666666665,
+              "treatment_mean": 0.0023066666666666665,
+              "absolute_effect": 0.00032,
+              "relative_effect": 0.16107382550335572,
+              "standard_error": 0.00011775179916452552,
+              "confidence_interval": [
+                8.920647363753e-05,
+                0.00055079352636247
+              ],
+              "p_value": 0.006576114480918841
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21086666666666667,
+              "treatment_mean": 0.18758666666666668,
+              "absolute_effect": -0.02328,
+              "relative_effect": -0.11040151754663294,
+              "standard_error": 0.001129125422759995,
+              "confidence_interval": [
+                -0.02549308582860959,
+                -0.021066914171390408
+              ],
+              "p_value": 1.9028996442110848e-94
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42847999999999997,
+              "treatment_mean": 0.4473066666666667,
+              "absolute_effect": 0.018826666666666665,
+              "relative_effect": 0.04393826238486433,
+              "standard_error": 0.0013858690522809255,
+              "confidence_interval": [
+                0.01611036332419605,
+                0.02154297000913728
+              ],
+              "p_value": 4.933003530347025e-42
+            },
+            "review_selection_rate": {
+              "control_mean": 0.3606533333333333,
+              "treatment_mean": 0.3651066666666667,
+              "absolute_effect": 0.0044533333333333334,
+              "relative_effect": 0.012347961107619506,
+              "standard_error": 0.0013445295364644424,
+              "confidence_interval": [
+                0.0018180554418630265,
+                0.007088611224803641
+              ],
+              "p_value": 0.00092569626746263
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.199544292093913,
+              "treatment_mean": 5.364153876902263,
+              "absolute_effect": 0.1646095848083496,
+              "relative_effect": 0.03165846381165445,
+              "standard_error": 0.004768486502834618,
+              "confidence_interval": [
+                0.15526335126279375,
+                0.17395581835390547
+              ],
+              "p_value": 3.9787812801531664e-261
+            },
+            "active_day_per_request": {
+              "control_mean": 0.0002790706616220996,
+              "treatment_mean": 0.0003008386615710333,
+              "absolute_effect": 2.176799994893372e-05,
+              "relative_effect": 0.07800174988802877,
+              "standard_error": 1.0360044853837974e-06,
+              "confidence_interval": [
+                1.9737431157581477e-05,
+                2.3798568740285964e-05
+              ],
+              "p_value": 5.1491309311156917e-98
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029464367523218196,
+              "treatment_mean": 0.02771619142887493,
+              "absolute_effect": -0.001748176094343265,
+              "relative_effect": -0.059331872403698666,
+              "standard_error": 1.972181407707167e-05,
+              "confidence_interval": [
+                -0.0017868308499343253,
+                -0.0017095213387522045
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08805442948763569,
+              "treatment_mean": 0.09090676268254717,
+              "absolute_effect": 0.00285233319491148,
+              "relative_effect": 0.0323928416947156,
+              "standard_error": 8.294161099081167e-05,
+              "confidence_interval": [
+                0.0026897676373694892,
+                0.003014898752453471
+              ],
+              "p_value": 3.600390860783373e-259
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject"
+        }
+      ],
+      "performance": {
+        "seconds": 9.637075309990905,
+        "requests_per_second": 51882.96074449499,
+        "peak_gpu_memory_bytes": 4170647040
+      },
+      "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
+    },
+    {
+      "schema": "poi-detail-request-launch-ladder-v1",
+      "config": {
+        "requests": 500000,
+        "users": 250000,
+        "entities_per_module": 8192,
+        "categories": 32,
+        "semantic_dim": 16,
+        "history_length": 24,
+        "candidates_per_module": 8,
+        "exposed_related": 4,
+        "exposed_product": 2,
+        "exposed_review": 2,
+        "train_epochs": 3,
+        "train_batch_requests": 4096,
+        "learning_rate": 0.0015,
+        "seed": 20260825,
+        "device": "cuda:0"
+      },
+      "feature_names": [
+        "intent_semantic",
+        "history_semantic",
+        "category_match",
+        "quality",
+        "price_match",
+        "availability",
+        "trust",
+        "informativeness",
+        "toxicity",
+        "freshness",
+        "risk",
+        "activity",
+        "transaction_propensity",
+        "entry_feed",
+        "entry_search",
+        "entry_map",
+        "kind_related",
+        "kind_product",
+        "kind_review"
+      ],
+      "logging_policy": "quota_mix_plus_rule",
+      "logging_contract": {
+        "one_page_request_identity": true,
+        "module_models_have_separate_weights": true,
+        "labels_only_on_exposed_candidates": true,
+        "review_transaction_masked": true,
+        "fixed_module_exposure_quota": true,
+        "time_split": [
+          0.7,
+          0.15,
+          0.15
+        ]
+      },
+      "sample_profile": {
+        "requests": 500000,
+        "candidate_rows": 12000000,
+        "exposed_rows": 4000000,
+        "label_positive_rates": {
+          "click": 0.1098957508802414,
+          "deep_action": 0.03915325179696083,
+          "transaction": 0.005103666801005602,
+          "negative": 0.00027374998899176717
+        },
+        "module_candidate_rows": {
+          "related_poi": 4000000,
+          "product": 4000000,
+          "review": 4000000
+        },
+        "exposure_quota": {
+          "related_poi": 4,
+          "product": 2,
+          "review": 2
+        }
+      },
+      "models": {
+        "linear": {
+          "parameters": 240,
+          "final_loss": 0.9962101501577041,
+          "metrics": {
+            "click": {
+              "auc": 0.8155339605377461,
+              "pr_auc": 0.3833870472874712,
+              "positive_rate": 0.10995999723672867,
+              "observable_rows": 600000,
+              "positive_rows": 65976
+            },
+            "deep_action": {
+              "auc": 0.8554084011626848,
+              "pr_auc": 0.2037019150790775,
+              "positive_rate": 0.03910333290696144,
+              "observable_rows": 600000,
+              "positive_rows": 23462
+            },
+            "transaction": {
+              "auc": 0.9116499170847694,
+              "pr_auc": 0.06508166760637782,
+              "positive_rate": 0.005066666752099991,
+              "observable_rows": 450000,
+              "positive_rows": 2280
+            },
+            "negative": {
+              "auc": 0.8457109085387999,
+              "pr_auc": 0.002434687053513531,
+              "positive_rate": 0.0002916666562668979,
+              "observable_rows": 600000,
+              "positive_rows": 175
+            }
+          },
+          "artifact": {
+            "artifact_file": "seed-20260825-linear.pt",
+            "sha256": "b26716ad0f4630cd63fad168d662b120bd63141ceb00bf0a64210a52ae4f6314"
+          },
+          "serialized_replay_max_abs_delta": 0.0
+        },
+        "wide_deep": {
+          "parameters": 6948,
+          "final_loss": 0.6863376014372882,
+          "metrics": {
+            "click": {
+              "auc": 0.8383138131772319,
+              "pr_auc": 0.4058681933602764,
+              "positive_rate": 0.10995999723672867,
+              "observable_rows": 600000,
+              "positive_rows": 65976
+            },
+            "deep_action": {
+              "auc": 0.8765073401060389,
+              "pr_auc": 0.22875443785079452,
+              "positive_rate": 0.03910333290696144,
+              "observable_rows": 600000,
+              "positive_rows": 23462
+            },
+            "transaction": {
+              "auc": 0.926869515584615,
+              "pr_auc": 0.07429050440580508,
+              "positive_rate": 0.005066666752099991,
+              "observable_rows": 450000,
+              "positive_rows": 2280
+            },
+            "negative": {
+              "auc": 0.9021285636882186,
+              "pr_auc": 0.003510592730522165,
+              "positive_rate": 0.0002916666562668979,
+              "observable_rows": 600000,
+              "positive_rows": 175
+            }
+          },
+          "artifact": {
+            "artifact_file": "seed-20260825-wide_deep.pt",
+            "sha256": "f71b59c4c6a233f7af6ada5c28b31d2ad491538d214a82a46bfa2cf8430b726b"
+          },
+          "serialized_replay_max_abs_delta": 0.0
+        },
+        "specialized": {
+          "parameters": 20444,
+          "final_loss": 0.684616256461424,
+          "metrics": {
+            "click": {
+              "auc": 0.8385231302005371,
+              "pr_auc": 0.40774784791070573,
+              "positive_rate": 0.10995999723672867,
+              "observable_rows": 600000,
+              "positive_rows": 65976
+            },
+            "deep_action": {
+              "auc": 0.8770380171493624,
+              "pr_auc": 0.229800724275809,
+              "positive_rate": 0.03910333290696144,
+              "observable_rows": 600000,
+              "positive_rows": 23462
+            },
+            "transaction": {
+              "auc": 0.9266594395032295,
+              "pr_auc": 0.07548027817731605,
+              "positive_rate": 0.005066666752099991,
+              "observable_rows": 450000,
+              "positive_rows": 2280
+            },
+            "negative": {
+              "auc": 0.8954692023268691,
+              "pr_auc": 0.003405816424886226,
+              "positive_rate": 0.0002916666562668979,
+              "observable_rows": 600000,
+              "positive_rows": 175
+            }
+          },
+          "artifact": {
+            "artifact_file": "seed-20260825-specialized.pt",
+            "sha256": "002ececb0755ac5c76597598e10e2e62842f4afc71f0cf62f0da3bb40c4f07c2"
+          },
+          "serialized_replay_max_abs_delta": 0.0
+        }
+      },
+      "launches": [
+        {
+          "stage": "fine",
+          "control": "rule",
+          "treatment": "linear",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8778666666666667,
+              "treatment_mean": 0.8812933333333334,
+              "absolute_effect": 0.003426666666666667,
+              "relative_effect": 0.0039034021871202917,
+              "standard_error": 0.0006037139399057962,
+              "confidence_interval": [
+                0.0022433873444513064,
+                0.004609945988882027
+              ],
+              "p_value": 1.3789900181187846e-08
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31108,
+              "treatment_mean": 0.31934666666666667,
+              "absolute_effect": 0.008266666666666667,
+              "relative_effect": 0.026574085980026575,
+              "standard_error": 0.0008563415378591133,
+              "confidence_interval": [
+                0.006588237252462804,
+                0.00994509608087053
+              ],
+              "p_value": 4.752032149853376e-22
+            },
+            "transaction_rate": {
+              "control_mean": 0.030053333333333335,
+              "treatment_mean": 0.03253333333333333,
+              "absolute_effect": 0.00248,
+              "relative_effect": 0.08251996450754215,
+              "standard_error": 0.00041985223658754406,
+              "confidence_interval": [
+                0.0016570896162884136,
+                0.0033029103837115864
+              ],
+              "p_value": 3.4873207143424906e-09
+            },
+            "negative_rate": {
+              "control_mean": 0.0022266666666666667,
+              "treatment_mean": 0.0026133333333333334,
+              "absolute_effect": 0.00038666666666666667,
+              "relative_effect": 0.17365269461077845,
+              "standard_error": 0.00012718490467148992,
+              "confidence_interval": [
+                0.00013738425351054643,
+                0.0006359490798227869
+              ],
+              "p_value": 0.00236426529158145
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21124,
+              "treatment_mean": 0.18749333333333335,
+              "absolute_effect": -0.023746666666666666,
+              "relative_effect": -0.11241557785772896,
+              "standard_error": 0.0012457089776762786,
+              "confidence_interval": [
+                -0.02618825626291217,
+                -0.02130507707042116
+              ],
+              "p_value": 5.147368677602674e-81
+            },
+            "product_selection_rate": {
+              "control_mean": 0.4272,
+              "treatment_mean": 0.4563466666666667,
+              "absolute_effect": 0.029146666666666668,
+              "relative_effect": 0.06822721598002497,
+              "standard_error": 0.001478765214188803,
+              "confidence_interval": [
+                0.026248286846856615,
+                0.03204504648647672
+              ],
+              "p_value": 1.7648448922020115e-86
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36156,
+              "treatment_mean": 0.35616,
+              "absolute_effect": -0.0054,
+              "relative_effect": -0.014935280451377366,
+              "standard_error": 0.0014496571617955594,
+              "confidence_interval": [
+                -0.008241328037119296,
+                -0.0025586719628807038
+              ],
+              "p_value": 0.00019530076321534124
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.176744424482981,
+              "treatment_mean": 5.281362922388713,
+              "absolute_effect": 0.10461849790891012,
+              "relative_effect": 0.020209322564607526,
+              "standard_error": 0.0051969785747219156,
+              "confidence_interval": [
+                0.09443241990245517,
+                0.11480457591536507
+              ],
+              "p_value": 3.9783399189917065e-90
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027563599498476834,
+              "treatment_mean": 0.0002859959949956586,
+              "absolute_effect": 1.0360000018651287e-05,
+              "relative_effect": 0.03758580231592677,
+              "standard_error": 1.1022031773866502e-06,
+              "confidence_interval": [
+                8.199681790973452e-06,
+                1.2520318246329121e-05
+              ],
+              "p_value": 5.489805942363187e-21
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029491860959430537,
+              "treatment_mean": 0.026583195089995862,
+              "absolute_effect": -0.0029086658695091803,
+              "relative_effect": -0.09862605393096036,
+              "standard_error": 2.1081911150211995e-05,
+              "confidence_interval": [
+                -0.002949986415363596,
+                -0.0028673453236547648
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08765725834260384,
+              "treatment_mean": 0.08945270002777378,
+              "absolute_effect": 0.0017954416851699352,
+              "relative_effect": 0.020482521574568813,
+              "standard_error": 9.030511516111086e-05,
+              "confidence_interval": [
+                0.001618443659454158,
+                0.0019724397108857126
+              ],
+              "p_value": 5.83237660916145e-88
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject",
+          "promoted": false
+        },
+        {
+          "stage": "fine",
+          "control": "linear",
+          "treatment": "wide_deep",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8812933333333334,
+              "treatment_mean": 0.8897733333333333,
+              "absolute_effect": 0.00848,
+              "relative_effect": 0.009622221886016006,
+              "standard_error": 0.0004106622008974162,
+              "confidence_interval": [
+                0.007675102086241064,
+                0.009284897913758935
+              ],
+              "p_value": 9.848194409743284e-95
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31934666666666667,
+              "treatment_mean": 0.33164,
+              "absolute_effect": 0.012293333333333333,
+              "relative_effect": 0.038495261158197985,
+              "standard_error": 0.0005843425412291554,
+              "confidence_interval": [
+                0.011148021952524189,
+                0.013438644714142477
+              ],
+              "p_value": 2.952333516008714e-98
+            },
+            "transaction_rate": {
+              "control_mean": 0.03253333333333333,
+              "treatment_mean": 0.03385333333333333,
+              "absolute_effect": 0.00132,
+              "relative_effect": 0.04057377049180328,
+              "standard_error": 0.0003157711684417651,
+              "confidence_interval": [
+                0.0007010885098541405,
+                0.0019389114901458594
+              ],
+              "p_value": 2.91198628439939e-05
+            },
+            "negative_rate": {
+              "control_mean": 0.0026133333333333334,
+              "treatment_mean": 0.0026266666666666665,
+              "absolute_effect": 1.3333333333333333e-05,
+              "relative_effect": 0.00510204081632653,
+              "standard_error": 9.52196680668729e-05,
+              "confidence_interval": [
+                -0.00017329721607773756,
+                0.0001999638827444042
+              ],
+              "p_value": 0.8886385840099142
+            },
+            "related_selection_rate": {
+              "control_mean": 0.18749333333333335,
+              "treatment_mean": 0.18721333333333334,
+              "absolute_effect": -0.00028,
+              "relative_effect": -0.001493386431517565,
+              "standard_error": 0.0008157389590362509,
+              "confidence_interval": [
+                -0.0018788483597110515,
+                0.0013188483597110518
+              ],
+              "p_value": 0.7314126034670512
+            },
+            "product_selection_rate": {
+              "control_mean": 0.4563466666666667,
+              "treatment_mean": 0.44744,
+              "absolute_effect": -0.008906666666666667,
+              "relative_effect": -0.019517326009466488,
+              "standard_error": 0.0010300489672703088,
+              "confidence_interval": [
+                -0.010925562642516472,
+                -0.006887770690816862
+              ],
+              "p_value": 5.294599946727429e-18
+            },
+            "review_selection_rate": {
+              "control_mean": 0.35616,
+              "treatment_mean": 0.36534666666666665,
+              "absolute_effect": 0.009186666666666666,
+              "relative_effect": 0.025793650793650792,
+              "standard_error": 0.0010137496919456561,
+              "confidence_interval": [
+                0.00719971727045318,
+                0.011173616062880152
+              ],
+              "p_value": 1.2800264853078409e-19
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.281362922388713,
+              "treatment_mean": 5.348568306481043,
+              "absolute_effect": 0.06720538409233093,
+              "relative_effect": 0.012725007745147447,
+              "standard_error": 0.0035022633150562084,
+              "confidence_interval": [
+                0.06034094799482076,
+                0.0740698201898411
+              ],
+              "p_value": 4.562179215392765e-82
+            },
+            "active_day_per_request": {
+              "control_mean": 0.0002859959949956586,
+              "treatment_mean": 0.0002972279948135838,
+              "absolute_effect": 1.1231999814820787e-05,
+              "relative_effect": 0.03927327658903506,
+              "standard_error": 8.002739908629299e-07,
+              "confidence_interval": [
+                9.663462792729444e-06,
+                1.2800536836912129e-05
+              ],
+              "p_value": 9.493778979178204e-45
+            },
+            "selected_content_risk": {
+              "control_mean": 0.026583195089995862,
+              "treatment_mean": 0.027634374841824173,
+              "absolute_effect": 0.001051179751853148,
+              "relative_effect": 0.039543017620509505,
+              "standard_error": 1.3575975514317416e-05,
+              "confidence_interval": [
+                0.0010245708398450859,
+                0.0010777886638612102
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08945270002777378,
+              "treatment_mean": 0.09062894983609518,
+              "absolute_effect": 0.0011762498083213965,
+              "relative_effect": 0.01314940530533106,
+              "standard_error": 6.092878981490568e-05,
+              "confidence_interval": [
+                0.0010568293802841813,
+                0.0012956702363586116
+              ],
+              "p_value": 4.845389225709175e-83
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": true,
+            "risk_guardrail": false
+          },
+          "decision": "hold_or_reject",
+          "promoted": false
+        },
+        {
+          "stage": "fine",
+          "control": "wide_deep",
+          "treatment": "specialized",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8897733333333333,
+              "treatment_mean": 0.89,
+              "absolute_effect": 0.00022666666666666666,
+              "relative_effect": 0.0002547465272054306,
+              "standard_error": 0.00016706525137816756,
+              "confidence_interval": [
+                -0.00010078122603454179,
+                0.0005541145593678751
+              ],
+              "p_value": 0.17485897217998064
+            },
+            "deep_action_rate": {
+              "control_mean": 0.33164,
+              "treatment_mean": 0.33196,
+              "absolute_effect": 0.00032,
+              "relative_effect": 0.0009649017006392475,
+              "standard_error": 0.00025991362210697674,
+              "confidence_interval": [
+                -0.0001894306993296744,
+                0.0008294306993296744
+              ],
+              "p_value": 0.21825620197707896
+            },
+            "transaction_rate": {
+              "control_mean": 0.03385333333333333,
+              "treatment_mean": 0.03389333333333333,
+              "absolute_effect": 4e-05,
+              "relative_effect": 0.0011815675462780624,
+              "standard_error": 0.00011234931769772665,
+              "confidence_interval": [
+                -0.00018020466268754424,
+                0.00026020466268754426
+              ],
+              "p_value": 0.7218162826502168
+            },
+            "negative_rate": {
+              "control_mean": 0.0026266666666666665,
+              "treatment_mean": 0.0026533333333333335,
+              "absolute_effect": 2.6666666666666667e-05,
+              "relative_effect": 0.010152284263959392,
+              "standard_error": 3.265993581546996e-05,
+              "confidence_interval": [
+                -3.734680753165446e-05,
+                9.06801408649878e-05
+              ],
+              "p_value": 0.41421721558403196
+            },
+            "related_selection_rate": {
+              "control_mean": 0.18721333333333334,
+              "treatment_mean": 0.18709333333333333,
+              "absolute_effect": -0.00012,
+              "relative_effect": -0.0006409799871804002,
+              "standard_error": 0.00037499854027399224,
+              "confidence_interval": [
+                -0.0008549971389370248,
+                0.0006149971389370248
+              ],
+              "p_value": 0.748967386284116
+            },
+            "product_selection_rate": {
+              "control_mean": 0.44744,
+              "treatment_mean": 0.44462666666666667,
+              "absolute_effect": -0.0028133333333333335,
+              "relative_effect": -0.006287621431551344,
+              "standard_error": 0.0004569312217881909,
+              "confidence_interval": [
+                -0.0037089185280381877,
+                -0.0019177481386284793
+              ],
+              "p_value": 7.412786085450958e-10
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36534666666666665,
+              "treatment_mean": 0.36828,
+              "absolute_effect": 0.0029333333333333334,
+              "relative_effect": 0.008028904054596548,
+              "standard_error": 0.0004644463073753471,
+              "confidence_interval": [
+                0.002023018570877653,
+                0.0038436480957890137
+              ],
+              "p_value": 2.688297892260098e-10
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.348568306481043,
+              "treatment_mean": 5.350178615458806,
+              "absolute_effect": 0.001610308977762858,
+              "relative_effect": 0.000301072901286797,
+              "standard_error": 0.0014738568133455868,
+              "confidence_interval": [
+                -0.001278450376394492,
+                0.0044990683319202085
+              ],
+              "p_value": 0.27457750261290137
+            },
+            "active_day_per_request": {
+              "control_mean": 0.0002972279948135838,
+              "treatment_mean": 0.0002975053281414633,
+              "absolute_effect": 2.7733332943171264e-07,
+              "relative_effect": 0.0009330659771992583,
+              "standard_error": 3.019936967181552e-07,
+              "confidence_interval": [
+                -3.1457431613587163e-07,
+                8.692409749992969e-07
+              ],
+              "p_value": 0.35844013303345784
+            },
+            "selected_content_risk": {
+              "control_mean": 0.027634374841824173,
+              "treatment_mean": 0.027729477631996076,
+              "absolute_effect": 9.510279017190138e-05,
+              "relative_effect": 0.0034414670393760768,
+              "standard_error": 6.480821806824824e-06,
+              "confidence_interval": [
+                8.240037943052473e-05,
+                0.00010780520091327803
+              ],
+              "p_value": 9.39114903372644e-49
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.09062894983609518,
+              "treatment_mean": 0.09065717499027649,
+              "absolute_effect": 2.8225154181321463e-05,
+              "relative_effect": 0.0003114364034049538,
+              "standard_error": 2.5566593300088643e-05,
+              "confidence_interval": [
+                -2.1885368686852276e-05,
+                7.83356770494952e-05
+              ],
+              "p_value": 0.26959932766733197
+            }
+          },
+          "gates": {
+            "deep_action_positive": false,
+            "platform_lt_nonnegative": false,
+            "transaction_nonnegative": true,
+            "negative_guardrail": true,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject",
+          "promoted": false
+        }
+      ],
+      "end_to_end_candidates": [
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_rule",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8778666666666667,
+              "treatment_mean": 0.8778666666666667,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31108,
+              "treatment_mean": 0.31108,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "transaction_rate": {
+              "control_mean": 0.030053333333333335,
+              "treatment_mean": 0.030053333333333335,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "negative_rate": {
+              "control_mean": 0.0022266666666666667,
+              "treatment_mean": 0.0022266666666666667,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21124,
+              "treatment_mean": 0.21124,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "product_selection_rate": {
+              "control_mean": 0.4272,
+              "treatment_mean": 0.4272,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36156,
+              "treatment_mean": 0.36156,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.176744424482981,
+              "treatment_mean": 5.176744424482981,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027563599498476834,
+              "treatment_mean": 0.00027563599498476834,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029491860959430537,
+              "treatment_mean": 0.029491860959430537,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08765725834260384,
+              "treatment_mean": 0.08765725834260384,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            }
+          },
+          "gates": {
+            "baseline": true
+          },
+          "decision": "baseline"
+        },
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_linear",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8778666666666667,
+              "treatment_mean": 0.8812933333333334,
+              "absolute_effect": 0.003426666666666667,
+              "relative_effect": 0.0039034021871202917,
+              "standard_error": 0.0006037139399057962,
+              "confidence_interval": [
+                0.0022433873444513064,
+                0.004609945988882027
+              ],
+              "p_value": 1.3789900181187846e-08
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31108,
+              "treatment_mean": 0.31934666666666667,
+              "absolute_effect": 0.008266666666666667,
+              "relative_effect": 0.026574085980026575,
+              "standard_error": 0.0008563415378591133,
+              "confidence_interval": [
+                0.006588237252462804,
+                0.00994509608087053
+              ],
+              "p_value": 4.752032149853376e-22
+            },
+            "transaction_rate": {
+              "control_mean": 0.030053333333333335,
+              "treatment_mean": 0.03253333333333333,
+              "absolute_effect": 0.00248,
+              "relative_effect": 0.08251996450754215,
+              "standard_error": 0.00041985223658754406,
+              "confidence_interval": [
+                0.0016570896162884136,
+                0.0033029103837115864
+              ],
+              "p_value": 3.4873207143424906e-09
+            },
+            "negative_rate": {
+              "control_mean": 0.0022266666666666667,
+              "treatment_mean": 0.0026133333333333334,
+              "absolute_effect": 0.00038666666666666667,
+              "relative_effect": 0.17365269461077845,
+              "standard_error": 0.00012718490467148992,
+              "confidence_interval": [
+                0.00013738425351054643,
+                0.0006359490798227869
+              ],
+              "p_value": 0.00236426529158145
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21124,
+              "treatment_mean": 0.18749333333333335,
+              "absolute_effect": -0.023746666666666666,
+              "relative_effect": -0.11241557785772896,
+              "standard_error": 0.0012457089776762786,
+              "confidence_interval": [
+                -0.02618825626291217,
+                -0.02130507707042116
+              ],
+              "p_value": 5.147368677602674e-81
+            },
+            "product_selection_rate": {
+              "control_mean": 0.4272,
+              "treatment_mean": 0.4563466666666667,
+              "absolute_effect": 0.029146666666666668,
+              "relative_effect": 0.06822721598002497,
+              "standard_error": 0.001478765214188803,
+              "confidence_interval": [
+                0.026248286846856615,
+                0.03204504648647672
+              ],
+              "p_value": 1.7648448922020115e-86
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36156,
+              "treatment_mean": 0.35616,
+              "absolute_effect": -0.0054,
+              "relative_effect": -0.014935280451377366,
+              "standard_error": 0.0014496571617955594,
+              "confidence_interval": [
+                -0.008241328037119296,
+                -0.0025586719628807038
+              ],
+              "p_value": 0.00019530076321534124
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.176744424482981,
+              "treatment_mean": 5.281362922388713,
+              "absolute_effect": 0.10461849790891012,
+              "relative_effect": 0.020209322564607526,
+              "standard_error": 0.0051969785747219156,
+              "confidence_interval": [
+                0.09443241990245517,
+                0.11480457591536507
+              ],
+              "p_value": 3.9783399189917065e-90
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027563599498476834,
+              "treatment_mean": 0.0002859959949956586,
+              "absolute_effect": 1.0360000018651287e-05,
+              "relative_effect": 0.03758580231592677,
+              "standard_error": 1.1022031773866502e-06,
+              "confidence_interval": [
+                8.199681790973452e-06,
+                1.2520318246329121e-05
+              ],
+              "p_value": 5.489805942363187e-21
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029491860959430537,
+              "treatment_mean": 0.026583195089995862,
+              "absolute_effect": -0.0029086658695091803,
+              "relative_effect": -0.09862605393096036,
+              "standard_error": 2.1081911150211995e-05,
+              "confidence_interval": [
+                -0.002949986415363596,
+                -0.0028673453236547648
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08765725834260384,
+              "treatment_mean": 0.08945270002777378,
+              "absolute_effect": 0.0017954416851699352,
+              "relative_effect": 0.020482521574568813,
+              "standard_error": 9.030511516111086e-05,
+              "confidence_interval": [
+                0.001618443659454158,
+                0.0019724397108857126
+              ],
+              "p_value": 5.83237660916145e-88
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject"
+        },
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_wide_deep",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8778666666666667,
+              "treatment_mean": 0.8897733333333333,
+              "absolute_effect": 0.011906666666666666,
+              "relative_effect": 0.013563183475091129,
+              "standard_error": 0.0005682552736572409,
+              "confidence_interval": [
+                0.010792886330298474,
+                0.013020447003034858
+              ],
+              "p_value": 1.7608507221907754e-97
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31108,
+              "treatment_mean": 0.33164,
+              "absolute_effect": 0.02056,
+              "relative_effect": 0.06609232351806608,
+              "standard_error": 0.0008095371112240028,
+              "confidence_interval": [
+                0.018973307262000954,
+                0.022146692737999043
+              ],
+              "p_value": 2.705990553039085e-142
+            },
+            "transaction_rate": {
+              "control_mean": 0.030053333333333335,
+              "treatment_mean": 0.03385333333333333,
+              "absolute_effect": 0.0038,
+              "relative_effect": 0.1264418811002662,
+              "standard_error": 0.0004008721718979732,
+              "confidence_interval": [
+                0.0030142905430799727,
+                0.004585709456920027
+              ],
+              "p_value": 2.5591855020442867e-21
+            },
+            "negative_rate": {
+              "control_mean": 0.0022266666666666667,
+              "treatment_mean": 0.0026266666666666665,
+              "absolute_effect": 0.0004,
+              "relative_effect": 0.17964071856287425,
+              "standard_error": 0.00010994051443596705,
+              "confidence_interval": [
+                0.00018451659170550463,
+                0.0006154834082944954
+              ],
+              "p_value": 0.0002744104290597796
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21124,
+              "treatment_mean": 0.18721333333333334,
+              "absolute_effect": -0.02402666666666667,
+              "relative_effect": -0.1137410843905826,
+              "standard_error": 0.001148432970155473,
+              "confidence_interval": [
+                -0.026277595288171394,
+                -0.021775738045161943
+              ],
+              "p_value": 3.4292111385118535e-97
+            },
+            "product_selection_rate": {
+              "control_mean": 0.4272,
+              "treatment_mean": 0.44744,
+              "absolute_effect": 0.02024,
+              "relative_effect": 0.04737827715355805,
+              "standard_error": 0.0013962121383307936,
+              "confidence_interval": [
+                0.017503424208871646,
+                0.022976575791128356
+              ],
+              "p_value": 1.2773859481857507e-47
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36156,
+              "treatment_mean": 0.36534666666666665,
+              "absolute_effect": 0.0037866666666666665,
+              "relative_effect": 0.010473134933805361,
+              "standard_error": 0.001354043301074313,
+              "confidence_interval": [
+                0.0011327417965610134,
+                0.00644059153677232
+              ],
+              "p_value": 0.005164942634602458
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.176744424482981,
+              "treatment_mean": 5.348568306481043,
+              "absolute_effect": 0.17182388200124105,
+              "relative_effect": 0.03319149409590597,
+              "standard_error": 0.004915194550566838,
+              "confidence_interval": [
+                0.16219010068213005,
+                0.18145766332035204
+              ],
+              "p_value": 9.89240230676907e-268
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027563599498476834,
+              "treatment_mean": 0.0002972279948135838,
+              "absolute_effect": 2.1591999830367665e-05,
+              "relative_effect": 0.0783351965027675,
+              "standard_error": 1.0570178534866275e-06,
+              "confidence_interval": [
+                1.9520244837533876e-05,
+                2.3663754823201455e-05
+              ],
+              "p_value": 9.568546198107259e-93
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029491860959430537,
+              "treatment_mean": 0.027634374841824173,
+              "absolute_effect": -0.0018574861177057028,
+              "relative_effect": -0.06298300810046845,
+              "standard_error": 1.977149115785485e-05,
+              "confidence_interval": [
+                -0.0018962382403750983,
+                -0.0018187339950363074
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08765725834260384,
+              "treatment_mean": 0.09062894983609518,
+              "absolute_effect": 0.002971691493491332,
+              "relative_effect": 0.03390125985775907,
+              "standard_error": 8.550359277842442e-05,
+              "confidence_interval": [
+                0.00280410445164562,
+                0.0031392785353370435
+              ],
+              "p_value": 1.1580809413076372e-264
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject"
+        },
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_specialized",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8778666666666667,
+              "treatment_mean": 0.89,
+              "absolute_effect": 0.012133333333333333,
+              "relative_effect": 0.013821385176184689,
+              "standard_error": 0.0005652110915692404,
+              "confidence_interval": [
+                0.011025519593857622,
+                0.013241147072809044
+              ],
+              "p_value": 3.1746334578681873e-102
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31108,
+              "treatment_mean": 0.33196,
+              "absolute_effect": 0.02088,
+              "relative_effect": 0.06712099781406711,
+              "standard_error": 0.0008030331704421084,
+              "confidence_interval": [
+                0.019306054985933466,
+                0.022453945014066532
+              ],
+              "p_value": 4.772787180695855e-149
+            },
+            "transaction_rate": {
+              "control_mean": 0.030053333333333335,
+              "treatment_mean": 0.03389333333333333,
+              "absolute_effect": 0.00384,
+              "relative_effect": 0.12777284826974267,
+              "standard_error": 0.0003979739709514495,
+              "confidence_interval": [
+                0.003059971016935159,
+                0.004620028983064841
+              ],
+              "p_value": 4.969926600583136e-22
+            },
+            "negative_rate": {
+              "control_mean": 0.0022266666666666667,
+              "treatment_mean": 0.0026533333333333335,
+              "absolute_effect": 0.00042666666666666667,
+              "relative_effect": 0.19161676646706585,
+              "standard_error": 0.00011154453407029675,
+              "confidence_interval": [
+                0.00020803937988888503,
+                0.0006452939534444483
+              ],
+              "p_value": 0.00013073010244612175
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21124,
+              "treatment_mean": 0.18709333333333333,
+              "absolute_effect": -0.024146666666666667,
+              "relative_effect": -0.11430915861894843,
+              "standard_error": 0.0011408665716049538,
+              "confidence_interval": [
+                -0.026382765147012377,
+                -0.021910568186320957
+              ],
+              "p_value": 1.999216598426668e-99
+            },
+            "product_selection_rate": {
+              "control_mean": 0.4272,
+              "treatment_mean": 0.44462666666666667,
+              "absolute_effect": 0.017426666666666667,
+              "relative_effect": 0.04079275905118602,
+              "standard_error": 0.0013870747889731065,
+              "confidence_interval": [
+                0.014708000080279377,
+                0.020145333253053954
+              ],
+              "p_value": 3.347057259915811e-36
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36156,
+              "treatment_mean": 0.36828,
+              "absolute_effect": 0.00672,
+              "relative_effect": 0.01858612678393628,
+              "standard_error": 0.0013393695142484635,
+              "confidence_interval": [
+                0.004094835752073012,
+                0.009345164247926988
+              ],
+              "p_value": 5.240650665438998e-07
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.176744424482981,
+              "treatment_mean": 5.350178615458806,
+              "absolute_effect": 0.1734341909790039,
+              "relative_effect": 0.03350256005661808,
+              "standard_error": 0.004883032580672879,
+              "confidence_interval": [
+                0.16386344712088505,
+                0.18300493483712274
+              ],
+              "p_value": 2.6185043400476303e-276
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027563599498476834,
+              "treatment_mean": 0.0002975053281414633,
+              "absolute_effect": 2.1869333159799377e-05,
+              "relative_effect": 0.07934135438663545,
+              "standard_error": 1.0512733459725096e-06,
+              "confidence_interval": [
+                1.980883740169326e-05,
+                2.3929828917905494e-05
+              ],
+              "p_value": 4.0904400684648315e-96
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029491860959430537,
+              "treatment_mean": 0.027729477631996076,
+              "absolute_effect": -0.001762383327508966,
+              "relative_effect": -0.05975829500665719,
+              "standard_error": 1.9604419864765586e-05,
+              "confidence_interval": [
+                -0.0018008079904439065,
+                -0.0017239586645740256
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08765725834260384,
+              "treatment_mean": 0.09065717499027649,
+              "absolute_effect": 0.0029999166476726534,
+              "relative_effect": 0.03422325434760502,
+              "standard_error": 8.496750171923872e-05,
+              "confidence_interval": [
+                0.0028333803443029455,
+                0.0031664529510423613
+              ],
+              "p_value": 4.645029556497445e-273
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject"
+        }
+      ],
+      "performance": {
+        "seconds": 8.252776130000711,
+        "requests_per_second": 60585.67349020734,
+        "peak_gpu_memory_bytes": 4171377152
+      },
+      "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
+    },
+    {
+      "schema": "poi-detail-request-launch-ladder-v1",
+      "config": {
+        "requests": 500000,
+        "users": 250000,
+        "entities_per_module": 8192,
+        "categories": 32,
+        "semantic_dim": 16,
+        "history_length": 24,
+        "candidates_per_module": 8,
+        "exposed_related": 4,
+        "exposed_product": 2,
+        "exposed_review": 2,
+        "train_epochs": 3,
+        "train_batch_requests": 4096,
+        "learning_rate": 0.0015,
+        "seed": 20260826,
+        "device": "cuda:0"
+      },
+      "feature_names": [
+        "intent_semantic",
+        "history_semantic",
+        "category_match",
+        "quality",
+        "price_match",
+        "availability",
+        "trust",
+        "informativeness",
+        "toxicity",
+        "freshness",
+        "risk",
+        "activity",
+        "transaction_propensity",
+        "entry_feed",
+        "entry_search",
+        "entry_map",
+        "kind_related",
+        "kind_product",
+        "kind_review"
+      ],
+      "logging_policy": "quota_mix_plus_rule",
+      "logging_contract": {
+        "one_page_request_identity": true,
+        "module_models_have_separate_weights": true,
+        "labels_only_on_exposed_candidates": true,
+        "review_transaction_masked": true,
+        "fixed_module_exposure_quota": true,
+        "time_split": [
+          0.7,
+          0.15,
+          0.15
+        ]
+      },
+      "sample_profile": {
+        "requests": 500000,
+        "candidate_rows": 12000000,
+        "exposed_rows": 4000000,
+        "label_positive_rates": {
+          "click": 0.11000125110149384,
+          "deep_action": 0.03930250182747841,
+          "transaction": 0.005146333482116461,
+          "negative": 0.00027099999715574086
+        },
+        "module_candidate_rows": {
+          "related_poi": 4000000,
+          "product": 4000000,
+          "review": 4000000
+        },
+        "exposure_quota": {
+          "related_poi": 4,
+          "product": 2,
+          "review": 2
+        }
+      },
+      "models": {
+        "linear": {
+          "parameters": 240,
+          "final_loss": 0.9624907276209663,
+          "metrics": {
+            "click": {
+              "auc": 0.8284996001323971,
+              "pr_auc": 0.3903489011897238,
+              "positive_rate": 0.11013833433389664,
+              "observable_rows": 600000,
+              "positive_rows": 66083
+            },
+            "deep_action": {
+              "auc": 0.8637053738203759,
+              "pr_auc": 0.21429361962403026,
+              "positive_rate": 0.0393366664648056,
+              "observable_rows": 600000,
+              "positive_rows": 23602
+            },
+            "transaction": {
+              "auc": 0.9167044629938106,
+              "pr_auc": 0.061855060596979886,
+              "positive_rate": 0.005188888870179653,
+              "observable_rows": 450000,
+              "positive_rows": 2335
+            },
+            "negative": {
+              "auc": 0.7520324813579127,
+              "pr_auc": 0.0013503004254766748,
+              "positive_rate": 0.00027333333855494857,
+              "observable_rows": 600000,
+              "positive_rows": 164
+            }
+          },
+          "artifact": {
+            "artifact_file": "seed-20260826-linear.pt",
+            "sha256": "4e4ebec0f6591ba88e20f3d11e50109cd26c2b138647a31775e643486faa3d99"
+          },
+          "serialized_replay_max_abs_delta": 0.0
+        },
+        "wide_deep": {
+          "parameters": 6948,
+          "final_loss": 0.6860331528327044,
+          "metrics": {
+            "click": {
+              "auc": 0.8406147532776845,
+              "pr_auc": 0.41431514878665293,
+              "positive_rate": 0.11013833433389664,
+              "observable_rows": 600000,
+              "positive_rows": 66083
+            },
+            "deep_action": {
+              "auc": 0.8796610894857406,
+              "pr_auc": 0.23465023830728698,
+              "positive_rate": 0.0393366664648056,
+              "observable_rows": 600000,
+              "positive_rows": 23602
+            },
+            "transaction": {
+              "auc": 0.9282412994708613,
+              "pr_auc": 0.0710352176847288,
+              "positive_rate": 0.005188888870179653,
+              "observable_rows": 450000,
+              "positive_rows": 2335
+            },
+            "negative": {
+              "auc": 0.8983526584664849,
+              "pr_auc": 0.0031299934795278113,
+              "positive_rate": 0.00027333333855494857,
+              "observable_rows": 600000,
+              "positive_rows": 164
+            }
+          },
+          "artifact": {
+            "artifact_file": "seed-20260826-wide_deep.pt",
+            "sha256": "9cc94ff7c8b91c3bfddf8fabd59118d7939a460b0ec1d95e7d4090735bf7386e"
+          },
+          "serialized_replay_max_abs_delta": 0.0
+        },
+        "specialized": {
+          "parameters": 20444,
+          "final_loss": 0.6849432426340439,
+          "metrics": {
+            "click": {
+              "auc": 0.8409327102765706,
+              "pr_auc": 0.41445249321978844,
+              "positive_rate": 0.11013833433389664,
+              "observable_rows": 600000,
+              "positive_rows": 66083
+            },
+            "deep_action": {
+              "auc": 0.8795985046659891,
+              "pr_auc": 0.23436945061968664,
+              "positive_rate": 0.0393366664648056,
+              "observable_rows": 600000,
+              "positive_rows": 23602
+            },
+            "transaction": {
+              "auc": 0.9283119692854984,
+              "pr_auc": 0.06849626635174896,
+              "positive_rate": 0.005188888870179653,
+              "observable_rows": 450000,
+              "positive_rows": 2335
+            },
+            "negative": {
+              "auc": 0.8940250070791708,
+              "pr_auc": 0.0031583271775719713,
+              "positive_rate": 0.00027333333855494857,
+              "observable_rows": 600000,
+              "positive_rows": 164
+            }
+          },
+          "artifact": {
+            "artifact_file": "seed-20260826-specialized.pt",
+            "sha256": "149b8c4421f5aae4e08e61a4411c8c227fc3dfa38d6d69265512a8895d746974"
+          },
+          "serialized_replay_max_abs_delta": 0.0
+        }
+      },
+      "launches": [
+        {
+          "stage": "fine",
+          "control": "rule",
+          "treatment": "linear",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.87944,
+              "treatment_mean": 0.88632,
+              "absolute_effect": 0.00688,
+              "relative_effect": 0.007823160192849996,
+              "standard_error": 0.0005900622992364674,
+              "confidence_interval": [
+                0.0057234778934965235,
+                0.008036522106503477
+              ],
+              "p_value": 2.0455641223610186e-31
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31232,
+              "treatment_mean": 0.32525333333333334,
+              "absolute_effect": 0.012933333333333333,
+              "relative_effect": 0.04141051912568306,
+              "standard_error": 0.0008338938722873483,
+              "confidence_interval": [
+                0.011298901343650131,
+                0.014567765323016535
+              ],
+              "p_value": 2.988851158599642e-54
+            },
+            "transaction_rate": {
+              "control_mean": 0.030173333333333333,
+              "treatment_mean": 0.03376,
+              "absolute_effect": 0.003586666666666667,
+              "relative_effect": 0.11886875828546178,
+              "standard_error": 0.0004258427017504967,
+              "confidence_interval": [
+                0.002752014971235693,
+                0.0044213183620976405
+              ],
+              "p_value": 3.684863483557191e-17
+            },
+            "negative_rate": {
+              "control_mean": 0.00212,
+              "treatment_mean": 0.0022,
+              "absolute_effect": 8e-05,
+              "relative_effect": 0.03773584905660378,
+              "standard_error": 0.00012073892005591512,
+              "confidence_interval": [
+                -0.00015664828330959362,
+                0.0003166482833095936
+              ],
+              "p_value": 0.5075953043432643
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21426666666666666,
+              "treatment_mean": 0.1978,
+              "absolute_effect": -0.016466666666666668,
+              "relative_effect": -0.07685127566894835,
+              "standard_error": 0.0011923288353485589,
+              "confidence_interval": [
+                -0.018803631183949843,
+                -0.014129702149383493
+              ],
+              "p_value": 2.2027337985456265e-43
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42449333333333333,
+              "treatment_mean": 0.4463066666666667,
+              "absolute_effect": 0.021813333333333334,
+              "relative_effect": 0.05138675126425229,
+              "standard_error": 0.0014437278729689564,
+              "confidence_interval": [
+                0.01898362670231418,
+                0.02464303996435249
+              ],
+              "p_value": 1.4119471852536478e-51
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36124,
+              "treatment_mean": 0.35589333333333334,
+              "absolute_effect": -0.005346666666666666,
+              "relative_effect": -0.014800871073709075,
+              "standard_error": 0.0014226740260209834,
+              "confidence_interval": [
+                -0.008135107757667794,
+                -0.002558225575665539
+              ],
+              "p_value": 0.00017115297702769328
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.189547124366761,
+              "treatment_mean": 5.3224607791837055,
+              "absolute_effect": 0.1329136548169454,
+              "relative_effect": 0.025611802269386617,
+              "standard_error": 0.00509705482967954,
+              "confidence_interval": [
+                0.1229234273507735,
+                0.1429038822831173
+              ],
+              "p_value": 6.726038412115782e-150
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027685066163695104,
+              "treatment_mean": 0.00029299732831772416,
+              "absolute_effect": 1.6146666683877508e-05,
+              "relative_effect": 0.05832265882409733,
+              "standard_error": 1.1069958181002637e-06,
+              "confidence_interval": [
+                1.3976954880400991e-05,
+                1.8316378487354026e-05
+              ],
+              "p_value": 3.447146070879693e-48
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029427368925884365,
+              "treatment_mean": 0.02696419858450691,
+              "absolute_effect": -0.002463170341377457,
+              "relative_effect": -0.08370338332255209,
+              "standard_error": 2.0551323559059442e-05,
+              "confidence_interval": [
+                -0.0025034509355532134,
+                -0.0024228897472017004
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08787671000788609,
+              "treatment_mean": 0.09017267100940148,
+              "absolute_effect": 0.0022959610015153885,
+              "relative_effect": 0.026127070543598505,
+              "standard_error": 8.863748100549097e-05,
+              "confidence_interval": [
+                0.002122231538744626,
+                0.002469690464286151
+              ],
+              "p_value": 6.1894117879910816e-148
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject",
+          "promoted": false
+        },
+        {
+          "stage": "fine",
+          "control": "linear",
+          "treatment": "wide_deep",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.88632,
+              "treatment_mean": 0.8915866666666666,
+              "absolute_effect": 0.005266666666666667,
+              "relative_effect": 0.0059421728796221086,
+              "standard_error": 0.00035300085297645305,
+              "confidence_interval": [
+                0.004574784994832819,
+                0.005958548338500515
+              ],
+              "p_value": 2.4537574230256333e-50
+            },
+            "deep_action_rate": {
+              "control_mean": 0.32525333333333334,
+              "treatment_mean": 0.3327333333333333,
+              "absolute_effect": 0.00748,
+              "relative_effect": 0.02299745839140772,
+              "standard_error": 0.0005116984107668227,
+              "confidence_interval": [
+                0.006477071114897027,
+                0.008482928885102973
+              ],
+              "p_value": 2.156879940890139e-48
+            },
+            "transaction_rate": {
+              "control_mean": 0.03376,
+              "treatment_mean": 0.034613333333333336,
+              "absolute_effect": 0.0008533333333333333,
+              "relative_effect": 0.02527646129541864,
+              "standard_error": 0.0002751810930243617,
+              "confidence_interval": [
+                0.0003139783910055844,
+                0.0013926882756610823
+              ],
+              "p_value": 0.0019287595053458612
+            },
+            "negative_rate": {
+              "control_mean": 0.0022,
+              "treatment_mean": 0.0023866666666666667,
+              "absolute_effect": 0.00018666666666666666,
+              "relative_effect": 0.08484848484848484,
+              "standard_error": 8.218990833456008e-05,
+              "confidence_interval": [
+                2.557444633092889e-05,
+                0.00034775888700240446
+              ],
+              "p_value": 0.023137121275896178
+            },
+            "related_selection_rate": {
+              "control_mean": 0.1978,
+              "treatment_mean": 0.19061333333333333,
+              "absolute_effect": -0.007186666666666667,
+              "relative_effect": -0.0363329962925514,
+              "standard_error": 0.0006998619701595085,
+              "confidence_interval": [
+                -0.008558396128179303,
+                -0.00581493720515403
+              ],
+              "p_value": 9.751832577548343e-25
+            },
+            "product_selection_rate": {
+              "control_mean": 0.4463066666666667,
+              "treatment_mean": 0.44842666666666664,
+              "absolute_effect": 0.00212,
+              "relative_effect": 0.004750097093179577,
+              "standard_error": 0.000915129691323842,
+              "confidence_interval": [
+                0.0003263458050052695,
+                0.00391365419499473
+              ],
+              "p_value": 0.020524902385150517
+            },
+            "review_selection_rate": {
+              "control_mean": 0.35589333333333334,
+              "treatment_mean": 0.36096,
+              "absolute_effect": 0.005066666666666666,
+              "relative_effect": 0.014236475348419,
+              "standard_error": 0.0009029468610075641,
+              "confidence_interval": [
+                0.0032968908190918406,
+                0.006836442514241492
+              ],
+              "p_value": 2.008624895997992e-08
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.3224607791837055,
+              "treatment_mean": 5.36392226577123,
+              "absolute_effect": 0.04146148658752442,
+              "relative_effect": 0.007789909274612499,
+              "standard_error": 0.0030237389139292745,
+              "confidence_interval": [
+                0.03553495831622304,
+                0.047388014858825794
+              ],
+              "p_value": 8.606107782945317e-43
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00029299732831772416,
+              "treatment_mean": 0.00029975332820322365,
+              "absolute_effect": 6.755999885499477e-06,
+              "relative_effect": 0.023058230340494163,
+              "standard_error": 6.970086279567666e-07,
+              "confidence_interval": [
+                5.389862974704214e-06,
+                8.12213679629474e-06
+              ],
+              "p_value": 3.233774197675981e-22
+            },
+            "selected_content_risk": {
+              "control_mean": 0.02696419858450691,
+              "treatment_mean": 0.027697588703582684,
+              "absolute_effect": 0.0007333901190509399,
+              "relative_effect": 0.027198661838677127,
+              "standard_error": 1.2303942049681729e-05,
+              "confidence_interval": [
+                0.0007092743926335637,
+                0.0007575058454683161
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.09017267100940148,
+              "treatment_mean": 0.09089747583533327,
+              "absolute_effect": 0.0007248048259317875,
+              "relative_effect": 0.008037965581126223,
+              "standard_error": 5.260938793589295e-05,
+              "confidence_interval": [
+                0.0006216904255774373,
+                0.0008279192262861377
+              ],
+              "p_value": 3.5005133162848374e-43
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": false
+          },
+          "decision": "hold_or_reject",
+          "promoted": false
+        },
+        {
+          "stage": "fine",
+          "control": "wide_deep",
+          "treatment": "specialized",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.8915866666666666,
+              "treatment_mean": 0.8918,
+              "absolute_effect": 0.00021333333333333333,
+              "relative_effect": 0.0002392738040048453,
+              "standard_error": 0.00017281914845089592,
+              "confidence_interval": [
+                -0.00012539219763042266,
+                0.0005520588642970893
+              ],
+              "p_value": 0.21704230228244628
+            },
+            "deep_action_rate": {
+              "control_mean": 0.3327333333333333,
+              "treatment_mean": 0.33293333333333336,
+              "absolute_effect": 0.0002,
+              "relative_effect": 0.00060108194750551,
+              "standard_error": 0.00024908781257678873,
+              "confidence_interval": [
+                -0.00028821211265050593,
+                0.0006882121126505059
+              ],
+              "p_value": 0.4220153746180004
+            },
+            "transaction_rate": {
+              "control_mean": 0.034613333333333336,
+              "treatment_mean": 0.034493333333333334,
+              "absolute_effect": -0.00012,
+              "relative_effect": -0.003466872110939907,
+              "standard_error": 0.0001285821207561807,
+              "confidence_interval": [
+                -0.0003720209566821142,
+                0.00013202095668211422
+              ],
+              "p_value": 0.35068795045326906
+            },
+            "negative_rate": {
+              "control_mean": 0.0023866666666666667,
+              "treatment_mean": 0.002426666666666667,
+              "absolute_effect": 4e-05,
+              "relative_effect": 0.01675977653631285,
+              "standard_error": 2.98140806881746e-05,
+              "confidence_interval": [
+                -1.843559814882221e-05,
+                9.843559814882221e-05
+              ],
+              "p_value": 0.17971017365427072
+            },
+            "related_selection_rate": {
+              "control_mean": 0.19061333333333333,
+              "treatment_mean": 0.19068,
+              "absolute_effect": 6.666666666666667e-05,
+              "relative_effect": 0.00034974818130945723,
+              "standard_error": 0.0003550296689002143,
+              "confidence_interval": [
+                -0.0006291914843777533,
+                0.0007625248177110867
+              ],
+              "p_value": 0.8510508910973256
+            },
+            "product_selection_rate": {
+              "control_mean": 0.44842666666666664,
+              "treatment_mean": 0.44592,
+              "absolute_effect": -0.0025066666666666666,
+              "relative_effect": -0.005589914367269268,
+              "standard_error": 0.0004552009153002247,
+              "confidence_interval": [
+                -0.003398860460655107,
+                -0.0016144728726782262
+              ],
+              "p_value": 3.655687907863811e-08
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36096,
+              "treatment_mean": 0.3634,
+              "absolute_effect": 0.00244,
+              "relative_effect": 0.006759751773049645,
+              "standard_error": 0.00043707468114896543,
+              "confidence_interval": [
+                0.0015833336249480277,
+                0.0032966663750519723
+              ],
+              "p_value": 2.3699018306684768e-08
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.36392226577123,
+              "treatment_mean": 5.364825529286066,
+              "absolute_effect": 0.0009032635148366292,
+              "relative_effect": 0.00016839608593894435,
+              "standard_error": 0.0014722426628386636,
+              "confidence_interval": [
+                -0.0019823321043271514,
+                0.0037888591340004096
+              ],
+              "p_value": 0.5395266377572895
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00029975332820322365,
+              "treatment_mean": 0.00029961332818493247,
+              "absolute_effect": -1.4000001518676678e-07,
+              "relative_effect": -0.00046705074477722237,
+              "standard_error": 3.3466851341282334e-07,
+              "confidence_interval": [
+                -7.959503014759005e-07,
+                5.15950271102367e-07
+              ],
+              "p_value": 0.6757099301195274
+            },
+            "selected_content_risk": {
+              "control_mean": 0.027697588703582684,
+              "treatment_mean": 0.02768769359216094,
+              "absolute_effect": -9.89511139690876e-06,
+              "relative_effect": -0.0003572553373799224,
+              "standard_error": 6.152959609856455e-06,
+              "confidence_interval": [
+                -2.1954912232227413e-05,
+                2.1646894384098926e-06
+              ],
+              "p_value": 0.10779416752656384
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.09089747583533327,
+              "treatment_mean": 0.09091183023060362,
+              "absolute_effect": 1.4354395270347595e-05,
+              "relative_effect": 0.00015791852456223892,
+              "standard_error": 2.5589281947154658e-05,
+              "confidence_interval": [
+                -3.5800597346075534e-05,
+                6.450938788677072e-05
+              ],
+              "p_value": 0.5748292903764635
+            }
+          },
+          "gates": {
+            "deep_action_positive": false,
+            "platform_lt_nonnegative": false,
+            "transaction_nonnegative": false,
+            "negative_guardrail": true,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject",
+          "promoted": false
+        }
+      ],
+      "end_to_end_candidates": [
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_rule",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.87944,
+              "treatment_mean": 0.87944,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31232,
+              "treatment_mean": 0.31232,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "transaction_rate": {
+              "control_mean": 0.030173333333333333,
+              "treatment_mean": 0.030173333333333333,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "negative_rate": {
+              "control_mean": 0.00212,
+              "treatment_mean": 0.00212,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21426666666666666,
+              "treatment_mean": 0.21426666666666666,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42449333333333333,
+              "treatment_mean": 0.42449333333333333,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36124,
+              "treatment_mean": 0.36124,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.189547124366761,
+              "treatment_mean": 5.189547124366761,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027685066163695104,
+              "treatment_mean": 0.00027685066163695104,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029427368925884365,
+              "treatment_mean": 0.029427368925884365,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08787671000788609,
+              "treatment_mean": 0.08787671000788609,
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0,
+              "standard_error": 0.0,
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "p_value": 1.0
+            }
+          },
+          "gates": {
+            "baseline": true
+          },
+          "decision": "baseline"
+        },
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_linear",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.87944,
+              "treatment_mean": 0.88632,
+              "absolute_effect": 0.00688,
+              "relative_effect": 0.007823160192849996,
+              "standard_error": 0.0005900622992364674,
+              "confidence_interval": [
+                0.0057234778934965235,
+                0.008036522106503477
+              ],
+              "p_value": 2.0455641223610186e-31
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31232,
+              "treatment_mean": 0.32525333333333334,
+              "absolute_effect": 0.012933333333333333,
+              "relative_effect": 0.04141051912568306,
+              "standard_error": 0.0008338938722873483,
+              "confidence_interval": [
+                0.011298901343650131,
+                0.014567765323016535
+              ],
+              "p_value": 2.988851158599642e-54
+            },
+            "transaction_rate": {
+              "control_mean": 0.030173333333333333,
+              "treatment_mean": 0.03376,
+              "absolute_effect": 0.003586666666666667,
+              "relative_effect": 0.11886875828546178,
+              "standard_error": 0.0004258427017504967,
+              "confidence_interval": [
+                0.002752014971235693,
+                0.0044213183620976405
+              ],
+              "p_value": 3.684863483557191e-17
+            },
+            "negative_rate": {
+              "control_mean": 0.00212,
+              "treatment_mean": 0.0022,
+              "absolute_effect": 8e-05,
+              "relative_effect": 0.03773584905660378,
+              "standard_error": 0.00012073892005591512,
+              "confidence_interval": [
+                -0.00015664828330959362,
+                0.0003166482833095936
+              ],
+              "p_value": 0.5075953043432643
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21426666666666666,
+              "treatment_mean": 0.1978,
+              "absolute_effect": -0.016466666666666668,
+              "relative_effect": -0.07685127566894835,
+              "standard_error": 0.0011923288353485589,
+              "confidence_interval": [
+                -0.018803631183949843,
+                -0.014129702149383493
+              ],
+              "p_value": 2.2027337985456265e-43
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42449333333333333,
+              "treatment_mean": 0.4463066666666667,
+              "absolute_effect": 0.021813333333333334,
+              "relative_effect": 0.05138675126425229,
+              "standard_error": 0.0014437278729689564,
+              "confidence_interval": [
+                0.01898362670231418,
+                0.02464303996435249
+              ],
+              "p_value": 1.4119471852536478e-51
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36124,
+              "treatment_mean": 0.35589333333333334,
+              "absolute_effect": -0.005346666666666666,
+              "relative_effect": -0.014800871073709075,
+              "standard_error": 0.0014226740260209834,
+              "confidence_interval": [
+                -0.008135107757667794,
+                -0.002558225575665539
+              ],
+              "p_value": 0.00017115297702769328
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.189547124366761,
+              "treatment_mean": 5.3224607791837055,
+              "absolute_effect": 0.1329136548169454,
+              "relative_effect": 0.025611802269386617,
+              "standard_error": 0.00509705482967954,
+              "confidence_interval": [
+                0.1229234273507735,
+                0.1429038822831173
+              ],
+              "p_value": 6.726038412115782e-150
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027685066163695104,
+              "treatment_mean": 0.00029299732831772416,
+              "absolute_effect": 1.6146666683877508e-05,
+              "relative_effect": 0.05832265882409733,
+              "standard_error": 1.1069958181002637e-06,
+              "confidence_interval": [
+                1.3976954880400991e-05,
+                1.8316378487354026e-05
+              ],
+              "p_value": 3.447146070879693e-48
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029427368925884365,
+              "treatment_mean": 0.02696419858450691,
+              "absolute_effect": -0.002463170341377457,
+              "relative_effect": -0.08370338332255209,
+              "standard_error": 2.0551323559059442e-05,
+              "confidence_interval": [
+                -0.0025034509355532134,
+                -0.0024228897472017004
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08787671000788609,
+              "treatment_mean": 0.09017267100940148,
+              "absolute_effect": 0.0022959610015153885,
+              "relative_effect": 0.026127070543598505,
+              "standard_error": 8.863748100549097e-05,
+              "confidence_interval": [
+                0.002122231538744626,
+                0.002469690464286151
+              ],
+              "p_value": 6.1894117879910816e-148
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject"
+        },
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_wide_deep",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.87944,
+              "treatment_mean": 0.8915866666666666,
+              "absolute_effect": 0.012146666666666667,
+              "relative_effect": 0.013811819642802996,
+              "standard_error": 0.000560944914880277,
+              "confidence_interval": [
+                0.011047214633501324,
+                0.01324611869983201
+              ],
+              "p_value": 5.580197143490201e-104
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31232,
+              "treatment_mean": 0.3327333333333333,
+              "absolute_effect": 0.020413333333333332,
+              "relative_effect": 0.06536031420765027,
+              "standard_error": 0.0007959670237646655,
+              "confidence_interval": [
+                0.018853237966754588,
+                0.021973428699912076
+              ],
+              "p_value": 4.691157886303969e-145
+            },
+            "transaction_rate": {
+              "control_mean": 0.030173333333333333,
+              "treatment_mean": 0.034613333333333336,
+              "absolute_effect": 0.00444,
+              "relative_effect": 0.14714980114891738,
+              "standard_error": 0.0004155926282722221,
+              "confidence_interval": [
+                0.003625438448586445,
+                0.005254561551413556
+              ],
+              "p_value": 1.2154790242371659e-26
+            },
+            "negative_rate": {
+              "control_mean": 0.00212,
+              "treatment_mean": 0.0023866666666666667,
+              "absolute_effect": 0.0002666666666666667,
+              "relative_effect": 0.12578616352201258,
+              "standard_error": 0.00011155116409877781,
+              "confidence_interval": [
+                4.802638503306219e-05,
+                0.00048530694830027117
+              ],
+              "p_value": 0.01682396684310646
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21426666666666666,
+              "treatment_mean": 0.19061333333333333,
+              "absolute_effect": -0.023653333333333332,
+              "relative_effect": -0.110392034847542,
+              "standard_error": 0.0011321668602425174,
+              "confidence_interval": [
+                -0.025872380379408665,
+                -0.021434286287258
+              ],
+              "p_value": 6.319094345892941e-97
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42449333333333333,
+              "treatment_mean": 0.44842666666666664,
+              "absolute_effect": 0.023933333333333334,
+              "relative_effect": 0.05638094041524013,
+              "standard_error": 0.001394859488846493,
+              "confidence_interval": [
+                0.021199408735194207,
+                0.02666725793147246
+              ],
+              "p_value": 5.454193163739506e-66
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36124,
+              "treatment_mean": 0.36096,
+              "absolute_effect": -0.00028,
+              "relative_effect": -0.0007751079614660613,
+              "standard_error": 0.0013539165640962397,
+              "confidence_interval": [
+                -0.0029336764656286295,
+                0.0023736764656286297
+              ],
+              "p_value": 0.8361602562087782
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.189547124366761,
+              "treatment_mean": 5.36392226577123,
+              "absolute_effect": 0.1743751414044698,
+              "relative_effect": 0.03360122516003695,
+              "standard_error": 0.004857691682818147,
+              "confidence_interval": [
+                0.16485406570614625,
+                0.18389621710279336
+              ],
+              "p_value": 3.438209785614315e-282
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027685066163695104,
+              "treatment_mean": 0.00029975332820322365,
+              "absolute_effect": 2.2902666569376984e-05,
+              "relative_effect": 0.08272570646556902,
+              "standard_error": 1.0748434082552133e-06,
+              "confidence_interval": [
+                2.0795973489196765e-05,
+                2.5009359649557203e-05
+              ],
+              "p_value": 9.588079686924644e-101
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029427368925884365,
+              "treatment_mean": 0.027697588703582684,
+              "absolute_effect": -0.001729780222401023,
+              "relative_effect": -0.05878134150415008,
+              "standard_error": 1.9750212390600284e-05,
+              "confidence_interval": [
+                -0.0017684906386865994,
+                -0.0016910698061154464
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08787671000788609,
+              "treatment_mean": 0.09089747583533327,
+              "absolute_effect": 0.003020765827447176,
+              "relative_effect": 0.03437504461848982,
+              "standard_error": 8.449987015031255e-05,
+              "confidence_interval": [
+                0.002855146081952563,
+                0.0031863855729417885
+              ],
+              "p_value": 6.915130038841205e-280
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject"
+        },
+        {
+          "stage": "end_to_end",
+          "control": "quota_mix_plus_rule",
+          "treatment": "quota_mix_plus_specialized",
+          "metrics": {
+            "page_action_rate": {
+              "control_mean": 0.87944,
+              "treatment_mean": 0.8918,
+              "absolute_effect": 0.01236,
+              "relative_effect": 0.014054398253434002,
+              "standard_error": 0.0005554682382554625,
+              "confidence_interval": [
+                0.011271282253019294,
+                0.013448717746980705
+              ],
+              "p_value": 1.0908956008751422e-109
+            },
+            "deep_action_rate": {
+              "control_mean": 0.31232,
+              "treatment_mean": 0.33293333333333336,
+              "absolute_effect": 0.020613333333333334,
+              "relative_effect": 0.0660006830601093,
+              "standard_error": 0.0007890560867128678,
+              "confidence_interval": [
+                0.019066783403376114,
+                0.022159883263290554
+              ],
+              "p_value": 1.9443059954407694e-150
+            },
+            "transaction_rate": {
+              "control_mean": 0.030173333333333333,
+              "treatment_mean": 0.034493333333333334,
+              "absolute_effect": 0.00432,
+              "relative_effect": 0.14317277949624393,
+              "standard_error": 0.00041368010289048003,
+              "confidence_interval": [
+                0.0035091869983346594,
+                0.005130813001665341
+              ],
+              "p_value": 1.5799181301949285e-25
+            },
+            "negative_rate": {
+              "control_mean": 0.00212,
+              "treatment_mean": 0.002426666666666667,
+              "absolute_effect": 0.0003066666666666667,
+              "relative_effect": 0.1446540880503145,
+              "standard_error": 0.00011234383195403892,
+              "confidence_interval": [
+                8.647275603675038e-05,
+                0.000526860577296583
+              ],
+              "p_value": 0.006338905980550089
+            },
+            "related_selection_rate": {
+              "control_mean": 0.21426666666666666,
+              "treatment_mean": 0.19068,
+              "absolute_effect": -0.023586666666666666,
+              "relative_effect": -0.11008089607965152,
+              "standard_error": 0.0011313214439196413,
+              "confidence_interval": [
+                -0.025804056696749164,
+                -0.021369276636584167
+              ],
+              "p_value": 1.5637353894413155e-96
+            },
+            "product_selection_rate": {
+              "control_mean": 0.42449333333333333,
+              "treatment_mean": 0.44592,
+              "absolute_effect": 0.021426666666666667,
+              "relative_effect": 0.05047586141910356,
+              "standard_error": 0.001381960641523984,
+              "confidence_interval": [
+                0.018718023809279657,
+                0.024135309524053676
+              ],
+              "p_value": 3.2321367451999294e-54
+            },
+            "review_selection_rate": {
+              "control_mean": 0.36124,
+              "treatment_mean": 0.3634,
+              "absolute_effect": 0.00216,
+              "relative_effect": 0.0059794042741667585,
+              "standard_error": 0.0013468505571134289,
+              "confidence_interval": [
+                -0.00047982709194232046,
+                0.0047998270919423205
+              ],
+              "p_value": 0.10877106592189992
+            },
+            "stay_seconds_per_request": {
+              "control_mean": 5.189547124366761,
+              "treatment_mean": 5.364825529286066,
+              "absolute_effect": 0.17527840491930644,
+              "relative_effect": 0.0337752795607756,
+              "standard_error": 0.004817425830778484,
+              "confidence_interval": [
+                0.1658362502909806,
+                0.18472055954763228
+              ],
+              "p_value": 7.555904586715599e-290
+            },
+            "active_day_per_request": {
+              "control_mean": 0.00027685066163695104,
+              "treatment_mean": 0.00029961332818493247,
+              "absolute_effect": 2.2762666552638015e-05,
+              "relative_effect": 0.08222001861237344,
+              "standard_error": 1.0669737226292583e-06,
+              "confidence_interval": [
+                2.067139805628467e-05,
+                2.485393504899136e-05
+              ],
+              "p_value": 5.507223199991672e-101
+            },
+            "selected_content_risk": {
+              "control_mean": 0.029427368925884365,
+              "treatment_mean": 0.02768769359216094,
+              "absolute_effect": -0.0017396753337979318,
+              "relative_effect": -0.0591175968935405,
+              "standard_error": 1.9648158030873132e-05,
+              "confidence_interval": [
+                -0.0017781857235384432,
+                -0.0017011649440574204
+              ],
+              "p_value": 0.0
+            },
+            "platform_lt_per_request": {
+              "control_mean": 0.08787671000788609,
+              "treatment_mean": 0.09091183023060362,
+              "absolute_effect": 0.0030351202227175238,
+              "relative_effect": 0.034538391599379985,
+              "standard_error": 8.379673509895645e-05,
+              "confidence_interval": [
+                0.002870878621923569,
+                0.0031993618235114786
+              ],
+              "p_value": 2.9461122477385294e-287
+            }
+          },
+          "gates": {
+            "deep_action_positive": true,
+            "platform_lt_nonnegative": true,
+            "transaction_nonnegative": true,
+            "negative_guardrail": false,
+            "risk_guardrail": true
+          },
+          "decision": "hold_or_reject"
+        }
+      ],
+      "performance": {
+        "seconds": 8.236191278003389,
+        "requests_per_second": 60707.67216581808,
+        "peak_gpu_memory_bytes": 4171377152
+      },
+      "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
+    }
+  ],
+  "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
+}
