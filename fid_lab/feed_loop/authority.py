@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -99,6 +100,8 @@ def build_rule_v3_authority(root: Path) -> dict[str, object]:
         "active_control_key": "rule_personalized_v1",
         "active_bundle_id": f"sha256:{_payload_hash(components)}",
         "active_bundle": components,
+        "rollback_key": None,
+        "rollback_bundle_id": None,
         "rollback_bundle": None,
         "dataset": None,
         "source_report": source_report,
@@ -114,6 +117,65 @@ def build_rule_v3_authority(root: Path) -> dict[str, object]:
             "V3 is the current simulator authority; it is not a production deployment."
         ),
     }
+
+
+def learned_model_component(root: Path, launch: dict[str, object],
+                            artifact_dir: str) -> dict[str, object]:
+    manifest = launch["artifact_manifest"]
+    relative = f"{artifact_dir}/{manifest['artifact_file']}"
+    artifact = _component(root, relative)
+    if f"sha256:{artifact['sha256']}" != manifest["artifact_id"]:
+        raise ValueError("launch artifact hash does not match the model file")
+    sources = [
+        _component(root, "fid_lab/feed_loop/models/feed_multitask.py"),
+        _component(root, "fid_lab/value/predicted_tree.py"),
+        _component(
+            root, "fid_lab/feed_loop/scale/model_ladder/serving.py"
+        ),
+    ]
+    return {
+        "kind": "guarded_learned_residual_rerank",
+        "name": launch["treatment"],
+        "artifact_id": manifest["artifact_id"],
+        "artifact": artifact,
+        "model_manifest": manifest,
+        "serving_policy": launch["serving_policy"],
+        "sources": sources,
+    }
+
+
+def promote_v3_authority(root: Path, launch_report: str,
+                         artifact_dir: str) -> dict[str, object]:
+    current_path = root / "artifacts/releases/simulated-feed-control.json"
+    current = json.loads(current_path.read_text())
+    report_path = root / launch_report
+    report = json.loads(report_path.read_text())
+    active_key = report["release_state"]["active_key"]
+    launch = next(
+        row for row in report["launches"] if row["treatment"] == active_key
+    )
+    if not launch["promoted"] or not launch["decision"].startswith("pass_"):
+        raise ValueError("the requested active launch did not pass promotion")
+    rollback = {"model": rule_model_component(root), **base_v3_components(root)}
+    if current["dataset"]["authority_bundle_id"] != (
+        f"sha256:{_payload_hash(rollback)}"
+    ):
+        raise ValueError("training dataset is not bound to the rollback logger")
+    active = {
+        "model": learned_model_component(root, launch, artifact_dir),
+        **base_v3_components(root),
+    }
+    current.update({
+        "active_control_key": active_key,
+        "active_bundle_id": f"sha256:{_payload_hash(active)}",
+        "active_bundle": active,
+        "rollback_key": "rule_personalized_v1",
+        "rollback_bundle_id": f"sha256:{_payload_hash(rollback)}",
+        "rollback_bundle": rollback,
+        "source_report": _component(root, launch_report),
+    })
+    write_authority(root, current)
+    return current
 
 
 def write_authority(root: Path, authority: dict[str, object]) -> Path:
@@ -135,8 +197,23 @@ def attach_dataset(
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "mode", choices=("initialize-rule", "promote-model")
+    )
+    parser.add_argument("--launch-report")
+    parser.add_argument(
+        "--artifact-dir", default="artifacts/models/v3-model-ladder"
+    )
+    args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
-    path = write_authority(root, build_rule_v3_authority(root))
+    if args.mode == "initialize-rule":
+        path = write_authority(root, build_rule_v3_authority(root))
+    else:
+        if not args.launch_report:
+            parser.error("--launch-report is required for promote-model")
+        promote_v3_authority(root, args.launch_report, args.artifact_dir)
+        path = root / "artifacts/releases/simulated-feed-control.json"
     print(path)
 
 

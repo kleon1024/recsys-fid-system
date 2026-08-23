@@ -2,9 +2,267 @@
   "schema_version": "simulated-feed-authority-v3",
   "environment": "externally_calibrated_synthetic_simulator",
   "epoch": "v3",
-  "active_control_key": "rule_personalized_v1",
-  "active_bundle_id": "sha256:0aa4baa95637e0a21eac1feccb9a75f17d796ff61d83e975ddb6cc232add68de",
+  "active_control_key": "mmoe_multitask_guarded_a015_t008",
+  "active_bundle_id": "sha256:411c99f5abeff91ea8b5732dd0b0d5a827997a114dc5cb1f7d366e856ae8a6cc",
   "active_bundle": {
+    "model": {
+      "kind": "guarded_learned_residual_rerank",
+      "name": "mmoe_multitask_guarded_a015_t008",
+      "artifact_id": "sha256:95e64761eaaf57f0b68ab420bcf292f77c07fe5b700373758c9345ca4b7483b9",
+      "artifact": {
+        "path": "artifacts/models/v3-model-ladder/mmoe_feed_multitask_stay_v2.pt",
+        "sha256": "95e64761eaaf57f0b68ab420bcf292f77c07fe5b700373758c9345ca4b7483b9"
+      },
+      "model_manifest": {
+        "artifact_id": "sha256:95e64761eaaf57f0b68ab420bcf292f77c07fe5b700373758c9345ca4b7483b9",
+        "model_name": "mmoe_feed_multitask_stay_v2",
+        "feature_schema_sha256": "ffdd75784f7606739c691130436d1646c2dfe11ce4b5ea3b01e6c6f390f1f5e0",
+        "signal_version": "kuairand-calibrated-v3",
+        "artifact_format": "torch-state-dict",
+        "artifact_file": "mmoe_feed_multitask_stay_v2.pt",
+        "training_device": "cuda:0",
+        "serving_device": "cuda:0",
+        "prediction_task": "primitive_multitask",
+        "task_specs": {
+          "play_3s": {
+            "kind": "binary",
+            "label_index": 1,
+            "loss_weight": 0.35
+          },
+          "stay_norm": {
+            "kind": "regression",
+            "label_index": 2,
+            "loss_weight": 1.0
+          },
+          "completion": {
+            "kind": "regression",
+            "label_index": 3,
+            "loss_weight": 0.3
+          },
+          "long_view": {
+            "kind": "binary",
+            "label_index": 5,
+            "loss_weight": 0.45
+          },
+          "quality_long_view": {
+            "kind": "binary",
+            "label_index": 6,
+            "loss_weight": 0.55
+          },
+          "like": {
+            "kind": "binary",
+            "label_index": 7,
+            "loss_weight": 0.2
+          },
+          "negative_feedback": {
+            "kind": "binary",
+            "label_index": 8,
+            "loss_weight": 0.25
+          },
+          "returned_next_session": {
+            "kind": "binary",
+            "label_index": 13,
+            "loss_weight": 0.15
+          },
+          "anchor_click": {
+            "kind": "binary",
+            "label_index": 9,
+            "loss_weight": 0.1
+          },
+          "conversion": {
+            "kind": "binary",
+            "label_index": 12,
+            "loss_weight": 0.05
+          }
+        },
+        "value_tree": {
+          "version": "feed-predicted-value-tree-v2",
+          "mature": [
+            0.08,
+            0.55,
+            0.03,
+            0.1,
+            0.18,
+            0.06,
+            -0.35,
+            0.0
+          ],
+          "cold": [
+            0.16,
+            0.45,
+            0.08,
+            0.08,
+            0.12,
+            0.04,
+            -0.35,
+            0.0
+          ],
+          "stay_completion_cross": 0.03,
+          "quality_interaction_cross": 0.04,
+          "fatigue_negative_cross": -0.06,
+          "local_anchor_weight": 0.04,
+          "local_conversion_weight": 0.02
+        }
+      },
+      "serving_policy": {
+        "name": "mmoe_multitask_guarded_a015_t008",
+        "artifact_manifest": {
+          "artifact_id": "sha256:95e64761eaaf57f0b68ab420bcf292f77c07fe5b700373758c9345ca4b7483b9",
+          "model_name": "mmoe_feed_multitask_stay_v2",
+          "feature_schema_sha256": "ffdd75784f7606739c691130436d1646c2dfe11ce4b5ea3b01e6c6f390f1f5e0",
+          "signal_version": "kuairand-calibrated-v3",
+          "artifact_format": "torch-state-dict",
+          "artifact_file": "mmoe_feed_multitask_stay_v2.pt",
+          "training_device": "cuda:0",
+          "serving_device": "cuda:0",
+          "prediction_task": "primitive_multitask",
+          "task_specs": {
+            "play_3s": {
+              "kind": "binary",
+              "label_index": 1,
+              "loss_weight": 0.35
+            },
+            "stay_norm": {
+              "kind": "regression",
+              "label_index": 2,
+              "loss_weight": 1.0
+            },
+            "completion": {
+              "kind": "regression",
+              "label_index": 3,
+              "loss_weight": 0.3
+            },
+            "long_view": {
+              "kind": "binary",
+              "label_index": 5,
+              "loss_weight": 0.45
+            },
+            "quality_long_view": {
+              "kind": "binary",
+              "label_index": 6,
+              "loss_weight": 0.55
+            },
+            "like": {
+              "kind": "binary",
+              "label_index": 7,
+              "loss_weight": 0.2
+            },
+            "negative_feedback": {
+              "kind": "binary",
+              "label_index": 8,
+              "loss_weight": 0.25
+            },
+            "returned_next_session": {
+              "kind": "binary",
+              "label_index": 13,
+              "loss_weight": 0.15
+            },
+            "anchor_click": {
+              "kind": "binary",
+              "label_index": 9,
+              "loss_weight": 0.1
+            },
+            "conversion": {
+              "kind": "binary",
+              "label_index": 12,
+              "loss_weight": 0.05
+            }
+          },
+          "value_tree": {
+            "version": "feed-predicted-value-tree-v2",
+            "mature": [
+              0.08,
+              0.55,
+              0.03,
+              0.1,
+              0.18,
+              0.06,
+              -0.35,
+              0.0
+            ],
+            "cold": [
+              0.16,
+              0.45,
+              0.08,
+              0.08,
+              0.12,
+              0.04,
+              -0.35,
+              0.0
+            ],
+            "stay_completion_cross": 0.03,
+            "quality_interaction_cross": 0.04,
+            "fatigue_negative_cross": -0.06,
+            "local_anchor_weight": 0.04,
+            "local_conversion_weight": 0.02
+          }
+        },
+        "blend_weight": 0.15,
+        "base_tolerance": 0.08
+      },
+      "sources": [
+        {
+          "path": "fid_lab/feed_loop/models/feed_multitask.py",
+          "sha256": "676e9a34cf63ac43c02b0de35b918d6fc345edb10934ceac280b098d2c97e730"
+        },
+        {
+          "path": "fid_lab/value/predicted_tree.py",
+          "sha256": "3ae294701c6c579d01fcefd299326188f5e28caa5513e16bda2c1df30417e7f0"
+        },
+        {
+          "path": "fid_lab/feed_loop/scale/model_ladder/serving.py",
+          "sha256": "fcc6a4083dd087ccb4fe72b23f518fad762f7e7a2fa6ea39acbdf122f35cbb94"
+        }
+      ]
+    },
+    "index": {
+      "version": "multiroute-rrf-coarse-v2",
+      "artifact_id": "sha256:91c56d53898ab4683645beb93c48a984c49179afe5440da4a0e532852b3a1c00",
+      "sources": [
+        {
+          "path": "fid_lab/feed_loop/scale/graph/candidate.py",
+          "sha256": "a7b0a0192316d7d4bb78fa3dfa45e46233fc96964aa32ecaad642dd0d5b7d2d8"
+        },
+        {
+          "path": "fid_lab/feed_loop/scale/tensor_catalog.py",
+          "sha256": "92a529558727a846247abf2fc1351f29d080e7a256d11f15fea580c94d0235b4"
+        }
+      ],
+      "catalog_items": 200000
+    },
+    "feature": {
+      "schema_sha256": "ffdd75784f7606739c691130436d1646c2dfe11ce4b5ea3b01e6c6f390f1f5e0",
+      "artifact_id": "sha256:7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a",
+      "source": {
+        "path": "fid_lab/feed_loop/scale/artifact/features.py",
+        "sha256": "7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a"
+      },
+      "dense_fields": 28
+    },
+    "behavior": {
+      "signal_version": "kuairand-calibrated-v3",
+      "artifact_id": "sha256:48951b607bff61f5adee433753e0ddb1284f767310c1ba5a43fe22b45e9a2f9e",
+      "sources": [
+        {
+          "path": "fid_lab/feed_loop/scale/tensor_engine.py",
+          "sha256": "1e301a2daf02b4c57a928622b17666e8c239a939f3f35b1aec4a920889f59a5a"
+        },
+        {
+          "path": "fid_lab/feed_loop/scale/calibration/behavior.py",
+          "sha256": "0b2848f69eb42cb0a163551ab024ee530e1ff054e74de43ca75748c5ca894e15"
+        },
+        {
+          "path": "fid_lab/value/contracts.py",
+          "sha256": "88595413f423615ecc4e55128477d2fd90c49cf3a167514461943d9c7d9c64b2"
+        },
+        {
+          "path": "reports/calibration/2026-08-23-kuairand-standard-calibration.json",
+          "sha256": "b9ef8b1096b4da4f66404ccccb0c92a5be50b7784bc505b0af1ffe4fcf0040db"
+        }
+      ]
+    }
+  },
+  "rollback_bundle": {
     "model": {
       "kind": "parameterized_rule",
       "name": "personalized_rank",
@@ -67,7 +325,6 @@
       ]
     }
   },
-  "rollback_bundle": null,
   "dataset": {
     "schema": "v3-request-candidate-log-v1",
     "storage_root": "artifacts/datasets/v3-request-log",
@@ -141,8 +398,8 @@
     "manifest_sha256": "88e0cbef072bde9560a9c415f835b0b124eb0e9b5ffca13eba83c56233d7308e"
   },
   "source_report": {
-    "path": "reports/launches/2026-08-23-feed-calibrated-v3-1m-gpu.json",
-    "sha256": "150e76c2215cbf9db0ad7e6ee362c267c7d9b5331014a9f62cf2f8b6856d97e3"
+    "path": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
+    "sha256": "b279b1549a9a70b217c05a7c131781aeecd44eabe353df968e18e4f652483f44"
   },
   "historical_releases": [
     {
@@ -153,5 +410,7 @@
     }
   ],
   "production_readiness": "synthetic_research_only",
-  "evidence_boundary": "V3 is the current simulator authority; it is not a production deployment."
+  "evidence_boundary": "V3 is the current simulator authority; it is not a production deployment.",
+  "rollback_key": "rule_personalized_v1",
+  "rollback_bundle_id": "sha256:0aa4baa95637e0a21eac1feccb9a75f17d796ff61d83e975ddb6cc232add68de"
 }

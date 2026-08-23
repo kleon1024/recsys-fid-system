@@ -159,7 +159,6 @@ def check_model_artifacts() -> None:
         "artifacts/models/feature-lr-v4-local-ablation/MANIFEST.sha256",
         "artifacts/models/feature-lr-v5-intent-trigger/MANIFEST.sha256",
         "artifacts/models/v3-model-ladder/MANIFEST.sha256",
-        "artifacts/models/v3-multitask-stay-v2/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
@@ -175,8 +174,6 @@ def check_simulated_release() -> None:
     failures = []
     if release.get("schema_version") != "simulated-feed-authority-v3":
         failures.append("simulated release is not the V3 authority")
-    if release.get("active_control_key") != "rule_personalized_v1":
-        failures.append("unaccepted model replaced the V3 rule control")
 
     def verify(resource, label):
         path = ROOT / resource["path"]
@@ -186,24 +183,50 @@ def check_simulated_release() -> None:
             failures.append(f"simulated release {label} hash mismatch")
 
     verify(release["source_report"], "source report")
+
+    def verify_bundle(bundle, bundle_id, label):
+        for index, resource in enumerate(bundle["model"]["sources"]):
+            verify(resource, f"{label} model source {index}")
+        if "artifact" in bundle["model"]:
+            verify(bundle["model"]["artifact"], f"{label} model artifact")
+            if bundle["model"]["artifact_id"] != (
+                f"sha256:{bundle['model']['artifact']['sha256']}"
+            ):
+                failures.append(f"{label} model artifact id mismatch")
+        verify(bundle["feature"]["source"], f"{label} feature source")
+        for kind in ("index", "behavior"):
+            for index, resource in enumerate(bundle[kind]["sources"]):
+                verify(resource, f"{label} {kind} source {index}")
+        encoded = json.dumps(
+            bundle, sort_keys=True, separators=(",", ":")
+        ).encode()
+        if bundle_id != f"sha256:{sha256(encoded).hexdigest()}":
+            failures.append(f"simulated release {label} bundle id mismatch")
+        if bundle["feature"]["schema_sha256"] != feature_schema_hash():
+            failures.append(f"simulated release {label} feature schema mismatch")
+        if bundle["feature"]["dense_fields"] != len(FEATURE_NAMES):
+            failures.append(f"simulated release {label} feature width mismatch")
+
     bundle = release["active_bundle"]
-    for index, resource in enumerate(bundle["model"]["sources"]):
-        verify(resource, f"rule model source {index}")
-    verify(bundle["feature"]["source"], "feature source")
-    for index, resource in enumerate(bundle["index"]["sources"]):
-        verify(resource, f"index source {index}")
-    for index, resource in enumerate(bundle["behavior"]["sources"]):
-        verify(resource, f"behavior source {index}")
-    encoded = json.dumps(bundle, sort_keys=True, separators=(",", ":")).encode()
-    if release["active_bundle_id"] != f"sha256:{sha256(encoded).hexdigest()}":
-        failures.append("simulated release active bundle id mismatch")
-    if bundle["feature"]["schema_sha256"] != feature_schema_hash():
-        failures.append("simulated release feature schema mismatch")
-    if bundle["feature"]["dense_fields"] != len(FEATURE_NAMES):
-        failures.append("simulated release feature width mismatch")
+    verify_bundle(bundle, release["active_bundle_id"], "active")
+    rollback = release.get("rollback_bundle")
+    if rollback is not None:
+        verify_bundle(rollback, release["rollback_bundle_id"], "rollback")
+    report = json.loads((ROOT / release["source_report"]["path"]).read_text())
+    if "release_state" in report:
+        if report["release_state"]["active_key"] != release["active_control_key"]:
+            failures.append("authority active key differs from Launch Review")
+        if report["release_state"]["active_artifact"] != (
+            bundle["model"].get("model_manifest")
+        ):
+            failures.append("authority active artifact differs from Launch Review")
     dataset = release["dataset"]
-    if dataset["authority_bundle_id"] != release["active_bundle_id"]:
-        failures.append("V3 request log is bound to another serving bundle")
+    logging_bundle_id = (
+        release["rollback_bundle_id"] if rollback is not None
+        else release["active_bundle_id"]
+    )
+    if dataset["authority_bundle_id"] != logging_bundle_id:
+        failures.append("V3 request log is not bound to its logging bundle")
     public_dataset = json.loads(
         (ROOT / "reports/datasets/2026-08-23-v3-request-log-manifest.json").read_text()
     )

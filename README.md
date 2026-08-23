@@ -156,7 +156,9 @@ metrics. The [simulation evidence review](docs/research/main-feed-simulation-evi
 defines the public evidence boundary and why Rust is conditional on profiling.
 The [V3 multi-task Launch Review](docs/launch-reviews/2026-08-23-main-feed-suite/l-v3-multitask-001.md)
 shows why higher long-view AUC can reduce LT, and why a large stay lift is held
-when it is explained by selected-duration drift.
+when it is explained by selected-duration drift. The accepted path uses the
+same MMoE as a bounded residual reranker and promotes it through three
+sequential million-user Launch Reviews.
 The [unified launch protocol](docs/operations/launch-protocol.md) and
 [independent Launch Review index](docs/launch-reviews/README.md) cover model,
 feature, strategy, architecture, realtime, Bug, chain, product, Value Tree, and
