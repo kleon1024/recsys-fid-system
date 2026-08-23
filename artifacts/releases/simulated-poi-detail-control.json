@@ -1,0 +1,92 @@
+{
+  "schema": "simulated-poi-detail-authority-v1",
+  "active_key": "quota_mix_plus_rule",
+  "active_bundle_id": "sha256:5fff680edc7cb079c153ec0d4ec435e204026d9c6526c842f3d7897a06fab79d",
+  "active_bundle": {
+    "mix_policy": "fixed_quota_4_2_2",
+    "fine_model": "rule",
+    "model_artifact": {
+      "path": "fid_lab/poi_detail/simulation/features.py",
+      "sha256": "9e22035092e6a4984c932ba768f5ba4b75416bb0dae9cd6875cbc6d950e28916"
+    },
+    "model_seed": 20260824,
+    "world_version": "teacher-hidden-poi-detail-v1",
+    "sources": [
+      {
+        "path": "fid_lab/launches/statistics.py",
+        "sha256": "178ddd48d2aca9415f88cd1c95360fd3c239fa517e2809ade1022bb3b1fce10c"
+      },
+      {
+        "path": "fid_lab/multitask.py",
+        "sha256": "ac48d76ecdbe70e7394e96c516f599b60a8d991b8683559a6fffc5f1c91b84c9"
+      },
+      {
+        "path": "fid_lab/poi_detail/__init__.py",
+        "sha256": "00f76a07ea91f959645100c301f7139fbccc6e9ee1687f970e4c9ce5e6338fa7"
+      },
+      {
+        "path": "fid_lab/poi_detail/cli.py",
+        "sha256": "2764bbd0d3e70b43bc9a0897ae7f1383e1c606d24ad51b20c820ce9482a25869"
+      },
+      {
+        "path": "fid_lab/poi_detail/contracts.py",
+        "sha256": "c9f92f57ee167c14770104248281479760a4aee6dd741dc87966a412998973fa"
+      },
+      {
+        "path": "fid_lab/poi_detail/launch.py",
+        "sha256": "745b2e97bef23d0aafc732d205420beeccff31b0537f4743b5989209dba4f121"
+      },
+      {
+        "path": "fid_lab/poi_detail/models/__init__.py",
+        "sha256": "aae6e26da7fe0a742ffeebeda579d5f1a507c433aa7a32f8810554603d540f05"
+      },
+      {
+        "path": "fid_lab/poi_detail/models/architectures.py",
+        "sha256": "57af70d3acd88317f6a7c75539a311012d0edf61e4309db5654dce32e4281042"
+      },
+      {
+        "path": "fid_lab/poi_detail/models/training.py",
+        "sha256": "ece3365ae948de9cfb6cae747f5da22f4c49770fef13a6a818856b5a5dd51921"
+      },
+      {
+        "path": "fid_lab/poi_detail/release.py",
+        "sha256": "a2a303afdccba796088e73ca4ca7804718cb68eb9f323f0bfa7c79cab2b5b1c6"
+      },
+      {
+        "path": "fid_lab/poi_detail/simulation/__init__.py",
+        "sha256": "622d406699627edd8c4cccb365f75b840e91e715d28d41a0bec27bbef21965ad"
+      },
+      {
+        "path": "fid_lab/poi_detail/simulation/candidates.py",
+        "sha256": "bd3b0e3b4ce99390327a4d3d60670f4bb414e72adb9b84b15ba2edc94657bbeb"
+      },
+      {
+        "path": "fid_lab/poi_detail/simulation/features.py",
+        "sha256": "9e22035092e6a4984c932ba768f5ba4b75416bb0dae9cd6875cbc6d950e28916"
+      },
+      {
+        "path": "fid_lab/poi_detail/simulation/response.py",
+        "sha256": "d04df509df40db16eb431c79fa6982e23a05eacbac63f77b5966c6f71dfb281e"
+      },
+      {
+        "path": "fid_lab/poi_detail/simulation/world.py",
+        "sha256": "17cd5655fa2ceb7e38d3b9f1e9632c9503f637b17a7de6c6404f0ffeef1b84c8"
+      },
+      {
+        "path": "fid_lab/training/common/tensor_ops.py",
+        "sha256": "2a61b8fa8c7c9eecd930f5d314e7d935df1a3367ae2c8de565bacfe29c282bf0"
+      },
+      {
+        "path": "fid_lab/value/contracts.py",
+        "sha256": "88595413f423615ecc4e55128477d2fd90c49cf3a167514461943d9c7d9c64b2"
+      }
+    ]
+  },
+  "rollback_key": "quota_mix_plus_rule",
+  "source_report": {
+    "path": "reports/launches/2026-08-24-poi-detail-request-launch-review.json",
+    "sha256": "9adedfdba75c8cd07f9e193d87a18e22d80a5b8d013b43921ae10deabaab5d6b"
+  },
+  "production_readiness": "hold_external_page_transaction_and_review_validation",
+  "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
+}

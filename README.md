@@ -472,6 +472,13 @@ Start with the bilingual [system evolution review](docs/architecture/system-evol
 for the complete strategy → algorithm → model → feature → sample → consistency
 → launch-review narrative.
 
+The [execution and scale boundary](docs/architecture/execution-and-scale.md)
+explains why the tensorized GPU path does not yet depend on Dagster, and names
+the measurable conditions that justify a DAG. The latest [POI Detail Launch
+Review](docs/launch-reviews/2026-08-24-poi-detail-request-ladder.md) closes the
+remaining surface in the launch ledger without promoting a model that failed
+safety or incremental-value gates.
+
 ## Run
 
 ```bash

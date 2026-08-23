@@ -1,7 +1,7 @@
 {
   "schema": "simulated-feed-posting-authority-v1",
   "active_key": "trending_i2i_plus_linear",
-  "active_bundle_id": "sha256:9f47e4e162289b6afeddfaa0f43bc011bb2ff8048f66d16b945ada6c15b55e5c",
+  "active_bundle_id": "sha256:eb82feb08799ac3c5eee29cd2a68664753716cc94e54cc646ed300ef536d8f82",
   "active_bundle": {
     "candidate_policy": "trending_i2i",
     "fine_model": "linear",
@@ -13,16 +13,32 @@
     "world_version": "teacher-hidden-feed-posting-v1",
     "sources": [
       {
+        "path": "fid_lab/feed_posting/__init__.py",
+        "sha256": "cf5157ff2387062ee372e5417e71af2e28db92e3fea114118d0d527686963d5d"
+      },
+      {
+        "path": "fid_lab/feed_posting/cli.py",
+        "sha256": "dc535e873a9348c004f583dc54833f0804be9cc96aa657ae56681efc395113f6"
+      },
+      {
         "path": "fid_lab/feed_posting/contracts.py",
         "sha256": "f8cf72039db20690ed49dcd1839fa2fb79c38ecebfad4fc8ea4e553c6483b198"
       },
       {
-        "path": "fid_lab/feed_posting/simulation/world.py",
-        "sha256": "22b05c1ee27c5fdd0686644dcad0cd43a4138a7c5d4a2dea6d42bbfe8fcd603d"
+        "path": "fid_lab/feed_posting/launch.py",
+        "sha256": "848af072c2f42b7b45ed65d494516ee4d136e5ee22829c0dab381e79f3b5af95"
       },
       {
-        "path": "fid_lab/feed_posting/simulation/retrieval.py",
-        "sha256": "d73a49dd8dec461fea139b6f3334d9808fd1a2838bbdf5840ca7a992eb62556a"
+        "path": "fid_lab/feed_posting/models.py",
+        "sha256": "fa1ab3dc636adb28dbd7478c86637c24ec0b3e4853a62ba7b0cdd15d3d55c77e"
+      },
+      {
+        "path": "fid_lab/feed_posting/release.py",
+        "sha256": "46ccc434ef3e15c76e734b8634996c617bb1a879c1750807a2d45d023cc3ceaa"
+      },
+      {
+        "path": "fid_lab/feed_posting/simulation/__init__.py",
+        "sha256": "308366e70a76dbc0bcbe81eb0124053da2516f0e3f17d49f23d4cbc1e4cdf787"
       },
       {
         "path": "fid_lab/feed_posting/simulation/features.py",
@@ -33,12 +49,24 @@
         "sha256": "9cdc1fd0cd65fd1e513847169ece1bc0aa52b7343644d8e2db8d372f71ca8337"
       },
       {
-        "path": "fid_lab/feed_posting/models.py",
-        "sha256": "fa1ab3dc636adb28dbd7478c86637c24ec0b3e4853a62ba7b0cdd15d3d55c77e"
+        "path": "fid_lab/feed_posting/simulation/retrieval.py",
+        "sha256": "d73a49dd8dec461fea139b6f3334d9808fd1a2838bbdf5840ca7a992eb62556a"
       },
       {
-        "path": "fid_lab/feed_posting/launch.py",
-        "sha256": "848af072c2f42b7b45ed65d494516ee4d136e5ee22829c0dab381e79f3b5af95"
+        "path": "fid_lab/feed_posting/simulation/world.py",
+        "sha256": "22b05c1ee27c5fdd0686644dcad0cd43a4138a7c5d4a2dea6d42bbfe8fcd603d"
+      },
+      {
+        "path": "fid_lab/launches/statistics.py",
+        "sha256": "178ddd48d2aca9415f88cd1c95360fd3c239fa517e2809ade1022bb3b1fce10c"
+      },
+      {
+        "path": "fid_lab/multitask.py",
+        "sha256": "ac48d76ecdbe70e7394e96c516f599b60a8d991b8683559a6fffc5f1c91b84c9"
+      },
+      {
+        "path": "fid_lab/training/common/tensor_ops.py",
+        "sha256": "2a61b8fa8c7c9eecd930f5d314e7d935df1a3367ae2c8de565bacfe29c282bf0"
       }
     ]
   },

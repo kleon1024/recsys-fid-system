@@ -75,6 +75,7 @@ entry_points = [
   "fid_lab/local_search/cli.py",
   "fid_lab/local_search/release.py",
   "fid_lab/poi_detail/cli.py",
+  "fid_lab/poi_detail/release.py",
   "fid_lab/launches/ledger_cli.py",
   "fid_lab/feed_loop/scale/queue_value_cli.py",
   "fid_lab/value/tree.py",

@@ -251,73 +251,71 @@ def _poi_distribution_stage_records(root: Path) -> list[dict]:
     return records
 
 
-def _poi_posting_stage_records(root: Path) -> list[dict]:
-    relative = "reports/launches/2026-08-24-poi-posting-request-launch-review.json"
+def _surface_stage_records(
+    root: Path, *, relative: str, surface: str, launch_prefix: str,
+    stages: tuple[str, ...], change_prefix: str, primary_metric: str,
+) -> list[dict]:
     report, evidence = _load(root, relative)
-    counters = {stage: 0 for stage in ("candidate", "fine", "end_to_end")}
+    counters = {stage: 0 for stage in stages}
     records = []
     for row in report["launches"]:
         stage = row["stage"]
         counters[stage] += 1
         records.append(_record(
-            launch_id=f"L-POI-POST-{stage.upper()}-{counters[stage]:03d}",
-            surface="poi_posting",
+            launch_id=f"{launch_prefix}-{stage.upper()}-{counters[stage]:03d}",
+            surface=surface,
             stage=stage,
-            change_type=f"posting_{stage}_evolution",
+            change_type=f"{change_prefix}_{stage}_evolution",
             control=row["control"],
             treatment=row["treatment"],
             decision=row["decision"],
             evidence=evidence,
-            primary_metric="publish_rate_with_platform_lt_and_content_risk",
+            primary_metric=primary_metric,
             evidence_boundary=report["evidence_boundary"],
         ))
     return records
+
+
+def _poi_posting_stage_records(root: Path) -> list[dict]:
+    return _surface_stage_records(
+        root,
+        relative="reports/launches/2026-08-24-poi-posting-request-launch-review.json",
+        surface="poi_posting", launch_prefix="L-POI-POST",
+        stages=("candidate", "fine", "end_to_end"), change_prefix="posting",
+        primary_metric="publish_rate_with_platform_lt_and_content_risk",
+    )
 
 
 def _feed_posting_stage_records(root: Path) -> list[dict]:
-    relative = "reports/launches/2026-08-24-feed-posting-request-launch-review.json"
-    report, evidence = _load(root, relative)
-    counters = {stage: 0 for stage in ("candidate", "fine", "end_to_end")}
-    records = []
-    for row in report["launches"]:
-        stage = row["stage"]
-        counters[stage] += 1
-        records.append(_record(
-            launch_id=f"L-FEED-POST-{stage.upper()}-{counters[stage]:03d}",
-            surface="feed_posting",
-            stage=stage,
-            change_type=f"feed_posting_{stage}_evolution",
-            control=row["control"],
-            treatment=row["treatment"],
-            decision=row["decision"],
-            evidence=evidence,
-            primary_metric="publish_rate_with_platform_lt_and_content_risk",
-            evidence_boundary=report["evidence_boundary"],
-        ))
-    return records
+    return _surface_stage_records(
+        root,
+        relative="reports/launches/2026-08-24-feed-posting-request-launch-review.json",
+        surface="feed_posting", launch_prefix="L-FEED-POST",
+        stages=("candidate", "fine", "end_to_end"),
+        change_prefix="feed_posting",
+        primary_metric="publish_rate_with_platform_lt_and_content_risk",
+    )
 
 
 def _local_search_stage_records(root: Path) -> list[dict]:
-    relative = "reports/launches/2026-08-24-local-search-request-launch-review.json"
-    report, evidence = _load(root, relative)
-    counters = {stage: 0 for stage in ("retrieval", "fine", "end_to_end")}
-    records = []
-    for row in report["launches"]:
-        stage = row["stage"]
-        counters[stage] += 1
-        records.append(_record(
-            launch_id=f"L-LOCAL-SEARCH-{stage.upper()}-{counters[stage]:03d}",
-            surface="local_search",
-            stage=stage,
-            change_type=f"local_search_{stage}_evolution",
-            control=row["control"],
-            treatment=row["treatment"],
-            decision=row["decision"],
-            evidence=evidence,
-            primary_metric="query_success_with_platform_lt_and_order_guardrails",
-            evidence_boundary=report["evidence_boundary"],
-        ))
-    return records
+    return _surface_stage_records(
+        root,
+        relative="reports/launches/2026-08-24-local-search-request-launch-review.json",
+        surface="local_search", launch_prefix="L-LOCAL-SEARCH",
+        stages=("retrieval", "fine", "end_to_end"),
+        change_prefix="local_search",
+        primary_metric="query_success_with_platform_lt_and_order_guardrails",
+    )
+
+
+def _poi_detail_stage_records(root: Path) -> list[dict]:
+    return _surface_stage_records(
+        root,
+        relative="reports/launches/2026-08-24-poi-detail-request-launch-review.json",
+        surface="poi_detail", launch_prefix="L-POI-DETAIL",
+        stages=("fine", "end_to_end"), change_prefix="poi_detail",
+        primary_metric="deep_action_with_platform_lt_and_safety_guardrails",
+    )
 
 
 def build_launch_ledger(root: Path) -> dict:
@@ -333,6 +331,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_poi_posting_stage_records(root),
         *_feed_posting_stage_records(root),
         *_local_search_stage_records(root),
+        *_poi_detail_stage_records(root),
     ]
     identifiers = [record["launch_id"] for record in records]
     if len(identifiers) != len(set(identifiers)):

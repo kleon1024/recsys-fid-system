@@ -1,7 +1,7 @@
 {
   "schema": "simulated-local-search-authority-v1",
   "active_key": "lexical_geo_plus_linear",
-  "active_bundle_id": "sha256:67a5c4ee92affecc74d6cae35014664c78dd9d8669c92111ee0fc76318e992c9",
+  "active_bundle_id": "sha256:a7fe8e5091a235b2a8ad00c81bc2ce00484a9642ca06b5cf188e6dc2075f306d",
   "active_bundle": {
     "retrieval_policy": "lexical_geo",
     "fine_model": "linear",
@@ -13,32 +13,28 @@
     "world_version": "teacher-hidden-local-search-v1",
     "sources": [
       {
+        "path": "fid_lab/launches/statistics.py",
+        "sha256": "178ddd48d2aca9415f88cd1c95360fd3c239fa517e2809ade1022bb3b1fce10c"
+      },
+      {
+        "path": "fid_lab/local_search/__init__.py",
+        "sha256": "9b2dd9be089528b9d33d1b8bc7c58e7ef699aac1715ac87fa1c4dd37201096fb"
+      },
+      {
+        "path": "fid_lab/local_search/cli.py",
+        "sha256": "b57006f8aeb4780361d8340388661d2530ea27bf90bec6c12c0c0664349383b6"
+      },
+      {
         "path": "fid_lab/local_search/contracts.py",
         "sha256": "097791130ff3385f05de1b0154d1c44f274cadadd3fc816af87c57f98848f309"
       },
       {
-        "path": "fid_lab/local_search/simulation/world.py",
-        "sha256": "c201050777ea9e6df6e56537b304ee33355d9e2cba52fb7b75c9a5aac192b6b0"
+        "path": "fid_lab/local_search/launch.py",
+        "sha256": "225a0476fde37d638aff6dc5fd6ac7585f328343720fd59f158eeb8a378b047e"
       },
       {
-        "path": "fid_lab/local_search/simulation/retrieval.py",
-        "sha256": "250283fed9ad9388e19496597d3976008301be513e7eed280e8f79f660a7e6b2"
-      },
-      {
-        "path": "fid_lab/local_search/simulation/features.py",
-        "sha256": "4c3dbd3d6ffed4959066043e0e63440842fe63e8840b51544e4bc67d3fc99b78"
-      },
-      {
-        "path": "fid_lab/local_search/simulation/samples.py",
-        "sha256": "3baa7faced101ce398cb6fab563c3afcb76872b63b0799f95cc964bb8eb02fc9"
-      },
-      {
-        "path": "fid_lab/local_search/simulation/response.py",
-        "sha256": "c51128e6651993198a5618524021e1f80c00e94ba59ac65815a454f7d63266ad"
-      },
-      {
-        "path": "fid_lab/local_search/models/retrieval.py",
-        "sha256": "ad6050c74cc4fbe7873c6698fc8d8a902c2c39556ce97d498f4a9d4600b4ac81"
+        "path": "fid_lab/local_search/models/__init__.py",
+        "sha256": "77da1dec309b55a8517f2254a061b199caa36fdb56ef1f0d24151b4f5730c5ad"
       },
       {
         "path": "fid_lab/local_search/models/architectures.py",
@@ -49,8 +45,44 @@
         "sha256": "aa90554518d6e3eabf2b41d762fb3aada2157c8d283eeef2bfec6e77650e0203"
       },
       {
-        "path": "fid_lab/local_search/launch.py",
-        "sha256": "225a0476fde37d638aff6dc5fd6ac7585f328343720fd59f158eeb8a378b047e"
+        "path": "fid_lab/local_search/models/retrieval.py",
+        "sha256": "ad6050c74cc4fbe7873c6698fc8d8a902c2c39556ce97d498f4a9d4600b4ac81"
+      },
+      {
+        "path": "fid_lab/local_search/release.py",
+        "sha256": "18aa011f0052eeda201ba7739641d80f18a75502340a6b5dccc3b2b91d184e92"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/__init__.py",
+        "sha256": "83fdbb92440be986801b12bee5ca47eb11084f24a63a23320ce94bc1ec83c081"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/features.py",
+        "sha256": "4c3dbd3d6ffed4959066043e0e63440842fe63e8840b51544e4bc67d3fc99b78"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/response.py",
+        "sha256": "c51128e6651993198a5618524021e1f80c00e94ba59ac65815a454f7d63266ad"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/retrieval.py",
+        "sha256": "250283fed9ad9388e19496597d3976008301be513e7eed280e8f79f660a7e6b2"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/samples.py",
+        "sha256": "3baa7faced101ce398cb6fab563c3afcb76872b63b0799f95cc964bb8eb02fc9"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/world.py",
+        "sha256": "c201050777ea9e6df6e56537b304ee33355d9e2cba52fb7b75c9a5aac192b6b0"
+      },
+      {
+        "path": "fid_lab/multitask.py",
+        "sha256": "ac48d76ecdbe70e7394e96c516f599b60a8d991b8683559a6fffc5f1c91b84c9"
+      },
+      {
+        "path": "fid_lab/training/common/tensor_ops.py",
+        "sha256": "2a61b8fa8c7c9eecd930f5d314e7d935df1a3367ae2c8de565bacfe29c282bf0"
       }
     ]
   },

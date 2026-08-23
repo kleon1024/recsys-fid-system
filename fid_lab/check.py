@@ -322,6 +322,11 @@ def check_simulated_surface_releases() -> None:
         "simulated-local-search-authority-v1", "Local Search",
         "hold_external_query_and_transaction_validation",
     )
+    _check_simulated_surface_release(
+        "artifacts/releases/simulated-poi-detail-control.json",
+        "simulated-poi-detail-authority-v1", "POI Detail",
+        "hold_external_page_transaction_and_review_validation",
+    )
 
 
 def run(command: list[str], capture: bool = False) -> subprocess.CompletedProcess[str]:

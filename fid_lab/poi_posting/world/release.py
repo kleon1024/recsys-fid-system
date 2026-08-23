@@ -3,26 +3,18 @@
 from __future__ import annotations
 
 import argparse
-from hashlib import sha256
 import json
 from pathlib import Path
 
-
-SOURCE_FILES = (
-    "fid_lab/poi_posting/world/contracts.py",
-    "fid_lab/poi_posting/world/generator.py",
-    "fid_lab/poi_posting/world/models.py",
-    "fid_lab/poi_posting/world/launch.py",
+from ...launches.release_resources import (
+    bundle_identifier, resource, source_resources, verified_artifact,
 )
 
-
-def _hash(path):
-    return sha256(path.read_bytes()).hexdigest()
-
-
-def _resource(root, relative):
-    path = root / relative
-    return {"path": relative, "sha256": _hash(path)}
+SHARED_SOURCES = (
+    "fid_lab/launches/statistics.py",
+    "fid_lab/training/common/tensor_ops.py",
+    "fid_lab/multitask.py",
+)
 
 
 def build_posting_release(root, report_relative, artifact_relative):
@@ -36,27 +28,25 @@ def build_posting_release(root, report_relative, artifact_relative):
         raise ValueError("POI posting end-to-end proposal did not pass all seeds")
     seed_report = report["seed_reports"][0]
     artifact_manifest = seed_report["models"][state["fine"]]["artifact"]
-    artifact_path = root / artifact_relative / artifact_manifest["artifact_file"]
-    if _hash(artifact_path) != artifact_manifest["artifact_sha256"]:
-        raise ValueError("POI posting artifact hash mismatch")
     active = {
         "candidate_policy": state["candidate"],
         "fine_model": state["fine"],
-        "model_artifact": _resource(
-            root, f"{artifact_relative}/{artifact_manifest['artifact_file']}"
+        "model_artifact": verified_artifact(
+            root, artifact_relative, artifact_manifest, "artifact_sha256"
         ),
         "model_seed": report["seeds"][0],
         "world_version": "teacher-hidden-posting-v1",
-        "sources": [_resource(root, relative) for relative in SOURCE_FILES],
+        "sources": source_resources(
+            root, "fid_lab/poi_posting/world", SHARED_SOURCES
+        ),
     }
-    encoded = json.dumps(active, sort_keys=True, separators=(",", ":"))
     return {
         "schema": "simulated-poi-posting-authority-v1",
         "active_key": state["end_to_end"],
-        "active_bundle_id": f"sha256:{sha256(encoded.encode()).hexdigest()}",
+        "active_bundle_id": bundle_identifier(active),
         "active_bundle": active,
         "rollback_key": "popular_geo_plus_rule",
-        "source_report": _resource(root, report_relative),
+        "source_report": resource(root, report_relative),
         "production_readiness": "hold_external_creator_and_supply_validation",
         "evidence_boundary": report["evidence_boundary"],
     }

@@ -900,6 +900,66 @@
         "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
       },
       "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+    },
+    {
+      "launch_id": "L-POI-DETAIL-FINE-001",
+      "surface": "poi_detail",
+      "stage": "fine",
+      "change_type": "poi_detail_fine_evolution",
+      "control": "rule",
+      "treatment": "linear",
+      "primary_metric": "deep_action_with_platform_lt_and_safety_guardrails",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-detail-request-launch-review.json",
+        "report_sha256": "9adedfdba75c8cd07f9e193d87a18e22d80a5b8d013b43921ae10deabaab5d6b"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
+    },
+    {
+      "launch_id": "L-POI-DETAIL-FINE-002",
+      "surface": "poi_detail",
+      "stage": "fine",
+      "change_type": "poi_detail_fine_evolution",
+      "control": "linear",
+      "treatment": "wide_deep",
+      "primary_metric": "deep_action_with_platform_lt_and_safety_guardrails",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-detail-request-launch-review.json",
+        "report_sha256": "9adedfdba75c8cd07f9e193d87a18e22d80a5b8d013b43921ae10deabaab5d6b"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
+    },
+    {
+      "launch_id": "L-POI-DETAIL-FINE-003",
+      "surface": "poi_detail",
+      "stage": "fine",
+      "change_type": "poi_detail_fine_evolution",
+      "control": "wide_deep",
+      "treatment": "specialized",
+      "primary_metric": "deep_action_with_platform_lt_and_safety_guardrails",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-detail-request-launch-review.json",
+        "report_sha256": "9adedfdba75c8cd07f9e193d87a18e22d80a5b8d013b43921ae10deabaab5d6b"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
+    },
+    {
+      "launch_id": "L-POI-DETAIL-END_TO_END-001",
+      "surface": "poi_detail",
+      "stage": "end_to_end",
+      "change_type": "poi_detail_end_to_end_evolution",
+      "control": "quota_mix_plus_rule",
+      "treatment": "quota_mix_plus_rule",
+      "primary_metric": "deep_action_with_platform_lt_and_safety_guardrails",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-detail-request-launch-review.json",
+        "report_sha256": "9adedfdba75c8cd07f9e193d87a18e22d80a5b8d013b43921ae10deabaab5d6b"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic POI Detail page with shared exposure and separate related-POI, product, and review weights. External page, transaction, and review logs remain required for production authority."
     }
   ],
   "coverage": {
@@ -933,16 +993,16 @@
       "end_to_end": "evidenced"
     },
     "poi_detail": {
-      "fine": "missing",
-      "end_to_end": "missing"
+      "fine": "evidenced",
+      "end_to_end": "evidenced"
     }
   },
   "summary": {
-    "records": 60,
+    "records": 64,
     "passed": 18,
-    "held": 23,
+    "held": 27,
     "rejected": 19,
-    "missing_cells": 2
+    "missing_cells": 0
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."
 }

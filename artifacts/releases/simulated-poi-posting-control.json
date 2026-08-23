@@ -1,7 +1,7 @@
 {
   "schema": "simulated-poi-posting-authority-v1",
   "active_key": "history_recall_plus_wide_deep",
-  "active_bundle_id": "sha256:739adc4ac56c7ec0893a9e59f03bcaa9fa9a48bf4e8e0ca426da3c63c3d74211",
+  "active_bundle_id": "sha256:653618e543f0b5b90b51269cb78a7c76027052936d7cefed6f2df27f378ff951",
   "active_bundle": {
     "candidate_policy": "history_recall",
     "fine_model": "wide_deep",
@@ -13,6 +13,22 @@
     "world_version": "teacher-hidden-posting-v1",
     "sources": [
       {
+        "path": "fid_lab/launches/statistics.py",
+        "sha256": "178ddd48d2aca9415f88cd1c95360fd3c239fa517e2809ade1022bb3b1fce10c"
+      },
+      {
+        "path": "fid_lab/multitask.py",
+        "sha256": "ac48d76ecdbe70e7394e96c516f599b60a8d991b8683559a6fffc5f1c91b84c9"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/__init__.py",
+        "sha256": "accd58a3edbf9507773074c83482dcf85694d8d66beb1b624dd69bcf03477d89"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/cli.py",
+        "sha256": "0f3bbc2a0c2772ca4243ab8ed98913a46b7550109154171d2ef767fc907e781f"
+      },
+      {
         "path": "fid_lab/poi_posting/world/contracts.py",
         "sha256": "3b53a9a1a6eec88cc8322298cf0aa8a8943e4dd5c267ab0b951fc7337b5b40c6"
       },
@@ -21,12 +37,20 @@
         "sha256": "7d5f607ec663e0ca46caaa360f08d9a42c5f3f61d50ef51903f999c5f9115bfe"
       },
       {
+        "path": "fid_lab/poi_posting/world/launch.py",
+        "sha256": "1d1070580e2319b19b98cdb2ebee4222d1c6b4e4b6d87cb50212d158b6f61b40"
+      },
+      {
         "path": "fid_lab/poi_posting/world/models.py",
         "sha256": "ef9d4d4e3feffba56da727b94b6d6f85af9d19cdbaaa3aa2c3010c9d331ac06e"
       },
       {
-        "path": "fid_lab/poi_posting/world/launch.py",
-        "sha256": "1d1070580e2319b19b98cdb2ebee4222d1c6b4e4b6d87cb50212d158b6f61b40"
+        "path": "fid_lab/poi_posting/world/release.py",
+        "sha256": "0f4be906cc1a8055adeea75a499ef3dd72239523fe84ab0c9d4570c9d8cca0cf"
+      },
+      {
+        "path": "fid_lab/training/common/tensor_ops.py",
+        "sha256": "2a61b8fa8c7c9eecd930f5d314e7d935df1a3367ae2c8de565bacfe29c282bf0"
       }
     ]
   },

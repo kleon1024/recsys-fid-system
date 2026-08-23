@@ -7,7 +7,7 @@ from fid_lab.launches.ledger import build_launch_ledger
 
 
 class LaunchLedgerTest(unittest.TestCase):
-    def test_ledger_validates_evidence_and_exposes_missing_business_cells(self) -> None:
+    def test_ledger_validates_evidence_and_closes_business_cells(self) -> None:
         root = Path(__file__).resolve().parents[2]
         ledger = build_launch_ledger(root)
         self.assertGreaterEqual(ledger["summary"]["records"], 20)
@@ -16,8 +16,9 @@ class LaunchLedgerTest(unittest.TestCase):
         self.assertEqual(ledger["coverage"]["main_feed"]["fine"], "evidenced")
         self.assertEqual(ledger["coverage"]["feed_posting"]["fine"], "evidenced")
         self.assertEqual(ledger["coverage"]["local_search"]["fine"], "evidenced")
-        self.assertEqual(ledger["coverage"]["poi_detail"]["fine"], "missing")
-        self.assertGreater(ledger["summary"]["missing_cells"], 0)
+        self.assertEqual(ledger["coverage"]["poi_detail"]["fine"], "evidenced")
+        self.assertEqual(ledger["coverage"]["poi_detail"]["end_to_end"], "evidenced")
+        self.assertEqual(ledger["summary"]["missing_cells"], 0)
         for record in ledger["records"]:
             self.assertTrue((root / record["evidence"]["report"]).exists())
             self.assertEqual(len(record["evidence"]["report_sha256"]), 64)
