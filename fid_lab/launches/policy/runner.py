@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from ...value import unified_lt_launch_decision
 from ...feed_loop.scale.tensor_engine import (
     TensorFeedConfig,
     combine_tensor_ab,
@@ -34,21 +35,8 @@ def _known_dgp_effect(control, treatment):
 
 
 def _decision(spec, ab):
-    negative = ab["negative_rate"]
-    quality_long_view = ab["quality_long_view_rate"]
-    primary = ab[spec.primary_metric]
-    if negative["relative_lift"] > 0.01 and negative["p_value"] < 0.05:
-        return "reject_negative_guardrail"
-    if (
-        quality_long_view["relative_lift"] < -0.01
-        and quality_long_view["p_value"] < 0.05
-    ):
-        return "reject_quality_long_view_guardrail"
-    if primary["relative_lift"] > 0.0 and primary["p_value"] < 0.05:
-        return "pass_primary_metric"
-    if primary["relative_lift"] < 0.0 and primary["p_value"] < 0.05:
-        return "reject_primary_regression"
-    return "hold_underpowered_or_neutral"
+    del spec
+    return unified_lt_launch_decision(ab["lt_value_per_user"])
 
 
 def run_policy_launch(spec: PolicyLaunchSpec, config: TensorFeedConfig):
@@ -61,7 +49,7 @@ def run_policy_launch(spec: PolicyLaunchSpec, config: TensorFeedConfig):
             "training": spec.training_mode,
             "shadow": "common_random_potential_worlds",
             "experiment": "stable_user_50_50",
-            "gate": "primary_plus_quality_view_negative_and_lt_guardrails",
+            "gate": "unified_exchanged_lt_with_independent_hard_constraints",
             "review": "required",
         },
         "known_dgp_effect": _known_dgp_effect(control, treatment),

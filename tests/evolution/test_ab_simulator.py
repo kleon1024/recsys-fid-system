@@ -22,14 +22,19 @@ class OnlineExperimentSimulatorTest(unittest.TestCase):
         self.assertTrue(report["all_truth_covered"])
         self.assertEqual(set(report["reports"]), {"product", "model", "strategy"})
 
-    def test_primary_regression_precedes_underpowered_lt_risk(self) -> None:
+    def test_unexchanged_primary_regression_does_not_override_lt_uncertainty(self) -> None:
         metrics = {
             "negative_feedback": {"absolute_lift": 0.0, "p_value": 1.0},
             "quality_long_view_rate": {"relative_lift": 0.01, "p_value": 0.2},
             "stay_per_exposure": {"absolute_lift": -0.1, "p_value": 0.01},
-            "lt_value": {"relative_lift": -0.02, "p_value": 0.3},
+            "lt_value": {
+                "absolute_lift": -0.02,
+                "relative_lift": -0.02,
+                "confidence_interval": (-0.08, 0.04),
+                "p_value": 0.3,
+            },
         }
-        self.assertEqual(launch_decision(metrics), "reject_primary_regression")
+        self.assertEqual(launch_decision(metrics), "hold_unified_lt_uncertain")
 
 
 if __name__ == "__main__":

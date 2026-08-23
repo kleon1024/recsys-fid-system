@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from ....value import unified_lt_exchange_report, unified_lt_launch_decision
 from .policy import TensorArtifactPolicy
 from ..tensor_engine import TensorFeedConfig, combine_tensor_ab, run_tensor_feed
 
@@ -47,27 +48,9 @@ def _semantic_parity(source, control, ab, candidate_name):
 
 
 def _launch_decision(parity, ab):
-    if not parity["passed"]:
-        return "reject_semantic_tensor_parity"
-    negative = ab["negative_rate"]
-    quality = ab["quality_long_view_rate"]
-    stay = ab["stay_per_exposure"]
-    lt_value = ab["lt_value_per_user"]
-    if negative["relative_lift"] > 0 and negative["p_value"] < 0.05:
-        return "reject_negative_feedback"
-    if quality["relative_lift"] < -0.01:
-        return (
-            "reject_quality_long_view_guardrail"
-            if quality["p_value"] < 0.05
-            else "hold_quality_long_view_risk"
-        )
-    if stay["relative_lift"] < 0 and stay["p_value"] < 0.05:
-        return "reject_primary_regression"
-    if lt_value["relative_lift"] < -0.01:
-        return "reject_lt_value_guardrail"
-    if stay["relative_lift"] > 0 and stay["p_value"] < 0.05:
-        return "pass_primary_metric"
-    return "hold_underpowered_or_neutral"
+    return unified_lt_launch_decision(
+        ab["lt_value_per_user"], evidence_ready=parity["passed"]
+    )
 
 
 def main() -> None:
@@ -108,6 +91,16 @@ def main() -> None:
         "control": control,
         "treatment": treatment,
         "ab": ab,
+        "unified_lt_exchange": unified_lt_exchange_report(ab),
+        "diagnostics": {
+            "quality_long_view_rate": ab["quality_long_view_rate"],
+            "negative_rate": ab["negative_rate"],
+            "note": (
+                "Unexchanged quality metrics explain trade-offs but do not override "
+                "the unified LT gate. Safety, legal, privacy, and integrity remain "
+                "independent hard constraints."
+            ),
+        },
         "semantic_parity": parity,
         "launch_decision": _launch_decision(parity, ab),
     }

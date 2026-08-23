@@ -108,10 +108,11 @@ personalized Feed
 ```
 
 Every adjacent change receives both a stable-user randomized estimate and the
-known paired-world DGP effect. The gate uses platform `lt_value` as the primary
-metric, with stay/exposure and negative feedback as Feed guardrails. Local Value
-Tree, anchor, conversion, and posting metrics are mediators, not independent
-reasons to launch.
+known paired-world DGP effect. The gate uses platform `lt_value` as its sole
+growth objective. Stay, quality, negative feedback, Local Value Tree, anchor,
+conversion, and posting metrics explain mechanisms and trade-offs; they are not
+independent reasons to pass or reject until a causal exchange rate places their
+long-term effect inside LT. Safety and eligibility remain hard constraints.
 
 A Local metric can rise while LT remains neutral. That result is a hold, not a
 business win: the added Local value may be too sparse, may replace equal Feed
@@ -197,8 +198,10 @@ an underpowered experiment.
   significant p-value cannot override a missed known truth.
 - Reverse holdouts exclude burn-in outcomes and retain component-level LT
   inference until the planned power target is reached.
-- A launch passes only when LT improves significantly without Feed guardrail
-  regression; Local-only improvement remains a hold.
+- A simulated launch passes when the unified LT point estimate is positive and
+  its 95% confidence-interval lower bound is nonnegative. Production readiness
+  additionally requires an accepted exchange manifest and no hard-constraint
+  failure; Local-only or unexchanged proxy improvement remains a hold.
 
 ## Public references
 

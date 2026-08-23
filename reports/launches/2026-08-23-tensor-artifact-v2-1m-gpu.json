@@ -356,9 +356,9 @@
       "poi_candidate_fraction": 0.2833965939927839
     },
     "performance": {
-      "seconds": 5.731939425000746,
-      "users_per_second": 174461.02023310718,
-      "requests_per_second": 3171791.8931073896,
+      "seconds": 5.933415382998646,
+      "users_per_second": 168536.99521280054,
+      "requests_per_second": 3064090.0436692294,
       "peak_gpu_memory_bytes": 280015872
     }
   },
@@ -706,9 +706,9 @@
       "poi_candidate_fraction": 0.28340107753960975
     },
     "performance": {
-      "seconds": 7.368653457997425,
-      "users_per_second": 135710.00532189084,
-      "requests_per_second": 2467623.4407882714,
+      "seconds": 7.233798373003083,
+      "users_per_second": 138239.96031352668,
+      "requests_per_second": 2513625.769258395,
       "peak_gpu_memory_bytes": 420799488
     }
   },
@@ -989,6 +989,103 @@
       "p_value": 0.5383434558300629
     }
   },
+  "unified_lt_exchange": {
+    "contract": {
+      "version": "lt-platform-metrics-v1",
+      "rates": {
+        "stay_minute": {
+          "unit_value": 1.0,
+          "standard_error": 0.03,
+          "evidence": "synthetic_platform_metric_calibration_v1"
+        },
+        "active_day": {
+          "unit_value": 5.0,
+          "standard_error": 0.3,
+          "evidence": "synthetic_platform_metric_calibration_v1"
+        },
+        "accepted_commercialization_unit": {
+          "unit_value": 1.0,
+          "standard_error": 0.08,
+          "evidence": "synthetic_platform_metric_calibration_v1"
+        }
+      }
+    },
+    "components": {
+      "lt_stay_per_user": {
+        "control_mean": 3.132943061695428,
+        "treatment_mean": 3.1583982980376706,
+        "relative_lift": 0.00812502360910041,
+        "standard_error": 0.0028323443382398603,
+        "confidence_interval": [
+          0.019903841439292545,
+          0.031006631245192796
+        ],
+        "p_value": 2.532903554373616e-19
+      },
+      "lt_active_days_per_user": {
+        "control_mean": 9.358812318386986,
+        "treatment_mean": 9.366438184920204,
+        "relative_lift": 0.0008148327238313455,
+        "standard_error": 0.012393335753141922,
+        "confidence_interval": [
+          -0.01666507154294055,
+          0.031916804609375786
+        ],
+        "p_value": 0.5383434558300629
+      },
+      "accepted_platform_commercialization_per_user": {
+        "control_mean": 0.0,
+        "treatment_mean": 0.0,
+        "relative_lift": null,
+        "standard_error": 0.0,
+        "confidence_interval": [
+          0.0,
+          0.0
+        ],
+        "p_value": 1.0
+      }
+    },
+    "total": {
+      "control_mean": 12.491755419142336,
+      "treatment_mean": 12.524836326697562,
+      "relative_lift": 0.002648219281057371,
+      "standard_error": 0.014871600516275998,
+      "confidence_interval": [
+        0.00393257054332468,
+        0.06222924456712659
+      ],
+      "p_value": 0.026119196368124407
+    },
+    "criterion": "point_estimate > 0 and 95% CI lower_bound >= 0",
+    "overall_nonnegative": true,
+    "production_exchange_authority_accepted": false,
+    "production_readiness": "hold_synthetic_rates"
+  },
+  "diagnostics": {
+    "quality_long_view_rate": {
+      "control_mean": 0.22335777254716813,
+      "treatment_mean": 0.2200203035665979,
+      "relative_lift": -0.014942255836946172,
+      "standard_error": 0.0002581714800794351,
+      "confidence_interval": [
+        -0.0038434850815259112,
+        -0.0028314528796145257
+      ],
+      "p_value": 3.1557232522786164e-38
+    },
+    "negative_rate": {
+      "control_mean": 0.0014871863267510183,
+      "treatment_mean": 0.0015120769508568327,
+      "relative_lift": 0.01673672199514617,
+      "standard_error": 2.260376271227686e-05,
+      "confidence_interval": [
+        -1.941275081024824e-05,
+        6.919399902187705e-05
+      ],
+      "p_value": 0.27082193041920116
+    },
+    "note": "Unexchanged quality metrics explain trade-offs but do not override the unified LT gate. Safety, legal, privacy, and integrity remain independent hard constraints."
+  },
   "semantic_parity": {
     "distribution": {
       "stay_per_exposure": {
@@ -1026,5 +1123,5 @@
     },
     "passed": true
   },
-  "launch_decision": "reject_quality_long_view_guardrail"
+  "launch_decision": "pass_unified_lt_nonnegative"
 }

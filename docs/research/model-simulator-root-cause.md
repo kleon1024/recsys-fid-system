@@ -47,7 +47,7 @@ A/B 环境。
 | Feature system | Stateful policy uses 24 dense features | Sparse identity, crosses, counters, and sequences demonstrated elsewhere do not affect the actual policy | Connect the shared FID manifest and sequence tensors to the same inference path |
 | Model/training | Neural loss falls while test AUC, calibration, or oracle regret worsens | Loss convergence is only optimizer health, not launch evidence | Select with temporal validation, ECE, oracle regret, slices, latency, and A/B |
 | Cascade | Quality-only coarse rank preserved only 65.3% of oracle Top-K; LR repair reaches 99.9% | Fine-rank improvements can be destroyed before fine rank sees the item | Freeze candidate sets and report stage pass-through for every launch |
-| Experiment | Advanced stateful rankers violate stay, quality-long-view, or Local guardrails | Positive aggregate value cannot override a hard regression | Use fresh-user ITT, CUPED where valid, confidence intervals, guardrails, and rollback |
+| Experiment | Multiple unexchanged proxy metrics used to override platform LT | The gate had no single objective authority and could reject a positive LT result | Gate on exchanged LT confidence intervals; keep only safety, legal, privacy, and integrity as independent hard constraints |
 | Serving consistency | Tensor-scale simulator is not yet the same code path as actual model inference and Joiner replay | A fast GPU run cannot prove offline-online parity | Execute the published artifact inside replay and the stateful A/B loop |
 
 The checked feature scale must be described honestly. The stateful Feed ranker
@@ -175,11 +175,16 @@ seed 与稀疏指标功效、同时改善 regret/校准/Feed 核心/Local 护栏
 That boundary now passes for the guarded LR plus expected-stay XGBoost artifact.
 The semantic and million-user tensor engines agree on control distributions and
 treatment-effect direction within declared tolerances. The measured algorithmic
-impact is real inside the synthetic world: stay improves, but quality-long-view
-regresses enough to reject launch. The remaining problem is a multi-objective
-quality constraint, not simulator throughput or artifact consistency.
+impact is real inside the synthetic world: stay and unified LT improve, while
+quality-long-view regresses. The earlier rejection was a gate-definition bug:
+an unexchanged diagnostic overrode the final LT objective. The corrected gate
+passes because the LT increment's 95% confidence-interval lower bound is
+nonnegative. The quality loss remains visible and can enter LT only after a
+causal long-horizon calibration estimates its exchange rate.
 
 这条边界现已由 guarded LR + expected-stay XGBoost artifact 通过。semantic 与百万
 用户 tensor engine 的 control 分布和 treatment effect 在声明门槛内一致。算法在
-合成世界中确实提升 stay，但 quality-long-view 回退导致拒绝上线；剩余问题已经从
-模拟性能和 artifact 一致性，收敛为真实的多目标质量约束问题。
+合成世界中 stay 与统一 LT 都有提升，同时 quality-long-view 回退。此前拒绝上线是门禁
+定义错误：未兑换的诊断指标覆盖了最终 LT 目标。修正后，LT 增量 95% 置信区间下界
+非负，因此通过上线门禁；质量损失继续展示，只有经过长期因果校准并获得兑换率后，
+才能进入同一个 LT 容器。

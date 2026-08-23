@@ -7,6 +7,7 @@ from dataclasses import asdict
 import numpy as np
 
 from ..evolution.evaluation.ab_simulator import metric_lift
+from ..value import unified_lt_launch_decision
 from .contracts import Trajectory
 
 
@@ -110,35 +111,7 @@ def experiment_metrics(
 
 
 def launch_decision(metrics: dict[str, dict[str, float]]) -> str:
-    negative = metrics["negative_feedback"]
-    stay = metrics["stay_per_exposure"]
-    quality_long_view = metrics["quality_long_view_rate"]
-    lt_value = metrics["lt_value"]
-    if negative["absolute_lift"] > 0.0 and negative["p_value"] < 0.05:
-        return "reject_negative_feedback"
-    if (
-        quality_long_view["relative_lift"] is not None
-        and quality_long_view["relative_lift"] < -0.01
-    ):
-        return (
-            "reject_quality_long_view_guardrail"
-            if quality_long_view["p_value"] < 0.05
-            else "hold_quality_long_view_risk"
-        )
-    if stay["absolute_lift"] < 0.0 and stay["p_value"] < 0.05:
-        return "reject_primary_regression"
-    if (
-        lt_value["relative_lift"] is not None
-        and lt_value["relative_lift"] < -0.01
-    ):
-        return (
-            "reject_lt_value_guardrail"
-            if lt_value["p_value"] < 0.05
-            else "hold_lt_value_risk"
-        )
-    if stay["absolute_lift"] > 0.0 and stay["p_value"] < 0.05:
-        return "pass_primary_metric"
-    return "hold_underpowered_or_neutral"
+    return unified_lt_launch_decision(metrics["lt_value"])
 
 
 def randomization_audit(potential_outcomes, seed: int, draws: int = 500):

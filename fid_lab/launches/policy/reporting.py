@@ -51,10 +51,10 @@ def render_launch_review(launch: dict[str, object]) -> str:
         )
     decision = launch["decision"]
     interpretation = (
-        "The primary metric cleared the randomized gate without a significant quality-view or "
-        "negative-feedback regression."
-        if decision == "pass_primary_metric"
-        else "The evidence does not justify rollout. Preserve control and revise or stop."
+        "The exchanged unified LT increment has a positive point estimate and a "
+        "nonnegative 95% confidence-interval lower bound."
+        if decision == "pass_unified_lt_nonnegative"
+        else "Unified LT evidence does not justify rollout. Preserve control and revise or stop."
     )
     return f"""# {spec['launch_id']} — {spec['title']}
 
@@ -91,10 +91,9 @@ p={primary_result['p_value']:.4g}. Absolute 95% confidence interval:
 
 {interpretation}
 
-The gate checks the declared primary metric, quality-view regression, LT value,
-and negative feedback.
-A low p-value alone is insufficient; effect size, DGP truth, product trigger rate,
-and long-term guardrails remain part of the decision.
+The launch gate uses exchanged unified LT. Unexchanged primary, quality-view,
+and negative-feedback metrics remain diagnostics and must not double count or
+override LT. Safety, legal, privacy, and integrity remain independent hard constraints.
 
 ## Performance
 
@@ -105,7 +104,7 @@ and long-term guardrails remain part of the decision.
 
 ## Next action
 
-{'Ramp only through the next guarded stage and continue monitoring.' if decision == 'pass_primary_metric' else 'Do not ramp. Increase evidence only if the hypothesis remains economically meaningful; otherwise close the launch.'}
+{'Ramp only through the next staged rollout and retain a long-term holdout.' if decision == 'pass_unified_lt_nonnegative' else 'Do not ramp. Increase evidence only if the hypothesis remains economically meaningful; otherwise close the launch.'}
 """
 
 

@@ -230,7 +230,7 @@ def model_scale() -> None:
 def tensor_migration() -> None:
     report = _load("2026-08-23-tensor-artifact-v2-1m-gpu.json")
     parity = report["semantic_parity"]
-    figure, axes = plt.subplots(1, 3, figsize=(12.5, 3.8))
+    figure, axes = plt.subplots(1, 4, figsize=(15.5, 3.8))
     distribution = parity["distribution"]
     labels = ("Stay", "Long view", "Quality view")
     gaps = [value["relative_gap"] * 100 for value in distribution.values()]
@@ -251,12 +251,31 @@ def tensor_migration() -> None:
     axes[1].set_ylabel("Relative treatment effect (%)")
     axes[1].set_title("Effect-direction parity")
     axes[1].legend(frameon=False)
+    lt_metrics = report["unified_lt_exchange"]
+    component_names = (
+        "lt_stay_per_user",
+        "lt_active_days_per_user",
+        "accepted_platform_commercialization_per_user",
+    )
+    component_labels = ("Stay", "Active", "Commerce")
+    component_effects = [
+        lt_metrics["components"][name]["treatment_mean"]
+        - lt_metrics["components"][name]["control_mean"]
+        for name in component_names
+    ]
+    total = lt_metrics["total"]
+    lt_values = component_effects + [total["treatment_mean"] - total["control_mean"]]
+    axes[2].bar((*component_labels, "Total"), lt_values,
+                color=(COLORS[0], COLORS[2], COLORS[1], COLORS[4]))
+    axes[2].axhline(0, color="#475569", linewidth=1)
+    axes[2].set_ylabel("Exchanged LT lift / user")
+    axes[2].set_title("Unified LT gate: CI lower bound >= 0")
     performance = (report["control"]["performance"], report["treatment"]["performance"])
     throughput = [value["requests_per_second"] / 1_000_000 for value in performance]
-    axes[2].bar((0, 1), throughput, color=(COLORS[0], COLORS[4]))
-    axes[2].set_xticks((0, 1), ("LR control", "Guarded XGB"))
-    axes[2].set_ylabel("Million requests / second")
-    axes[2].set_title("RTX 4090 tensor throughput")
+    axes[3].bar((0, 1), throughput, color=(COLORS[0], COLORS[4]))
+    axes[3].set_xticks((0, 1), ("LR control", "Guarded XGB"))
+    axes[3].set_ylabel("Million requests / second")
+    axes[3].set_title("RTX 4090 tensor throughput")
     for axis in axes:
         axis.grid(axis="y", color="#e2e8f0", linewidth=0.8)
         axis.set_axisbelow(True)

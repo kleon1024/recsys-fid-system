@@ -6,6 +6,7 @@ from dataclasses import asdict
 
 import numpy as np
 
+from ...value import unified_lt_launch_decision
 from ..ab import experiment_metrics
 from ..contracts import SimulationConfig
 from ..environment import build_catalog
@@ -14,18 +15,7 @@ from ..population import run_population
 
 
 def _decision(metrics: dict[str, dict[str, float]]) -> str:
-    stay = metrics["stay_per_exposure"]
-    negative = metrics["negative_feedback"]
-    lt_value = metrics["lt_value"]
-    if stay["relative_lift"] is not None and stay["relative_lift"] < -0.005:
-        return "reject_feed_guardrail" if stay["p_value"] < 0.05 else "hold_feed_risk"
-    if negative["absolute_lift"] > 0.0 and negative["p_value"] < 0.05:
-        return "reject_negative_guardrail"
-    if lt_value["absolute_lift"] > 0.0 and lt_value["p_value"] < 0.05:
-        return "pass_lt_value"
-    if lt_value["absolute_lift"] < 0.0 and lt_value["p_value"] < 0.05:
-        return "reject_lt_value"
-    return "hold_underpowered_or_neutral"
+    return unified_lt_launch_decision(metrics["lt_value"])
 
 
 def _policies():

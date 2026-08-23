@@ -44,18 +44,26 @@ class GroupedAUCTest(unittest.TestCase):
         self.assertEqual(features.shape, (4, 5, 24))
         self.assertTrue(torch.isfinite(features).all())
 
-    def test_tensor_launch_rejects_significant_quality_guardrail(self):
-        metric = lambda lift, p: {"relative_lift": lift, "p_value": p}
+    def test_tensor_launch_uses_unified_lt_not_unexchanged_quality(self):
+        def metric(lift, p, interval=(-0.001, 0.001)):
+            return {
+                "control_mean": 1.0,
+                "treatment_mean": 1.0 + lift,
+                "relative_lift": lift,
+                "p_value": p,
+                "confidence_interval": interval,
+            }
+
         decision = _launch_decision(
             {"passed": True},
             {
                 "negative_rate": metric(0.0, 1.0),
-                "quality_long_view_rate": metric(-0.015, 0.01),
-                "stay_per_exposure": metric(0.008, 0.001),
-                "lt_value_per_user": metric(0.002, 0.02),
+                "quality_long_view_rate": metric(-0.015, 0.01, (-0.02, -0.01)),
+                "stay_per_exposure": metric(0.008, 0.001, (0.004, 0.012)),
+                "lt_value_per_user": metric(0.002, 0.02, (0.0002, 0.0038)),
             },
         )
-        self.assertEqual(decision, "reject_quality_long_view_guardrail")
+        self.assertEqual(decision, "pass_unified_lt_nonnegative")
 
     def test_reports_single_class_coverage(self):
         report = grouped_auc(

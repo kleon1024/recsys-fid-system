@@ -8,6 +8,7 @@ import json
 from math import ceil, erfc, sqrt
 from pathlib import Path
 
+from ...value import unified_lt_launch_decision
 from .lt_exchange import combine_lt_exchange_sensitivity
 from .tensor_engine import (
     LOCAL_EXPANSION,
@@ -23,26 +24,7 @@ from .tensor_engine import (
 
 
 def decision_from_metrics(metrics: dict[str, dict[str, float]]) -> str:
-    stay = metrics["stay_per_exposure"]
-    negative = metrics["negative_rate"]
-    lt_value = metrics["lt_value_per_user"]
-    if (
-        stay["relative_lift"] is not None
-        and stay["relative_lift"] < -0.005
-        and stay["p_value"] < 0.05
-    ):
-        return "reject_feed_guardrail"
-    if (
-        negative["relative_lift"] is not None
-        and negative["relative_lift"] > 0.01
-        and negative["p_value"] < 0.05
-    ):
-        return "reject_negative_guardrail"
-    if lt_value["relative_lift"] is not None and lt_value["relative_lift"] > 0.0 and lt_value["p_value"] < 0.05:
-        return "pass_lt_value"
-    if lt_value["relative_lift"] is not None and lt_value["relative_lift"] < 0.0 and lt_value["p_value"] < 0.05:
-        return "reject_lt_value"
-    return "hold_underpowered_or_neutral"
+    return unified_lt_launch_decision(metrics["lt_value_per_user"])
 
 
 def run_suite(
@@ -258,42 +240,7 @@ def pool_exchange_sensitivity(replicates, launch_index):
 
 
 def pooled_decision(metrics: dict[str, dict[str, float]]) -> str:
-    guardrail_alpha = 0.05 / 3.0
-    stay = metrics["stay_per_exposure"]
-    negative = metrics["negative_rate"]
-    quality_view = metrics["quality_long_view_rate"]
-    lt_value = metrics["lt_value_per_user"]
-    if (
-        stay["pooled_relative_lift"] is not None
-        and stay["pooled_relative_lift"] < -0.005
-        and stay["pooled_p_value"] < guardrail_alpha
-    ):
-        return "reject_feed_guardrail"
-    if (
-        negative["pooled_relative_lift"] is not None
-        and negative["pooled_relative_lift"] > 0.01
-        and negative["pooled_p_value"] < guardrail_alpha
-    ):
-        return "reject_negative_guardrail"
-    if (
-        quality_view["pooled_relative_lift"] is not None
-        and quality_view["pooled_relative_lift"] < -0.01
-        and quality_view["pooled_p_value"] < guardrail_alpha
-    ):
-        return "reject_quality_view_guardrail"
-    if (
-        lt_value["pooled_relative_lift"] is not None
-        and lt_value["pooled_relative_lift"] > 0.0
-        and lt_value["pooled_p_value"] < 0.05
-    ):
-        return "pass_lt_value"
-    if (
-        lt_value["pooled_relative_lift"] is not None
-        and lt_value["pooled_relative_lift"] < 0.0
-        and lt_value["pooled_p_value"] < 0.05
-    ):
-        return "reject_lt_value"
-    return "hold_underpowered_or_neutral"
+    return unified_lt_launch_decision(metrics["lt_value_per_user"], pooled=True)
 
 
 def main() -> None:

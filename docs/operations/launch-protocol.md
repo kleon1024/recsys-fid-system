@@ -11,7 +11,7 @@ flowchart LR
     M --> R["Offline replay and slice diagnostics"]
     R --> H["Shadow parity"]
     H --> A["Stable user-level A/B"]
-    A --> G["Primary and guardrail gate"]
+    A --> G["Unified exchanged LT gate and hard constraints"]
     G --> L["Launch Review"]
     L --> P["Ramp, hold, reject, or rollback"]
 ```
@@ -53,17 +53,18 @@ cross-layer assignment is orthogonal. Reports include effect size, confidence
 interval, p-value, CUPED/MDE where applicable, trigger and exposure rates, SRM,
 known DGP truth only in simulation, and interaction slices for overlapping tests.
 
-Primary Feed metrics are stay/exposure and long-view behavior. Quality long-view,
-negative feedback, return, unified LT value,
-calibration, candidate coverage, latency, memory, and safety are guardrails.
-Business launches additionally report Value Tree and Local Service value, but
-those metrics cannot compensate for a failed main-Feed guardrail unless the
-trade-off was predeclared and approved.
+Stay, long-view, quality-long-view, negative feedback, return, calibration,
+candidate coverage, latency, and memory remain mandatory diagnostics. The
+growth decision uses one authority: unified exchanged LT. An unexchanged proxy
+cannot override LT or create a second objective. Safety, legal, privacy,
+integrity, serving correctness, and resource limits remain independent hard
+constraints because they are feasibility boundaries, not growth value.
 
 Business Value Trees are never additive LT terms. A Local, Ads, Live, or
 E-commerce outcome can enter LT only after the central platform accepts a
 versioned experiment-derived exchange rate. A synthetic or business-proposed
-rate may be shown as sensitivity analysis but must force `hold`, not `pass`.
+rate may pass the simulator's mechanical gate, but production readiness remains
+`hold` until the organization accepts the causal exchange manifest.
 
 Valid decisions are pass, staged ramp, hold, reject, and rollback. An offline
 AUC improvement, lower training loss, or significant p-value alone is never a

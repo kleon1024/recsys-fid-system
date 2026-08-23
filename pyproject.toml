@@ -39,6 +39,7 @@ entry_points = [
   "fid_lab/simulation/experimentation/assignment.py",
   "fid_lab/simulation/local/launch_suite.py",
   "fid_lab/value/container.py",
+  "fid_lab/value/gate.py",
   "fid_lab/feed_loop/scale/tensor_catalog.py",
   "fid_lab/feed_loop/scale/queue_value_cli.py",
   "fid_lab/value/tree.py",
@@ -59,5 +60,6 @@ authority_modules = [
   "fid_lab.simulation.experimentation.contracts",
   "fid_lab.value.contracts",
   "fid_lab.value.container",
+  "fid_lab.value.gate",
   "fid_lab.value.tree",
 ]

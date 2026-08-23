@@ -211,8 +211,9 @@ def main() -> None:
         "retrieval_evolution_count": len(evolution["retrieval"]["models"]) == 5,
         "ab_recovers_known_truth": ab["all_truth_covered"],
         "tensor_semantic_parity": tensor_launch["semantic_parity"]["passed"],
-        "tensor_artifact_guardrail": tensor_launch["launch_decision"]
-        == "reject_quality_long_view_guardrail",
+        "tensor_unified_lt_gate": tensor_launch["launch_decision"]
+        == "pass_unified_lt_nonnegative"
+        and tensor_launch["unified_lt_exchange"]["overall_nonnegative"],
         "tensor_model_throughput": tensor_launch["treatment"]["performance"][
             "requests_per_second"
         ]

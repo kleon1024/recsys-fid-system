@@ -21,3 +21,4 @@ All launches use the same immutable evidence JSON, common-random shadow, stable 
 | [L-LOCAL-SCALE-003](l-local-scale-003.md) | local_model_scale | hold / reject | 52.6M-user MDE requirement |
 | [L-COARSE-001](l-coarse-001.md) | coarse_rank | pass weak baseline; hold mature changes | 99.9% oracle pass-through |
 | [L-LOCAL-REVERSE-004](l-local-reverse-004.md) | reverse_holdout | retain staged launch and holdout | LT +0.282%, retention component noisy |
+| [L-TENSOR-003](l-tensor-003.md) | published_model | pass_unified_lt_nonnegative | LT +0.265%, 95% CI lower bound +0.00393 |

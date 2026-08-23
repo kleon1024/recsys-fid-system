@@ -41,11 +41,17 @@ scores, responses, and state transitions stay on the RTX 4090.
 
 ![Semantic-to-tensor migration](docs/assets/tensor-migration.svg)
 
-The one-million-user, 24-step run reaches 3.17M requests/s for LR control and
-2.47M requests/s for guarded XGBoost with less than 421MB peak GPU memory.
-Semantic/tensor distribution and effect parity pass. The model still does not
-launch: stay/exposure improves 0.74%, but quality-long-view falls 1.49% with
-high confidence. See [L-TENSOR-003](docs/launch-reviews/2026-08-23-main-feed-suite/l-tensor-003.md).
+The one-million-user, 24-step rerun reaches 3.06M requests/s for LR control and
+2.51M requests/s for guarded XGBoost with less than 421MB peak GPU memory.
+Semantic/tensor distribution and effect parity pass. Unified exchanged LT per
+user improves 0.265%; its absolute 95% confidence interval is [0.00393, 0.06223],
+so the model clears the nonnegative-LT gate. Quality-long-view falls 1.49% and is
+reported as a trade-off diagnostic; it cannot override LT until a measured
+long-term exchange rate makes it part of the same container. See
+[L-TENSOR-003](docs/launch-reviews/2026-08-23-main-feed-suite/l-tensor-003.md).
+This is synthetic launch evidence, not a production-lift claim. Its simulator
+gate passes, while production readiness remains `hold_synthetic_rates` until the
+exchange manifest is replaced with accepted causal estimates.
 
 ## Main Feed first, Local Service inside the same value contract
 

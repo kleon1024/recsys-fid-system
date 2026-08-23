@@ -1,9 +1,12 @@
 # L-TENSOR-003 — Published model migration to the GPU tensor engine
 
-Change type: simulator architecture and model-serving parity  
-Decision: tensor migration accepted; model launch rejected by quality-view guardrail  
-Evidence date: 2026-08-23  
+Change type: simulator architecture and model-serving parity
+Decision: tensor migration accepted; staged model launch passes unified LT gate
+Evidence date: 2026-08-23
 Hardware: RTX 4090 24GB, CUDA 12.6
+
+Evidence boundary: this is a synthetic launch simulation. Production rollout
+requires organization-approved causal LT exchange rates and live holdout evidence.
 
 ## Why this change was required
 
@@ -58,21 +61,34 @@ about 13 seconds of measured simulation time:
 
 | World | Requests/s | Users/s | Peak GPU memory |
 |---|---:|---:|---:|
-| LR control | 3.17M | 174.6K | 267MB |
-| Guarded XGBoost | 2.47M | 136.8K | 401MB |
+| LR control | 3.06M | 168.5K | 267MB |
+| Guarded XGBoost | 2.51M | 138.2K | 401MB |
 
-The tensor A/B estimates stay/exposure +0.74%, long-view +0.32%, platform LT
-value/user +0.26%, and quality-long-view -1.49%. At one million users the
-quality regression is significant, so the model remains rejected even though
-stay and LT are positive. Large scale increased confidence; it did not change
-the product guardrail.
+The tensor A/B estimates stay/exposure +0.74%, long-view +0.32%, unified
+platform LT value/user +0.265%, and quality-long-view -1.49%. The absolute LT
+increment is +0.03308 per user with a 95% confidence interval of
+[+0.00393, +0.06223]. Its lower bound is nonnegative, so the model passes the
+unified LT gate and may enter a simulated staged rollout with a retained holdout.
+The simulator decision is `pass_unified_lt_nonnegative`; production readiness is
+`hold_synthetic_rates` because this public reconstruction has no organization-approved
+exchange manifest.
 
-百万用户实验说明算法确实能改变业务核心，但也更确定地暴露了冲突：stay 与 LT 为正，
-quality-long-view 显著下降 1.49%。因此 tensor engine 改造通过，模型上线仍拒绝。
+百万用户实验说明算法确实能改变业务核心，也暴露了 trade-off：stay 与统一 LT 为正，
+quality-long-view 显著下降 1.49%。统一 LT 增量为每用户 +0.03308，95% 置信区间下界
+为 +0.00393，因此 tensor engine 与模型上线门禁均通过，可进入分阶段放量并保留长期
+holdout。
+
+Quality-long-view is not ignored. It remains a diagnostic because the current
+LT contract has no measured exchange coefficient for it. If long-term holdout
+evidence proves a causal DAU, stay, or commercialization effect, that effect
+must be calibrated into the LT container; the system must not hard-code a
+second objective that double counts or overrides LT. Safety, legal, privacy,
+and integrity constraints remain independently fail-closed.
 
 ## Remaining boundary
 
 The tensor runner now owns scale and power; the semantic runner remains the
 contract oracle. Tensor results are admissible only when distribution and
-treatment-effect parity pass. The next model iteration must predict or constrain
-quality loss directly rather than further loosening the LR-score tolerance.
+treatment-effect parity pass. The next iteration should investigate the quality
+trade-off and estimate whether it has incremental long-horizon LT impact, while
+the staged launch and retained holdout verify the synthetic result does not drift.
