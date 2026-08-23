@@ -26,3 +26,5 @@ ad30209bdcce0edbc85f8294489086aa905fe475ffb905216278a065884eb476  reports/launch
 ebd264da242356f4946ea074b8b15b47daa9d5018dbeb7880eccc573abf7d17b  reports/launches/2026-08-23-multi-queue-platform-lt-ladder.json
 589199d131e13f8e2c94f5394d3357d9dcadc6d218c8e594efa5cdc4e1135010  reports/launches/2026-08-23-tensor-artifact-training.json
 005197a15e1659c0597326f7cd97f7fd6899ad13abd95813980d35149c0645ba  reports/launches/2026-08-23-tensor-artifact-v2-1m-gpu.json
+2e649a08713838e01996c7e299040bc501dfddd9e1bc25f707aba9b374451fc3  reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json
+7d83259d56316dcfc982e83971cfccf9a3fde1f34787357ff28210ea0436f7ae  reports/launches/2026-08-23-v3-multitask-stay-v2-duration-audit-1m-gpu.json

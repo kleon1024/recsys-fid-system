@@ -244,6 +244,7 @@ def _accumulate_cells(cell_stats, user_ids, user_metrics, cohort=None):
     rates = user_metrics[:, 1:].clone()
     rates[:, :16] /= user_metrics[:, :1].clamp_min(1.0)
     rates[:, 19:23] /= user_metrics[:, :1].clamp_min(1.0)
+    rates[:, -1] /= user_metrics[:, 0].clamp_min(1.0)
     for cell, mask in enumerate((~assigned, assigned)):
         if cohort is not None:
             mask &= cohort
@@ -281,6 +282,29 @@ def _new_user_state(config, policy, generator, device, user_ids):
             dim=1,
         )
     trigger = torch.remainder(user_ids * 1_103_515_245 + 12_345, 2**31)
+    age_draw = uniform(user_ids, 0, 16, config.seed)
+    account_age_days = torch.floor(age_draw.square() * 3_650.0)
+    historical_activity = torch.floor(
+        (0.15 + 0.85 * uniform(user_ids, 0, 17, config.seed))
+        * torch.sqrt(account_age_days + 1.0)
+        * 3.2
+    ).clamp_max(200.0)
+    lifecycle_bucket = torch.where(
+        account_age_days < 7,
+        torch.zeros_like(account_age_days),
+        torch.where(
+            account_age_days < 30,
+            torch.ones_like(account_age_days),
+            torch.where(
+                account_age_days < 365,
+                torch.full_like(account_age_days, 2),
+                torch.full_like(account_age_days, 3),
+            ),
+        ),
+    ).long()
+    region_bucket = torch.floor(uniform(user_ids, 0, 18, config.seed) * 10).long()
+    history_profile = torch.softmax(interest.abs() * 2.0, dim=1)
+    historical_topic_counts = history_profile * historical_activity[:, None]
     return {
         "user_ids": user_ids,
         "eligible": (trigger.float() / float(2**31) < policy.eligible_fraction).float()[:, None],
@@ -321,7 +345,11 @@ def _new_user_state(config, policy, generator, device, user_ids):
             torch.remainder(user_ids * 69_697 + 29, 10_009).float() / 10_009
         ),
         "last_topic": torch.full((users,), -1, device=device, dtype=torch.long),
-        "topic_counts": torch.zeros(users, config.topics, device=device),
+        "topic_counts": historical_topic_counts,
+        "account_age_days": account_age_days,
+        "historical_activity": historical_activity,
+        "lifecycle_bucket": lifecycle_bucket,
+        "region_bucket": region_bucket,
         "ads_served": torch.zeros(users, device=device, dtype=torch.long),
         "live_served": torch.zeros(users, device=device, dtype=torch.long),
         "last_ad_step": torch.full((users,), -10_000, device=device, dtype=torch.long),
@@ -432,12 +460,13 @@ def _sample_step(config, policy, generator, device, state, selected, step):
         "local_commercialization": commercialization,
         "ads_live_value_tree": ads_live_tree,
         "anchor": anchor,
-        "detail": detail, "paid": paid, "pixel": pixel,
+        "detail": detail, "favorite": favorite, "paid": paid, "pixel": pixel,
         "ad_selected": is_ad,
         "effective_ad": effective_ad,
         "ad_contribution": ad_contribution,
         "organic_opportunity_cost": opportunity_cost,
         "live_selected": is_live,
+        "selected_duration": selected["duration"],
         "coarse_oracle_survives": (
             selected["coarse_oracle_survives"].float() * state["active"]
         ),
@@ -558,6 +587,7 @@ def _step_totals(config, state, values):
         values["coarse_pass_fraction"].sum(),
         values["oracle_regret"].sum(),
         values["poi_candidate_fraction"].sum(),
+        values["selected_duration"].sum(),
     )).to(torch.float64)
 
 
@@ -581,10 +611,10 @@ def _simulate_batches(
     measurement_start_step,
     trigger_kind,
 ):
-    totals = torch.zeros(28, dtype=torch.float64, device=device)
-    cell_stats = torch.zeros(2, 25, 3, dtype=torch.float64, device=device)
+    totals = torch.zeros(29, dtype=torch.float64, device=device)
+    cell_stats = torch.zeros(2, 26, 3, dtype=torch.float64, device=device)
     lt_exchange_stats = torch.zeros(2, 6, dtype=torch.float64, device=device)
-    trigger_cell_stats = torch.zeros(2, 25, 3, dtype=torch.float64, device=device)
+    trigger_cell_stats = torch.zeros(2, 26, 3, dtype=torch.float64, device=device)
     trigger_users = torch.zeros((), dtype=torch.long, device=device)
     candidate_diagnostics = torch.zeros(
         5 + len(ROUTE_NAMES) + 2, dtype=torch.float64, device=device
@@ -597,7 +627,7 @@ def _simulate_batches(
         state = _new_user_state(
             config, initial_policy, generator, device, user_ids
         )
-        user_metrics = torch.zeros(users, 26, device=device)
+        user_metrics = torch.zeros(users, 27, device=device)
         trigger_cohort = torch.zeros(users, dtype=torch.bool, device=device)
         for step in range(config.steps):
             active_policy = (
@@ -657,6 +687,7 @@ def _simulate_batches(
                     / 60.0
                     * DEFAULT_LT_CONFIG.rates["stay_minute"].unit_value,
                     torch.zeros_like(values["stay"]),
+                    values["selected_duration"],
                 ), dim=1).float()
             return_value, returned = _advance_state(
                 config, active_policy, generator, state, selected, values, step

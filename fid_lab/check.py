@@ -10,7 +10,8 @@ import re
 import subprocess
 import sys
 
-from .feed_loop.release import release_resource_path
+from .feed_loop.models.artifact import feature_schema_hash
+from .simulation.environment import FEATURE_NAMES
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -157,6 +158,8 @@ def check_model_artifacts() -> None:
         "artifacts/models/feature-lr-v3-hash-split/MANIFEST.sha256",
         "artifacts/models/feature-lr-v4-local-ablation/MANIFEST.sha256",
         "artifacts/models/feature-lr-v5-intent-trigger/MANIFEST.sha256",
+        "artifacts/models/v3-model-ladder/MANIFEST.sha256",
+        "artifacts/models/v3-multitask-stay-v2/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
@@ -169,26 +172,49 @@ def check_simulated_release() -> None:
     release = json.loads(
         (ROOT / "artifacts/releases/simulated-feed-control.json").read_text()
     )
-    report_path = release_resource_path(
-        ROOT, release["source_report"]["logical_key"]
-    )
-    report = json.loads(report_path.read_text())
     failures = []
-    if sha256(report_path.read_bytes()).hexdigest() != release["source_report"]["sha256"]:
-        failures.append("simulated release does not bind the launch report")
-    if release["active_control_artifact"] != report["release_state"]["active_artifact"]:
-        failures.append("simulated release active artifact differs from launch state")
-    roles = (
-        ("active_control_artifact", "active_artifact_collection"),
-        ("rollback_artifact", "rollback_artifact_collection"),
+    if release.get("schema_version") != "simulated-feed-authority-v3":
+        failures.append("simulated release is not the V3 authority")
+    if release.get("active_control_key") != "rule_personalized_v1":
+        failures.append("unaccepted model replaced the V3 rule control")
+
+    def verify(resource, label):
+        path = ROOT / resource["path"]
+        if not path.exists():
+            failures.append(f"simulated release missing {label}: {resource['path']}")
+        elif sha256(path.read_bytes()).hexdigest() != resource["sha256"]:
+            failures.append(f"simulated release {label} hash mismatch")
+
+    verify(release["source_report"], "source report")
+    bundle = release["active_bundle"]
+    for index, resource in enumerate(bundle["model"]["sources"]):
+        verify(resource, f"rule model source {index}")
+    verify(bundle["feature"]["source"], "feature source")
+    for index, resource in enumerate(bundle["index"]["sources"]):
+        verify(resource, f"index source {index}")
+    for index, resource in enumerate(bundle["behavior"]["sources"]):
+        verify(resource, f"behavior source {index}")
+    encoded = json.dumps(bundle, sort_keys=True, separators=(",", ":")).encode()
+    if release["active_bundle_id"] != f"sha256:{sha256(encoded).hexdigest()}":
+        failures.append("simulated release active bundle id mismatch")
+    if bundle["feature"]["schema_sha256"] != feature_schema_hash():
+        failures.append("simulated release feature schema mismatch")
+    if bundle["feature"]["dense_fields"] != len(FEATURE_NAMES):
+        failures.append("simulated release feature width mismatch")
+    dataset = release["dataset"]
+    if dataset["authority_bundle_id"] != release["active_bundle_id"]:
+        failures.append("V3 request log is bound to another serving bundle")
+    public_dataset = json.loads(
+        (ROOT / "reports/datasets/2026-08-23-v3-request-log-manifest.json").read_text()
     )
-    for role, collection_role in roles:
-        manifest = release[role]
-        artifact_dir = release_resource_path(ROOT, release[collection_role])
-        artifact = artifact_dir / manifest["artifact_file"]
-        artifact_id = f"sha256:{sha256(artifact.read_bytes()).hexdigest()}"
-        if artifact_id != manifest["artifact_id"]:
-            failures.append(f"simulated release {role} hash mismatch")
+    for field in (
+        "authority_bundle_id", "label_names", "evaluation_value_names",
+        "training_contract", "tables",
+    ):
+        if dataset[field] != public_dataset[field]:
+            failures.append(f"V3 request log manifest differs at {field}")
+    for historical in release["historical_releases"]:
+        verify(historical, f"historical {historical['epoch']} release")
     if failures:
         raise SystemExit("\n".join(failures))
 

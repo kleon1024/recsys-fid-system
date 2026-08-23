@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-V3-MULTITASK-001](2026-08-23-main-feed-suite/l-v3-multitask-001.md) | V3 primitive multi-task ranker | Hold; duration reward hacking |
 | [L-TENSOR-003](2026-08-23-main-feed-suite/l-tensor-003.md) | Published artifact on GPU tensor engine | Engine pass; model rejected by quality guardrail |
 | [L-SIMULATOR-002](2026-08-23-main-feed-suite/l-simulator-002.md) | Nonlinear DGP and sample-scale audit | Accept offline lane; no serving change |
 | [L-SIMULATOR-004](2026-08-23-main-feed-suite/l-simulator-004.md) | Externally calibrated behavior kernel | Accept V3 research epoch; hold Local launch |

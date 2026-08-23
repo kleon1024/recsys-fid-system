@@ -133,7 +133,7 @@ flowchart LR
     U["User state: interest, satisfaction, fatigue"] --> Q["Feed request"]
     Q --> R["Eight-route recall, including post-search and retarget"]
     R --> C["Coarse Top 20"]
-    C --> F["LR / W&D / DeepFM / DCNv2 / MMoE"]
+    C --> F["LR / XGBoost / W&D / DeepFM / DCNv2 / multi-task MMoE"]
     F --> V["Calibration and business Value Trees"]
     V --> E["Constrained mixing and exposure"]
     E --> A["Play, 3s, slide, stay, long view, quality view, Local funnel, negative"]
@@ -154,6 +154,9 @@ The latest synthetic [main-Feed Launch Review](docs/launch-reviews/2026-08-23-ma
 records both wins and rejected launches. It does not claim company-internal
 metrics. The [simulation evidence review](docs/research/main-feed-simulation-evidence.md)
 defines the public evidence boundary and why Rust is conditional on profiling.
+The [V3 multi-task Launch Review](docs/launch-reviews/2026-08-23-main-feed-suite/l-v3-multitask-001.md)
+shows why higher long-view AUC can reduce LT, and why a large stay lift is held
+when it is explained by selected-duration drift.
 The [unified launch protocol](docs/operations/launch-protocol.md) and
 [independent Launch Review index](docs/launch-reviews/README.md) cover model,
 feature, strategy, architecture, realtime, Bug, chain, product, Value Tree, and

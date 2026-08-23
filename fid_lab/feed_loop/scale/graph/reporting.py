@@ -25,6 +25,7 @@ CELL_METRICS = (
     "coarse_feed_oracle_recall", "coarse_pass_fraction",
     "fine_oracle_regret_per_exposure", "poi_candidate_fraction",
     "lt_stay_per_user", "lt_active_days_per_user",
+    "selected_duration_per_exposure",
 )
 STAGE_NAMES = (
     "recall_miss", "coarse_miss", "fine_rank_miss", "mix_rank_miss",
@@ -128,6 +129,7 @@ def render_metrics(values, config):
         "coarse_pass_fraction": float(values[25] / exposures),
         "fine_oracle_regret_per_exposure": float(values[26] / exposures),
         "poi_candidate_fraction": float(values[27] / exposures),
+        "selected_duration_per_exposure": float(values[28] / exposures),
     }
 
 

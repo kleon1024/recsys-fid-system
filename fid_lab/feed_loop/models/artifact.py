@@ -21,6 +21,7 @@ from ...simulation.policies import (
     LearnedRegressionPolicy,
 )
 from .deep_policy import DENSE_INDICES, SPARSE_SPECS, FeedDeepPolicy
+from .feed_multitask import TASK_SPECS, FeedMultiTaskPolicy
 from .multitask_policy import FeedMMoEPolicy
 
 
@@ -83,7 +84,9 @@ def _save_and_reload(policy, directory: Path):
     if isinstance(policy, FeedDeepPolicy):
         path = directory / f"{policy.name}.pt"
         torch.save(policy.model.state_dict(), path)
-        serving = FeedDeepPolicy(policy.name, str(policy.device), policy.seed)
+        serving = FeedDeepPolicy(
+            policy.name, str(policy.device), policy.seed, policy.task
+        )
         serving.model.load_state_dict(
             torch.load(path, map_location=policy.device, weights_only=True)
         )
@@ -92,6 +95,14 @@ def _save_and_reload(policy, directory: Path):
         path = directory / f"{policy.name}.pt"
         torch.save(policy.model.state_dict(), path)
         serving = FeedMMoEPolicy(policy.inputs, str(policy.device), policy.seed)
+        serving.model.load_state_dict(
+            torch.load(path, map_location=policy.device, weights_only=True)
+        )
+        return path, serving, "torch-state-dict"
+    if isinstance(policy, FeedMultiTaskPolicy):
+        path = directory / f"{policy.name}.pt"
+        torch.save(policy.model.state_dict(), path)
+        serving = FeedMultiTaskPolicy(policy.inputs, str(policy.device), policy.seed)
         serving.model.load_state_dict(
             torch.load(path, map_location=policy.device, weights_only=True)
         )
@@ -168,4 +179,13 @@ def publish_policy(
         columns = policy.columns or tuple(range(len(FEATURE_NAMES)))
         manifest["feature_columns"] = tuple(columns)
         manifest["feature_names"] = tuple(FEATURE_NAMES[index] for index in columns)
+    if isinstance(policy, FeedDeepPolicy):
+        manifest["prediction_task"] = policy.task
+    if isinstance(policy, FeedMultiTaskPolicy):
+        manifest["prediction_task"] = "primitive_multitask"
+        manifest["task_specs"] = {
+            task: {"kind": kind, "label_index": index, "loss_weight": weight}
+            for task, (kind, index, weight) in TASK_SPECS.items()
+        }
+        manifest["value_tree"] = policy.value_config.manifest()
     return PublishedPolicy(serving, manifest), replay_delta

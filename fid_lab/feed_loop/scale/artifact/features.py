@@ -1,4 +1,4 @@
-"""GPU construction of the canonical 24-field stateful Feed feature vector."""
+"""GPU construction of the canonical stateful Feed feature vector."""
 
 from __future__ import annotations
 
@@ -48,6 +48,10 @@ def build_tensor_features(config, user_ids, state, candidates, step):
         candidates["inventory"],
         torch.where(same_city.bool(), torch.ones_like(same_city), torch.full_like(same_city, 0.05)),
         local_affinity,
+        repeated(state["account_age_days"] / 3_650.0),
+        repeated(state["historical_activity"] / 200.0),
+        repeated(state["lifecycle_bucket"].float() / 3.0),
+        repeated(state["region_bucket"].float() / 9.0),
     )
     features = torch.stack(values, dim=2).float()
     if features.shape[2] != len(FEATURE_NAMES):

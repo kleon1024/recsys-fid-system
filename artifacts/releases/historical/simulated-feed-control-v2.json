@@ -1,0 +1,53 @@
+{
+  "schema_version": "simulated-feed-release-v1",
+  "environment": "synthetic_simulator",
+  "active_control_key": "basic__realtime__local_context__category_hash",
+  "active_control_artifact": {
+    "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+    "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+    "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+    "signal_version": "heterogeneous-nonlinear-v2",
+    "artifact_format": "joblib",
+    "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+    "training_device": "cpu",
+    "serving_device": "cpu",
+    "feature_columns": [0, 1, 2, 3, 5, 8, 9, 6, 7, 10, 13, 18, 19, 20, 21, 22, 23, 17],
+    "feature_names": [
+      "estimated_interest_affinity", "item_quality", "commerce_value",
+      "item_popularity", "same_city", "trust", "commerce_propensity",
+      "realtime_satisfaction_proxy", "realtime_fatigue_proxy",
+      "session_progress", "poi_video_indicator", "post_search_match",
+      "retarget_match", "poi_quality", "inventory_available",
+      "distance_score", "local_interest_affinity", "category_norm"
+    ]
+  },
+  "active_artifact_collection": "feature-lr-v3-hash-split",
+  "rollback_key": "basic__realtime__local_context",
+  "rollback_artifact": {
+    "artifact_id": "sha256:ef7b6246d0d6546145d0b0ac24e58021d5d041deecce73e8f0041df480f305b2",
+    "model_name": "lr_feature_basic__realtime__local_context",
+    "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+    "signal_version": "heterogeneous-nonlinear-v2",
+    "artifact_format": "joblib",
+    "artifact_file": "lr_feature_basic__realtime__local_context.joblib",
+    "training_device": "cpu",
+    "serving_device": "cpu",
+    "feature_columns": [0, 1, 2, 3, 5, 8, 9, 6, 7, 10, 13, 18, 19, 20, 21, 22, 23],
+    "feature_names": [
+      "estimated_interest_affinity", "item_quality", "commerce_value",
+      "item_popularity", "same_city", "trust", "commerce_propensity",
+      "realtime_satisfaction_proxy", "realtime_fatigue_proxy",
+      "session_progress", "poi_video_indicator", "post_search_match",
+      "retarget_match", "poi_quality", "inventory_available",
+      "distance_score", "local_interest_affinity"
+    ]
+  },
+  "rollback_artifact_collection": "feature-lr-v3-hash-split",
+  "promoted_by_launch": "F-LR-007",
+  "source_report": {
+    "logical_key": "feature-lr-intent-trigger-ablation-ab",
+    "sha256": "e17f0cd25f40f7232aebe9460bd68ed4aa3e3be4b96a734821513e68ccb6ffa4"
+  },
+  "production_readiness": "hold_synthetic_rates",
+  "evidence_boundary": "Historical V2 simulator release; not current authority or production deployment."
+}

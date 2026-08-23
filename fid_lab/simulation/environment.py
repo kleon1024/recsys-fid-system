@@ -40,6 +40,10 @@ FEATURE_NAMES = (
     "inventory_available",
     "distance_score",
     "local_interest_affinity",
+    "account_age_norm",
+    "historical_activity_norm",
+    "lifecycle_bucket_norm",
+    "region_bucket_norm",
 )
 
 
@@ -197,6 +201,19 @@ class StatefulFeedEnv(gym.Env):
             1.0,
             0.05,
         )
+        age_draw = ((self.user_id * 48_271 + 17) % 10_007) / 10_007.0
+        account_age_days = age_draw * age_draw * 3_650.0
+        historical_activity = min(
+            200.0,
+            (0.15 + 0.85 * self.observed_trust)
+            * np.sqrt(account_age_days + 1.0)
+            * 3.2,
+        )
+        lifecycle = (
+            0 if account_age_days < 7 else
+            1 if account_age_days < 30 else
+            2 if account_age_days < 365 else 3
+        )
         return np.column_stack(
             (
                 affinity,
@@ -236,6 +253,10 @@ class StatefulFeedEnv(gym.Env):
                 self.catalog.inventory_available[self.candidates].astype(np.float32),
                 distance_score.astype(np.float32),
                 local_affinity,
+                np.full(self.config.candidates, account_age_days / 3_650.0),
+                np.full(self.config.candidates, historical_activity / 200.0),
+                np.full(self.config.candidates, lifecycle / 3.0),
+                np.full(self.config.candidates, (self.city // 10) / 9.0),
             )
         ).astype(np.float32)
 

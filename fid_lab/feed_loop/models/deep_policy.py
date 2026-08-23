@@ -15,7 +15,7 @@ import torch
 
 
 MODEL_BUILDERS = {"wide_deep": WDL, "deepfm": DeepFM, "dcnv2": DCNMix}
-DENSE_INDICES = (*range(14), *range(18, 24))
+DENSE_INDICES = (*range(14), *range(18, 28))
 SPARSE_SPECS = (
     ("item_id", 15, 4_096),
     ("author_id", 16, 1_024),
@@ -24,12 +24,16 @@ SPARSE_SPECS = (
 
 
 class FeedDeepPolicy:
-    def __init__(self, name: str, device: str, seed: int = 20260823) -> None:
+    def __init__(
+        self, name: str, device: str, seed: int = 20260823,
+        task: str = "binary",
+    ) -> None:
         if name not in MODEL_BUILDERS:
             raise ValueError(f"unsupported Feed deep model: {name}")
         self.name = name
         self.device = device
         self.seed = seed
+        self.task = task
         sparse = tuple(
             SparseFeat(field, vocabulary, embedding_dim=8)
             for field, _, vocabulary in SPARSE_SPECS
@@ -45,8 +49,11 @@ class FeedDeepPolicy:
             l2_reg_embedding=1e-4,
             l2_reg_dnn=1e-4,
             dnn_dropout=0.15,
+            task=task,
         )
-        self.model.compile("adam", "binary_crossentropy", metrics=["auc"])
+        loss = "binary_crossentropy" if task == "binary" else "mse"
+        metrics = ["auc"] if task == "binary" else []
+        self.model.compile("adam", loss, metrics=metrics)
         self.loss_history: list[float] = []
 
     @staticmethod
@@ -71,8 +78,10 @@ class FeedDeepPolicy:
         validation_labels: np.ndarray,
         epochs: int,
     ) -> None:
+        monitor = "val_auc" if self.task == "binary" else "val_loss"
+        mode = "max" if self.task == "binary" else "min"
         callback = EarlyStopping(
-            monitor="val_auc", patience=2, mode="max", restore_best_weights=True
+            monitor=monitor, patience=2, mode=mode, restore_best_weights=True
         )
         with redirect_stdout(io.StringIO()):
             history = self.model.fit(
@@ -101,7 +110,7 @@ class FeedDeepPolicy:
         with TemporaryDirectory() as directory:
             path = Path(directory) / f"{self.name}.pt"
             torch.save(self.model.state_dict(), path)
-            replay = FeedDeepPolicy(self.name, self.device, self.seed)
+            replay = FeedDeepPolicy(self.name, self.device, self.seed, self.task)
             replay.model.load_state_dict(
                 torch.load(path, map_location=self.device, weights_only=True)
             )

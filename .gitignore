@@ -32,6 +32,16 @@ artifacts/models/*
 !artifacts/models/feature-lr-v5-intent-trigger/
 !artifacts/models/feature-lr-v5-intent-trigger/MANIFEST.sha256
 !artifacts/models/feature-lr-v5-intent-trigger/*.joblib
+!artifacts/models/v3-model-ladder/
+!artifacts/models/v3-model-ladder/MANIFEST.sha256
+!artifacts/models/v3-model-ladder/*.joblib
+!artifacts/models/v3-model-ladder/*.json
+!artifacts/models/v3-model-ladder/*.pt
+!artifacts/models/v3-multitask-stay-v2/
+!artifacts/models/v3-multitask-stay-v2/*.pt
+!artifacts/models/v3-multitask-stay-v2/MANIFEST.sha256
 !artifacts/releases/
 !artifacts/releases/*.json
+!artifacts/releases/historical/
+!artifacts/releases/historical/*.json
 checkpoints/

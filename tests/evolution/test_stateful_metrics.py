@@ -251,7 +251,7 @@ class GroupedAUCTest(unittest.TestCase):
             config, generator, torch.device("cpu"), state, catalog, step=0
         )
         features = build_tensor_features(config, user_ids, state, candidates, 0)
-        self.assertEqual(features.shape, (4, 5, 24))
+        self.assertEqual(features.shape, (4, 5, 28))
         self.assertTrue(torch.isfinite(features).all())
 
     def test_tensor_launch_uses_unified_lt_not_unexchanged_quality(self):

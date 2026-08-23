@@ -1,0 +1,71 @@
+{
+  "schema": "v3-request-candidate-log-v1",
+  "storage_root": "artifacts/datasets/v3-request-log",
+  "config": {
+    "users": 50000,
+    "steps": 24,
+    "batch_users": 25000,
+    "epsilon": 0.2,
+    "sequence_length": 24,
+    "seed": 20260823,
+    "device": "cuda:0"
+  },
+  "authority_bundle_id": "sha256:0aa4baa95637e0a21eac1feccb9a75f17d796ff61d83e975ddb6cc232add68de",
+  "label_names": [
+    "play",
+    "play_3s",
+    "stay_seconds",
+    "play_completion_ratio",
+    "complete_play",
+    "long_view",
+    "quality_long_view",
+    "like",
+    "negative_feedback",
+    "anchor_click",
+    "poi_detail",
+    "poi_favorite",
+    "conversion",
+    "returned_next_session",
+    "accepted_commercialization"
+  ],
+  "evaluation_value_names": [
+    "lt_stay_component",
+    "lt_active_day_component",
+    "lt_accepted_commercialization_component",
+    "lt_total_evaluation_only"
+  ],
+  "training_contract": {
+    "primitive_labels_only": true,
+    "lt_total_is_training_label": false,
+    "returned_next_session_requires_delayed_maturity": true,
+    "evaluation_values_are_ab_outcomes_not_ranker_targets": true
+  },
+  "sequence_fields": [
+    "topic_norm",
+    "stay_norm",
+    "long_view",
+    "quality_long_view",
+    "like",
+    "negative_feedback",
+    "anchor_click",
+    "conversion"
+  ],
+  "candidate_label_contract": "only exposed candidate has mask=1",
+  "tables": {
+    "train": {
+      "path": "train.pt",
+      "requests": 709644,
+      "sha256": "d91c62947e9bda44a891f797aa194bb58a519ca0e68347c34d0aa79e492f9fe9"
+    },
+    "validation": {
+      "path": "validation.pt",
+      "requests": 219377,
+      "sha256": "90c6b7d05e8271d1f39090558d78d64dada524257bd2701d7c3cf391e8f7354f"
+    },
+    "test": {
+      "path": "test.pt",
+      "requests": 170025,
+      "sha256": "e59861397fb390ff165136d99733c9e961dc119ad509b981667345e3678056ff"
+    }
+  }
+}

@@ -1,113 +1,157 @@
 {
-  "schema_version": "simulated-feed-release-v1",
-  "environment": "synthetic_simulator",
-  "active_control_key": "basic__realtime__local_context__category_hash",
-  "active_control_artifact": {
-    "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
-    "model_name": "lr_feature_basic__realtime__local_context__category_hash",
-    "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
-    "signal_version": "heterogeneous-nonlinear-v2",
-    "artifact_format": "joblib",
-    "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
-    "training_device": "cpu",
-    "serving_device": "cpu",
-    "feature_columns": [
-      0,
-      1,
-      2,
-      3,
-      5,
-      8,
-      9,
-      6,
-      7,
-      10,
-      13,
-      18,
-      19,
-      20,
-      21,
-      22,
-      23,
-      17
-    ],
-    "feature_names": [
-      "estimated_interest_affinity",
-      "item_quality",
-      "commerce_value",
-      "item_popularity",
-      "same_city",
-      "trust",
-      "commerce_propensity",
-      "realtime_satisfaction_proxy",
-      "realtime_fatigue_proxy",
-      "session_progress",
-      "poi_video_indicator",
-      "post_search_match",
-      "retarget_match",
-      "poi_quality",
-      "inventory_available",
-      "distance_score",
-      "local_interest_affinity",
-      "category_norm"
-    ]
+  "schema_version": "simulated-feed-authority-v3",
+  "environment": "externally_calibrated_synthetic_simulator",
+  "epoch": "v3",
+  "active_control_key": "rule_personalized_v1",
+  "active_bundle_id": "sha256:0aa4baa95637e0a21eac1feccb9a75f17d796ff61d83e975ddb6cc232add68de",
+  "active_bundle": {
+    "model": {
+      "kind": "parameterized_rule",
+      "name": "personalized_rank",
+      "artifact_id": "sha256:83c99d3c44a72bced9a8fec1a6c8ce3c0d89f2ad498ce1e4dbfddf8ace06101c",
+      "sources": [
+        {
+          "path": "fid_lab/feed_loop/tensor_policies.py",
+          "sha256": "cce40d9653f4923bceec4f8c7df6a4b5dddc5ba1ce64e01842511ad131b176bb"
+        },
+        {
+          "path": "fid_lab/feed_loop/tensor_cascade.py",
+          "sha256": "f41165de3de7b2c81f63b07d896359a9b9a1681839ad419d7f81ed96f039e207"
+        }
+      ]
+    },
+    "index": {
+      "version": "multiroute-rrf-coarse-v2",
+      "artifact_id": "sha256:91c56d53898ab4683645beb93c48a984c49179afe5440da4a0e532852b3a1c00",
+      "sources": [
+        {
+          "path": "fid_lab/feed_loop/scale/graph/candidate.py",
+          "sha256": "a7b0a0192316d7d4bb78fa3dfa45e46233fc96964aa32ecaad642dd0d5b7d2d8"
+        },
+        {
+          "path": "fid_lab/feed_loop/scale/tensor_catalog.py",
+          "sha256": "92a529558727a846247abf2fc1351f29d080e7a256d11f15fea580c94d0235b4"
+        }
+      ],
+      "catalog_items": 200000
+    },
+    "feature": {
+      "schema_sha256": "ffdd75784f7606739c691130436d1646c2dfe11ce4b5ea3b01e6c6f390f1f5e0",
+      "artifact_id": "sha256:7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a",
+      "source": {
+        "path": "fid_lab/feed_loop/scale/artifact/features.py",
+        "sha256": "7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a"
+      },
+      "dense_fields": 28
+    },
+    "behavior": {
+      "signal_version": "kuairand-calibrated-v3",
+      "artifact_id": "sha256:48951b607bff61f5adee433753e0ddb1284f767310c1ba5a43fe22b45e9a2f9e",
+      "sources": [
+        {
+          "path": "fid_lab/feed_loop/scale/tensor_engine.py",
+          "sha256": "1e301a2daf02b4c57a928622b17666e8c239a939f3f35b1aec4a920889f59a5a"
+        },
+        {
+          "path": "fid_lab/feed_loop/scale/calibration/behavior.py",
+          "sha256": "0b2848f69eb42cb0a163551ab024ee530e1ff054e74de43ca75748c5ca894e15"
+        },
+        {
+          "path": "fid_lab/value/contracts.py",
+          "sha256": "88595413f423615ecc4e55128477d2fd90c49cf3a167514461943d9c7d9c64b2"
+        },
+        {
+          "path": "reports/calibration/2026-08-23-kuairand-standard-calibration.json",
+          "sha256": "b9ef8b1096b4da4f66404ccccb0c92a5be50b7784bc505b0af1ffe4fcf0040db"
+        }
+      ]
+    }
   },
-  "active_artifact_collection": "feature-lr-v3-hash-split",
-  "rollback_key": "basic__realtime__local_context",
-  "rollback_artifact": {
-    "artifact_id": "sha256:ef7b6246d0d6546145d0b0ac24e58021d5d041deecce73e8f0041df480f305b2",
-    "model_name": "lr_feature_basic__realtime__local_context",
-    "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
-    "signal_version": "heterogeneous-nonlinear-v2",
-    "artifact_format": "joblib",
-    "artifact_file": "lr_feature_basic__realtime__local_context.joblib",
-    "training_device": "cpu",
-    "serving_device": "cpu",
-    "feature_columns": [
-      0,
-      1,
-      2,
-      3,
-      5,
-      8,
-      9,
-      6,
-      7,
-      10,
-      13,
-      18,
-      19,
-      20,
-      21,
-      22,
-      23
+  "rollback_bundle": null,
+  "dataset": {
+    "schema": "v3-request-candidate-log-v1",
+    "storage_root": "artifacts/datasets/v3-request-log",
+    "config": {
+      "users": 50000,
+      "steps": 24,
+      "batch_users": 25000,
+      "epsilon": 0.2,
+      "sequence_length": 24,
+      "seed": 20260823,
+      "device": "cuda:0"
+    },
+    "authority_bundle_id": "sha256:0aa4baa95637e0a21eac1feccb9a75f17d796ff61d83e975ddb6cc232add68de",
+    "label_names": [
+      "play",
+      "play_3s",
+      "stay_seconds",
+      "play_completion_ratio",
+      "complete_play",
+      "long_view",
+      "quality_long_view",
+      "like",
+      "negative_feedback",
+      "anchor_click",
+      "poi_detail",
+      "poi_favorite",
+      "conversion",
+      "returned_next_session",
+      "accepted_commercialization"
     ],
-    "feature_names": [
-      "estimated_interest_affinity",
-      "item_quality",
-      "commerce_value",
-      "item_popularity",
-      "same_city",
-      "trust",
-      "commerce_propensity",
-      "realtime_satisfaction_proxy",
-      "realtime_fatigue_proxy",
-      "session_progress",
-      "poi_video_indicator",
-      "post_search_match",
-      "retarget_match",
-      "poi_quality",
-      "inventory_available",
-      "distance_score",
-      "local_interest_affinity"
-    ]
+    "evaluation_value_names": [
+      "lt_stay_component",
+      "lt_active_day_component",
+      "lt_accepted_commercialization_component",
+      "lt_total_evaluation_only"
+    ],
+    "training_contract": {
+      "primitive_labels_only": true,
+      "lt_total_is_training_label": false,
+      "returned_next_session_requires_delayed_maturity": true,
+      "evaluation_values_are_ab_outcomes_not_ranker_targets": true
+    },
+    "sequence_fields": [
+      "topic_norm",
+      "stay_norm",
+      "long_view",
+      "quality_long_view",
+      "like",
+      "negative_feedback",
+      "anchor_click",
+      "conversion"
+    ],
+    "candidate_label_contract": "only exposed candidate has mask=1",
+    "tables": {
+      "train": {
+        "path": "train.pt",
+        "requests": 709644,
+        "sha256": "d91c62947e9bda44a891f797aa194bb58a519ca0e68347c34d0aa79e492f9fe9"
+      },
+      "validation": {
+        "path": "validation.pt",
+        "requests": 219377,
+        "sha256": "90c6b7d05e8271d1f39090558d78d64dada524257bd2701d7c3cf391e8f7354f"
+      },
+      "test": {
+        "path": "test.pt",
+        "requests": 170025,
+        "sha256": "e59861397fb390ff165136d99733c9e961dc119ad509b981667345e3678056ff"
+      }
+    },
+    "manifest_sha256": "88e0cbef072bde9560a9c415f835b0b124eb0e9b5ffca13eba83c56233d7308e"
   },
-  "rollback_artifact_collection": "feature-lr-v3-hash-split",
-  "promoted_by_launch": "F-LR-007",
   "source_report": {
-    "logical_key": "feature-lr-intent-trigger-ablation-ab",
-    "sha256": "e17f0cd25f40f7232aebe9460bd68ed4aa3e3be4b96a734821513e68ccb6ffa4"
+    "path": "reports/launches/2026-08-23-feed-calibrated-v3-1m-gpu.json",
+    "sha256": "150e76c2215cbf9db0ad7e6ee362c267c7d9b5331014a9f62cf2f8b6856d97e3"
   },
-  "production_readiness": "hold_synthetic_rates",
-  "evidence_boundary": "This is simulator release state, not a production deployment."
+  "historical_releases": [
+    {
+      "epoch": "v2",
+      "status": "historical_not_serving_authority",
+      "path": "artifacts/releases/historical/simulated-feed-control-v2.json",
+      "sha256": "b0ac9a075e9de10136dc495b70be2587105c314ed75b8db833ea5d7664cf4fa8"
+    }
+  ],
+  "production_readiness": "synthetic_research_only",
+  "evidence_boundary": "V3 is the current simulator authority; it is not a production deployment."
 }

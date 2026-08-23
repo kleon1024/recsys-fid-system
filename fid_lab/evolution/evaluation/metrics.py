@@ -40,18 +40,20 @@ def grouped_auc(
     auc_weight = 0.0
     eligible_records = 0
     eligible_groups = 0
-    unique_groups = np.unique(group_ids)
-    for group in unique_groups:
-        mask = group_ids == group
-        group_labels = labels[mask]
+    order = np.argsort(group_ids, kind="stable")
+    sorted_groups = group_ids[order]
+    boundaries = np.flatnonzero(sorted_groups[1:] != sorted_groups[:-1]) + 1
+    slices = np.split(order, boundaries)
+    for indices in slices:
+        group_labels = labels[indices]
         if np.unique(group_labels).size < 2:
             continue
-        records = int(mask.sum())
-        auc_weight += float(roc_auc_score(group_labels, scores[mask])) * records
+        records = len(indices)
+        auc_weight += float(roc_auc_score(group_labels, scores[indices])) * records
         eligible_records += records
         eligible_groups += 1
     total_records = len(labels)
-    total_groups = len(unique_groups)
+    total_groups = len(slices)
     result = GroupedAUC(
         value=auc_weight / eligible_records if eligible_records else None,
         total_groups=total_groups,

@@ -116,39 +116,11 @@ def stage_diagnostics(candidates, choice, fine_choice, coarse_survives):
     }
 
 
-def select_candidate(policy, user_ids, state, candidates, device, step, config=None):
-    if hasattr(policy, "select_candidate"):
-        if config is None:
-            raise ValueError("artifact policy requires the tensor config")
-        return policy.select_candidate(
-            user_ids, state, candidates, device, step, config
-        )
-    score, observed_affinity = _fine_score(
-        policy, state["eligible"], user_ids, state, candidates
-    )
-    coarse_mask, coarse_keep = _coarse_mask(
-        policy, observed_affinity, candidates
-    )
-    score = score.masked_fill(~coarse_mask, -1e9)
-    fine_choice = score.argmax(dim=1)
-    fine_scores = score.clone()
-    audit_coarse_survives = (
-        (candidates["item_ids"] == candidates["audit_oracle_item"][:, None])
-        & coarse_mask
-    ).any(dim=1)
-    if policy.multi_queue:
-        is_live = candidates["content_type"] == 1
-        is_ad = candidates["content_type"] == 2
-        score += is_live * policy.live_weight * candidates["live_value"]
-        score += is_ad * policy.ad_weight * candidates["ad_value"]
-        ad_allowed = (
-            (state["ads_served"] < policy.max_ads_per_session)
-            & ((step - state["last_ad_step"]) > policy.min_ad_gap)
-        )
-        live_allowed = state["live_served"] < policy.max_live_per_session
-        score = score.masked_fill(is_ad & ~ad_allowed[:, None], -1e9)
-        score = score.masked_fill(is_live & ~live_allowed[:, None], -1e9)
-    choice = score.argmax(dim=1)
+def materialize_selected(
+    policy, user_ids, state, candidates, choice, fine_choice, fine_scores,
+    mix_scores, coarse_mask, coarse_keep, device,
+):
+    """Materialize one exposure while preserving every candidate-stage score."""
     batch_index = torch.arange(len(user_ids), device=device)
     names = (
         "topics", "quality", "is_poi", "commerce", "poi_quality", "inventory",
@@ -160,22 +132,23 @@ def select_candidate(policy, user_ids, state, candidates, device, step, config=N
     if "stay_nonlinear" in candidates:
         selected["stay_nonlinear"] = candidates["stay_nonlinear"][batch_index, choice]
     selected["fine_scores"] = fine_scores
-    selected["mix_scores"] = score
+    selected["mix_scores"] = mix_scores
     selected["fine_choice"] = fine_choice
     selected["final_choice"] = choice
     true_affinity = torch.einsum(
         "bkd,bd->bk", candidates["topics"], state["interest"]
     )
     true_feed_utility = true_affinity + 0.45 * candidates["quality"]
-    oracle_choice = true_feed_utility.argmax(dim=1)
     chosen_utility = true_feed_utility[batch_index, choice]
+    audit_coarse_survives = (
+        (candidates["item_ids"] == candidates["audit_oracle_item"][:, None])
+        & coarse_mask
+    ).any(dim=1)
     selected.update(
-        stage_diagnostics(
-            candidates, choice, fine_choice, audit_coarse_survives
-        )
+        stage_diagnostics(candidates, choice, fine_choice, audit_coarse_survives)
     )
     selected["coarse_pass_fraction"] = torch.full_like(
-        chosen_utility, coarse_keep / score.shape[1]
+        chosen_utility, coarse_keep / fine_scores.shape[1]
     ) * candidates["coarse_pass_fraction"]
     selected["oracle_regret"] = torch.maximum(
         candidates["merged_oracle_utility"], candidates["audit_oracle_utility"]
@@ -192,3 +165,38 @@ def select_candidate(policy, user_ids, state, candidates, device, step, config=N
             len(user_ids), device=device
         )
     return selected
+
+
+def select_candidate(policy, user_ids, state, candidates, device, step, config=None):
+    if hasattr(policy, "select_candidate"):
+        if config is None:
+            raise ValueError("artifact policy requires the tensor config")
+        return policy.select_candidate(
+            user_ids, state, candidates, device, step, config
+        )
+    score, observed_affinity = _fine_score(
+        policy, state["eligible"], user_ids, state, candidates
+    )
+    coarse_mask, coarse_keep = _coarse_mask(
+        policy, observed_affinity, candidates
+    )
+    score = score.masked_fill(~coarse_mask, -1e9)
+    fine_choice = score.argmax(dim=1)
+    fine_scores = score.clone()
+    if policy.multi_queue:
+        is_live = candidates["content_type"] == 1
+        is_ad = candidates["content_type"] == 2
+        score += is_live * policy.live_weight * candidates["live_value"]
+        score += is_ad * policy.ad_weight * candidates["ad_value"]
+        ad_allowed = (
+            (state["ads_served"] < policy.max_ads_per_session)
+            & ((step - state["last_ad_step"]) > policy.min_ad_gap)
+        )
+        live_allowed = state["live_served"] < policy.max_live_per_session
+        score = score.masked_fill(is_ad & ~ad_allowed[:, None], -1e9)
+        score = score.masked_fill(is_live & ~live_allowed[:, None], -1e9)
+    choice = score.argmax(dim=1)
+    return materialize_selected(
+        policy, user_ids, state, candidates, choice, fine_choice, fine_scores,
+        score, coarse_mask, coarse_keep, device,
+    )
