@@ -765,6 +765,141 @@
         "report_sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
       },
       "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
+    },
+    {
+      "launch_id": "L-LOCAL-SEARCH-RETRIEVAL-001",
+      "surface": "local_search",
+      "stage": "retrieval",
+      "change_type": "local_search_retrieval_evolution",
+      "control": "lexical_geo",
+      "treatment": "semantic_tower",
+      "primary_metric": "query_success_with_platform_lt_and_order_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+        "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+    },
+    {
+      "launch_id": "L-LOCAL-SEARCH-RETRIEVAL-002",
+      "surface": "local_search",
+      "stage": "retrieval",
+      "change_type": "local_search_retrieval_evolution",
+      "control": "lexical_geo",
+      "treatment": "journey_history",
+      "primary_metric": "query_success_with_platform_lt_and_order_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+        "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+    },
+    {
+      "launch_id": "L-LOCAL-SEARCH-RETRIEVAL-003",
+      "surface": "local_search",
+      "stage": "retrieval",
+      "change_type": "local_search_retrieval_evolution",
+      "control": "lexical_geo",
+      "treatment": "retarget_full",
+      "primary_metric": "query_success_with_platform_lt_and_order_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+        "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+    },
+    {
+      "launch_id": "L-LOCAL-SEARCH-FINE-001",
+      "surface": "local_search",
+      "stage": "fine",
+      "change_type": "local_search_fine_evolution",
+      "control": "rule",
+      "treatment": "linear",
+      "primary_metric": "query_success_with_platform_lt_and_order_guardrails",
+      "decision": "pass_all_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+        "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+    },
+    {
+      "launch_id": "L-LOCAL-SEARCH-FINE-002",
+      "surface": "local_search",
+      "stage": "fine",
+      "change_type": "local_search_fine_evolution",
+      "control": "rule",
+      "treatment": "xgboost_pairwise",
+      "primary_metric": "query_success_with_platform_lt_and_order_guardrails",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+        "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+    },
+    {
+      "launch_id": "L-LOCAL-SEARCH-FINE-003",
+      "surface": "local_search",
+      "stage": "fine",
+      "change_type": "local_search_fine_evolution",
+      "control": "linear",
+      "treatment": "wide_deep",
+      "primary_metric": "query_success_with_platform_lt_and_order_guardrails",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+        "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+    },
+    {
+      "launch_id": "L-LOCAL-SEARCH-FINE-004",
+      "surface": "local_search",
+      "stage": "fine",
+      "change_type": "local_search_fine_evolution",
+      "control": "wide_deep",
+      "treatment": "din",
+      "primary_metric": "query_success_with_platform_lt_and_order_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+        "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+    },
+    {
+      "launch_id": "L-LOCAL-SEARCH-FINE-005",
+      "surface": "local_search",
+      "stage": "fine",
+      "change_type": "local_search_fine_evolution",
+      "control": "din",
+      "treatment": "transformer_mmoe",
+      "primary_metric": "query_success_with_platform_lt_and_order_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+        "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+    },
+    {
+      "launch_id": "L-LOCAL-SEARCH-END_TO_END-001",
+      "surface": "local_search",
+      "stage": "end_to_end",
+      "change_type": "local_search_end_to_end_evolution",
+      "control": "lexical_geo_plus_rule",
+      "treatment": "lexical_geo_plus_linear",
+      "primary_metric": "query_success_with_platform_lt_and_order_guardrails",
+      "decision": "pass_all_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+        "report_sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+      },
+      "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
     }
   ],
   "coverage": {
@@ -793,9 +928,9 @@
       "end_to_end": "evidenced"
     },
     "local_search": {
-      "retrieval": "missing",
-      "fine": "missing",
-      "end_to_end": "missing"
+      "retrieval": "evidenced",
+      "fine": "evidenced",
+      "end_to_end": "evidenced"
     },
     "poi_detail": {
       "fine": "missing",
@@ -803,11 +938,11 @@
     }
   },
   "summary": {
-    "records": 51,
-    "passed": 16,
-    "held": 21,
-    "rejected": 14,
-    "missing_cells": 5
+    "records": 60,
+    "passed": 18,
+    "held": 23,
+    "rejected": 19,
+    "missing_cells": 2
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."
 }

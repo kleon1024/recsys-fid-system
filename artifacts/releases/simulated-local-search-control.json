@@ -1,0 +1,64 @@
+{
+  "schema": "simulated-local-search-authority-v1",
+  "active_key": "lexical_geo_plus_linear",
+  "active_bundle_id": "sha256:67a5c4ee92affecc74d6cae35014664c78dd9d8669c92111ee0fc76318e992c9",
+  "active_bundle": {
+    "retrieval_policy": "lexical_geo",
+    "fine_model": "linear",
+    "model_artifact": {
+      "path": "artifacts/models/local-search-request-v1/seed-20260824-linear.pt",
+      "sha256": "42ab55d9dc591d69ce70dd7ae58441dbf5b27d43d70b7b9ad54bb72b5ae5f251"
+    },
+    "model_seed": 20260824,
+    "world_version": "teacher-hidden-local-search-v1",
+    "sources": [
+      {
+        "path": "fid_lab/local_search/contracts.py",
+        "sha256": "097791130ff3385f05de1b0154d1c44f274cadadd3fc816af87c57f98848f309"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/world.py",
+        "sha256": "c201050777ea9e6df6e56537b304ee33355d9e2cba52fb7b75c9a5aac192b6b0"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/retrieval.py",
+        "sha256": "250283fed9ad9388e19496597d3976008301be513e7eed280e8f79f660a7e6b2"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/features.py",
+        "sha256": "4c3dbd3d6ffed4959066043e0e63440842fe63e8840b51544e4bc67d3fc99b78"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/samples.py",
+        "sha256": "3baa7faced101ce398cb6fab563c3afcb76872b63b0799f95cc964bb8eb02fc9"
+      },
+      {
+        "path": "fid_lab/local_search/simulation/response.py",
+        "sha256": "c51128e6651993198a5618524021e1f80c00e94ba59ac65815a454f7d63266ad"
+      },
+      {
+        "path": "fid_lab/local_search/models/retrieval.py",
+        "sha256": "ad6050c74cc4fbe7873c6698fc8d8a902c2c39556ce97d498f4a9d4600b4ac81"
+      },
+      {
+        "path": "fid_lab/local_search/models/architectures.py",
+        "sha256": "7e915814b3835e938d6a4240635d908cecaca189143b723550db024af02de5a5"
+      },
+      {
+        "path": "fid_lab/local_search/models/ranking.py",
+        "sha256": "aa90554518d6e3eabf2b41d762fb3aada2157c8d283eeef2bfec6e77650e0203"
+      },
+      {
+        "path": "fid_lab/local_search/launch.py",
+        "sha256": "225a0476fde37d638aff6dc5fd6ac7585f328343720fd59f158eeb8a378b047e"
+      }
+    ]
+  },
+  "rollback_key": "lexical_geo_plus_rule",
+  "source_report": {
+    "path": "reports/launches/2026-08-24-local-search-request-launch-review.json",
+    "sha256": "8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7"
+  },
+  "production_readiness": "hold_external_query_and_transaction_validation",
+  "evidence_boundary": "Teacher-hidden synthetic Local Search journeys with position-biased exposure, closed/open-loop order observability, and platform LT components. External query, POI, and randomized search logs are still required for production authority."
+}

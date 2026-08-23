@@ -163,6 +163,7 @@ def check_model_artifacts() -> None:
         "artifacts/models/v3-model-ladder/MANIFEST.sha256",
         "artifacts/models/poi-posting-request-v1/MANIFEST.sha256",
         "artifacts/models/feed-posting-request-v1/MANIFEST.sha256",
+        "artifacts/models/local-search-request-v1/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
@@ -278,7 +279,9 @@ def check_simulator_world_release() -> None:
         raise SystemExit("\n".join(failures))
 
 
-def _check_simulated_surface_release(relative, schema, label) -> None:
+def _check_simulated_surface_release(
+    relative, schema, label, expected_readiness
+) -> None:
     release = json.loads((ROOT / relative).read_text())
     failures = []
     if release.get("schema") != schema:
@@ -296,9 +299,7 @@ def _check_simulated_surface_release(relative, schema, label) -> None:
             failures.append(f"{label} resource missing: {resource['path']}")
         elif sha256(path.read_bytes()).hexdigest() != resource["sha256"]:
             failures.append(f"{label} resource hash mismatch: {resource['path']}")
-    if release["production_readiness"] != (
-        "hold_external_creator_and_supply_validation"
-    ):
+    if release["production_readiness"] != expected_readiness:
         failures.append(f"{label} release overclaims production readiness")
     if failures:
         raise SystemExit("\n".join(failures))
@@ -308,10 +309,17 @@ def check_simulated_surface_releases() -> None:
     _check_simulated_surface_release(
         "artifacts/releases/simulated-poi-posting-control.json",
         "simulated-poi-posting-authority-v1", "POI posting",
+        "hold_external_creator_and_supply_validation",
     )
     _check_simulated_surface_release(
         "artifacts/releases/simulated-feed-posting-control.json",
         "simulated-feed-posting-authority-v1", "Feed posting",
+        "hold_external_creator_and_supply_validation",
+    )
+    _check_simulated_surface_release(
+        "artifacts/releases/simulated-local-search-control.json",
+        "simulated-local-search-authority-v1", "Local Search",
+        "hold_external_query_and_transaction_validation",
     )
 
 

@@ -297,6 +297,29 @@ def _feed_posting_stage_records(root: Path) -> list[dict]:
     return records
 
 
+def _local_search_stage_records(root: Path) -> list[dict]:
+    relative = "reports/launches/2026-08-24-local-search-request-launch-review.json"
+    report, evidence = _load(root, relative)
+    counters = {stage: 0 for stage in ("retrieval", "fine", "end_to_end")}
+    records = []
+    for row in report["launches"]:
+        stage = row["stage"]
+        counters[stage] += 1
+        records.append(_record(
+            launch_id=f"L-LOCAL-SEARCH-{stage.upper()}-{counters[stage]:03d}",
+            surface="local_search",
+            stage=stage,
+            change_type=f"local_search_{stage}_evolution",
+            control=row["control"],
+            treatment=row["treatment"],
+            decision=row["decision"],
+            evidence=evidence,
+            primary_metric="query_success_with_platform_lt_and_order_guardrails",
+            evidence_boundary=report["evidence_boundary"],
+        ))
+    return records
+
+
 def build_launch_ledger(root: Path) -> dict:
     records = [
         *_main_feed_policy_records(root),
@@ -309,6 +332,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_poi_distribution_stage_records(root),
         *_poi_posting_stage_records(root),
         *_feed_posting_stage_records(root),
+        *_local_search_stage_records(root),
     ]
     identifiers = [record["launch_id"] for record in records]
     if len(identifiers) != len(set(identifiers)):

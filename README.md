@@ -293,6 +293,13 @@ skew, and weighted-logit calibration failures. Calibrated Linear passes all thre
 seeds; W&D, DIN, and Transformer+MMoE have higher offline AUC but remain held
 because incremental publish/LT is not stable.
 
+The [Local Search request ladder](docs/launch-reviews/2026-08-24-local-search-request-ladder.md)
+adds a joint Search/Recommendation journey with Lexical, Geo, learned Two-Tower,
+History, and Retarget routes; position-biased exposure; closed/open-loop orders;
+IPS/listwise training; XGBoost CUDA; and adjacent model Launch Reviews. Learned
+retrieval raises audit recall but is rejected on query success and LT. Linear is
+promoted; W&D, DIN, and Transformer+MMoE stop at their adjacent online gates.
+
 The [model evolution laboratory](docs/architecture/model-evolution.md) compares
 mature open-source LR, XGBoost, WDL, DeepFM, DCN-Mix, DIN, MMoE, and PLE
 implementations on one synthetic distribution. It also adds trained Semantic-ID

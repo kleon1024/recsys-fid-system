@@ -15,7 +15,8 @@ class LaunchLedgerTest(unittest.TestCase):
         self.assertEqual(ledger["coverage"]["main_feed"]["coarse"], "evidenced")
         self.assertEqual(ledger["coverage"]["main_feed"]["fine"], "evidenced")
         self.assertEqual(ledger["coverage"]["feed_posting"]["fine"], "evidenced")
-        self.assertEqual(ledger["coverage"]["local_search"]["fine"], "missing")
+        self.assertEqual(ledger["coverage"]["local_search"]["fine"], "evidenced")
+        self.assertEqual(ledger["coverage"]["poi_detail"]["fine"], "missing")
         self.assertGreater(ledger["summary"]["missing_cells"], 0)
         for record in ledger["records"]:
             self.assertTrue((root / record["evidence"]["report"]).exists())

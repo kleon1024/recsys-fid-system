@@ -43,6 +43,10 @@ artifacts/models/*
 !artifacts/models/feed-posting-request-v1/
 !artifacts/models/feed-posting-request-v1/MANIFEST.sha256
 !artifacts/models/feed-posting-request-v1/*.pt
+!artifacts/models/local-search-request-v1/
+!artifacts/models/local-search-request-v1/MANIFEST.sha256
+!artifacts/models/local-search-request-v1/*.pt
+!artifacts/models/local-search-request-v1/*.json
 !artifacts/releases/
 !artifacts/releases/*.json
 !artifacts/releases/historical/

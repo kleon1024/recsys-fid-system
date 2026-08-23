@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-LOCAL-SEARCH-REQUEST-001](2026-08-24-local-search-request-ladder.md) | Local Search retrieval/fine/end-to-end ladder | Retain Lexical+Geo; promote calibrated Linear |
 | [L-FEED-POST-REQUEST-001](2026-08-24-feed-posting-request-ladder.md) | Feed posting candidate/fine/end-to-end ladder | Promote calibrated Linear; hold new routes and deeper models |
 | [L-POI-POST-REQUEST-001](2026-08-24-poi-posting-request-ladder.md) | POI posting candidate/fine/end-to-end ladder | Promote History recall + W&D in simulator; external supply hold |
 | [L-POI-STAGE-001](2026-08-24-poi-distribution-stage-ladder.md) | POI recall/coarse/fine/mix ladder | Promote retarget recall only |

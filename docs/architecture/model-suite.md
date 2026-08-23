@@ -26,10 +26,11 @@ flowchart LR
     Train --> Heavy
 ```
 
-## Six separate surfaces
+## Seven separate surfaces
 
 | Surface | Candidate | Model family | Primary labels |
 |---|---|---|---|
+| Local Search | lexical, geographic, Two-Tower, history, and retarget POIs | IPS/listwise Linear, XGBoost pairwise, W&D, DIN, Transformer+MMoE | click, detail, save, closed/open-loop order |
 | POI posting | POI for one draft | materialized content vector + sparse features + MMoE | select, entire-space select-and-publish, independent relevance |
 | POI video Feed | POI-anchored video extracted from main Feed | multi-route cascade + behavior-sequence Transformer + four-expert MMoE | long view, anchor click, detail view, favorite, order, negative feedback |
 | POI map/detail | nearby and intent-matched POI | geography-heavy Wide & Deep | detail click, route, save, order |
@@ -38,6 +39,11 @@ flowchart LR
 | Review | eligible review/comment on current POI | offline NLP signals plus lightweight task heads | expand, dwell, helpful, report |
 
 The models do not share weights. They share contracts for FID encoding, event identity, point-in-time joins, version manifests, experimentation, and consistency checks.
+
+Local Search additionally enforces a two-phase dependency: retrieval Launch
+Reviews finish first, accepted candidates generate fresh exposure, and only then
+are rankers retrained. This prevents a ranker trained on Lexical+Geo candidates
+from being evaluated as though it had learned the new Two-Tower distribution.
 
 ## MMoE mechanics
 
