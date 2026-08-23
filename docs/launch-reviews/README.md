@@ -8,7 +8,8 @@ boundary that prevents it from being presented as company production evidence.
 |---|---|---|
 | [L-TENSOR-003](2026-08-23-main-feed-suite/l-tensor-003.md) | Published artifact on GPU tensor engine | Engine pass; model rejected by quality guardrail |
 | [L-SIMULATOR-002](2026-08-23-main-feed-suite/l-simulator-002.md) | Nonlinear DGP and sample-scale audit | Accept offline lane; no serving change |
-| [L-MODEL-001](2026-08-23-main-feed-suite/l-model-001.md) | Fine-rank model | Reject advanced candidates; LR remains authority |
+| [L-SIMULATOR-004](2026-08-23-main-feed-suite/l-simulator-004.md) | Externally calibrated behavior kernel | Accept V3 research epoch; hold Local launch |
+| [L-MODEL-001](2026-08-23-main-feed-suite/l-model-001.md) | Fine-rank model | Historical result; V3 rerun required |
 | [L-FEATURE-001](2026-08-23-main-feed-suite/l-feature-001.md) | Feature | Hold |
 | [L-STRATEGY-001](2026-08-23-main-feed-suite/l-strategy-001.md) | Strategy | Hold |
 | [L-ARCH-001](2026-08-23-main-feed-suite/l-arch-001.md) | Architecture | Pass parity and performance |

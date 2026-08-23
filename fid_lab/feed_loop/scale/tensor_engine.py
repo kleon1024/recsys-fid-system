@@ -9,6 +9,8 @@ import torch
 
 from ...simulation.contracts import DEFAULT_SEARCH_EVENT_RATE
 from ...value import BUSINESS_TREE_WEIGHTS, DEFAULT_LT_CONFIG
+from .artifact.features import build_tensor_features, nonlinear_stay_adjustment
+from .calibration.behavior import response_parameters
 from .lt_exchange import (
     accumulate_lt_exchange_components,
 )
@@ -68,6 +70,7 @@ class TensorFeedConfig:
         if self.signal_version not in {
             "industrial-cross-sequence-v1",
             "heterogeneous-nonlinear-v2",
+            "kuairand-calibrated-v3",
         }:
             raise ValueError(f"unsupported signal version: {self.signal_version}")
         if not 0.0 <= self.search_event_rate <= 1.0:
@@ -92,19 +95,23 @@ def _sync(device: torch.device) -> None:
 
 
 def _sample_response(
-    user_ids, step, seed, active, fatigue, satisfaction, affinity, quality,
+    user_ids, step, seed, signal_version, active, fatigue, satisfaction, affinity, quality,
     duration=None, stay_adjustment=None,
 ):
+    parameters = response_parameters(signal_version)
     users = len(active)
     if duration is None:
         duration = 3.0 + 177.0 * uniform(user_ids, step, 30, seed)
     play_draw = (
         uniform(user_ids, step, 31, seed)
-        < torch.sigmoid(3.0 + 0.4 * affinity - 0.6 * fatigue)
+        < torch.sigmoid(
+            parameters.play_intercept + 0.4 * affinity - 0.6 * fatigue
+        )
     )
     played = play_draw & active
     stay_log_mean = (
-        0.45 + 1.7 * affinity + 0.55 * quality + 0.20 * satisfaction - fatigue
+        parameters.stay_intercept
+        + 1.7 * affinity + 0.55 * quality + 0.20 * satisfaction - fatigue
     )
     if stay_adjustment is not None:
         stay_log_mean += stay_adjustment
@@ -112,18 +119,24 @@ def _sample_response(
         duration,
         torch.exp(
             stay_log_mean
-            + 0.65 * normal(user_ids, step, 32, seed)
+            + parameters.stay_noise * normal(user_ids, step, 32, seed)
         ),
     ) * played
-    long_view = (stay >= torch.minimum(torch.full_like(stay, 10.0), duration)) & active
+    long_threshold = 18.0 if signal_version == "kuairand-calibrated-v3" else 10.0
+    long_view = (
+        stay >= torch.minimum(torch.full_like(stay, long_threshold), duration)
+    ) & active
     hlt = (stay >= torch.minimum(torch.full_like(stay, 30.0), duration)) & active
     like = (
         uniform(user_ids, step, 34, seed)
-        < torch.sigmoid(-4.2 + 1.8 * affinity + 0.8 * quality)
+        < torch.sigmoid(parameters.like_intercept + 1.8 * affinity + 0.8 * quality)
     ) & played
     negative = (
         uniform(user_ids, step, 35, seed)
-        < torch.sigmoid(-5.0 - 1.7 * affinity - 0.8 * quality + 2.0 * fatigue)
+        < torch.sigmoid(
+            parameters.negative_intercept
+            - 1.7 * affinity - 0.8 * quality + 2.0 * fatigue
+        )
     ) & active
     return stay, long_view, hlt, like, negative, played, play_draw
 
@@ -351,6 +364,11 @@ def _candidate_batch(config, generator, device, state, catalog, step):
         "author": catalog.author[item_ids],
     }
     batch.update(graph)
+    if config.signal_version == "kuairand-calibrated-v3":
+        features = build_tensor_features(
+            config, state["user_ids"], state, batch, step
+        )
+        batch["stay_nonlinear"] = nonlinear_stay_adjustment(features)
     return batch
 
 
@@ -364,6 +382,7 @@ def _sample_step(config, policy, generator, device, state, selected, step):
         state["user_ids"],
         step,
         config.seed,
+        config.signal_version,
         state["active"],
         state["fatigue"],
         state["satisfaction"],

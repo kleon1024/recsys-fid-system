@@ -157,6 +157,8 @@ def select_candidate(policy, user_ids, state, candidates, device, step, config=N
         "popularity", "author", "route_bits", "recall_score", "coarse_score",
     )
     selected = {name: candidates[name][batch_index, choice] for name in names}
+    if "stay_nonlinear" in candidates:
+        selected["stay_nonlinear"] = candidates["stay_nonlinear"][batch_index, choice]
     selected["fine_scores"] = fine_scores
     selected["mix_scores"] = score
     selected["fine_choice"] = fine_choice

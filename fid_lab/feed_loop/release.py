@@ -13,6 +13,9 @@ from typing import Mapping
 PASS_DECISION = "pass_unified_lt_nonnegative"
 
 RELEASE_RESOURCE_PATHS = {
+    "feed-calibrated-v3-ab": (
+        "reports/launches/2026-08-23-feed-calibrated-v3-1m-gpu.json"
+    ),
     "feed-digital-twin-v2-ab": (
         "reports/launches/2026-08-23-feed-digital-twin-v2-1m-gpu.json"
     ),
@@ -34,6 +37,9 @@ RELEASE_RESOURCE_PATHS = {
         "artifacts/models/feature-lr-v4-local-ablation"
     ),
     "feature-lr-v5-intent-trigger": "artifacts/models/feature-lr-v5-intent-trigger",
+    "kuairand-standard-calibration": (
+        "reports/calibration/2026-08-23-kuairand-standard-calibration.json"
+    ),
 }
 
 

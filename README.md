@@ -11,8 +11,9 @@ An executable reference architecture and public outsourcing RFP for an industria
 `LR` is ambiguous in recommendation work. This repository writes **logistic
 regression** for the model and **Launch Review** for the release record.
 
-The current stateful Feed still serves logistic regression. That is a measured
-decision, not a claim that neural ranking cannot work: the original simulator
+The legacy stateful Feed control still serves logistic regression. That is not
+a current V3 model-selection result and does not claim that neural ranking
+cannot work: the original simulator
 was nearly linear, the actual policy consumed only 24 dense features, and the
 training split contained about 20,000 rows. A versioned nonlinear DGP run on an
 RTX 4090 shows the missing capacity effect: at ten million main impressions and
@@ -49,6 +50,16 @@ all stage-attribution counts identical and changes checked metrics by at most
 2.2e-8, while throughput rises from 1.36M to 2.88M requests/s. The selected
 200K batch uses 2.67GB; 400K uses 5.30GB but is slower, so additional memory is
 not treated as a goal by itself.
+
+The current research authority is now the externally calibrated V3 behavior
+kernel. A public KuaiRand-Pure snapshot contributes 1,436,609 standard-policy
+interactions; raw data stays outside Git and exact input hashes are retained in
+the calibration report. V3 fixes a counter-RNG defect that correlated event
+streams above 0.998 and moves nonlinear response truth out of the policy class.
+At one million users, play and stay align within 1% of the public marginals;
+three-second play, long view, like, and hate retain explicit calibration error.
+The first V3 Local intent launch remains Hold at unified LT -0.162% with an
+interval crossing zero. See [L-SIMULATOR-004](docs/launch-reviews/2026-08-23-main-feed-suite/l-simulator-004.md).
 
 The Feature LR release ladder now trains every legal combination of four atomic
 feature proposals on one immutable sample snapshot. Each A/B compares a proposal
@@ -404,3 +415,6 @@ The generated data contains user and item latent effects plus country-category, 
 - [Viking AI Search documentation](https://docs.byteplus.com/en/docs/viking-aisearch/Recommended_Input): public product boundary for recommendation input, recall strategies, merging, filtering, deduplication, reranking, and diversity.
 - [SARDINE](https://github.com/naver/sardine): packaged Gymnasium runtime for dynamic recommendation environments.
 - [KuaiSim](https://proceedings.neurips.cc/paper_files/paper/2023/hash/8c7f8f98f9a8f5650922dd4545254f28-Abstract.html): request-level, session-level, and cross-session simulator evaluation protocol.
+- [KuaiRand](https://github.com/chongminggao/KuaiRand): public short-video logs with 12 feedback signals and random-intervention data; this repository checks in only hash-bound aggregate calibration evidence.
+- [RecSim NG](https://google-research.github.io/recsim_ng/): modular probabilistic ecosystem simulation and vectorized accelerator execution.
+- [TorchRec](https://meta-pytorch.org/torchrec/overview.html): mature jagged-feature, embedding-sharding, and distributed recommendation training primitives.

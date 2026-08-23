@@ -33,10 +33,13 @@ def _selected_candidate(
     selected["mix_scores"] = scores
     selected["fine_choice"] = choice
     selected["final_choice"] = choice
-    selected["stay_nonlinear"] = (
-        nonlinear_stay_adjustment(features[batch, choice])
-        + V2_STAY_LOG_INTERCEPT_CALIBRATION
-    )
+    if "stay_nonlinear" in candidates:
+        selected["stay_nonlinear"] = candidates["stay_nonlinear"][batch, choice]
+    else:
+        selected["stay_nonlinear"] = (
+            nonlinear_stay_adjustment(features[batch, choice])
+            + V2_STAY_LOG_INTERCEPT_CALIBRATION
+        )
     true_affinity = torch.einsum("bkd,bd->bk", candidates["topics"], state["interest"])
     true_utility = true_affinity + 0.45 * candidates["quality"]
     chosen_utility = true_utility[batch, choice]

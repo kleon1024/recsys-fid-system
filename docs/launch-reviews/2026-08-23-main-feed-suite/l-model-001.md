@@ -4,11 +4,12 @@ Gate note: this record preserves a historical pre-unified-LT decision. Its
 offline and trajectory evidence remains valid, but the old proxy-metric gate is
 superseded by the unified exchanged-LT authority.
 
-Decision: keep LR. W&D, DeepFM, DCNv2, and MMoE are all rejected in this
-synthetic launch. Model complexity is not a launch criterion.
+Historical decision: keep LR in the legacy CPU epoch. This record cannot select
+the V3 model authority; W&D, DeepFM, DCNv2, and MMoE require a same-dataset V3
+rerun. Model complexity is not a launch criterion.
 
-结论：保留 LR。本次合成实验中 W&D、DeepFM、DCNv2 和 MMoE 均被拒绝；模型复杂度
-不是上线条件。
+历史结论：旧 CPU epoch 保留 LR。该记录不能决定 V3 模型权威；W&D、DeepFM、
+DCNv2 和 MMoE 必须在同一份 V3 request-level 数据上重跑。
 
 ## Authority / 权威边界
 

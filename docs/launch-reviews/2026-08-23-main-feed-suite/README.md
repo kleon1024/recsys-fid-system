@@ -1,6 +1,9 @@
 # Main Feed Independent Launch Reviews
 
-All launches use the same immutable evidence JSON, common-random shadow, stable user-level A/B, and multi-metric gate.
+Launches within one evidence epoch use immutable evidence JSON, common-random
+shadow, stable user-level A/B, and the same gate. V1, V2, and V3 results are not
+directly comparable. V3 is the current research epoch; earlier records are
+historical diagnostics.
 
 | Launch | Category | Decision | Primary lift |
 |---|---|---|---:|
@@ -11,7 +14,7 @@ All launches use the same immutable evidence JSON, common-random shadow, stable 
 | [L-VALUE-001](l-value-001.md) | business_value | hold_underpowered_or_neutral | -0.1208% |
 | [L-LONGTERM-001](l-longterm-001.md) | long_term_value | hold_underpowered_or_neutral | -0.0178% |
 | [L-CHAIN-001](l-chain-001.md) | chain_diagnosis | pass_primary_metric | +0.1387% |
-| [L-MODEL-001](l-model-001.md) | fine_rank_model | reject all advanced candidates | LR remains authority |
+| [L-MODEL-001](l-model-001.md) | fine_rank_model | historical; V3 rerun required | LR is only the legacy control |
 | [L-ONLINE-001](l-online-001.md) | streaming_training | reject_negative_feedback | CPU correctness only; GPU scale required |
 | [L-LOCAL-SUPPLY-001](l-local-supply-001.md) | posting_supply | pass to switchback only | 2 → 5 published videos; interference remains |
 | [L-LOCAL-VALUE-001](l-local-value-001.md) | local_value_tree | hold_quality_long_view_risk | No known Local or LT increment |
@@ -23,6 +26,7 @@ All launches use the same immutable evidence JSON, common-random shadow, stable 
 | [L-LOCAL-REVERSE-004](l-local-reverse-004.md) | reverse_holdout | retain staged launch and holdout | LT +0.282%, retention component noisy |
 | [L-TENSOR-003](l-tensor-003.md) | published_model | pass_unified_lt_nonnegative | LT +0.265%, 95% CI lower bound +0.00393 |
 | [L-SIMULATOR-003](l-simulator-003.md) | GPU candidate graph | accept simulator; hold Local launch | 2.69M req/s; LT -0.0172%, CI crosses zero |
+| [L-SIMULATOR-004](l-simulator-004.md) | calibrated behavior kernel | accept V3; hold Local launch | LT -0.162%, CI crosses zero |
 | [F-LR-001](l-feature-lr-001.md) | sequence features | hold_unified_lt_uncertain | LT -0.189%, CI crosses zero |
 | [F-LR-002](l-feature-lr-002.md) | realtime features | pass_unified_lt_nonnegative | LT +1.204%, promoted |
 | [F-LR-003](l-feature-lr-003.md) | Local context | pass_unified_lt_nonnegative | LT +3.215%, promoted |

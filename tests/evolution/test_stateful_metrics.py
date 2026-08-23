@@ -19,6 +19,7 @@ from fid_lab.feed_loop.scale.tensor_engine import (
     combine_tensor_trigger_ab,
     run_tensor_feed,
 )
+from fid_lab.feed_loop.scale.graph.random import uniform
 from fid_lab.feed_loop.scale.tensor_catalog import build_tensor_catalog
 from fid_lab.feed_loop.scale.artifact.cli import _launch_decision
 from fid_lab.feed_loop.scale.artifact.features import build_tensor_features
@@ -31,6 +32,16 @@ from fid_lab.simulation.features import campaign_candidate_sets
 
 
 class GroupedAUCTest(unittest.TestCase):
+    def test_counter_rng_event_streams_are_decorrelated(self):
+        user_ids = torch.arange(20_000)
+        draws = torch.stack(
+            [uniform(user_ids, 3, stream, 20260823) for stream in (31, 32, 34, 35)]
+        )
+        correlations = torch.corrcoef(draws)
+        off_diagonal = correlations[~torch.eye(4, dtype=torch.bool)]
+        self.assertLess(float(off_diagonal.abs().max()), 0.03)
+        self.assertLess(float((draws.mean(dim=1) - 0.5).abs().max()), 0.01)
+
     def test_search_trigger_cohort_is_sparse_and_projects_to_all_users(self):
         config = TensorFeedConfig(
             users=2_000,

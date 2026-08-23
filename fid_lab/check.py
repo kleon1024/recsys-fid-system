@@ -94,6 +94,7 @@ def check_report_manifests() -> None:
     for manifest_name in (
         "reports/launches/MANIFEST.sha256",
         "reports/benchmarks/MANIFEST.sha256",
+        "reports/calibration/MANIFEST.sha256",
     ):
         manifest = ROOT / manifest_name
         failures = []
@@ -454,6 +455,22 @@ def main() -> None:
         batch_scale,
         request_dataset,
     )
+    calibrated = json.loads(
+        (
+            ROOT
+            / "reports/launches/2026-08-23-feed-calibrated-v3-1m-gpu.json"
+        ).read_text()
+    )
+    alignment = calibrated["calibration"]["alignment"]
+    required.update({
+        "calibrated_v3_world": calibrated["config"]["signal_version"]
+        == "kuairand-calibrated-v3",
+        "calibrated_v3_marginals": max(
+            abs(metric["relative_error"]) for metric in alignment.values()
+        ) < 0.20,
+        "calibrated_v3_holds_uncertain_launch": calibrated["decision"]
+        == "hold_unified_lt_uncertain",
+    })
     failed = [name for name, passed in required.items() if not passed]
     if failed:
         raise SystemExit(f"acceptance failures: {', '.join(failed)}")
