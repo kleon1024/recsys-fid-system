@@ -1,0 +1,434 @@
+{
+  "schema": "kuairand-randomized-retrieval-ladder-v1",
+  "config": {
+    "top_k": 50,
+    "epochs": 6,
+    "batch_size": 1024,
+    "hard_negatives": 5,
+    "random_negatives": 3,
+    "learning_rate": 0.002,
+    "seed": 20260824,
+    "evaluation_seed": 20260824
+  },
+  "dataset_catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+  "evaluation": {
+    "randomized_users": 429,
+    "positive_queries": 4120,
+    "user_disjoint_calibration_evaluation": true,
+    "same_corpus_top_k": true
+  },
+  "models": {
+    "popular": {
+      "recall_at_k": 0.010679611936211586,
+      "ndcg_at_k": 0.002618990372866392,
+      "long_tail_recall_at_k": 0.0,
+      "catalog_coverage": 0.00676773145641581
+    },
+    "co_visit_graph": {
+      "recall_at_k": 0.010679611936211586,
+      "ndcg_at_k": 0.002618990372866392,
+      "long_tail_recall_at_k": 0.0,
+      "catalog_coverage": 0.01570113697888468
+    },
+    "two_tower": {
+      "recall_at_k": 0.007766990456730127,
+      "ndcg_at_k": 0.0023027712013572454,
+      "long_tail_recall_at_k": 0.006725297309458256,
+      "catalog_coverage": 0.378857606930157,
+      "training": {
+        "positive_examples": 4535,
+        "history": [
+          {
+            "epoch": 1,
+            "loss": 9.252503776550293
+          },
+          {
+            "epoch": 2,
+            "loss": 8.971282005310059
+          },
+          {
+            "epoch": 3,
+            "loss": 8.908254814147949
+          },
+          {
+            "epoch": 4,
+            "loss": 8.822165298461915
+          },
+          {
+            "epoch": 5,
+            "loss": 8.734423637390137
+          },
+          {
+            "epoch": 6,
+            "loss": 8.629804992675782
+          }
+        ],
+        "seconds": 0.9608307199960109,
+        "parameters": 25414551,
+        "negative_sampling": {
+          "in_batch": "all non-duplicate positives",
+          "hard_same_tag": 5,
+          "random_catalog": 3,
+          "sampled_log_q_correction": true
+        }
+      }
+    },
+    "multi_interest": {
+      "recall_at_k": 0.008009708486497402,
+      "ndcg_at_k": 0.0019409379456192255,
+      "long_tail_recall_at_k": 0.004655975382775068,
+      "catalog_coverage": 0.3712777476989713,
+      "training": {
+        "positive_examples": 4535,
+        "history": [
+          {
+            "epoch": 1,
+            "loss": 9.232604026794434
+          },
+          {
+            "epoch": 2,
+            "loss": 8.967178344726562
+          },
+          {
+            "epoch": 3,
+            "loss": 8.883633232116699
+          },
+          {
+            "epoch": 4,
+            "loss": 8.805438613891601
+          },
+          {
+            "epoch": 5,
+            "loss": 8.70501766204834
+          },
+          {
+            "epoch": 6,
+            "loss": 8.60013198852539
+          }
+        ],
+        "seconds": 0.37397353698906954,
+        "parameters": 25440663,
+        "negative_sampling": {
+          "in_batch": "all non-duplicate positives",
+          "hard_same_tag": 5,
+          "random_catalog": 3,
+          "sampled_log_q_correction": true
+        }
+      }
+    }
+  },
+  "artifacts": {
+    "two_tower": {
+      "path": "two_tower.pt",
+      "sha256": "c6e8060be7e2ad88d0f4446a895a96470885ea317f86854fe73b7094f51c3833"
+    },
+    "multi_interest": {
+      "path": "multi_interest.pt",
+      "sha256": "0ff4bf542d4246314fa838a8ca7154352c935fe5a5727b7be2e0bbaab966c1d8"
+    }
+  },
+  "evidence_boundary": "Random-exposure offline retrieval evidence; downstream fixed-rank shadow and simulated A/B remain required for launch.",
+  "shadow": {
+    "schema": "kuairand-retrieval-fixed-rank-shadow-v1",
+    "queries": 4120,
+    "users": 429,
+    "fixed_fine_ranker": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b",
+    "independent_world": "e41e8a325da3f793fdd8e061ad76827aaf08c17c904e38f14cd93e4073f534fa",
+    "dataset_catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+    "launches": [
+      {
+        "control": "popular",
+        "treatment": "co_visit_graph",
+        "metrics": {
+          "click": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.29387548565864563,
+            "treatment_mean": 0.29387548565864563
+          },
+          "long_view": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.1645452082157135,
+            "treatment_mean": 0.1645452082157135
+          },
+          "like": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.00868135504424572,
+            "treatment_mean": 0.00868135504424572
+          },
+          "comment": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.0004251720674801618,
+            "treatment_mean": 0.0004251720674801618
+          },
+          "forward": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.00028530266718007624,
+            "treatment_mean": 0.00028530266718007624
+          },
+          "follow": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.0003349055477883667,
+            "treatment_mean": 0.0003349055477883667
+          },
+          "hate": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.00043357681715860963,
+            "treatment_mean": 0.00043357681715860963
+          },
+          "stay_norm": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.7651404738426208,
+            "treatment_mean": 0.7651404738426208
+          }
+        },
+        "gates": {
+          "stay_primary_positive": false,
+          "long_view_guardrail": true,
+          "hate_guardrail": true,
+          "click_guardrail": true,
+          "like_guardrail": true,
+          "importance_support": true
+        },
+        "decision": "hold_or_reject"
+      },
+      {
+        "control": "popular",
+        "treatment": "two_tower",
+        "metrics": {
+          "click": {
+            "absolute_delta": 0.006634637247771025,
+            "cluster_standard_error": 0.0015144473849922145,
+            "confidence_interval_95": [
+              0.003666320373186284,
+              0.009602954122355765
+            ],
+            "control_mean": 0.29387548565864563,
+            "treatment_mean": 0.30051010847091675
+          },
+          "long_view": {
+            "absolute_delta": 0.006168304942548275,
+            "cluster_standard_error": 0.001236748972635498,
+            "confidence_interval_95": [
+              0.003744276956182699,
+              0.008592332928913851
+            ],
+            "control_mean": 0.1645452082157135,
+            "treatment_mean": 0.17071351408958435
+          },
+          "like": {
+            "absolute_delta": -0.0007824709173291922,
+            "cluster_standard_error": 0.000332699083970857,
+            "confidence_interval_95": [
+              -0.001434561121912072,
+              -0.00013038071274631242
+            ],
+            "control_mean": 0.00868135504424572,
+            "treatment_mean": 0.007898883894085884
+          },
+          "comment": {
+            "absolute_delta": 0.00030223705107346177,
+            "cluster_standard_error": 0.000289187396656536,
+            "confidence_interval_95": [
+              -0.0002645702463733488,
+              0.0008690443485202723
+            ],
+            "control_mean": 0.0004251720674801618,
+            "treatment_mean": 0.0007274092058651149
+          },
+          "forward": {
+            "absolute_delta": 7.876828021835536e-06,
+            "cluster_standard_error": 2.2053987031364724e-06,
+            "confidence_interval_95": [
+              3.55424656368805e-06,
+              1.2199409479983022e-05
+            ],
+            "control_mean": 0.00028530266718007624,
+            "treatment_mean": 0.0002931795024778694
+          },
+          "follow": {
+            "absolute_delta": -2.708489955693949e-05,
+            "cluster_standard_error": 1.2950107337645867e-05,
+            "confidence_interval_95": [
+              -5.2467109938725384e-05,
+              -1.7026891751535925e-06
+            ],
+            "control_mean": 0.0003349055477883667,
+            "treatment_mean": 0.0003078206500504166
+          },
+          "hate": {
+            "absolute_delta": 4.655035081668757e-05,
+            "cluster_standard_error": 1.1499654858118047e-05,
+            "confidence_interval_95": [
+              2.40110272947762e-05,
+              6.908967433859895e-05
+            ],
+            "control_mean": 0.00043357681715860963,
+            "treatment_mean": 0.00048012720071710646
+          },
+          "stay_norm": {
+            "absolute_delta": -0.0013026802334934473,
+            "cluster_standard_error": 0.0003876872964455357,
+            "confidence_interval_95": [
+              -0.0020625473345266972,
+              -0.0005428131324601973
+            ],
+            "control_mean": 0.7651404738426208,
+            "treatment_mean": 0.7638378143310547
+          }
+        },
+        "gates": {
+          "stay_primary_positive": false,
+          "long_view_guardrail": true,
+          "hate_guardrail": true,
+          "click_guardrail": true,
+          "like_guardrail": true,
+          "importance_support": true
+        },
+        "decision": "hold_or_reject"
+      },
+      {
+        "control": "popular",
+        "treatment": "multi_interest",
+        "metrics": {
+          "click": {
+            "absolute_delta": -0.0005379844806157053,
+            "cluster_standard_error": 0.0017129858854539044,
+            "confidence_interval_95": [
+              -0.0038954368161053577,
+              0.0028194678548739472
+            ],
+            "control_mean": 0.29387548565864563,
+            "treatment_mean": 0.29333749413490295
+          },
+          "long_view": {
+            "absolute_delta": -0.0001248113694600761,
+            "cluster_standard_error": 0.0014319828528619944,
+            "confidence_interval_95": [
+              -0.002931497761069585,
+              0.0026818750221494327
+            ],
+            "control_mean": 0.1645452082157135,
+            "treatment_mean": 0.16442038118839264
+          },
+          "like": {
+            "absolute_delta": -0.001755058066919446,
+            "cluster_standard_error": 0.0005625295980564255,
+            "confidence_interval_95": [
+              -0.00285761607911004,
+              -0.000652500054728852
+            ],
+            "control_mean": 0.00868135504424572,
+            "treatment_mean": 0.006926296278834343
+          },
+          "comment": {
+            "absolute_delta": 0.00025578259374015033,
+            "cluster_standard_error": 0.0002902183543681596,
+            "confidence_interval_95": [
+              -0.0003130453808214425,
+              0.0008246105683017432
+            ],
+            "control_mean": 0.0004251720674801618,
+            "treatment_mean": 0.0006809546612203121
+          },
+          "forward": {
+            "absolute_delta": -4.433562571648508e-05,
+            "cluster_standard_error": 5.21822163844169e-06,
+            "confidence_interval_95": [
+              -5.456334012783079e-05,
+              -3.410791130513937e-05
+            ],
+            "control_mean": 0.00028530266718007624,
+            "treatment_mean": 0.0002409670560155064
+          },
+          "follow": {
+            "absolute_delta": -4.958614954375662e-05,
+            "cluster_standard_error": 1.048180347806755e-05,
+            "confidence_interval_95": [
+              -7.013048436076902e-05,
+              -2.904181472674422e-05
+            ],
+            "control_mean": 0.0003349055477883667,
+            "treatment_mean": 0.0002853194309864193
+          },
+          "hate": {
+            "absolute_delta": -9.33030023588799e-05,
+            "cluster_standard_error": 1.6140580706669662e-05,
+            "confidence_interval_95": [
+              -0.00012493854054395243,
+              -6.166746417380736e-05
+            ],
+            "control_mean": 0.00043357681715860963,
+            "treatment_mean": 0.00034027386573143303
+          },
+          "stay_norm": {
+            "absolute_delta": -0.0008701248443685472,
+            "cluster_standard_error": 0.0005032326802240347,
+            "confidence_interval_95": [
+              -0.0018564608976076552,
+              0.00011621120887056078
+            ],
+            "control_mean": 0.7651404738426208,
+            "treatment_mean": 0.7642703652381897
+          }
+        },
+        "gates": {
+          "stay_primary_positive": false,
+          "long_view_guardrail": true,
+          "hate_guardrail": true,
+          "click_guardrail": true,
+          "like_guardrail": true,
+          "importance_support": true
+        },
+        "decision": "hold_or_reject"
+      }
+    ],
+    "frozen_retrieval_control": "popular",
+    "provisional_passes": [],
+    "evidence_boundary": "Paired one-request shadow under a fixed fine ranker and independent Feed world; not stateful LT or a live A/B test."
+  },
+  "candidate_artifact": {
+    "sha256": "f9b067d9e912fe8026e23cf9feb91a94d5618f902f3d4b3745aaa33d16842b1f",
+    "format": "torch"
+  },
+  "decision": "hold_aggregate_review_pending"
+}

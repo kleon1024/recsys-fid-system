@@ -405,11 +405,56 @@
         "report_sha256": "958ce1bea8d4c4b905ca562d65b2ad1e912dd6ec2e38676d9028a3b7054622c8"
       },
       "evidence_boundary": "This promotes one external-data-calibrated Feed behavior kernel inside the simulator. It is not a production deployment, live A/B, unified LT estimate, or validation of Local and supply kernels. Feed status: eligible_simulator_authority"
+    },
+    {
+      "launch_id": "L-RECALL-EXT-001",
+      "surface": "main_feed",
+      "stage": "retrieval",
+      "change_type": "retrieval_model",
+      "control": "popular",
+      "treatment": "co_visit_graph",
+      "primary_metric": "random_exposure_recall_then_fixed_rank_stay",
+      "decision": "hold_no_ranking_delta",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-retrieval-launch-review.json",
+        "report_sha256": "f38aa1d13d5fceae4372e3dddf348336ddec598f5e018ae2321ac0180528687f"
+      },
+      "evidence_boundary": "Random-exposure offline retrieval plus paired fixed-ranker shadow; not stateful LT or a live A/B test."
+    },
+    {
+      "launch_id": "L-RECALL-EXT-002",
+      "surface": "main_feed",
+      "stage": "retrieval",
+      "change_type": "retrieval_model",
+      "control": "popular",
+      "treatment": "two_tower",
+      "primary_metric": "random_exposure_recall_then_fixed_rank_stay",
+      "decision": "reject_unstable_or_regressive",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-retrieval-launch-review.json",
+        "report_sha256": "f38aa1d13d5fceae4372e3dddf348336ddec598f5e018ae2321ac0180528687f"
+      },
+      "evidence_boundary": "Random-exposure offline retrieval plus paired fixed-ranker shadow; not stateful LT or a live A/B test."
+    },
+    {
+      "launch_id": "L-RECALL-EXT-003",
+      "surface": "main_feed",
+      "stage": "retrieval",
+      "change_type": "retrieval_model",
+      "control": "popular",
+      "treatment": "multi_interest",
+      "primary_metric": "random_exposure_recall_then_fixed_rank_stay",
+      "decision": "reject_unstable_or_regressive",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-retrieval-launch-review.json",
+        "report_sha256": "f38aa1d13d5fceae4372e3dddf348336ddec598f5e018ae2321ac0180528687f"
+      },
+      "evidence_boundary": "Random-exposure offline retrieval plus paired fixed-ranker shadow; not stateful LT or a live A/B test."
     }
   ],
   "coverage": {
     "main_feed": {
-      "retrieval": "missing",
+      "retrieval": "evidenced",
       "coarse": "evidenced",
       "fine": "evidenced",
       "mix": "evidenced",
@@ -443,11 +488,11 @@
     }
   },
   "summary": {
-    "records": 27,
+    "records": 30,
     "passed": 9,
-    "held": 11,
-    "rejected": 7,
-    "missing_cells": 15
+    "held": 12,
+    "rejected": 9,
+    "missing_cells": 14
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."
 }

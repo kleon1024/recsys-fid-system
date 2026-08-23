@@ -206,6 +206,26 @@ def _world_records(root: Path) -> list[dict]:
     )]
 
 
+def _retrieval_records(root: Path) -> list[dict]:
+    relative = "reports/launches/2026-08-24-feed-retrieval-launch-review.json"
+    report, evidence = _load(root, relative)
+    return [
+        _record(
+            launch_id=f"L-RECALL-EXT-{index:03d}",
+            surface="main_feed",
+            stage="retrieval",
+            change_type="retrieval_model",
+            control=row["control"],
+            treatment=row["treatment"],
+            decision=row["decision"],
+            evidence=evidence,
+            primary_metric="random_exposure_recall_then_fixed_rank_stay",
+            evidence_boundary=report["evidence_boundary"],
+        )
+        for index, row in enumerate(report["launches"], 1)
+    ]
+
+
 def build_launch_ledger(root: Path) -> dict:
     records = [
         *_main_feed_policy_records(root),
@@ -214,6 +234,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_feature_records(root),
         *_local_records(root),
         *_world_records(root),
+        *_retrieval_records(root),
     ]
     identifiers = [record["launch_id"] for record in records]
     if len(identifiers) != len(set(identifiers)):

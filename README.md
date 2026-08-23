@@ -57,6 +57,15 @@ separate world authority manifest. The active ranking policy remains in its own
 release manifest, so changing a behavior evaluator cannot silently deploy a
 ranker.
 
+The first V4 stage-level launch is retrieval. Popular, Co-visit Graph,
+Two-Tower, and Multi-interest share the same 7,388-item corpus, random-exposure
+test users, Top-50 budget, fixed fine ranker, and independent Feed world across
+three model seeds. Popular Recall@50 is 1.068%; Two-Tower and Multi-interest
+average 0.712% and 0.850%. Their downstream stay effects change sign across
+seeds, so both learned routes are rejected and Popular remains active. Learned
+coverage is much larger, but coverage is not accepted as business impact. See
+[L-RECALL-EXT-001](docs/launch-reviews/2026-08-24-feed-retrieval-ladder.md).
+
 `LR` is ambiguous in recommendation work. This repository writes **logistic
 regression** for the model and **Launch Review** for the release record.
 

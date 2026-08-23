@@ -53,6 +53,8 @@ entry_points = [
   "fid_lab/feed_loop/world_model/external/kuairand/cli/randomized_adapter.py",
   "fid_lab/feed_loop/world_model/external/kuairand/cli/randomized_shadow.py",
   "fid_lab/feed_loop/world_model/external/kuairand/cli/core_bridge.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/cli/retrieval/ladder.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/cli/retrieval/review.py",
   "fid_lab/feed_loop/world_model/external/ope_cli.py",
   "fid_lab/feed_loop/world_model/external/kuairand/cli/sequence_benchmark.py",
   "fid_lab/feed_loop/world_model/external/kuairand/kernel.py",

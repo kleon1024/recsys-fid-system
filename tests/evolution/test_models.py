@@ -37,6 +37,13 @@ from fid_lab.feed_loop.world_model.external.kuairand.modeling.architectures impo
     KuaiSequenceTransformer,
     KuaiWideDeep,
 )
+from fid_lab.feed_loop.world_model.external.kuairand.retrieval.model import (
+    KuaiMultiInterestRetriever,
+    KuaiTwoTowerRetriever,
+)
+from fid_lab.feed_loop.world_model.external.kuairand.retrieval.review import (
+    build_retrieval_review,
+)
 from fid_lab.feed_loop.world_model.external.kuairand.kernel import (
     KuaiBehaviorKernel,
     SlateResponse,
@@ -336,6 +343,43 @@ class MatureModelAdapterTest(unittest.TestCase):
             loaded = RetrievalSnapshot.load(path)
         self.assertEqual(loaded.version, snapshot.version)
         np.testing.assert_allclose(loaded.scores(query.numpy()), expected, atol=1e-6)
+
+    def test_external_retrieval_towers_are_ann_compatible(self) -> None:
+        vocabularies = (16, 32, 24, 12, 4, 8, 10)
+        sparse = torch.randint(1, 4, (5, 7))
+        dense = torch.rand(5, 11)
+        history_items = torch.randint(0, 16, (5, 6))
+        history_feedback = torch.randint(0, 2, (5, 6, 7))
+        for model, expected in (
+            (KuaiTwoTowerRetriever(vocabularies, width=16), (5, 16)),
+            (KuaiMultiInterestRetriever(
+                vocabularies, width=16, interests=3
+            ), (5, 3, 16)),
+        ):
+            query = model.encode_query(
+                sparse, dense, history_items, history_feedback
+            )
+            items = model.encode_item(sparse, dense)
+            self.assertEqual(tuple(query.shape), expected)
+            self.assertEqual(tuple(items.shape), (5, 16))
+
+    def test_external_retrieval_review_freezes_sample_and_retains_control(self) -> None:
+        root = Path(__file__).resolve().parents[2]
+        paths = [
+            root / f"reports/launches/2026-08-24-feed-retrieval-{seed}.json"
+            for seed in (20260824, 20260825, 20260826)
+        ]
+        review = build_retrieval_review(paths)
+        self.assertEqual(review["active_retrieval_control"], "popular")
+        self.assertEqual(review["decision"], "retain_popular_control")
+        self.assertEqual(
+            [row["decision"] for row in review["launches"]],
+            [
+                "hold_no_ranking_delta",
+                "reject_unstable_or_regressive",
+                "reject_unstable_or_regressive",
+            ],
+        )
 
 
 class GenerativeModelTest(unittest.TestCase):

@@ -1,0 +1,434 @@
+{
+  "schema": "kuairand-randomized-retrieval-ladder-v1",
+  "config": {
+    "top_k": 50,
+    "epochs": 6,
+    "batch_size": 1024,
+    "hard_negatives": 5,
+    "random_negatives": 3,
+    "learning_rate": 0.002,
+    "seed": 20260825,
+    "evaluation_seed": 20260824
+  },
+  "dataset_catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+  "evaluation": {
+    "randomized_users": 429,
+    "positive_queries": 4120,
+    "user_disjoint_calibration_evaluation": true,
+    "same_corpus_top_k": true
+  },
+  "models": {
+    "popular": {
+      "recall_at_k": 0.010679611936211586,
+      "ndcg_at_k": 0.002618990372866392,
+      "long_tail_recall_at_k": 0.0,
+      "catalog_coverage": 0.00676773145641581
+    },
+    "co_visit_graph": {
+      "recall_at_k": 0.010679611936211586,
+      "ndcg_at_k": 0.002618990372866392,
+      "long_tail_recall_at_k": 0.0,
+      "catalog_coverage": 0.01570113697888468
+    },
+    "two_tower": {
+      "recall_at_k": 0.0065533979795873165,
+      "ndcg_at_k": 0.0015694021712988615,
+      "long_tail_recall_at_k": 0.002069322392344475,
+      "catalog_coverage": 0.35422306442880347,
+      "training": {
+        "positive_examples": 4535,
+        "history": [
+          {
+            "epoch": 1,
+            "loss": 9.292152786254883
+          },
+          {
+            "epoch": 2,
+            "loss": 8.940004920959472
+          },
+          {
+            "epoch": 3,
+            "loss": 8.87541160583496
+          },
+          {
+            "epoch": 4,
+            "loss": 8.80359935760498
+          },
+          {
+            "epoch": 5,
+            "loss": 8.7132080078125
+          },
+          {
+            "epoch": 6,
+            "loss": 8.591683197021485
+          }
+        ],
+        "seconds": 0.9806342230003793,
+        "parameters": 25414551,
+        "negative_sampling": {
+          "in_batch": "all non-duplicate positives",
+          "hard_same_tag": 5,
+          "random_catalog": 3,
+          "sampled_log_q_correction": true
+        }
+      }
+    },
+    "multi_interest": {
+      "recall_at_k": 0.007038834970444441,
+      "ndcg_at_k": 0.0016362537862733006,
+      "long_tail_recall_at_k": 0.002069322392344475,
+      "catalog_coverage": 0.3045479155387114,
+      "training": {
+        "positive_examples": 4535,
+        "history": [
+          {
+            "epoch": 1,
+            "loss": 9.286180686950683
+          },
+          {
+            "epoch": 2,
+            "loss": 8.941937446594238
+          },
+          {
+            "epoch": 3,
+            "loss": 8.853079223632813
+          },
+          {
+            "epoch": 4,
+            "loss": 8.770296859741212
+          },
+          {
+            "epoch": 5,
+            "loss": 8.661316680908204
+          },
+          {
+            "epoch": 6,
+            "loss": 8.534647560119629
+          }
+        ],
+        "seconds": 0.36151050998887513,
+        "parameters": 25440663,
+        "negative_sampling": {
+          "in_batch": "all non-duplicate positives",
+          "hard_same_tag": 5,
+          "random_catalog": 3,
+          "sampled_log_q_correction": true
+        }
+      }
+    }
+  },
+  "artifacts": {
+    "two_tower": {
+      "path": "two_tower.pt",
+      "sha256": "21267d2b364be658eb46964683582495bb93f091438590b2c86635adfa852894"
+    },
+    "multi_interest": {
+      "path": "multi_interest.pt",
+      "sha256": "023b4152538036b88c4b985df0eb9bbe99c6a364a04df3f7432cf0a5cc937301"
+    }
+  },
+  "evidence_boundary": "Random-exposure offline retrieval evidence; downstream fixed-rank shadow and simulated A/B remain required for launch.",
+  "shadow": {
+    "schema": "kuairand-retrieval-fixed-rank-shadow-v1",
+    "queries": 4120,
+    "users": 429,
+    "fixed_fine_ranker": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b",
+    "independent_world": "e41e8a325da3f793fdd8e061ad76827aaf08c17c904e38f14cd93e4073f534fa",
+    "dataset_catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+    "launches": [
+      {
+        "control": "popular",
+        "treatment": "co_visit_graph",
+        "metrics": {
+          "click": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.29387548565864563,
+            "treatment_mean": 0.29387548565864563
+          },
+          "long_view": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.1645452082157135,
+            "treatment_mean": 0.1645452082157135
+          },
+          "like": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.00868135504424572,
+            "treatment_mean": 0.00868135504424572
+          },
+          "comment": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.0004251720674801618,
+            "treatment_mean": 0.0004251720674801618
+          },
+          "forward": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.00028530266718007624,
+            "treatment_mean": 0.00028530266718007624
+          },
+          "follow": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.0003349055477883667,
+            "treatment_mean": 0.0003349055477883667
+          },
+          "hate": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.00043357681715860963,
+            "treatment_mean": 0.00043357681715860963
+          },
+          "stay_norm": {
+            "absolute_delta": 0.0,
+            "cluster_standard_error": 0.0,
+            "confidence_interval_95": [
+              0.0,
+              0.0
+            ],
+            "control_mean": 0.7651404738426208,
+            "treatment_mean": 0.7651404738426208
+          }
+        },
+        "gates": {
+          "stay_primary_positive": false,
+          "long_view_guardrail": true,
+          "hate_guardrail": true,
+          "click_guardrail": true,
+          "like_guardrail": true,
+          "importance_support": true
+        },
+        "decision": "hold_or_reject"
+      },
+      {
+        "control": "popular",
+        "treatment": "two_tower",
+        "metrics": {
+          "click": {
+            "absolute_delta": 0.00858257431536913,
+            "cluster_standard_error": 0.0019446999992285814,
+            "confidence_interval_95": [
+              0.00477096231688111,
+              0.012394186313857148
+            ],
+            "control_mean": 0.29387548565864563,
+            "treatment_mean": 0.3024580478668213
+          },
+          "long_view": {
+            "absolute_delta": 0.00780795281752944,
+            "cluster_standard_error": 0.001604619988934581,
+            "confidence_interval_95": [
+              0.004662897639217661,
+              0.01095300799584122
+            ],
+            "control_mean": 0.1645452082157135,
+            "treatment_mean": 0.17235317826271057
+          },
+          "like": {
+            "absolute_delta": -0.0023176628164947033,
+            "cluster_standard_error": 0.0007987034000581735,
+            "confidence_interval_95": [
+              -0.0038831214806087236,
+              -0.0007522041523806832
+            ],
+            "control_mean": 0.00868135504424572,
+            "treatment_mean": 0.006363690830767155
+          },
+          "comment": {
+            "absolute_delta": 0.0003340178809594363,
+            "cluster_standard_error": 0.0003371687058357155,
+            "confidence_interval_95": [
+              -0.0003268327824785661,
+              0.0009948685443974387
+            ],
+            "control_mean": 0.0004251720674801618,
+            "treatment_mean": 0.0007591898902319372
+          },
+          "forward": {
+            "absolute_delta": -2.3857244741520844e-05,
+            "cluster_standard_error": 3.2260244341888236e-06,
+            "confidence_interval_95": [
+              -3.018025263253094e-05,
+              -1.753423685051075e-05
+            ],
+            "control_mean": 0.00028530266718007624,
+            "treatment_mean": 0.0002614454715512693
+          },
+          "follow": {
+            "absolute_delta": -6.930666859261692e-05,
+            "cluster_standard_error": 2.3770255971106966e-05,
+            "confidence_interval_95": [
+              -0.00011589637029598657,
+              -2.2716966889247267e-05
+            ],
+            "control_mean": 0.0003349055477883667,
+            "treatment_mean": 0.0002655989082995802
+          },
+          "hate": {
+            "absolute_delta": -4.4880263885715976e-05,
+            "cluster_standard_error": 1.3513069621794799e-05,
+            "confidence_interval_95": [
+              -7.136588034443378e-05,
+              -1.8394647426998172e-05
+            ],
+            "control_mean": 0.00043357681715860963,
+            "treatment_mean": 0.0003886965860147029
+          },
+          "stay_norm": {
+            "absolute_delta": -0.00017035598284564912,
+            "cluster_standard_error": 0.0003482925904484974,
+            "confidence_interval_95": [
+              -0.000853009460124704,
+              0.0005122974944334058
+            ],
+            "control_mean": 0.7651404738426208,
+            "treatment_mean": 0.764970064163208
+          }
+        },
+        "gates": {
+          "stay_primary_positive": false,
+          "long_view_guardrail": true,
+          "hate_guardrail": true,
+          "click_guardrail": true,
+          "like_guardrail": true,
+          "importance_support": true
+        },
+        "decision": "hold_or_reject"
+      },
+      {
+        "control": "popular",
+        "treatment": "multi_interest",
+        "metrics": {
+          "click": {
+            "absolute_delta": -0.00018283915414940566,
+            "cluster_standard_error": 0.0015626493724307138,
+            "confidence_interval_95": [
+              -0.0032456319241136048,
+              0.0028799536158147935
+            ],
+            "control_mean": 0.29387548565864563,
+            "treatment_mean": 0.2936926484107971
+          },
+          "long_view": {
+            "absolute_delta": 0.0023252260871231556,
+            "cluster_standard_error": 0.001258750490221663,
+            "confidence_interval_95": [
+              -0.00014192487371130413,
+              0.004792377047957616
+            ],
+            "control_mean": 0.1645452082157135,
+            "treatment_mean": 0.16687043011188507
+          },
+          "like": {
+            "absolute_delta": -0.0015337337972596288,
+            "cluster_standard_error": 0.000578392311109407,
+            "confidence_interval_95": [
+              -0.0026673827270340665,
+              -0.0004000848674851911
+            ],
+            "control_mean": 0.00868135504424572,
+            "treatment_mean": 0.007147620432078838
+          },
+          "comment": {
+            "absolute_delta": 0.00036232106504030526,
+            "cluster_standard_error": 0.0003548470710819176,
+            "confidence_interval_95": [
+              -0.0003331791942802532,
+              0.0010578213243608637
+            ],
+            "control_mean": 0.0004251720674801618,
+            "treatment_mean": 0.0007874930743128061
+          },
+          "forward": {
+            "absolute_delta": -1.4607314369641244e-05,
+            "cluster_standard_error": 3.32475836292841e-06,
+            "confidence_interval_95": [
+              -2.1123840760980927e-05,
+              -8.090787978301561e-06
+            ],
+            "control_mean": 0.00028530266718007624,
+            "treatment_mean": 0.0002706953673623502
+          },
+          "follow": {
+            "absolute_delta": -4.524956239038147e-05,
+            "cluster_standard_error": 2.0474649929283275e-05,
+            "confidence_interval_95": [
+              -8.537987625177669e-05,
+              -5.119248528986253e-06
+            ],
+            "control_mean": 0.0003349055477883667,
+            "treatment_mean": 0.00028965601813979447
+          },
+          "hate": {
+            "absolute_delta": -4.385179636301473e-05,
+            "cluster_standard_error": 8.260174929301732e-06,
+            "confidence_interval_95": [
+              -6.004173922444612e-05,
+              -2.7661853501583335e-05
+            ],
+            "control_mean": 0.00043357681715860963,
+            "treatment_mean": 0.0003897250280715525
+          },
+          "stay_norm": {
+            "absolute_delta": -0.0007243984728120267,
+            "cluster_standard_error": 0.0003888933455021357,
+            "confidence_interval_95": [
+              -0.0014866294299962128,
+              3.783248437215926e-05
+            ],
+            "control_mean": 0.7651404738426208,
+            "treatment_mean": 0.7644160389900208
+          }
+        },
+        "gates": {
+          "stay_primary_positive": false,
+          "long_view_guardrail": true,
+          "hate_guardrail": true,
+          "click_guardrail": true,
+          "like_guardrail": true,
+          "importance_support": true
+        },
+        "decision": "hold_or_reject"
+      }
+    ],
+    "frozen_retrieval_control": "popular",
+    "provisional_passes": [],
+    "evidence_boundary": "Paired one-request shadow under a fixed fine ranker and independent Feed world; not stateful LT or a live A/B test."
+  },
+  "candidate_artifact": {
+    "sha256": "b5f0986bf50d6823322dd6e3d158095d8a8f5b12b24aa976967f2482b7fd0a27",
+    "format": "torch"
+  },
+  "decision": "hold_aggregate_review_pending"
+}
