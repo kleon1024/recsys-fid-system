@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-SIMULATOR-005](2026-08-23-main-feed-suite/l-simulator-005.md) | Learned neural-SCM DGP | Research lane passes synthetic gates; authority switch held |
 | [L-V3-MULTITASK-001](2026-08-23-main-feed-suite/l-v3-multitask-001.md) | V3 primitive multi-task ranker | Guarded rerank pass; direct replacement hold |
 | [L-TENSOR-003](2026-08-23-main-feed-suite/l-tensor-003.md) | Published artifact on GPU tensor engine | Engine pass; model rejected by quality guardrail |
 | [L-SIMULATOR-002](2026-08-23-main-feed-suite/l-simulator-002.md) | Nonlinear DGP and sample-scale audit | Accept offline lane; no serving change |

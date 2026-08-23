@@ -51,8 +51,9 @@ all stage-attribution counts identical and changes checked metrics by at most
 200K batch uses 2.67GB; 400K uses 5.30GB but is slower, so additional memory is
 not treated as a goal by itself.
 
-The current research authority is now the externally calibrated V3 behavior
-kernel. A public KuaiRand-Pure snapshot contributes 1,436,609 standard-policy
+The current executable simulator authority is the externally calibrated V3
+behavior kernel; it is not accepted as a real-user fidelity authority. A public
+KuaiRand-Pure snapshot contributes 1,436,609 standard-policy
 interactions; raw data stays outside Git and exact input hashes are retained in
 the calibration report. V3 fixes a counter-RNG defect that correlated event
 streams above 0.998 and moves nonlinear response truth out of the policy class.
@@ -60,6 +61,25 @@ At one million users, play and stay align within 1% of the public marginals;
 three-second play, long view, like, and hate retain explicit calibration error.
 The first V3 Local intent launch remains Hold at unified LT -0.162% with an
 interval crossing zero. See [L-SIMULATOR-004](docs/launch-reviews/2026-08-23-main-feed-suite/l-simulator-004.md).
+
+A subsequent 64-paper architecture review finds that V1--V3 remain variants of
+one feature-derived formula world. V3 calibrates selected marginals but does not
+validate joint actions, free-running sequences, interventions, or policy-order
+agreement. XGBoost's V3 pointwise AUC edge over logistic regression is only
+0.0019, while its request-level audit regret is 0.0922 versus 0.0393. No V4
+implementation is authorized until a learned world-model prototype passes the
+declared falsification gates. See the
+[DGP architecture decision](docs/research/dgp-literature-review/architecture-decision.md)
+and [literature survey PDF](docs/research/dgp-literature-review/lit_review_report.pdf).
+
+That research decision is now implemented as a separate neural-SCM world-model
+lane rather than another V3 formula patch. On the RTX 4090, a three-member
+ensemble trained on all 709,644 request-level training examples in 65.99 seconds.
+It passes joint-distribution, censored stay-tail, free-rollout, uncertainty,
+frozen-V3 intervention-recovery, and synthetic policy-order gates. It remains a
+research challenger because artifact-bound external randomized interventions and
+real frozen-policy outcomes are not yet available. See
+[L-SIMULATOR-005](docs/launch-reviews/2026-08-23-main-feed-suite/l-simulator-005.md).
 
 The Feature LR release ladder now trains every legal combination of four atomic
 feature proposals on one immutable sample snapshot. Each A/B compares a proposal

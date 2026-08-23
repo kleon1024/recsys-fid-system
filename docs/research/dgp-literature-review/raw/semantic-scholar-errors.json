@@ -1,0 +1,27 @@
+[
+  {
+    "query": "recommender system user simulation",
+    "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=recommender+system+user+simulation&limit=20&fields=paperId%2Ctitle%2Cabstract%2Cyear%2CcitationCount%2CinfluentialCitationCount%2Cauthors%2Cvenue%2CpublicationTypes%2CexternalIds%2Ctldr%2CfieldsOfStudy",
+    "error": "<HTTPError 429: ''>"
+  },
+  {
+    "query": "interactive recommender simulator sequential user behavior",
+    "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=interactive+recommender+simulator+sequential+user+behavior&limit=20&fields=paperId%2Ctitle%2Cabstract%2Cyear%2CcitationCount%2CinfluentialCitationCount%2Cauthors%2Cvenue%2CpublicationTypes%2CexternalIds%2Ctldr%2CfieldsOfStudy",
+    "error": "<HTTPError 429: ''>"
+  },
+  {
+    "query": "recommender system world model user response",
+    "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=recommender+system+world+model+user+response&limit=20&fields=paperId%2Ctitle%2Cabstract%2Cyear%2CcitationCount%2CinfluentialCitationCount%2Cauthors%2Cvenue%2CpublicationTypes%2CexternalIds%2Ctldr%2CfieldsOfStudy",
+    "error": "<HTTPError 429: ''>"
+  },
+  {
+    "query": "recommender off-policy evaluation slate",
+    "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=recommender+off-policy+evaluation+slate&limit=20&fields=paperId%2Ctitle%2Cabstract%2Cyear%2CcitationCount%2CinfluentialCitationCount%2Cauthors%2Cvenue%2CpublicationTypes%2CexternalIds%2Ctldr%2CfieldsOfStudy",
+    "error": "<HTTPError 429: ''>"
+  },
+  {
+    "query": "long-term user behavior recommender simulation",
+    "url": "https://api.semanticscholar.org/graph/v1/paper/search?query=long-term+user+behavior+recommender+simulation&limit=20&fields=paperId%2Ctitle%2Cabstract%2Cyear%2CcitationCount%2CinfluentialCitationCount%2Cauthors%2Cvenue%2CpublicationTypes%2CexternalIds%2Ctldr%2CfieldsOfStudy",
+    "error": "<HTTPError 429: ''>"
+  }
+]

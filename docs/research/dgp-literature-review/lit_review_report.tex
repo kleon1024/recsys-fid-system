@@ -1,0 +1,146 @@
+\documentclass[10.5pt,a4paper]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{fontspec}
+\usepackage{xeCJK}
+\setmainfont{Times New Roman}
+\setCJKmainfont{PingFang SC}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{natbib}
+\bibliographystyle{apalike}
+\hypersetup{colorlinks=true,linkcolor=blue!55!black,urlcolor=blue!55!black,citecolor=blue!55!black}
+\setlist{nosep,leftmargin=*}
+\setlength{\parskip}{0.45em}
+\setlength{\parindent}{0pt}
+
+\title{Literature Survey and Architecture Decision\\[0.4em]
+\large Industrial Recommender Data-Generating Processes / 工业推荐 DGP}
+\author{Maestro AI Research Assistant}
+\date{23 August 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This review asks what simulator architecture can credibly test industrial short-video Feed and Local-service recommendation without leaking a hand-authored scoring formula to the evaluated rankers. We screened 1,500 OpenAlex candidates, attempted five Semantic Scholar expansion queries, retained 64 papers, and audited the repository's V1--V3 behavior kernels. V3 fixes correctness and calibration defects but remains a feature-derived formula world. The selected research direction is a partially observed neural structural causal world-model ensemble, with explicit slate competition, multi-action sequence generation, session and provider dynamics, paired exogenous noise, and randomized-log falsification. Public data is useful but not mandatory; without any real or randomized evidence, the result remains a synthetic stress world rather than a validated digital twin.
+\end{abstract}
+
+\section{Research question and scope / 研究问题}
+
+The operational question is not whether a simulator can generate plausible-looking clicks. It is whether it can distinguish recall failure, coarse-rank loss, fine-rank error, mix displacement, calibration error, and long-horizon behavior under policy intervention. The target world contains play start, censored watch time, slide, engagement, negative feedback, POI and transaction funnels, session exit and return, supply response, multiple queues, and policy-induced distribution shift.
+
+核心问题不是“能不能生成像真的 click”，而是能否在策略干预后，区分召回、粗排、精排、混排、校准和长期行为的责任，并对不确定性保持诚实。
+
+\section{Search methodology / 检索方法}
+
+OpenAlex broad, recent, methodology, and exact-seed searches returned 1,500 candidate records. Five Semantic Scholar Graph API queries were attempted with bounded retry and 1.1-second spacing; all returned HTTP 429 and no API key was available. This is recorded as a source limitation. DOI and normalized-title deduplication plus domain filtering produced 64 papers from 2010--2026.
+
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+Methodology group & Papers \\
+\midrule
+Causal and off-policy evaluation & 26 \\
+Ecosystem and feedback-loop simulation & 12 \\
+LLM and generative-agent simulators & 6 \\
+Configurable and mechanistic simulators & 7 \\
+Supporting recommendation methodology & 4 \\
+Sequential and long-horizon recommendation & 3 \\
+Learned and data-driven simulators & 6 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Citation count was used for discovery, not as a quality score. Exact seeds preserve recent or low-citation systems including RecSim NG, KuaiSim, SARDINE, T-RECS, Virtual-Taobao, RL4RS, and Sim2Rec.
+
+\section{Audit of the current V1--V3 world / 当前系统审计}
+
+V1 generates immediate responses with mostly additive logits. V2 adds heavy-tailed population draws and a nonlinear stay adjustment derived from fields also visible to the rankers. V3 repairs correlated random streams, changes long-view semantics, and aligns several aggregate behavior rates to KuaiRand, but it retains a hand-authored response kernel.
+
+The current long-view ladder therefore solves an artificially favorable tabular problem. XGBoost's pointwise AUC is 0.5953 versus logistic regression at 0.5934. Yet request-level audit regret is worse: 0.0922 versus 0.0393. The hand-authored rule reaches 0.0160. V3 has not shown that boosted trees produce better slates or long-horizon behavior.
+
+V3 对齐的是总体 play、like、negative 和 stay 等边际量，没有对齐条件分布、联合行为、session transition、policy effect 或 intervention recovery。因此它是 calibration epoch，不是行为建模范式升级。
+
+\section{Literature landscape / 文献结论}
+
+\subsection{Configurable and mechanistic simulators}
+
+RecSim makes latent preferences, user-state dynamics, familiarity, choice, and response configurable. RecSim NG adds probabilistic multi-agent modeling, latent-variable learning, and accelerator execution. SARDINE represents recommendation-induced user changes and feedback from biased logged data. T-RECS makes ecosystem-level effects observable. These systems provide the right causal scaffold but do not guarantee empirical realism.
+
+\subsection{Learned and data-driven simulators}
+
+Virtual-Taobao learns a virtual retail environment and explicitly considers simulator exploitation. KuaiSim covers list-wise response, multi-behavior feedback, sessions, and cross-session retention. RL4RS separates simulator evaluation, policy evaluation in simulation, and counterfactual evaluation. Sim2Rec uses a set of possible environments to reduce over-trust in one learned simulator. The consensus is that one-step predictive accuracy is insufficient because errors compound and policies seek unsupported regions.
+
+\subsection{Causal and slate evaluation}
+
+IPS, SNIPS, counterfactual risk minimization, doubly robust estimators, and structured slate estimators address bias and variance under specific assumptions. They do not solve absent action support. A simulator and OPE have complementary roles: the simulator rolls out mechanisms; randomized/exploratory logs constrain intervention effects and expose extrapolation.
+
+\subsection{LLM and generative agents}
+
+LLM agents add semantic profiles, memory, emotion, rationales, and flexible actions. They are promising for conversational recommendation, semantic intent, and rare scenario generation. They are not a suitable primary engine for tens of millions of reproducible numeric Feed events because inference is expensive, calibration is difficult, paired counterfactual noise is awkward, and model upgrades silently change the environment.
+
+\section{Architecture comparison / 架构比较}
+
+\begin{longtable}{p{0.20\linewidth}p{0.27\linewidth}p{0.38\linewidth}}
+\toprule
+Alternative & Strength & Limitation and decision \\
+\midrule
+More nonlinear formulas & Fast, transparent, exact truth & Preserves feature leakage and designer bias; retain only as deterministic test worlds. \\
+One-step learned response & Easy calibration and training & Misses trajectory, slate competition, and compounding error; use only as one component. \\
+Pure autoregressive model & Learns joint temporal patterns & Does not identify interventions outside logging support; place inside a causal scaffold. \\
+Pure LLM agents & Rich semantics and rare scenarios & Slow, unstable, hard to calibrate; use as scenario generator and challenger. \\
+Pure agent-based model & Explicit interference and provider behavior & Parameters remain hand-authored; use as structural scaffold. \\
+Hybrid neural SCM ensemble & Learned distributions, explicit interventions, uncertainty & Highest validation cost but the only candidate satisfying the target; selected. \\
+\bottomrule
+\end{longtable}
+
+\section{Selected architecture / 选定方向}
+
+The selected design contains six independent authorities:
+
+\begin{enumerate}
+\item A learned correlated population and catalog process for users, creators, items, lifecycle, supply arrival, and inventory.
+\item A latent state-space model for stable preferences, multi-interest, novelty, fatigue, satisfaction, commercial intent, and session intent. Serving sees noisy projections only.
+\item A set/attention slate encoder and autoregressive multi-action decoder for play, censored stay, slide, engagement, negative feedback, POI, and transaction events.
+\item Recurrent/Transformer state transitions plus survival heads for session exit, return delay, active day, and provider response.
+\item Versioned exogenous noise and an ensemble/posterior over plausible worlds for paired potential outcomes and epistemic uncertainty.
+\item A validation authority based on standard logs, randomized/exploratory traffic, held-out policies, historical A/Bs, and synthetic stress worlds.
+\end{enumerate}
+
+The policy must never access latent simulator state. Long-term value is measured from emergent trajectories and externally accepted exchange rates; it is not injected as a direct reward formula into behavior generation.
+
+\section{Data requirement / 数据要求}
+
+Public data is optional. Proprietary randomized traffic with propensities is preferred, followed by proprietary observational logs plus historical orthogonal A/Bs. Public randomized logs provide reproducible external falsification. Public observational logs test shape and pipelines. Fully synthetic worlds test mechanisms only. Without real or randomized evidence, no architecture can honestly claim real-user fidelity.
+
+\section{Acceptance and falsification / 验收与证伪}
+
+V4 must pass five gates: joint/conditional distribution calibration; free-running sequence calibration; held-out intervention recovery; frozen-policy ordering agreement; and anti-exploitation across an ensemble of plausible worlds. Required negative controls include shuffled treatment, future-feature leakage, duplicated events, missing propensity, and an intentionally reward-hacking policy.
+
+Every synthetic launch must report empirical support distance, ensemble disagreement, rollout drift, propensity coverage, and whether the tested policy remains inside the calibrated region. A zero-width synthetic confidence interval is not evidence if world-model uncertainty is omitted.
+
+\section{Research gaps and final decision / 研究缺口与结论}
+
+No public system jointly validates short-video multi-action response, censored watch time, session return, provider/supply feedback, Local transactions, and policy interventions. Marginal calibration is common; intervention recovery and policy-order agreement are rare. LLM agents improve semantics but not calibrated numeric throughput.
+
+The implementation decision is therefore intentionally conditional: preserve V1--V3 as historical test epochs; prototype the hybrid neural SCM on a frozen request-level dataset; compare it with V3 on the five falsification gates; promote it only after held-out intervention recovery and policy-order agreement. Do not create a V4 by adding another formula.
+
+\appendix
+\section{Full paper catalog}
+\footnotesize
+\begin{longtable}{p{0.07\linewidth}p{0.48\linewidth}p{0.31\linewidth}r}
+\toprule
+Year & Title & Methodology group & Cites \\
+\midrule
+\endhead
+\input{catalog_rows.tex}
+\end{longtable}
+
+\nocite{*}
+\bibliography{references}
+
+\end{document}

@@ -9,7 +9,8 @@ import torch
 
 from ...simulation.contracts import DEFAULT_SEARCH_EVENT_RATE
 from ...value import BUSINESS_TREE_WEIGHTS, DEFAULT_LT_CONFIG
-from .artifact.features import build_tensor_features, nonlinear_stay_adjustment
+from .artifact.features import build_tensor_features
+from .calibration.nonlinear import nonlinear_stay_adjustment
 from .calibration.behavior import response_parameters
 from .lt_exchange import (
     accumulate_lt_exchange_components,

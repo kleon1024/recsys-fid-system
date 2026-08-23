@@ -1,0 +1,413 @@
+{
+  "schema": "neural-scm-v4-launch-review-v1",
+  "dataset_manifest": {
+    "schema": "v3-request-candidate-log-v1",
+    "storage_root": "artifacts/datasets/v3-request-log",
+    "config": {
+      "users": 50000,
+      "steps": 24,
+      "batch_users": 25000,
+      "epsilon": 0.2,
+      "sequence_length": 24,
+      "seed": 20260823,
+      "device": "cuda:0"
+    },
+    "authority_bundle_id": "sha256:0aa4baa95637e0a21eac1feccb9a75f17d796ff61d83e975ddb6cc232add68de",
+    "label_names": [
+      "play",
+      "play_3s",
+      "stay_seconds",
+      "play_completion_ratio",
+      "complete_play",
+      "long_view",
+      "quality_long_view",
+      "like",
+      "negative_feedback",
+      "anchor_click",
+      "poi_detail",
+      "poi_favorite",
+      "conversion",
+      "returned_next_session",
+      "accepted_commercialization"
+    ],
+    "evaluation_value_names": [
+      "lt_stay_component",
+      "lt_active_day_component",
+      "lt_accepted_commercialization_component",
+      "lt_total_evaluation_only"
+    ],
+    "training_contract": {
+      "primitive_labels_only": true,
+      "lt_total_is_training_label": false,
+      "returned_next_session_requires_delayed_maturity": true,
+      "evaluation_values_are_ab_outcomes_not_ranker_targets": true
+    },
+    "sequence_fields": [
+      "topic_norm",
+      "stay_norm",
+      "long_view",
+      "quality_long_view",
+      "like",
+      "negative_feedback",
+      "anchor_click",
+      "conversion"
+    ],
+    "candidate_label_contract": "only exposed candidate has mask=1",
+    "tables": {
+      "train": {
+        "path": "train.pt",
+        "requests": 709644,
+        "sha256": "d91c62947e9bda44a891f797aa194bb58a519ca0e68347c34d0aa79e492f9fe9"
+      },
+      "validation": {
+        "path": "validation.pt",
+        "requests": 219377,
+        "sha256": "90c6b7d05e8271d1f39090558d78d64dada524257bd2701d7c3cf391e8f7354f"
+      },
+      "test": {
+        "path": "test.pt",
+        "requests": 170025,
+        "sha256": "e59861397fb390ff165136d99733c9e961dc119ad509b981667345e3678056ff"
+      }
+    },
+    "manifest_sha256": "88e0cbef072bde9560a9c415f835b0b124eb0e9b5ffca13eba83c56233d7308e"
+  },
+  "artifact_manifest": {
+    "schema": "neural-scm-world-model-artifact-v1",
+    "world_model_version": "neural-scm-v4-research",
+    "config": {
+      "feature_dim": 28,
+      "sequence_dim": 8,
+      "sequence_length": 24,
+      "width": 96,
+      "latent_dim": 24,
+      "attention_heads": 4,
+      "stay_mixture_components": 3,
+      "ensemble_members": 3,
+      "batch_size": 8192,
+      "epochs": 10,
+      "learning_rate": 0.0008,
+      "weight_decay": 0.0001,
+      "stay_loss_weight": 2.0,
+      "max_ips_weight": 20.0,
+      "seed": 20260823
+    },
+    "dataset_manifest_sha256": "88e0cbef072bde9560a9c415f835b0b124eb0e9b5ffca13eba83c56233d7308e",
+    "dataset_authority_bundle_id": "sha256:0aa4baa95637e0a21eac1feccb9a75f17d796ff61d83e975ddb6cc232add68de",
+    "weights_sha256": "fb68810e8194b44f65e45e9ec3b2f35b60077b8f36f608015092c4bb4a1f0ed7",
+    "training_history": [
+      [
+        {
+          "epoch": 1,
+          "training_loss": 2.2995774581514556,
+          "validation_loss": 1.1256620713642664
+        },
+        {
+          "epoch": 2,
+          "training_loss": 1.035423364447451,
+          "validation_loss": 1.0666855233056205
+        },
+        {
+          "epoch": 3,
+          "training_loss": 1.0059810143777694,
+          "validation_loss": 1.0508498975208826
+        },
+        {
+          "epoch": 4,
+          "training_loss": 0.998581944525927,
+          "validation_loss": 1.0519667863845825
+        },
+        {
+          "epoch": 5,
+          "training_loss": 0.9832444122467918,
+          "validation_loss": 1.0606203760419572
+        },
+        {
+          "epoch": 6,
+          "training_loss": 0.9985265348149442,
+          "validation_loss": 1.0411828245435442
+        },
+        {
+          "epoch": 7,
+          "training_loss": 1.0026567496102432,
+          "validation_loss": 1.0396453482764108
+        },
+        {
+          "epoch": 8,
+          "training_loss": 0.9893830699482183,
+          "validation_loss": 1.0417396851948328
+        },
+        {
+          "epoch": 9,
+          "training_loss": 0.989960769812266,
+          "validation_loss": 1.033935810838427
+        },
+        {
+          "epoch": 10,
+          "training_loss": 0.9831546928690768,
+          "validation_loss": 1.0372800656727381
+        }
+      ],
+      [
+        {
+          "epoch": 1,
+          "training_loss": 2.3118093034316756,
+          "validation_loss": 1.0979447535106115
+        },
+        {
+          "epoch": 2,
+          "training_loss": 1.0208493430038978,
+          "validation_loss": 1.0557201930454798
+        },
+        {
+          "epoch": 3,
+          "training_loss": 1.004866317085836,
+          "validation_loss": 1.059423804283142
+        },
+        {
+          "epoch": 4,
+          "training_loss": 1.0040139644995503,
+          "validation_loss": 1.0517211641584123
+        },
+        {
+          "epoch": 5,
+          "training_loss": 0.9950266528403622,
+          "validation_loss": 1.0457047394343786
+        },
+        {
+          "epoch": 6,
+          "training_loss": 0.9926697625510994,
+          "validation_loss": 1.0450407436915807
+        },
+        {
+          "epoch": 7,
+          "training_loss": 1.0003511330177044,
+          "validation_loss": 1.0419897522245134
+        },
+        {
+          "epoch": 8,
+          "training_loss": 0.9952467227804249,
+          "validation_loss": 1.0438764946801322
+        },
+        {
+          "epoch": 9,
+          "training_loss": 0.9897107742298609,
+          "validation_loss": 1.047102996281215
+        },
+        {
+          "epoch": 10,
+          "training_loss": 0.984707187647107,
+          "validation_loss": 1.0440267324447632
+        }
+      ],
+      [
+        {
+          "epoch": 1,
+          "training_loss": 2.2526118755340576,
+          "validation_loss": 1.0922468560082572
+        },
+        {
+          "epoch": 2,
+          "training_loss": 1.011867900004332,
+          "validation_loss": 1.0618212904248918
+        },
+        {
+          "epoch": 3,
+          "training_loss": 0.9992048685578094,
+          "validation_loss": 1.0566645009177071
+        },
+        {
+          "epoch": 4,
+          "training_loss": 1.0025138601489452,
+          "validation_loss": 1.0486995492662703
+        },
+        {
+          "epoch": 5,
+          "training_loss": 0.9947917351777527,
+          "validation_loss": 1.049041407448905
+        },
+        {
+          "epoch": 6,
+          "training_loss": 1.004433346890855,
+          "validation_loss": 1.050102915082659
+        },
+        {
+          "epoch": 7,
+          "training_loss": 1.0040866506510768,
+          "validation_loss": 1.0491433654512679
+        },
+        {
+          "epoch": 8,
+          "training_loss": 1.005039535034662,
+          "validation_loss": 1.0415949991771154
+        },
+        {
+          "epoch": 9,
+          "training_loss": 0.9912922128863718,
+          "validation_loss": 1.0467817272458757
+        },
+        {
+          "epoch": 10,
+          "training_loss": 0.9966304309066685,
+          "validation_loss": 1.0377922909600394
+        }
+      ]
+    ],
+    "calibration": {
+      "method": "validation_log_stay_median_shift",
+      "rows": 100000,
+      "observed_median_seconds": 4.623023986816406,
+      "uncalibrated_median_seconds": 4.2786455154418945,
+      "normalized_log_shift": 0.012157371855442307
+    },
+    "authority_status": "research_challenger",
+    "manifest_sha256": "fbd785369dcea94424cf439f816686cf23365fca53ca7feb3d30b1213e56c960"
+  },
+  "training_seconds": 65.99117416700756,
+  "evaluation": {
+    "schema": "neural-scm-world-model-evaluation-v1",
+    "distribution": {
+      "rows": 100000,
+      "binary_ece": {
+        "play": 0.0024365313071012494,
+        "play_3s": 0.0076217121246457105,
+        "complete_play": 0.011676315745450555,
+        "long_view": 0.011392211630195376,
+        "quality_long_view": 0.009969277461916205,
+        "like": 0.0038732842054218057,
+        "negative_feedback": 0.0005079990369267762,
+        "anchor_click": 0.002899693539980799,
+        "poi_detail": 0.0018313420005142689,
+        "poi_favorite": 0.0001362276670988649,
+        "conversion": 0.0002641673490870744,
+        "session_exit": 0.006335915997624397,
+        "returned_next_session": 0.001083211973309517
+      },
+      "mean_binary_ece": 0.004617530003020969,
+      "joint_correlation_mae": 0.047564513981342316,
+      "stay_quantiles": {
+        "observed": {
+          "p50": 4.841301202774048,
+          "p90": 80.88690948486332
+        },
+        "simulated": {
+          "p50": 4.61211633682251,
+          "p90": 79.30478439331064
+        },
+        "relative_error": {
+          "p50": 0.04733951810728405,
+          "p90": 0.019559717408275466
+        }
+      },
+      "ensemble_probability_std": {
+        "mean": 0.005473748315125704,
+        "p99": 0.028084175661206245,
+        "maximum": 0.05336880683898926
+      }
+    },
+    "sequence": {
+      "rows": 10000,
+      "steps": 8,
+      "observed_lag1": [
+        0.062362723171636436,
+        0.05207536708664607,
+        0.0005933674286444913,
+        -0.00048026696756482695,
+        0.027071234806795078,
+        0.013316303378582896
+      ],
+      "simulated_lag1": [
+        0.03948978327054984,
+        0.04557008878353956,
+        -0.003429888608754986,
+        -0.001443263978636982,
+        0.013977697584730024,
+        0.0
+      ],
+      "sequence_lag1_mae": 0.010129051975552115
+    },
+    "causal": {
+      "available": false,
+      "reason": "held-out randomized interventions and frozen policy outcomes not supplied",
+      "intervention_recovery_pass": false,
+      "policy_order_pass": false
+    },
+    "synthetic_causal": {
+      "intervention_recovery": {
+        "world": "frozen_v3_synthetic_oracle",
+        "interventions": [
+          {
+            "name": "interest_affinity_up",
+            "observed_effect": 1.5580556392669678,
+            "predicted_effect": 1.0954114198684692
+          },
+          {
+            "name": "item_quality_up",
+            "observed_effect": 0.6552666425704956,
+            "predicted_effect": 0.8095945119857788
+          },
+          {
+            "name": "realtime_fatigue_up",
+            "observed_effect": -0.7672002911567688,
+            "predicted_effect": -0.4117196798324585
+          }
+        ],
+        "sign_accuracy": 1.0,
+        "normalized_mae": 0.32626919485503725,
+        "pass": true,
+        "production_evidence": false
+      },
+      "policy_order": {
+        "world": "frozen_v3_candidate_audit_utility",
+        "policies": [
+          {
+            "name": "popular",
+            "observed_value": 0.7678812742233276,
+            "predicted_value": 0.5993148684501648
+          },
+          {
+            "name": "quality",
+            "observed_value": 0.7853061556816101,
+            "predicted_value": 0.6383481621742249
+          },
+          {
+            "name": "served_rule",
+            "observed_value": 1.0560394525527954,
+            "predicted_value": 0.7995789647102356
+          },
+          {
+            "name": "world_model",
+            "observed_value": 1.0324536561965942,
+            "predicted_value": 0.8210225701332092
+          }
+        ],
+        "kendall_tau": 0.6666666666666666,
+        "pass": true,
+        "production_evidence": false
+      }
+    },
+    "thresholds": {
+      "mean_binary_ece": 0.035,
+      "joint_correlation_mae": 0.08,
+      "stay_median_relative_error": 0.1,
+      "stay_p90_relative_error": 0.15,
+      "sequence_lag1_mae": 0.12,
+      "maximum_ensemble_probability_std": 0.08,
+      "intervention_sign_accuracy": 0.8,
+      "intervention_normalized_mae": 0.5,
+      "policy_kendall_tau": 0.6666666666666666
+    },
+    "gates": {
+      "distribution": true,
+      "free_running_sequence": true,
+      "uncertainty": true,
+      "synthetic_intervention_recovery": true,
+      "synthetic_policy_order": true,
+      "intervention_recovery": false,
+      "policy_order": false
+    },
+    "promotion_eligible": false,
+    "decision": "hold_research_challenger"
+  },
+  "authority_transition": "v3_remains_executable_authority"
+}

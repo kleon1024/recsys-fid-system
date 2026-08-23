@@ -1,0 +1,43 @@
+{
+  "skill": "lit-review",
+  "version": "1.0",
+  "status": "completed",
+  "deliverables": [
+    {
+      "path": "docs/research/dgp-literature-review/lit_review_report.pdf",
+      "type": "report",
+      "description": "Seven-page bilingual literature survey and architecture decision report"
+    },
+    {
+      "path": "docs/research/dgp-literature-review/lit_review_report.tex",
+      "type": "source",
+      "description": "XeLaTeX report source"
+    },
+    {
+      "path": "docs/research/dgp-literature-review/architecture-decision.md",
+      "type": "documentation",
+      "description": "Evidence-backed DGP architecture decision and falsification gates"
+    },
+    {
+      "path": "docs/research/dgp-literature-review/lit_review_summary.json",
+      "type": "data",
+      "description": "Structured literature summary"
+    },
+    {
+      "path": "docs/research/dgp-literature-review/corpus.json",
+      "type": "data",
+      "description": "Deduplicated and classified 64-paper corpus"
+    },
+    {
+      "path": "docs/research/dgp-literature-review/references.bib",
+      "type": "data",
+      "description": "BibTeX bibliography"
+    },
+    {
+      "path": "docs/research/dgp-literature-review/search_strategy.md",
+      "type": "documentation",
+      "description": "Search terms, sources, filtering, and API limitation"
+    }
+  ],
+  "summary": "Literature survey of 64 papers across seven methodology groups. Three direct research gaps identified. Selected direction: a partially observed neural structural causal world-model ensemble, conditional on intervention-recovery and policy-order validation."
+}
