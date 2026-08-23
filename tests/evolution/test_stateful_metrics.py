@@ -70,6 +70,15 @@ class GroupedAUCTest(unittest.TestCase):
     def test_small_lr_campaign_reuses_exact_active_artifact(self):
         candidates = campaign_candidate_sets("hash_content_split_v1")
         self.assertEqual(len(candidates), 8)
+        ablations = campaign_candidate_sets("local_ablation_v1")
+        self.assertEqual(len(ablations), 32)
+        self.assertNotIn(
+            13,
+            ablations[
+                "basic__realtime__local_context__category_hash"
+                "__without_poi_indicator"
+            ],
+        )
         with TemporaryDirectory() as directory:
             root = Path(directory)
             base_dir = root / "base-artifacts"

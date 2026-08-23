@@ -29,3 +29,8 @@ All launches use the same immutable evidence JSON, common-random shadow, stable 
 | [F-LR-005](l-feature-lr-005.md) | duration | reject_unified_lt_negative | LT -1.329%, active unchanged |
 | [F-LR-006](l-feature-lr-006.md) | identity hash | hold_unified_lt_uncertain | LT +0.004%, CI crosses zero |
 | [F-LR-007](l-feature-lr-007.md) | category hash | pass_unified_lt_nonnegative | LT +0.366%, promoted |
+| [F-LR-008](l-feature-lr-008.md) | remove POI indicator | hold_unified_lt_uncertain | LT +0.069%, CI crosses zero |
+| [F-LR-009](l-feature-lr-009.md) | remove post-search | hold_unified_lt_uncertain | LT +0.043%, CI crosses zero |
+| [F-LR-010](l-feature-lr-010.md) | remove retarget | hold_unified_lt_uncertain | LT +0.004%, CI crosses zero |
+| [F-LR-011](l-feature-lr-011.md) | remove quality/inventory | hold_unified_lt_uncertain | LT +0.100%, CI crosses zero |
+| [F-LR-012](l-feature-lr-012.md) | remove geo/interest | reject_unified_lt_negative | LT -3.073%, active unchanged |

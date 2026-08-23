@@ -2,6 +2,8 @@
 bce06e97da111ebc22b6558d80d8d523c939462efd659a961b486e16ff24c938  reports/launches/2026-08-23-feature-lr-1m-gpu.json
 1ca82ac9dbf28cb7eee01638d40f3c31443871eae2e70c2791a60e8ad8c89283  reports/launches/2026-08-23-feature-lr-hash-split-1m-gpu.json
 0675f4efe980e8fbd52f65abf3277731befae5662327a2a6125c198763ef9031  reports/launches/2026-08-23-feature-lr-hash-split-training-gpu.json
+69b54844478e0940eb0f1dd392c840a1b98a2eddf6fc62cccf656335ebcd4083  reports/launches/2026-08-23-feature-lr-local-ablation-1m-gpu.json
+bfb44cae3ad8bc9d5eac9d7411c16430ae5f32640ad0d639bfc8c0945671a32b  reports/launches/2026-08-23-feature-lr-local-ablation-training-gpu.json
 78d46fc58dc576626f0f9879c88eb15d53cf6e9cbb5789622edf214d61404af3  reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json
 8a238c07c82e5f641246cd6139566b5c5ea8804cec43ff74bf0f230aaf581acf  reports/launches/2026-08-23-feature-lr-stateful-500.json
 ad5a1851b4523a0ad1dfa5da93947632d67eb8693221b6aacb8a003c30bb9aa6  reports/launches/2026-08-23-feature-lr-training-gpu-v2.json

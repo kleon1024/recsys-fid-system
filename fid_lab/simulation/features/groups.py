@@ -27,6 +27,7 @@ class FeatureCampaign:
     launch_start: int
     report_logical_key: str
     artifact_collection: str
+    operation: str
 
 
 def feature_set_key(proposals: tuple[str, ...]) -> str:
@@ -69,6 +70,26 @@ FEATURE_CAMPAIGNS = {
         launch_start=5,
         report_logical_key="feature-lr-hash-content-split-ab",
         artifact_collection="feature-lr-v3-hash-split",
+        operation="add",
+    ),
+    "local_ablation_v1": FeatureCampaign(
+        name="local_ablation_v1",
+        base_key="basic__realtime__local_context__category_hash",
+        base_columns=(
+            *feature_set_columns(("realtime", "local_context")),
+            17,
+        ),
+        proposals=(
+            ("without_poi_indicator", (13,)),
+            ("without_post_search", (18,)),
+            ("without_retarget", (19,)),
+            ("without_quality_inventory", (20, 21)),
+            ("without_geo_interest", (22, 23)),
+        ),
+        launch_start=8,
+        report_logical_key="feature-lr-local-ablation-ab",
+        artifact_collection="feature-lr-v4-local-ablation",
+        operation="remove",
     ),
 }
 
@@ -80,20 +101,29 @@ def feature_campaign(name: str) -> FeatureCampaign:
         raise ValueError(f"unknown feature campaign: {name}") from error
 
 
+def _campaign_columns(campaign, proposals, enabled):
+    changed = tuple(
+        column for proposal in enabled for column in proposals[proposal]
+    )
+    if campaign.operation == "add":
+        return campaign.base_columns + changed
+    if campaign.operation == "remove":
+        return tuple(
+            column for column in campaign.base_columns if column not in changed
+        )
+    raise ValueError(f"unsupported campaign operation: {campaign.operation}")
+
+
 def campaign_candidate_sets(name: str) -> dict[str, tuple[int, ...]]:
     campaign = feature_campaign(name)
     proposals = dict(campaign.proposals)
-    names = tuple(proposals)
     candidates = {}
-    for size in range(len(names) + 1):
-        for enabled in combinations(names, size):
+    for size in range(len(proposals) + 1):
+        for enabled in combinations(proposals, size):
             key = campaign.base_key
             if enabled:
                 key += "__" + "__".join(enabled)
-            columns = campaign.base_columns + tuple(
-                column for proposal in enabled for column in proposals[proposal]
-            )
-            candidates[key] = columns
+            candidates[key] = _campaign_columns(campaign, proposals, enabled)
     return candidates
 
 
@@ -112,6 +142,7 @@ def feature_campaign_manifest(name: str) -> dict[str, object]:
         "launch_start": campaign.launch_start,
         "report_logical_key": campaign.report_logical_key,
         "artifact_collection": campaign.artifact_collection,
+        "operation": campaign.operation,
     }
 
 

@@ -154,6 +154,7 @@ def check_model_artifacts() -> None:
         "artifacts/models/stateful-v2/MANIFEST.sha256",
         "artifacts/models/feature-lr-v2/MANIFEST.sha256",
         "artifacts/models/feature-lr-v3-hash-split/MANIFEST.sha256",
+        "artifacts/models/feature-lr-v4-local-ablation/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
@@ -175,11 +176,13 @@ def check_simulated_release() -> None:
         failures.append("simulated release does not bind the launch report")
     if release["active_control_artifact"] != report["release_state"]["active_artifact"]:
         failures.append("simulated release active artifact differs from launch state")
-    if release["artifact_collection"] != report["artifact_collection"]:
-        failures.append("simulated release artifact collection differs from report")
-    artifact_dir = release_resource_path(ROOT, release["artifact_collection"])
-    for role in ("active_control_artifact", "rollback_artifact"):
+    roles = (
+        ("active_control_artifact", "active_artifact_collection"),
+        ("rollback_artifact", "rollback_artifact_collection"),
+    )
+    for role, collection_role in roles:
         manifest = release[role]
+        artifact_dir = release_resource_path(ROOT, release[collection_role])
         artifact = artifact_dir / manifest["artifact_file"]
         artifact_id = f"sha256:{sha256(artifact.read_bytes()).hexdigest()}"
         if artifact_id != manifest["artifact_id"]:
@@ -190,6 +193,58 @@ def check_simulated_release() -> None:
 
 def run(command: list[str], capture: bool = False) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, cwd=ROOT, check=True, text=True, capture_output=capture)
+
+
+def feature_campaign_requirements(feature, small, ablation) -> dict[str, bool]:
+    decisions = tuple(
+        {
+            launch["launch_id"]: launch["decision"]
+            for launch in report["launches"]
+        }
+        for report in (feature, small, ablation)
+    )
+    expected = (
+        {
+            "F-LR-001": "hold_unified_lt_uncertain",
+            "F-LR-002": "pass_unified_lt_nonnegative",
+            "F-LR-003": "pass_unified_lt_nonnegative",
+            "F-LR-004": "reject_unified_lt_negative",
+        },
+        {
+            "F-LR-005": "reject_unified_lt_negative",
+            "F-LR-006": "hold_unified_lt_uncertain",
+            "F-LR-007": "pass_unified_lt_nonnegative",
+        },
+        {
+            "F-LR-008": "hold_unified_lt_uncertain",
+            "F-LR-009": "hold_unified_lt_uncertain",
+            "F-LR-010": "hold_unified_lt_uncertain",
+            "F-LR-011": "hold_unified_lt_uncertain",
+            "F-LR-012": "reject_unified_lt_negative",
+        },
+    )
+    return {
+        "feature_lr_isolated_decisions": decisions[0] == expected[0],
+        "small_feature_lr_decisions": decisions[1] == expected[1],
+        "local_ablation_lr_decisions": decisions[2] == expected[2],
+        "feature_lr_last_accepted_control": feature["release_state"]["active_key"]
+        == "basic__realtime__local_context",
+        "small_feature_lr_active_control": small["release_state"]["active_key"]
+        == "basic__realtime__local_context__category_hash",
+        "local_ablation_preserves_active": all(
+            launch["control"] == launch["promotion"]["prior_active_key"]
+            and launch["removed_features"]
+            for launch in ablation["launches"]
+        )
+        and ablation["release_state"]["active_key"]
+        == "basic__realtime__local_context__category_hash",
+        "feature_campaign_tensor_throughput": min(
+            value["requests_per_second"]
+            for report in (feature, small, ablation)
+            for value in report["world_performance"].values()
+        )
+        > 2_000_000,
+    }
 
 
 def acceptance_requirements(
@@ -204,16 +259,9 @@ def acceptance_requirements(
     tensor_launch,
     feature_launch,
     small_feature_launch,
+    local_ablation_launch,
     request_dataset,
 ) -> dict[str, bool]:
-    feature_decisions = {
-        launch["launch_id"]: launch["decision"]
-        for launch in feature_launch["launches"]
-    }
-    small_decisions = {
-        launch["launch_id"]: launch["decision"]
-        for launch in small_feature_launch["launches"]
-    }
     return {
         "full_slate_rate": result["full_slate_rate"] == 1.0,
         "unsafe_items": result["unsafe_items"] == 0,
@@ -247,41 +295,9 @@ def acceptance_requirements(
             "requests_per_second"
         ]
         > 2_000_000,
-        "feature_lr_isolated_decisions": feature_decisions
-        == {
-            "F-LR-001": "hold_unified_lt_uncertain",
-            "F-LR-002": "pass_unified_lt_nonnegative",
-            "F-LR-003": "pass_unified_lt_nonnegative",
-            "F-LR-004": "reject_unified_lt_negative",
-        },
-        "feature_lr_last_accepted_control": all(
-            launch["control"] == launch["promotion"]["prior_active_key"]
-            for launch in feature_launch["launches"]
-        )
-        and feature_launch["release_state"]["active_key"]
-        == "basic__realtime__local_context",
-        "feature_lr_tensor_throughput": min(
-            value["requests_per_second"]
-            for value in feature_launch["world_performance"].values()
-        )
-        > 2_000_000,
-        "small_feature_lr_decisions": small_decisions
-        == {
-            "F-LR-005": "reject_unified_lt_negative",
-            "F-LR-006": "hold_unified_lt_uncertain",
-            "F-LR-007": "pass_unified_lt_nonnegative",
-        },
-        "small_feature_lr_active_control": all(
-            launch["control"] == launch["promotion"]["prior_active_key"]
-            for launch in small_feature_launch["launches"]
-        )
-        and small_feature_launch["release_state"]["active_key"]
-        == "basic__realtime__local_context__category_hash",
-        "small_feature_lr_tensor_throughput": min(
-            value["requests_per_second"]
-            for value in small_feature_launch["world_performance"].values()
-        )
-        > 2_000_000,
+        **feature_campaign_requirements(
+            feature_launch, small_feature_launch, local_ablation_launch
+        ),
         "request_candidate_dataset_closes": (
             request_dataset["one_exposure_per_request"]
             and request_dataset["candidate_decisions"]
@@ -335,6 +351,12 @@ def main() -> None:
             ROOT / "reports/launches/2026-08-23-feature-lr-hash-split-1m-gpu.json"
         ).read_text()
     )
+    local_ablation_launch = json.loads(
+        (
+            ROOT
+            / "reports/launches/2026-08-23-feature-lr-local-ablation-1m-gpu.json"
+        ).read_text()
+    )
     stateful_feature = json.loads(
         (ROOT / "reports/launches/2026-08-23-feature-lr-stateful-500.json").read_text()
     )
@@ -351,6 +373,7 @@ def main() -> None:
         tensor_launch,
         feature_launch,
         small_feature_launch,
+        local_ablation_launch,
         request_dataset,
     )
     failed = [name for name, passed in required.items() if not passed]

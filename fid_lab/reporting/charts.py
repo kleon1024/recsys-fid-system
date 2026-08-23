@@ -285,23 +285,25 @@ def tensor_migration() -> None:
 
 
 def feature_lr_launches() -> None:
-    training = _load("2026-08-23-feature-lr-hash-split-training-gpu.json")
-    launches = _load("2026-08-23-feature-lr-hash-split-1m-gpu.json")
+    training = _load("2026-08-23-feature-lr-local-ablation-training-gpu.json")
+    launches = _load("2026-08-23-feature-lr-local-ablation-1m-gpu.json")
     stateful = _load("2026-08-23-feature-lr-stateful-500.json")
     groups = (
-        "basic__realtime__local_context",
-        "basic__realtime__local_context__duration",
-        "basic__realtime__local_context__identity_hash",
         "basic__realtime__local_context__category_hash",
+        "basic__realtime__local_context__category_hash__without_poi_indicator",
+        "basic__realtime__local_context__category_hash__without_post_search",
+        "basic__realtime__local_context__category_hash__without_retarget",
+        "basic__realtime__local_context__category_hash__without_quality_inventory",
+        "basic__realtime__local_context__category_hash__without_geo_interest",
     )
-    labels = ("Active", "+Duration", "+Identity", "+Category")
+    labels = ("Active", "-POI", "-Search", "-Retarget", "-Q/Inv", "-Geo")
     figure, axes = plt.subplots(1, 3, figsize=(13.2, 3.8))
     auc = [training["offline"][name]["auc"] for name in groups]
     axes[0].bar(labels, auc, color=COLORS[:5])
-    axes[0].set_ylim(0.738, 0.747)
+    axes[0].set_ylim(0.728, 0.747)
     axes[0].set_ylabel("Test AUC")
-    axes[0].set_title("Rejected bundle split offline")
-    launch_labels = ("Duration", "Identity", "Category")
+    axes[0].set_title("Local feature ablation offline")
+    launch_labels = ("-POI", "-Search", "-Retarget", "-Q/Inv", "-Geo")
     lt_lifts = [
         launch["ab"]["lt_value_per_user"]["relative_lift"] * 100
         for launch in launches["launches"]
@@ -332,7 +334,7 @@ def feature_lr_launches() -> None:
         axis.grid(axis="y", color="#e2e8f0", linewidth=0.8)
         axis.set_axisbelow(True)
         axis.tick_params(axis="x", labelrotation=15)
-    figure.suptitle("Small LR launches: isolate one feature contract at a time", y=1.02)
+    figure.suptitle("Small LR launches: keep or remove with causal evidence", y=1.02)
     figure.tight_layout()
     _save(figure, "feature-lr-launches.svg")
 

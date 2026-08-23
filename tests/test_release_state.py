@@ -21,7 +21,7 @@ def artifact(name):
 
 class ReleaseStateTest(unittest.TestCase):
     def test_hold_and_reject_keep_the_last_accepted_control(self):
-        state = initial_release_state("basic", artifact("basic"))
+        state = initial_release_state("basic", artifact("basic"), "base-models")
         state, held = apply_launch_decision(
             state,
             "basic__sequence",
@@ -43,13 +43,14 @@ class ReleaseStateTest(unittest.TestCase):
         self.assertIsNone(state["rollback_key"])
 
     def test_pass_promotes_atomically_and_preserves_rollback(self):
-        state = initial_release_state("basic", artifact("basic"))
+        state = initial_release_state("basic", artifact("basic"), "base-models")
         state, promotion = apply_launch_decision(
             state,
             "basic__local_context",
             artifact("local"),
             "pass_unified_lt_nonnegative",
             "F-LR-003",
+            "local-models",
         )
 
         self.assertTrue(promotion["promoted"])
@@ -58,9 +59,11 @@ class ReleaseStateTest(unittest.TestCase):
         self.assertEqual(
             state["rollback_artifact"]["artifact_id"], "sha256:basic"
         )
+        self.assertEqual(state["active_artifact_collection"], "local-models")
+        self.assertEqual(state["rollback_artifact_collection"], "base-models")
 
     def test_release_manifest_binds_the_exact_report_bytes(self):
-        state = initial_release_state("basic", artifact("basic"))
+        state = initial_release_state("basic", artifact("basic"), "test-artifacts")
         report = {
             "release_state": state,
             "report_logical_key": "test-release-report",

@@ -52,7 +52,7 @@
       "category_norm"
     ]
   },
-  "active_artifact_collection": "feature-lr-v3-hash-split",
+  "artifact_collection": "feature-lr-v3-hash-split",
   "rollback_key": "basic__realtime__local_context",
   "rollback_artifact": {
     "artifact_id": "sha256:ef7b6246d0d6546145d0b0ac24e58021d5d041deecce73e8f0041df480f305b2",
@@ -102,11 +102,10 @@
       "local_interest_affinity"
     ]
   },
-  "rollback_artifact_collection": "feature-lr-v3-hash-split",
   "promoted_by_launch": "F-LR-007",
   "source_report": {
-    "logical_key": "feature-lr-local-ablation-ab",
-    "sha256": "69b54844478e0940eb0f1dd392c840a1b98a2eddf6fc62cccf656335ebcd4083"
+    "logical_key": "feature-lr-hash-content-split-ab",
+    "sha256": "1ca82ac9dbf28cb7eee01638d40f3c31443871eae2e70c2791a60e8ad8c89283"
   },
   "production_readiness": "hold_synthetic_rates",
   "evidence_boundary": "This is simulator release state, not a production deployment."

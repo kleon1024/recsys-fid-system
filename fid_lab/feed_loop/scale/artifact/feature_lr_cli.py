@@ -36,6 +36,7 @@ def run_feature_lr_launches(
         launch_start = int(campaign["launch_start"])
         report_logical_key = campaign["report_logical_key"]
         artifact_collection = campaign["artifact_collection"]
+        operation = campaign["operation"]
         suite = "feature-lr-small-sequential-launches-v1"
     else:
         base_key = feature_set_key(())
@@ -43,6 +44,7 @@ def run_feature_lr_launches(
         launch_start = 1
         report_logical_key = "feature-lr-sequential-ab"
         artifact_collection = "feature-lr-v2"
+        operation = "add"
         suite = "feature-lr-sequential-launches-v2"
     active_proposals: tuple[str, ...] = ()
     active_key = base_key
@@ -59,7 +61,9 @@ def run_feature_lr_launches(
         ):
             raise ValueError("campaign base artifact differs from active release")
     else:
-        state = initial_release_state(active_key, active_policy.manifest)
+        state = initial_release_state(
+            active_key, active_policy.manifest, artifact_collection
+        )
     launches = []
     for offset, proposal in enumerate(proposals):
         candidate_proposals = active_proposals + (proposal,)
@@ -77,16 +81,19 @@ def run_feature_lr_launches(
             candidate_policy.manifest,
             decision,
             launch_id,
+            artifact_collection,
         )
+        prior_features = set(promotion["prior_active_artifact"]["feature_names"])
+        candidate_features = set(candidate_policy.manifest["feature_names"])
         launches.append({
             "launch_id": launch_id,
             "proposal": proposal,
             "control": active_key,
             "treatment": candidate_key,
             "added_features": sorted(
-                set(candidate_policy.manifest["feature_names"])
-                - set(promotion["prior_active_artifact"]["feature_names"])
+                candidate_features - prior_features
             ),
+            "removed_features": sorted(prior_features - candidate_features),
             "control_artifact": promotion["prior_active_artifact"],
             "treatment_artifact": candidate_policy.manifest,
             "ab": metrics,
@@ -108,6 +115,7 @@ def run_feature_lr_launches(
         "suite": suite,
         "report_logical_key": report_logical_key,
         "artifact_collection": artifact_collection,
+        "operation": operation,
         "config": asdict(config),
         "common_random_numbers": True,
         "control_rule": "every proposal is compared with the last accepted control",

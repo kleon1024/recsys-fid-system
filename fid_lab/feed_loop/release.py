@@ -19,8 +19,14 @@ RELEASE_RESOURCE_PATHS = {
     "feature-lr-hash-content-split-ab": (
         "reports/launches/2026-08-23-feature-lr-hash-split-1m-gpu.json"
     ),
+    "feature-lr-local-ablation-ab": (
+        "reports/launches/2026-08-23-feature-lr-local-ablation-1m-gpu.json"
+    ),
     "feature-lr-v2": "artifacts/models/feature-lr-v2",
     "feature-lr-v3-hash-split": "artifacts/models/feature-lr-v3-hash-split",
+    "feature-lr-v4-local-ablation": (
+        "artifacts/models/feature-lr-v4-local-ablation"
+    ),
 }
 
 
@@ -32,13 +38,17 @@ def release_resource_path(root: Path, logical_key: str) -> Path:
 
 
 def initial_release_state(
-    key: str, artifact: Mapping[str, object]
+    key: str,
+    artifact: Mapping[str, object],
+    artifact_collection: str | None = None,
 ) -> dict[str, object]:
     return {
         "active_key": key,
         "active_artifact": dict(artifact),
+        "active_artifact_collection": artifact_collection,
         "rollback_key": None,
         "rollback_artifact": None,
+        "rollback_artifact_collection": None,
         "promoted_by_launch": None,
     }
 
@@ -54,8 +64,14 @@ def release_state_from_manifest(
     return {
         "active_key": active_key,
         "active_artifact": dict(release["active_control_artifact"]),
+        "active_artifact_collection": release.get(
+            "active_artifact_collection", release.get("artifact_collection")
+        ),
         "rollback_key": release["rollback_key"],
         "rollback_artifact": release["rollback_artifact"],
+        "rollback_artifact_collection": release.get(
+            "rollback_artifact_collection", release.get("artifact_collection")
+        ),
         "promoted_by_launch": release["promoted_by_launch"],
     }
 
@@ -66,6 +82,7 @@ def apply_launch_decision(
     candidate_artifact: Mapping[str, object],
     decision: str,
     launch_id: str,
+    candidate_artifact_collection: str | None = None,
 ) -> tuple[dict[str, object], dict[str, object]]:
     """Promote only a passing candidate; every other decision is a no-op."""
     prior_key = str(state["active_key"])
@@ -75,8 +92,12 @@ def apply_launch_decision(
         next_state = {
             "active_key": candidate_key,
             "active_artifact": dict(candidate_artifact),
+            "active_artifact_collection": candidate_artifact_collection,
             "rollback_key": prior_key,
             "rollback_artifact": prior_artifact,
+            "rollback_artifact_collection": state[
+                "active_artifact_collection"
+            ],
             "promoted_by_launch": launch_id,
         }
     else:
@@ -90,8 +111,14 @@ def apply_launch_decision(
         "promoted": promoted,
         "resulting_active_key": next_state["active_key"],
         "resulting_active_artifact": next_state["active_artifact"],
+        "resulting_active_artifact_collection": next_state[
+            "active_artifact_collection"
+        ],
         "rollback_key": next_state["rollback_key"],
         "rollback_artifact": next_state["rollback_artifact"],
+        "rollback_artifact_collection": next_state[
+            "rollback_artifact_collection"
+        ],
     }
     return next_state, promotion
 
@@ -107,9 +134,10 @@ def release_manifest(
         "environment": "synthetic_simulator",
         "active_control_key": state["active_key"],
         "active_control_artifact": state["active_artifact"],
-        "artifact_collection": report["artifact_collection"],
+        "active_artifact_collection": state["active_artifact_collection"],
         "rollback_key": state["rollback_key"],
         "rollback_artifact": state["rollback_artifact"],
+        "rollback_artifact_collection": state["rollback_artifact_collection"],
         "promoted_by_launch": state["promoted_by_launch"],
         "source_report": {
             "logical_key": report["report_logical_key"],

@@ -45,6 +45,14 @@ Local + Category, with the prior Basic + Realtime + Local artifact retained as
 rollback. Category still worsens negative feedback and oracle regret, which
 remain explicit diagnostics rather than hidden behind the LT pass.
 
+The Local bundle is then decomposed with active-preserving ablations. Removing
+POI identity, post-search, retarget, or POI-quality/inventory is held because
+each LT interval crosses zero. Removing distance and Local-interest features is
+rejected at LT -3.073%. No ablation promotes, so the active artifact remains
+Basic + Realtime + Local + Category. This is a valid launch outcome: the system
+keeps the accepted control instead of deleting features on inconclusive offline
+evidence.
+
 The full bilingual diagnosis is
 [Why LR still serves](docs/research/model-simulator-root-cause.md). It separates
 simulator/DGP, sample and label, feature, training, cascade, experiment, and

@@ -80,6 +80,13 @@ uncertain, and category alone gains 0.366%. Only category is promoted. This is
 why feature contracts must be launched independently: a bundle-level offline
 AUC gain cannot identify the harmful field or preserve a useful one.
 
+The Local ablation campaign reaches the complementary result. Four removals
+remain statistically uncertain, while removing geo and Local-interest signals
+loses 3.073% unified LT and increases online oracle regret by 190%. The accepted
+bundle therefore stays active. Small Launch Reviews do not guarantee more
+promotions; they guarantee that every keep, remove, and rollback decision has an
+identifiable causal comparison.
+
 ## Why lower loss did not launch / 为什么 loss 降了仍不能上线
 
 ![Training loss](../assets/training-loss.svg)

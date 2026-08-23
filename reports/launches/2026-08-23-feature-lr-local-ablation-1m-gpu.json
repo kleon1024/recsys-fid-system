@@ -1,0 +1,3658 @@
+{
+  "suite": "feature-lr-small-sequential-launches-v1",
+  "report_logical_key": "feature-lr-local-ablation-ab",
+  "artifact_collection": "feature-lr-v4-local-ablation",
+  "operation": "remove",
+  "config": {
+    "users": 1000000,
+    "steps": 24,
+    "candidates": 20,
+    "topics": 12,
+    "catalog_items": 200000,
+    "batch_users": 25000,
+    "seed": 20260823,
+    "device": "cuda:0",
+    "count_inactive_play_bug": false,
+    "signal_version": "heterogeneous-nonlinear-v2",
+    "max_sessions": 4,
+    "requests_per_session": 8
+  },
+  "common_random_numbers": true,
+  "control_rule": "every proposal is compared with the last accepted control",
+  "launches": [
+    {
+      "launch_id": "F-LR-008",
+      "proposal": "without_poi_indicator",
+      "control": "basic__realtime__local_context__category_hash",
+      "treatment": "basic__realtime__local_context__category_hash__without_poi_indicator",
+      "added_features": [],
+      "removed_features": [
+        "poi_video_indicator"
+      ],
+      "control_artifact": {
+        "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "treatment_artifact": {
+        "artifact_id": "sha256:a7def0d1f18fa9ff107b65550cff67ab93a7c3246c4a811e01f28db02029748a",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_poi_indicator",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_poi_indicator.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "post_search_match",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 10.794407444108689,
+          "treatment_mean": 10.801897581490378,
+          "relative_lift": 0.0006938905558708399,
+          "standard_error": 0.00470390330198069,
+          "confidence_interval": [
+            -0.001729513090193242,
+            0.016709787853571065
+          ],
+          "p_value": 0.111311958336026
+        },
+        "long_view_rate": {
+          "control_mean": 0.5005440148762682,
+          "treatment_mean": 0.5010800712847048,
+          "relative_lift": 0.0010709475940274295,
+          "standard_error": 0.00029890937545890516,
+          "confidence_interval": [
+            -4.980596746288475e-05,
+            0.0011219187843360234
+          ],
+          "p_value": 0.0729130853338452
+        },
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.19146135324618924,
+          "relative_lift": 0.0005723287558156938,
+          "standard_error": 0.0002408125390442704,
+          "confidence_interval": [
+            -0.0003624764176835219,
+            0.000581508735370018
+          ],
+          "p_value": 0.6492692161785639
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.0013931818452501995,
+          "relative_lift": 0.025002360092348044,
+          "standard_error": 2.1629417427836003e-05,
+          "confidence_interval": [
+            -8.410483557937042e-06,
+            7.637683275918008e-05
+          ],
+          "p_value": 0.11614657181237352
+        },
+        "lt_value_per_exposure": {
+          "control_mean": 0.6095543729270119,
+          "treatment_mean": 0.6096263320176006,
+          "relative_lift": 0.00011805196350775,
+          "standard_error": 0.0005347662721369459,
+          "confidence_interval": [
+            -0.0009761828027996448,
+            0.001120100983977183
+          ],
+          "p_value": 0.8929583779160615
+        },
+        "local_value_tree_score_per_exposure": {
+          "control_mean": 0.02337673545577242,
+          "treatment_mean": 0.02434354423495466,
+          "relative_lift": 0.04135773281993951,
+          "standard_error": 0.0002101488440136937,
+          "confidence_interval": [
+            0.000554917044915403,
+            0.0013787005134490821
+          ],
+          "p_value": 4.212948942035364e-06
+        },
+        "anchor_click_rate": {
+          "control_mean": 0.01296417003006122,
+          "treatment_mean": 0.013505612226119814,
+          "relative_lift": 0.04176450901238585,
+          "standard_error": 8.196886698547633e-05,
+          "confidence_interval": [
+            0.0003807832167670607,
+            0.000702101175350128
+          ],
+          "p_value": 3.962808549978206e-11
+        },
+        "conversion_rate": {
+          "control_mean": 0.0007033268247151523,
+          "treatment_mean": 0.0007322345114071962,
+          "relative_lift": 0.04110135668968913,
+          "standard_error": 1.4444487401739145e-05,
+          "confidence_interval": [
+            5.964913846352173e-07,
+            5.721888199945266e-05
+          ],
+          "p_value": 0.04536056145820652
+        },
+        "ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "effective_ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "ad_contribution_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "control_mean": 0.30059982105634153,
+          "treatment_mean": 0.30088277183716,
+          "relative_lift": 0.000941287256340169,
+          "standard_error": 0.00033226790777136743,
+          "confidence_interval": [
+            -0.0003682943184134107,
+            0.0009341958800503496
+          ],
+          "p_value": 0.3944504591404265
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "control_mean": 0.0035751976230774824,
+          "treatment_mean": 0.00373038399220872,
+          "relative_lift": 0.04340637511323227,
+          "standard_error": 8.293081677549937e-05,
+          "confidence_interval": [
+            -7.358031748741175e-06,
+            0.00031773077001121636
+          ],
+          "p_value": 0.0613069655645392
+        },
+        "active_days_per_user": {
+          "control_mean": 1.877932056484272,
+          "treatment_mean": 1.8788840063444188,
+          "relative_lift": 0.0005069138986470335,
+          "standard_error": 0.0024776023431042384,
+          "confidence_interval": [
+            -0.003904150732337623,
+            0.00580805045263099
+          ],
+          "p_value": 0.7008137544649657
+        },
+        "accepted_platform_commercialization_per_user": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "lt_value_per_user": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.698419689449503,
+          "relative_lift": 0.0006875502634318318,
+          "standard_error": 0.014980785011004215,
+          "confidence_interval": [
+            -0.020637535559562967,
+            0.03808714168357355
+          ],
+          "p_value": 0.5602975570326696
+        },
+        "coarse_feed_oracle_recall": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "coarse_pass_fraction": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.04296213103287473,
+          "relative_lift": -0.002480016653760092,
+          "standard_error": 6.0641484240914766e-05,
+          "confidence_interval": [
+            -0.0002256690043377212,
+            1.2045613886664698e-05
+          ],
+          "p_value": 0.07817690342988413
+        },
+        "poi_candidate_fraction": {
+          "control_mean": 0.2830316309475137,
+          "treatment_mean": 0.28314393408168065,
+          "relative_lift": 0.0003967865138994357,
+          "standard_error": 5.890024771719395e-05,
+          "confidence_interval": [
+            -3.1413513587645278e-06,
+            0.00022774761969263573
+          ],
+          "p_value": 0.05656377668117308
+        },
+        "lt_stay_per_user": {
+          "control_mean": 3.3000345570942318,
+          "treatment_mean": 3.3039996186623317,
+          "relative_lift": 0.001201521226369002,
+          "standard_error": 0.002956470051532701,
+          "confidence_interval": [
+            -0.0018296197329041456,
+            0.00975974286910404
+          ],
+          "p_value": 0.17987266119704698
+        },
+        "lt_active_days_per_user": {
+          "control_mean": 9.38966028242136,
+          "treatment_mean": 9.394420031722094,
+          "relative_lift": 0.0005069138986470335,
+          "standard_error": 0.012388011715521192,
+          "confidence_interval": [
+            -0.019520753661688116,
+            0.02904025226315495
+          ],
+          "p_value": 0.7008137544649657
+        }
+      },
+      "unified_lt_exchange": {
+        "contract": {
+          "version": "lt-platform-metrics-v1",
+          "rates": {
+            "stay_minute": {
+              "unit_value": 1.0,
+              "standard_error": 0.03,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "active_day": {
+              "unit_value": 5.0,
+              "standard_error": 0.3,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "accepted_commercialization_unit": {
+              "unit_value": 1.0,
+              "standard_error": 0.08,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            }
+          }
+        },
+        "components": {
+          "lt_stay_per_user": {
+            "control_mean": 3.3000345570942318,
+            "treatment_mean": 3.3039996186623317,
+            "relative_lift": 0.001201521226369002,
+            "standard_error": 0.002956470051532701,
+            "confidence_interval": [
+              -0.0018296197329041456,
+              0.00975974286910404
+            ],
+            "p_value": 0.17987266119704698
+          },
+          "lt_active_days_per_user": {
+            "control_mean": 9.38966028242136,
+            "treatment_mean": 9.394420031722094,
+            "relative_lift": 0.0005069138986470335,
+            "standard_error": 0.012388011715521192,
+            "confidence_interval": [
+              -0.019520753661688116,
+              0.02904025226315495
+            ],
+            "p_value": 0.7008137544649657
+          },
+          "accepted_platform_commercialization_per_user": {
+            "control_mean": 0.0,
+            "treatment_mean": 0.0,
+            "relative_lift": null,
+            "standard_error": 0.0,
+            "confidence_interval": [
+              0.0,
+              0.0
+            ],
+            "p_value": 1.0
+          }
+        },
+        "total": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.698419689449503,
+          "relative_lift": 0.0006875502634318318,
+          "standard_error": 0.014980785011004215,
+          "confidence_interval": [
+            -0.020637535559562967,
+            0.03808714168357355
+          ],
+          "p_value": 0.5602975570326696
+        },
+        "criterion": "point_estimate > 0 and 95% CI lower_bound >= 0",
+        "overall_nonnegative": false,
+        "production_exchange_authority_accepted": false,
+        "production_readiness": "hold_synthetic_rates"
+      },
+      "decision": "hold_unified_lt_uncertain",
+      "promotion": {
+        "prior_active_key": "basic__realtime__local_context__category_hash",
+        "prior_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "candidate_key": "basic__realtime__local_context__category_hash__without_poi_indicator",
+        "candidate_artifact": {
+          "artifact_id": "sha256:a7def0d1f18fa9ff107b65550cff67ab93a7c3246c4a811e01f28db02029748a",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_poi_indicator",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_poi_indicator.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "decision": "hold_unified_lt_uncertain",
+        "promoted": false,
+        "resulting_active_key": "basic__realtime__local_context__category_hash",
+        "resulting_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "resulting_active_artifact_collection": "feature-lr-v3-hash-split",
+        "rollback_key": "basic__realtime__local_context",
+        "rollback_artifact": {
+          "artifact_id": "sha256:ef7b6246d0d6546145d0b0ac24e58021d5d041deecce73e8f0041df480f305b2",
+          "model_name": "lr_feature_basic__realtime__local_context",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity"
+          ]
+        },
+        "rollback_artifact_collection": "feature-lr-v3-hash-split"
+      },
+      "diagnostics": {
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.19146135324618924,
+          "relative_lift": 0.0005723287558156938,
+          "standard_error": 0.0002408125390442704,
+          "confidence_interval": [
+            -0.0003624764176835219,
+            0.000581508735370018
+          ],
+          "p_value": 0.6492692161785639
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.0013931818452501995,
+          "relative_lift": 0.025002360092348044,
+          "standard_error": 2.1629417427836003e-05,
+          "confidence_interval": [
+            -8.410483557937042e-06,
+            7.637683275918008e-05
+          ],
+          "p_value": 0.11614657181237352
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.04296213103287473,
+          "relative_lift": -0.002480016653760092,
+          "standard_error": 6.0641484240914766e-05,
+          "confidence_interval": [
+            -0.0002256690043377212,
+            1.2045613886664698e-05
+          ],
+          "p_value": 0.07817690342988413
+        }
+      }
+    },
+    {
+      "launch_id": "F-LR-009",
+      "proposal": "without_post_search",
+      "control": "basic__realtime__local_context__category_hash",
+      "treatment": "basic__realtime__local_context__category_hash__without_post_search",
+      "added_features": [],
+      "removed_features": [
+        "post_search_match"
+      ],
+      "control_artifact": {
+        "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "treatment_artifact": {
+        "artifact_id": "sha256:df7d4fadd3a4d2756d7dd2130180c4bea4bd7d006d37fcb2d2483843b68d5abb",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_post_search",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_post_search.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          19,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 10.794407444108689,
+          "treatment_mean": 10.796093323409345,
+          "relative_lift": 0.000156180810237589,
+          "standard_error": 0.004696680237665677,
+          "confidence_interval": [
+            -0.00751961396516917,
+            0.010891372566480284
+          ],
+          "p_value": 0.7196315496682884
+        },
+        "long_view_rate": {
+          "control_mean": 0.5005440148762682,
+          "treatment_mean": 0.5007093993594203,
+          "relative_lift": 0.0003304094709691948,
+          "standard_error": 0.0002986263676742339,
+          "confidence_interval": [
+            -0.0004199231974894339,
+            0.000750692163793563
+          ],
+          "p_value": 0.5797038082952044
+        },
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.19122077975115107,
+          "relative_lift": -0.0006849024194897043,
+          "standard_error": 0.00024040703231684464,
+          "confidence_interval": [
+            -0.0006022551195359385,
+            0.0003401404471460925
+          ],
+          "p_value": 0.5856519513585856
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.0013922124743259178,
+          "relative_lift": 0.02428916713151441,
+          "standard_error": 2.1708171677745055e-05,
+          "confidence_interval": [
+            -9.534212812040499e-06,
+            7.556182016472012e-05
+          ],
+          "p_value": 0.12830984723710231
+        },
+        "lt_value_per_exposure": {
+          "control_mean": 0.6095543729270119,
+          "treatment_mean": 0.6095059402826837,
+          "relative_lift": -7.94558229409805e-05,
+          "standard_error": 0.0005346357459860945,
+          "confidence_interval": [
+            -0.0010963187064609342,
+            0.0009994534178045561
+          ],
+          "p_value": 0.9278183898459422
+        },
+        "local_value_tree_score_per_exposure": {
+          "control_mean": 0.02337673545577242,
+          "treatment_mean": 0.023110004752501166,
+          "relative_lift": -0.011410092045396768,
+          "standard_error": 0.00020706458084663123,
+          "confidence_interval": [
+            -0.0006725772817306507,
+            0.00013911587518814373
+          ],
+          "p_value": 0.19769297414441273
+        },
+        "anchor_click_rate": {
+          "control_mean": 0.01296417003006122,
+          "treatment_mean": 0.01282192180836279,
+          "relative_lift": -0.01097241253150689,
+          "standard_error": 8.077710947460149e-05,
+          "confidence_interval": [
+            -0.0003005713562686487,
+            1.607491287178913e-05
+          ],
+          "p_value": 0.07823896472976288
+        },
+        "conversion_rate": {
+          "control_mean": 0.0007033268247151523,
+          "treatment_mean": 0.0006954434117010853,
+          "relative_lift": -0.01120874782112814,
+          "standard_error": 1.4239755192018922e-05,
+          "confidence_interval": [
+            -3.579333319042402e-05,
+            2.0026507162290152e-05
+          ],
+          "p_value": 0.579838947856279
+        },
+        "ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "effective_ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "ad_contribution_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "control_mean": 0.30059982105634153,
+          "treatment_mean": 0.3006660885907532,
+          "relative_lift": 0.00022045101084497906,
+          "standard_error": 0.00033196822182694795,
+          "confidence_interval": [
+            -0.0005843901803691277,
+            0.0007169252491925083
+          ],
+          "p_value": 0.8417776953937792
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "control_mean": 0.0035751976230774824,
+          "treatment_mean": 0.0035406877640667446,
+          "relative_lift": -0.009652573829200577,
+          "standard_error": 8.179615352905536e-05,
+          "confidence_interval": [
+            -0.00019483031992768632,
+            0.00012581060190621068
+          ],
+          "p_value": 0.6730974582130747
+        },
+        "active_days_per_user": {
+          "control_mean": 1.877932056484272,
+          "treatment_mean": 1.8787559978958612,
+          "relative_lift": 0.00043874931936124974,
+          "standard_error": 0.0024775381498121267,
+          "confidence_interval": [
+            -0.0040320333620426215,
+            0.005679916185220914
+          ],
+          "p_value": 0.7394629907813906
+        },
+        "accepted_platform_commercialization_per_user": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "lt_value_per_user": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.695164287092949,
+          "relative_lift": 0.00043101120668534806,
+          "standard_error": 0.014978065007909448,
+          "confidence_interval": [
+            -0.023887606710051752,
+            0.034826408120953285
+          ],
+          "p_value": 0.7149914523902516
+        },
+        "coarse_feed_oracle_recall": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "coarse_pass_fraction": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.04243335174867635,
+          "relative_lift": -0.014757524544692808,
+          "standard_error": 6.000855384534413e-05,
+          "confidence_interval": [
+            -0.0007532077449607829,
+            -0.0005179742138870339
+          ],
+          "p_value": 3.2571772677245696e-26
+        },
+        "poi_candidate_fraction": {
+          "control_mean": 0.2830316309475137,
+          "treatment_mean": 0.2830128917414799,
+          "relative_lift": -6.620887556297916e-05,
+          "standard_error": 5.885202693133398e-05,
+          "confidence_interval": [
+            -0.0001340891788192056,
+            9.661076675162362e-05
+          ],
+          "p_value": 0.7501722508893053
+        },
+        "lt_stay_per_user": {
+          "control_mean": 3.3000345570942318,
+          "treatment_mean": 3.3013842976136427,
+          "relative_lift": 0.0004090079955403344,
+          "standard_error": 0.002952990660642215,
+          "confidence_interval": [
+            -0.004438121175447794,
+            0.007137602214269688
+          ],
+          "p_value": 0.6476165757629866
+        },
+        "lt_active_days_per_user": {
+          "control_mean": 9.38966028242136,
+          "treatment_mean": 9.393779989479306,
+          "relative_lift": 0.00043874931936124974,
+          "standard_error": 0.012387690749060635,
+          "confidence_interval": [
+            -0.020160166810213112,
+            0.028399580926104576
+          ],
+          "p_value": 0.7394629907813906
+        }
+      },
+      "unified_lt_exchange": {
+        "contract": {
+          "version": "lt-platform-metrics-v1",
+          "rates": {
+            "stay_minute": {
+              "unit_value": 1.0,
+              "standard_error": 0.03,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "active_day": {
+              "unit_value": 5.0,
+              "standard_error": 0.3,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "accepted_commercialization_unit": {
+              "unit_value": 1.0,
+              "standard_error": 0.08,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            }
+          }
+        },
+        "components": {
+          "lt_stay_per_user": {
+            "control_mean": 3.3000345570942318,
+            "treatment_mean": 3.3013842976136427,
+            "relative_lift": 0.0004090079955403344,
+            "standard_error": 0.002952990660642215,
+            "confidence_interval": [
+              -0.004438121175447794,
+              0.007137602214269688
+            ],
+            "p_value": 0.6476165757629866
+          },
+          "lt_active_days_per_user": {
+            "control_mean": 9.38966028242136,
+            "treatment_mean": 9.393779989479306,
+            "relative_lift": 0.00043874931936124974,
+            "standard_error": 0.012387690749060635,
+            "confidence_interval": [
+              -0.020160166810213112,
+              0.028399580926104576
+            ],
+            "p_value": 0.7394629907813906
+          },
+          "accepted_platform_commercialization_per_user": {
+            "control_mean": 0.0,
+            "treatment_mean": 0.0,
+            "relative_lift": null,
+            "standard_error": 0.0,
+            "confidence_interval": [
+              0.0,
+              0.0
+            ],
+            "p_value": 1.0
+          }
+        },
+        "total": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.695164287092949,
+          "relative_lift": 0.00043101120668534806,
+          "standard_error": 0.014978065007909448,
+          "confidence_interval": [
+            -0.023887606710051752,
+            0.034826408120953285
+          ],
+          "p_value": 0.7149914523902516
+        },
+        "criterion": "point_estimate > 0 and 95% CI lower_bound >= 0",
+        "overall_nonnegative": false,
+        "production_exchange_authority_accepted": false,
+        "production_readiness": "hold_synthetic_rates"
+      },
+      "decision": "hold_unified_lt_uncertain",
+      "promotion": {
+        "prior_active_key": "basic__realtime__local_context__category_hash",
+        "prior_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "candidate_key": "basic__realtime__local_context__category_hash__without_post_search",
+        "candidate_artifact": {
+          "artifact_id": "sha256:df7d4fadd3a4d2756d7dd2130180c4bea4bd7d006d37fcb2d2483843b68d5abb",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_post_search",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_post_search.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "decision": "hold_unified_lt_uncertain",
+        "promoted": false,
+        "resulting_active_key": "basic__realtime__local_context__category_hash",
+        "resulting_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "resulting_active_artifact_collection": "feature-lr-v3-hash-split",
+        "rollback_key": "basic__realtime__local_context",
+        "rollback_artifact": {
+          "artifact_id": "sha256:ef7b6246d0d6546145d0b0ac24e58021d5d041deecce73e8f0041df480f305b2",
+          "model_name": "lr_feature_basic__realtime__local_context",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity"
+          ]
+        },
+        "rollback_artifact_collection": "feature-lr-v3-hash-split"
+      },
+      "diagnostics": {
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.19122077975115107,
+          "relative_lift": -0.0006849024194897043,
+          "standard_error": 0.00024040703231684464,
+          "confidence_interval": [
+            -0.0006022551195359385,
+            0.0003401404471460925
+          ],
+          "p_value": 0.5856519513585856
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.0013922124743259178,
+          "relative_lift": 0.02428916713151441,
+          "standard_error": 2.1708171677745055e-05,
+          "confidence_interval": [
+            -9.534212812040499e-06,
+            7.556182016472012e-05
+          ],
+          "p_value": 0.12830984723710231
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.04243335174867635,
+          "relative_lift": -0.014757524544692808,
+          "standard_error": 6.000855384534413e-05,
+          "confidence_interval": [
+            -0.0007532077449607829,
+            -0.0005179742138870339
+          ],
+          "p_value": 3.2571772677245696e-26
+        }
+      }
+    },
+    {
+      "launch_id": "F-LR-010",
+      "proposal": "without_retarget",
+      "control": "basic__realtime__local_context__category_hash",
+      "treatment": "basic__realtime__local_context__category_hash__without_retarget",
+      "added_features": [],
+      "removed_features": [
+        "retarget_match"
+      ],
+      "control_artifact": {
+        "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "treatment_artifact": {
+        "artifact_id": "sha256:b085dbc58e437e5f80c44f9625324bc001938fa43700c3e27835e971504e0242",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_retarget",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_retarget.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 10.794407444108689,
+          "treatment_mean": 10.784851425194063,
+          "relative_lift": -0.0008852749874511766,
+          "standard_error": 0.0046849672970513505,
+          "confidence_interval": [
+            -0.018738554816846855,
+            -0.00037348301240556006
+          ],
+          "p_value": 0.041378276639153645
+        },
+        "long_view_rate": {
+          "control_mean": 0.5005440148762682,
+          "treatment_mean": 0.5000263161899935,
+          "relative_lift": -0.0010342720537826968,
+          "standard_error": 0.0002983810328078278,
+          "confidence_interval": [
+            -0.001102525510578057,
+            6.712813802862787e-05
+          ],
+          "p_value": 0.08273629716787329
+        },
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.1908201707914285,
+          "relative_lift": -0.0027784750019139368,
+          "standard_error": 0.00023972953003690087,
+          "confidence_interval": [
+            -0.0010015361747898247,
+            -6.179641704517322e-05
+          ],
+          "p_value": 0.026570138412764305
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.0013966700477310847,
+          "relative_lift": 0.027568726993824,
+          "standard_error": 2.1725228129653307e-05,
+          "confidence_interval": [
+            -5.110070052613758e-06,
+            8.00528242156272e-05
+          ],
+          "p_value": 0.08456598131043923
+        },
+        "lt_value_per_exposure": {
+          "control_mean": 0.6095543729270119,
+          "treatment_mean": 0.609268837719852,
+          "relative_lift": -0.00046843271058625283,
+          "standard_error": 0.0005346211045566108,
+          "confidence_interval": [
+            -0.0013333925720908609,
+            0.0007623221577710533
+          ],
+          "p_value": 0.593280016726087
+        },
+        "local_value_tree_score_per_exposure": {
+          "control_mean": 0.02337673545577242,
+          "treatment_mean": 0.022761864770867845,
+          "relative_lift": -0.026302675412821337,
+          "standard_error": 0.00020588140639649856,
+          "confidence_interval": [
+            -0.0010183982414417112,
+            -0.00021134312836743686
+          ],
+          "p_value": 0.0028216454923663185
+        },
+        "anchor_click_rate": {
+          "control_mean": 0.01296417003006122,
+          "treatment_mean": 0.01269587048970818,
+          "relative_lift": -0.02069546602141971,
+          "standard_error": 8.03836125845791e-05,
+          "confidence_interval": [
+            -0.00042585142101881474,
+            -0.00011074765968726468
+          ],
+          "p_value": 0.0008446296544392834
+        },
+        "conversion_rate": {
+          "control_mean": 0.0007033268247151523,
+          "treatment_mean": 0.0006749834555776848,
+          "relative_lift": -0.040299002030736615,
+          "standard_error": 1.4142141797017988e-05,
+          "confidence_interval": [
+            -5.606196705962271e-05,
+            -6.247712153121992e-07
+          ],
+          "p_value": 0.045050998804700496
+        },
+        "ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "effective_ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "ad_contribution_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "control_mean": 0.30059982105634153,
+          "treatment_mean": 0.3000911282800915,
+          "relative_lift": -0.0016922590787394282,
+          "standard_error": 0.000331467777074482,
+          "confidence_interval": [
+            -0.0011583696193160262,
+            0.00014098406681594322
+          ],
+          "p_value": 0.12486555888389536
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "control_mean": 0.0035751976230774824,
+          "treatment_mean": 0.003440287201472387,
+          "relative_lift": -0.03773509490335982,
+          "standard_error": 8.141571321844722e-05,
+          "confidence_interval": [
+            -0.0002944852195132518,
+            2.466437630306131e-05
+          ],
+          "p_value": 0.09750809038110211
+        },
+        "active_days_per_user": {
+          "control_mean": 1.877932056484272,
+          "treatment_mean": 1.878491980470711,
+          "relative_lift": 0.0002981598745841432,
+          "standard_error": 0.0024775704091157605,
+          "confidence_interval": [
+            -0.004296114015427998,
+            0.005415961988305783
+          ],
+          "p_value": 0.8212035945655651
+        },
+        "accepted_platform_commercialization_per_user": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "lt_value_per_user": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.690257869519389,
+          "relative_lift": 4.4365379698363225e-05,
+          "standard_error": 0.014976358036978154,
+          "confidence_interval": [
+            -0.02879067862058622,
+            0.02991664488436814
+          ],
+          "p_value": 0.9700134187579607
+        },
+        "coarse_feed_oracle_recall": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "coarse_pass_fraction": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.043166722905078926,
+          "relative_lift": 0.002270317560288519,
+          "standard_error": 6.0469069131148587e-05,
+          "confidence_interval": [
+            -2.0739198518384693e-05,
+            0.00021629955247571777
+          ],
+          "p_value": 0.10587224038716644
+        },
+        "poi_candidate_fraction": {
+          "control_mean": 0.2830316309475137,
+          "treatment_mean": 0.28305835519128636,
+          "relative_lift": 9.44214033010414e-05,
+          "standard_error": 5.8871109517139314e-05,
+          "confidence_interval": [
+            -8.866313088094635e-05,
+            0.00014211161842623976
+          ],
+          "p_value": 0.6498684385237244
+        },
+        "lt_stay_per_user": {
+          "control_mean": 3.3000345570942318,
+          "treatment_mean": 3.297797873409645,
+          "relative_lift": -0.0006777758371585316,
+          "standard_error": 0.0029493660923886225,
+          "confidence_interval": [
+            -0.008017441225668328,
+            0.0035440738564950737
+          ],
+          "p_value": 0.44823500709718633
+        },
+        "lt_active_days_per_user": {
+          "control_mean": 9.38966028242136,
+          "treatment_mean": 9.392459902353556,
+          "relative_lift": 0.00029815987458428514,
+          "standard_error": 0.0123878520455788,
+          "confidence_interval": [
+            -0.021480570077138654,
+            0.027079809941530246
+          ],
+          "p_value": 0.8212035945654814
+        }
+      },
+      "unified_lt_exchange": {
+        "contract": {
+          "version": "lt-platform-metrics-v1",
+          "rates": {
+            "stay_minute": {
+              "unit_value": 1.0,
+              "standard_error": 0.03,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "active_day": {
+              "unit_value": 5.0,
+              "standard_error": 0.3,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "accepted_commercialization_unit": {
+              "unit_value": 1.0,
+              "standard_error": 0.08,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            }
+          }
+        },
+        "components": {
+          "lt_stay_per_user": {
+            "control_mean": 3.3000345570942318,
+            "treatment_mean": 3.297797873409645,
+            "relative_lift": -0.0006777758371585316,
+            "standard_error": 0.0029493660923886225,
+            "confidence_interval": [
+              -0.008017441225668328,
+              0.0035440738564950737
+            ],
+            "p_value": 0.44823500709718633
+          },
+          "lt_active_days_per_user": {
+            "control_mean": 9.38966028242136,
+            "treatment_mean": 9.392459902353556,
+            "relative_lift": 0.00029815987458428514,
+            "standard_error": 0.0123878520455788,
+            "confidence_interval": [
+              -0.021480570077138654,
+              0.027079809941530246
+            ],
+            "p_value": 0.8212035945654814
+          },
+          "accepted_platform_commercialization_per_user": {
+            "control_mean": 0.0,
+            "treatment_mean": 0.0,
+            "relative_lift": null,
+            "standard_error": 0.0,
+            "confidence_interval": [
+              0.0,
+              0.0
+            ],
+            "p_value": 1.0
+          }
+        },
+        "total": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.690257869519389,
+          "relative_lift": 4.4365379698363225e-05,
+          "standard_error": 0.014976358036978154,
+          "confidence_interval": [
+            -0.02879067862058622,
+            0.02991664488436814
+          ],
+          "p_value": 0.9700134187579607
+        },
+        "criterion": "point_estimate > 0 and 95% CI lower_bound >= 0",
+        "overall_nonnegative": false,
+        "production_exchange_authority_accepted": false,
+        "production_readiness": "hold_synthetic_rates"
+      },
+      "decision": "hold_unified_lt_uncertain",
+      "promotion": {
+        "prior_active_key": "basic__realtime__local_context__category_hash",
+        "prior_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "candidate_key": "basic__realtime__local_context__category_hash__without_retarget",
+        "candidate_artifact": {
+          "artifact_id": "sha256:b085dbc58e437e5f80c44f9625324bc001938fa43700c3e27835e971504e0242",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_retarget",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_retarget.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "decision": "hold_unified_lt_uncertain",
+        "promoted": false,
+        "resulting_active_key": "basic__realtime__local_context__category_hash",
+        "resulting_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "resulting_active_artifact_collection": "feature-lr-v3-hash-split",
+        "rollback_key": "basic__realtime__local_context",
+        "rollback_artifact": {
+          "artifact_id": "sha256:ef7b6246d0d6546145d0b0ac24e58021d5d041deecce73e8f0041df480f305b2",
+          "model_name": "lr_feature_basic__realtime__local_context",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity"
+          ]
+        },
+        "rollback_artifact_collection": "feature-lr-v3-hash-split"
+      },
+      "diagnostics": {
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.1908201707914285,
+          "relative_lift": -0.0027784750019139368,
+          "standard_error": 0.00023972953003690087,
+          "confidence_interval": [
+            -0.0010015361747898247,
+            -6.179641704517322e-05
+          ],
+          "p_value": 0.026570138412764305
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.0013966700477310847,
+          "relative_lift": 0.027568726993824,
+          "standard_error": 2.1725228129653307e-05,
+          "confidence_interval": [
+            -5.110070052613758e-06,
+            8.00528242156272e-05
+          ],
+          "p_value": 0.08456598131043923
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.043166722905078926,
+          "relative_lift": 0.002270317560288519,
+          "standard_error": 6.0469069131148587e-05,
+          "confidence_interval": [
+            -2.0739198518384693e-05,
+            0.00021629955247571777
+          ],
+          "p_value": 0.10587224038716644
+        }
+      }
+    },
+    {
+      "launch_id": "F-LR-011",
+      "proposal": "without_quality_inventory",
+      "control": "basic__realtime__local_context__category_hash",
+      "treatment": "basic__realtime__local_context__category_hash__without_quality_inventory",
+      "added_features": [],
+      "removed_features": [
+        "inventory_available",
+        "poi_quality"
+      ],
+      "control_artifact": {
+        "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "treatment_artifact": {
+        "artifact_id": "sha256:3a4ee751b20ffa77001baee92aaabb7cba9500b9511ed9cf63694fba28e9fa2f",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_quality_inventory",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_quality_inventory.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          19,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "retarget_match",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 10.794407444108689,
+          "treatment_mean": 10.80938360681805,
+          "relative_lift": 0.0013874001687359896,
+          "standard_error": 0.004699121769911411,
+          "confidence_interval": [
+            0.005765884040335052,
+            0.024186441378387782
+          ],
+          "p_value": 0.0014375025649466819
+        },
+        "long_view_rate": {
+          "control_mean": 0.5005440148762682,
+          "treatment_mean": 0.5013594246829666,
+          "relative_lift": 0.001629047161616604,
+          "standard_error": 0.000298669925976777,
+          "confidence_interval": [
+            0.000230016751783881,
+            0.0014008028616128469
+          ],
+          "p_value": 0.006330801637119823
+        },
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.19141855549966297,
+          "relative_lift": 0.0003486687838096097,
+          "standard_error": 0.0002403465502695619,
+          "confidence_interval": [
+            -0.00040436082621136184,
+            0.0005377976508453208
+          ],
+          "p_value": 0.78132514996898
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.001392517500484866,
+          "relative_lift": 0.024513583300787456,
+          "standard_error": 2.170833364743986e-05,
+          "confidence_interval": [
+            -9.229504113694117e-06,
+            7.586716378427013e-05
+          ],
+          "p_value": 0.12482300992728251
+        },
+        "lt_value_per_exposure": {
+          "control_mean": 0.6095543729270119,
+          "treatment_mean": 0.6098143776317362,
+          "relative_lift": 0.00042654883021477037,
+          "standard_error": 0.0005347006833817798,
+          "confidence_interval": [
+            -0.0007880086347039736,
+            0.0013080180441526032
+          ],
+          "p_value": 0.6267813104179345
+        },
+        "local_value_tree_score_per_exposure": {
+          "control_mean": 0.02337673545577242,
+          "treatment_mean": 0.023162197894514163,
+          "relative_lift": -0.009177396119494526,
+          "standard_error": 0.00020666373690488983,
+          "confidence_interval": [
+            -0.00061959848559184,
+            0.00019052336307532816
+          ],
+          "p_value": 0.29922364567050935
+        },
+        "anchor_click_rate": {
+          "control_mean": 0.01296417003006122,
+          "treatment_mean": 0.01305635564647462,
+          "relative_lift": 0.007110799704079918,
+          "standard_error": 8.136922460460759e-05,
+          "confidence_interval": [
+            -6.729806381162981e-05,
+            0.00025166929663843196
+          ],
+          "p_value": 0.25724374969310954
+        },
+        "conversion_rate": {
+          "control_mean": 0.0007033268247151523,
+          "treatment_mean": 0.0006809318557557147,
+          "relative_lift": -0.031841482753778835,
+          "standard_error": 1.4164459267745027e-05,
+          "confidence_interval": [
+            -5.01573091242178e-05,
+            5.3673712053427e-06
+          ],
+          "p_value": 0.11386256033748177
+        },
+        "ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "effective_ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "ad_contribution_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "control_mean": 0.30059982105634153,
+          "treatment_mean": 0.300914256337012,
+          "relative_lift": 0.0010460261738198238,
+          "standard_error": 0.000332010537901085,
+          "confidence_interval": [
+            -0.00033630537361563795,
+            0.0009651759349566152
+          ],
+          "p_value": 0.3436060869665075
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "control_mean": 0.0035751976230774824,
+          "treatment_mean": 0.003474506035537994,
+          "relative_lift": -0.028163922153431737,
+          "standard_error": 8.141562064886622e-05,
+          "confidence_interval": [
+            -0.0002602662040112662,
+            5.88830289322894e-05
+          ],
+          "p_value": 0.21617617545217643
+        },
+        "active_days_per_user": {
+          "control_mean": 1.877932056484272,
+          "treatment_mean": 1.8791720253536734,
+          "relative_lift": 0.0006602842020401654,
+          "standard_error": 0.0024774528514233288,
+          "confidence_interval": [
+            -0.00361583871938836,
+            0.006095776458191089
+          ],
+          "p_value": 0.6167219999047244
+        },
+        "accepted_platform_commercialization_per_user": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "lt_value_per_user": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.702407827666626,
+          "relative_lift": 0.001001831911086016,
+          "standard_error": 0.014980446306304466,
+          "confidence_interval": [
+            -0.016648733481228722,
+            0.042074616039484786
+          ],
+          "p_value": 0.39608404514364515
+        },
+        "coarse_feed_oracle_recall": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "coarse_pass_fraction": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.0424106362601963,
+          "relative_lift": -0.015284946093521167,
+          "standard_error": 6.025075730728147e-05,
+          "confidence_interval": [
+            -0.0007763979522262347,
+            -0.0005402149835816913
+          ],
+          "p_value": 8.647549072926684e-28
+        },
+        "poi_candidate_fraction": {
+          "control_mean": 0.2830316309475137,
+          "treatment_mean": 0.2830605682279718,
+          "relative_lift": 0.00010224044698196316,
+          "standard_error": 5.88763381462182e-05,
+          "confidence_interval": [
+            -8.646034230847984e-05,
+            0.00014433490322469553
+          ],
+          "p_value": 0.6230781333940053
+        },
+        "lt_stay_per_user": {
+          "control_mean": 3.3000345570942318,
+          "treatment_mean": 3.3065476774592124,
+          "relative_lift": 0.0019736521700898842,
+          "standard_error": 0.0029560111149241797,
+          "confidence_interval": [
+            0.000719338579729248,
+            0.012306902150232033
+          ],
+          "p_value": 0.027570249626835765
+        },
+        "lt_active_days_per_user": {
+          "control_mean": 9.38966028242136,
+          "treatment_mean": 9.395860126768367,
+          "relative_lift": 0.0006602842020401891,
+          "standard_error": 0.012387264257116642,
+          "confidence_interval": [
+            -0.018079193596941576,
+            0.030478882290955665
+          ],
+          "p_value": 0.6167219999047118
+        }
+      },
+      "unified_lt_exchange": {
+        "contract": {
+          "version": "lt-platform-metrics-v1",
+          "rates": {
+            "stay_minute": {
+              "unit_value": 1.0,
+              "standard_error": 0.03,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "active_day": {
+              "unit_value": 5.0,
+              "standard_error": 0.3,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "accepted_commercialization_unit": {
+              "unit_value": 1.0,
+              "standard_error": 0.08,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            }
+          }
+        },
+        "components": {
+          "lt_stay_per_user": {
+            "control_mean": 3.3000345570942318,
+            "treatment_mean": 3.3065476774592124,
+            "relative_lift": 0.0019736521700898842,
+            "standard_error": 0.0029560111149241797,
+            "confidence_interval": [
+              0.000719338579729248,
+              0.012306902150232033
+            ],
+            "p_value": 0.027570249626835765
+          },
+          "lt_active_days_per_user": {
+            "control_mean": 9.38966028242136,
+            "treatment_mean": 9.395860126768367,
+            "relative_lift": 0.0006602842020401891,
+            "standard_error": 0.012387264257116642,
+            "confidence_interval": [
+              -0.018079193596941576,
+              0.030478882290955665
+            ],
+            "p_value": 0.6167219999047118
+          },
+          "accepted_platform_commercialization_per_user": {
+            "control_mean": 0.0,
+            "treatment_mean": 0.0,
+            "relative_lift": null,
+            "standard_error": 0.0,
+            "confidence_interval": [
+              0.0,
+              0.0
+            ],
+            "p_value": 1.0
+          }
+        },
+        "total": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.702407827666626,
+          "relative_lift": 0.001001831911086016,
+          "standard_error": 0.014980446306304466,
+          "confidence_interval": [
+            -0.016648733481228722,
+            0.042074616039484786
+          ],
+          "p_value": 0.39608404514364515
+        },
+        "criterion": "point_estimate > 0 and 95% CI lower_bound >= 0",
+        "overall_nonnegative": false,
+        "production_exchange_authority_accepted": false,
+        "production_readiness": "hold_synthetic_rates"
+      },
+      "decision": "hold_unified_lt_uncertain",
+      "promotion": {
+        "prior_active_key": "basic__realtime__local_context__category_hash",
+        "prior_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "candidate_key": "basic__realtime__local_context__category_hash__without_quality_inventory",
+        "candidate_artifact": {
+          "artifact_id": "sha256:3a4ee751b20ffa77001baee92aaabb7cba9500b9511ed9cf63694fba28e9fa2f",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_quality_inventory",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_quality_inventory.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "decision": "hold_unified_lt_uncertain",
+        "promoted": false,
+        "resulting_active_key": "basic__realtime__local_context__category_hash",
+        "resulting_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "resulting_active_artifact_collection": "feature-lr-v3-hash-split",
+        "rollback_key": "basic__realtime__local_context",
+        "rollback_artifact": {
+          "artifact_id": "sha256:ef7b6246d0d6546145d0b0ac24e58021d5d041deecce73e8f0041df480f305b2",
+          "model_name": "lr_feature_basic__realtime__local_context",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity"
+          ]
+        },
+        "rollback_artifact_collection": "feature-lr-v3-hash-split"
+      },
+      "diagnostics": {
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.19141855549966297,
+          "relative_lift": 0.0003486687838096097,
+          "standard_error": 0.0002403465502695619,
+          "confidence_interval": [
+            -0.00040436082621136184,
+            0.0005377976508453208
+          ],
+          "p_value": 0.78132514996898
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.001392517500484866,
+          "relative_lift": 0.024513583300787456,
+          "standard_error": 2.170833364743986e-05,
+          "confidence_interval": [
+            -9.229504113694117e-06,
+            7.586716378427013e-05
+          ],
+          "p_value": 0.12482300992728251
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.0424106362601963,
+          "relative_lift": -0.015284946093521167,
+          "standard_error": 6.025075730728147e-05,
+          "confidence_interval": [
+            -0.0007763979522262347,
+            -0.0005402149835816913
+          ],
+          "p_value": 8.647549072926684e-28
+        }
+      }
+    },
+    {
+      "launch_id": "F-LR-012",
+      "proposal": "without_geo_interest",
+      "control": "basic__realtime__local_context__category_hash",
+      "treatment": "basic__realtime__local_context__category_hash__without_geo_interest",
+      "added_features": [],
+      "removed_features": [
+        "distance_score",
+        "local_interest_affinity"
+      ],
+      "control_artifact": {
+        "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "treatment_artifact": {
+        "artifact_id": "sha256:191ac115bd8a43f1e508eb68d16ebb9a6d855608db9e28695e4e2779d7ae8812",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_geo_interest",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_geo_interest.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          19,
+          20,
+          21,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "category_norm"
+        ]
+      },
+      "ab": {
+        "stay_per_exposure": {
+          "control_mean": 10.794407444108689,
+          "treatment_mean": 9.943349229799166,
+          "relative_lift": -0.07884251346969573,
+          "standard_error": 0.004679214797259213,
+          "confidence_interval": [
+            -0.8602294753121512,
+            -0.841886953306895
+          ],
+          "p_value": 0.0
+        },
+        "long_view_rate": {
+          "control_mean": 0.5005440148762682,
+          "treatment_mean": 0.44286344871417765,
+          "relative_lift": -0.11523575239701724,
+          "standard_error": 0.0003056500749738953,
+          "confidence_interval": [
+            -0.058279640309039385,
+            -0.05708149201514172
+          ],
+          "p_value": 0.0
+        },
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.163547603223844,
+          "relative_lift": -0.1453042431508522,
+          "standard_error": 0.00023401923055299333,
+          "confidence_interval": [
+            -0.028262911555385843,
+            -0.02734555617161811
+          ],
+          "p_value": 0.0
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.0015931102798609903,
+          "relative_lift": 0.17209523100815202,
+          "standard_error": 2.2828945982188507e-05,
+          "confidence_interval": [
+            0.0001891668750863228,
+            0.00027865634333650176
+          ],
+          "p_value": 1.2299518894205878e-24
+        },
+        "lt_value_per_exposure": {
+          "control_mean": 0.6095543729270119,
+          "treatment_mean": 0.5908157985302029,
+          "relative_lift": -0.030741432149569186,
+          "standard_error": 0.0005376850462726082,
+          "confidence_interval": [
+            -0.01979243708750324,
+            -0.017684711706114613
+          ],
+          "p_value": 4.1890197660440805e-266
+        },
+        "local_value_tree_score_per_exposure": {
+          "control_mean": 0.02337673545577242,
+          "treatment_mean": 0.018965721921973024,
+          "relative_lift": -0.18869245203825855,
+          "standard_error": 0.0001982434520029924,
+          "confidence_interval": [
+            -0.004799570699725261,
+            -0.00402245636787353
+          ],
+          "p_value": 1.1157242796352728e-109
+        },
+        "anchor_click_rate": {
+          "control_mean": 0.01296417003006122,
+          "treatment_mean": 0.010629745859491375,
+          "relative_lift": -0.18006738303777253,
+          "standard_error": 7.696084659269652e-05,
+          "confidence_interval": [
+            -0.0024852674298915297,
+            -0.0021835809112481595
+          ],
+          "p_value": 4.259490987469425e-202
+        },
+        "conversion_rate": {
+          "control_mean": 0.0007033268247151523,
+          "treatment_mean": 0.000566302609965788,
+          "relative_lift": -0.1948229612952117,
+          "standard_error": 1.3663941524204292e-05,
+          "confidence_interval": [
+            -0.00016380554013680466,
+            -0.00011024288936192385
+          ],
+          "p_value": 1.1463088998248979e-23
+        },
+        "ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "effective_ad_load": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "ad_contribution_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "control_mean": 0.30059982105634153,
+          "treatment_mean": 0.2585663251430844,
+          "relative_lift": -0.13983207230645278,
+          "standard_error": 0.00032672746220051887,
+          "confidence_interval": [
+            -0.04267388173917013,
+            -0.041393110087344094
+          ],
+          "p_value": 0.0
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "control_mean": 0.0035751976230774824,
+          "treatment_mean": 0.0029468279363835475,
+          "relative_lift": -0.1757580287696216,
+          "standard_error": 7.906636249218523e-05,
+          "confidence_interval": [
+            -0.000783339757178618,
+            -0.0004733996162092519
+          ],
+          "p_value": 1.9051179779302456e-15
+        },
+        "active_days_per_user": {
+          "control_mean": 1.877932056484272,
+          "treatment_mean": 1.853238313728706,
+          "relative_lift": -0.013149433532646462,
+          "standard_error": 0.0024812466386090882,
+          "confidence_interval": [
+            -0.02955698616723983,
+            -0.019830499343892204
+          ],
+          "p_value": 2.4678878825555927e-23
+        },
+        "accepted_platform_commercialization_per_user": {
+          "control_mean": 0.0,
+          "treatment_mean": 0.0,
+          "relative_lift": null,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "lt_value_per_user": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.299796130294599,
+          "relative_lift": -0.030725621032161428,
+          "standard_error": 0.014929083210210171,
+          "confidence_interval": [
+            -0.419159759184911,
+            -0.3606377530008871
+          ],
+          "p_value": 2.3543899174314677e-150
+        },
+        "coarse_feed_oracle_recall": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "coarse_pass_fraction": {
+          "control_mean": 1.0,
+          "treatment_mean": 1.0,
+          "relative_lift": 0.0,
+          "standard_error": 0.0,
+          "confidence_interval": [
+            0.0,
+            0.0
+          ],
+          "p_value": 1.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.12496604072743801,
+          "relative_lift": 1.9015349068669878,
+          "standard_error": 0.00010541096656603059,
+          "confidence_interval": [
+            0.08169049250486833,
+            0.08210370349380718
+          ],
+          "p_value": 0.0
+        },
+        "poi_candidate_fraction": {
+          "control_mean": 0.2830316309475137,
+          "treatment_mean": 0.28270814164750496,
+          "relative_lift": -0.001142943984479032,
+          "standard_error": 5.887472879265743e-05,
+          "confidence_interval": [
+            -0.00043888376844235873,
+            -0.00020809483157514165
+          ],
+          "p_value": 3.917396466046825e-08
+        },
+        "lt_stay_per_user": {
+          "control_mean": 3.3000345570942318,
+          "treatment_mean": 3.0336046866593196,
+          "relative_lift": -0.08073547892465428,
+          "standard_error": 0.002888144830485606,
+          "confidence_interval": [
+            -0.27209063430266395,
+            -0.2607691065671604
+          ],
+          "p_value": 0.0
+        },
+        "lt_active_days_per_user": {
+          "control_mean": 9.38966028242136,
+          "treatment_mean": 9.26619156864353,
+          "relative_lift": -0.013149433532646509,
+          "standard_error": 0.012406233193045442,
+          "confidence_interval": [
+            -0.1477849308361996,
+            -0.09915249671946147
+          ],
+          "p_value": 2.46788788255472e-23
+        }
+      },
+      "unified_lt_exchange": {
+        "contract": {
+          "version": "lt-platform-metrics-v1",
+          "rates": {
+            "stay_minute": {
+              "unit_value": 1.0,
+              "standard_error": 0.03,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "active_day": {
+              "unit_value": 5.0,
+              "standard_error": 0.3,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            },
+            "accepted_commercialization_unit": {
+              "unit_value": 1.0,
+              "standard_error": 0.08,
+              "evidence": "synthetic_platform_metric_calibration_v1"
+            }
+          }
+        },
+        "components": {
+          "lt_stay_per_user": {
+            "control_mean": 3.3000345570942318,
+            "treatment_mean": 3.0336046866593196,
+            "relative_lift": -0.08073547892465428,
+            "standard_error": 0.002888144830485606,
+            "confidence_interval": [
+              -0.27209063430266395,
+              -0.2607691065671604
+            ],
+            "p_value": 0.0
+          },
+          "lt_active_days_per_user": {
+            "control_mean": 9.38966028242136,
+            "treatment_mean": 9.26619156864353,
+            "relative_lift": -0.013149433532646509,
+            "standard_error": 0.012406233193045442,
+            "confidence_interval": [
+              -0.1477849308361996,
+              -0.09915249671946147
+            ],
+            "p_value": 2.46788788255472e-23
+          },
+          "accepted_platform_commercialization_per_user": {
+            "control_mean": 0.0,
+            "treatment_mean": 0.0,
+            "relative_lift": null,
+            "standard_error": 0.0,
+            "confidence_interval": [
+              0.0,
+              0.0
+            ],
+            "p_value": 1.0
+          }
+        },
+        "total": {
+          "control_mean": 12.689694886387498,
+          "treatment_mean": 12.299796130294599,
+          "relative_lift": -0.030725621032161428,
+          "standard_error": 0.014929083210210171,
+          "confidence_interval": [
+            -0.419159759184911,
+            -0.3606377530008871
+          ],
+          "p_value": 2.3543899174314677e-150
+        },
+        "criterion": "point_estimate > 0 and 95% CI lower_bound >= 0",
+        "overall_nonnegative": false,
+        "production_exchange_authority_accepted": false,
+        "production_readiness": "hold_synthetic_rates"
+      },
+      "decision": "reject_unified_lt_negative",
+      "promotion": {
+        "prior_active_key": "basic__realtime__local_context__category_hash",
+        "prior_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "candidate_key": "basic__realtime__local_context__category_hash__without_geo_interest",
+        "candidate_artifact": {
+          "artifact_id": "sha256:191ac115bd8a43f1e508eb68d16ebb9a6d855608db9e28695e4e2779d7ae8812",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_geo_interest",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_geo_interest.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "category_norm"
+          ]
+        },
+        "decision": "reject_unified_lt_negative",
+        "promoted": false,
+        "resulting_active_key": "basic__realtime__local_context__category_hash",
+        "resulting_active_artifact": {
+          "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+          "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            17
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity",
+            "category_norm"
+          ]
+        },
+        "resulting_active_artifact_collection": "feature-lr-v3-hash-split",
+        "rollback_key": "basic__realtime__local_context",
+        "rollback_artifact": {
+          "artifact_id": "sha256:ef7b6246d0d6546145d0b0ac24e58021d5d041deecce73e8f0041df480f305b2",
+          "model_name": "lr_feature_basic__realtime__local_context",
+          "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+          "signal_version": "heterogeneous-nonlinear-v2",
+          "artifact_format": "joblib",
+          "artifact_file": "lr_feature_basic__realtime__local_context.joblib",
+          "training_device": "cpu",
+          "serving_device": "cpu",
+          "feature_columns": [
+            0,
+            1,
+            2,
+            3,
+            5,
+            8,
+            9,
+            6,
+            7,
+            10,
+            13,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ],
+          "feature_names": [
+            "estimated_interest_affinity",
+            "item_quality",
+            "commerce_value",
+            "item_popularity",
+            "same_city",
+            "trust",
+            "commerce_propensity",
+            "realtime_satisfaction_proxy",
+            "realtime_fatigue_proxy",
+            "session_progress",
+            "poi_video_indicator",
+            "post_search_match",
+            "retarget_match",
+            "poi_quality",
+            "inventory_available",
+            "distance_score",
+            "local_interest_affinity"
+          ]
+        },
+        "rollback_artifact_collection": "feature-lr-v3-hash-split"
+      },
+      "diagnostics": {
+        "quality_long_view_rate": {
+          "control_mean": 0.191351837087346,
+          "treatment_mean": 0.163547603223844,
+          "relative_lift": -0.1453042431508522,
+          "standard_error": 0.00023401923055299333,
+          "confidence_interval": [
+            -0.028262911555385843,
+            -0.02734555617161811
+          ],
+          "p_value": 0.0
+        },
+        "negative_rate": {
+          "control_mean": 0.001359198670649578,
+          "treatment_mean": 0.0015931102798609903,
+          "relative_lift": 0.17209523100815202,
+          "standard_error": 2.2828945982188507e-05,
+          "confidence_interval": [
+            0.0001891668750863228,
+            0.00027865634333650176
+          ],
+          "p_value": 1.2299518894205878e-24
+        },
+        "fine_oracle_regret_per_exposure": {
+          "control_mean": 0.04306894272810026,
+          "treatment_mean": 0.12496604072743801,
+          "relative_lift": 1.9015349068669878,
+          "standard_error": 0.00010541096656603059,
+          "confidence_interval": [
+            0.08169049250486833,
+            0.08210370349380718
+          ],
+          "p_value": 0.0
+        }
+      }
+    }
+  ],
+  "release_state": {
+    "active_key": "basic__realtime__local_context__category_hash",
+    "active_artifact": {
+      "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+      "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+      "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+      "signal_version": "heterogeneous-nonlinear-v2",
+      "artifact_format": "joblib",
+      "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+      "training_device": "cpu",
+      "serving_device": "cpu",
+      "feature_columns": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        8,
+        9,
+        6,
+        7,
+        10,
+        13,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        17
+      ],
+      "feature_names": [
+        "estimated_interest_affinity",
+        "item_quality",
+        "commerce_value",
+        "item_popularity",
+        "same_city",
+        "trust",
+        "commerce_propensity",
+        "realtime_satisfaction_proxy",
+        "realtime_fatigue_proxy",
+        "session_progress",
+        "poi_video_indicator",
+        "post_search_match",
+        "retarget_match",
+        "poi_quality",
+        "inventory_available",
+        "distance_score",
+        "local_interest_affinity",
+        "category_norm"
+      ]
+    },
+    "active_artifact_collection": "feature-lr-v3-hash-split",
+    "rollback_key": "basic__realtime__local_context",
+    "rollback_artifact": {
+      "artifact_id": "sha256:ef7b6246d0d6546145d0b0ac24e58021d5d041deecce73e8f0041df480f305b2",
+      "model_name": "lr_feature_basic__realtime__local_context",
+      "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+      "signal_version": "heterogeneous-nonlinear-v2",
+      "artifact_format": "joblib",
+      "artifact_file": "lr_feature_basic__realtime__local_context.joblib",
+      "training_device": "cpu",
+      "serving_device": "cpu",
+      "feature_columns": [
+        0,
+        1,
+        2,
+        3,
+        5,
+        8,
+        9,
+        6,
+        7,
+        10,
+        13,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "feature_names": [
+        "estimated_interest_affinity",
+        "item_quality",
+        "commerce_value",
+        "item_popularity",
+        "same_city",
+        "trust",
+        "commerce_propensity",
+        "realtime_satisfaction_proxy",
+        "realtime_fatigue_proxy",
+        "session_progress",
+        "poi_video_indicator",
+        "post_search_match",
+        "retarget_match",
+        "poi_quality",
+        "inventory_available",
+        "distance_score",
+        "local_interest_affinity"
+      ]
+    },
+    "rollback_artifact_collection": "feature-lr-v3-hash-split",
+    "promoted_by_launch": "F-LR-007"
+  },
+  "production_readiness": "hold_synthetic_rates",
+  "world_performance": {
+    "basic__realtime__local_context__category_hash": {
+      "seconds": 5.820210063000559,
+      "users_per_second": 171815.10446797495,
+      "requests_per_second": 3129262.6559616756,
+      "peak_gpu_memory_bytes": 280015360
+    },
+    "basic__realtime__local_context__category_hash__without_poi_indicator": {
+      "seconds": 5.535746809000557,
+      "users_per_second": 180644.09997475002,
+      "requests_per_second": 3290234.4757505995,
+      "peak_gpu_memory_bytes": 280068096
+    },
+    "basic__realtime__local_context__category_hash__without_post_search": {
+      "seconds": 5.656135044999246,
+      "users_per_second": 176799.1732948684,
+      "requests_per_second": 3220136.162785418,
+      "peak_gpu_memory_bytes": 280068096
+    },
+    "basic__realtime__local_context__category_hash__without_retarget": {
+      "seconds": 5.529662852000911,
+      "users_per_second": 180842.85186359048,
+      "requests_per_second": 3293588.684780271,
+      "peak_gpu_memory_bytes": 280068096
+    },
+    "basic__realtime__local_context__category_hash__without_quality_inventory": {
+      "seconds": 5.688614071004849,
+      "users_per_second": 175789.74202118051,
+      "requests_per_second": 3202017.70987471,
+      "peak_gpu_memory_bytes": 280068096
+    },
+    "basic__realtime__local_context__category_hash__without_geo_interest": {
+      "seconds": 5.524993762999657,
+      "users_per_second": 180995.67943350493,
+      "requests_per_second": 3271168.941589468,
+      "peak_gpu_memory_bytes": 280068096
+    }
+  },
+  "evidence_boundary": "Synthetic A/B validates launch mechanics; production readiness requires accepted causal LT exchange rates and live holdout evidence."
+}
