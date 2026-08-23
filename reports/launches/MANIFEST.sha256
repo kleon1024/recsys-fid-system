@@ -13,3 +13,6 @@ b1b62f9986ef2a7403d167f12385c3b3a79bfd3317acf699a91bb3dc717f1698  reports/launch
 54cb67aa5435797e46d4795cbc58495549d39543a6e8174458b12982e9b896fc  reports/launches/2026-08-23-feed-xgb-guarded-v2-10k-gpu.json
 589199d131e13f8e2c94f5394d3357d9dcadc6d218c8e594efa5cdc4e1135010  reports/launches/2026-08-23-tensor-artifact-training.json
 005197a15e1659c0597326f7cd97f7fd6899ad13abd95813980d35149c0645ba  reports/launches/2026-08-23-tensor-artifact-v2-1m-gpu.json
+180c4cc68ec21bbecc57a39e6df4d87d0995c787eb9f48c5378d71708de427a8  reports/launches/2026-08-23-feature-lr-training-gpu.json
+89d0bbd024a7a921c17cd43ee3d22fd76d187832480dc49f041b439139e98a37  reports/launches/2026-08-23-feature-lr-1m-gpu.json
+8a238c07c82e5f641246cd6139566b5c5ea8804cec43ff74bf0f230aaf581acf  reports/launches/2026-08-23-feature-lr-stateful-500.json

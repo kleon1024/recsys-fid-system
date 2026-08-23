@@ -20,6 +20,10 @@ class ClickHouseContractTest(unittest.TestCase):
             "fractional_label",
             "teacher_topk_preservation",
             "feature_replay_log",
+            "recommendation_candidate_decision_log",
+            "recommendation_mature_label_log",
+            "recall_miss",
+            "mix_rank_miss",
         ):
             self.assertIn(contract, sql)
 

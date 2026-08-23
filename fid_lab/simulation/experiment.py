@@ -12,12 +12,15 @@ from ..evolution.data.contracts import (
     OutboundClick,
     PixelEvent,
     StageDecision,
+    synthetic_impression_time,
 )
 from ..evolution.data.joiner import EvolutionJoiner
+from ..evolution.data.request_dataset import build_request_candidate_dataset
 from ..evolution.evaluation.metrics import binary_metrics, grouped_auc
+from .features import FEATURE_GROUP_COLUMNS
 from .ab import experiment_metrics, launch_decision, randomization_audit
 from .contracts import SimulationConfig, Trajectory
-from .environment import build_catalog
+from .environment import FEATURE_NAMES, build_catalog
 from .policies import (
     HeuristicPolicy,
     PopularPolicy,
@@ -291,7 +294,9 @@ def build_feed_joiner(
         }
         history: list[tuple[float, ...]] = []
         for row in trajectory.rows:
-            timestamp = 1_800_000_000 + user_index * 100_000 + row.session_id * 1_000 + row.request_index * 10
+            timestamp = synthetic_impression_time(
+                user_index, row.session_id, row.request_index
+            )
             observable = user_index % 10 != 0
             decisions.extend(
                 _row_decisions(
@@ -320,6 +325,12 @@ def build_feed_joiner(
 
 def _joiner_report(config, catalog, observed, policies, assigned):
     report = build_feed_joiner(config, catalog, observed, policies, assigned)
+    request_dataset = build_request_candidate_dataset(
+        observed[: config.joiner_users],
+        catalog,
+        report,
+        {"schema": "request-candidate-v1", "source": "stateful-feed"},
+    )
     tasks = tuple(report.fine[0].labels) if report.fine else ()
     label_rates = {}
     mask_coverage = {}
@@ -342,6 +353,19 @@ def _joiner_report(config, catalog, observed, policies, assigned):
         "fine_label_rates": label_rates,
         "fine_label_mask_coverage": mask_coverage,
         "pixel_attribution": asdict(report.attribution),
+        "request_candidate_dataset": {
+            "requests": len(request_dataset.requests),
+            "candidate_decisions": len(request_dataset.candidates),
+            "mature_label_rows": len(request_dataset.labels),
+            "one_exposure_per_request": (
+                sum(
+                    value.exposed_position == 1
+                    for value in request_dataset.candidates
+                )
+                == len(request_dataset.requests)
+            ),
+            "stage_attribution": request_dataset.stage_attribution,
+        },
     }
 
 
@@ -351,13 +375,11 @@ def _fit_ladder(config, features, labels, user_ids, session_ids, propensities):
     policies = fit_policies(
         features[:split], labels[:split], config.seed, sample_weight=inverse_propensity
     )
-    basic_columns = (0, 1, 2, 3, 5, 8, 9)
-    sequence_columns = basic_columns + (4, 11)
     basic_lr = fit_logistic_policy(
         "lr_basic_features",
         features[:split],
         labels[:split],
-        basic_columns,
+        FEATURE_GROUP_COLUMNS["basic"],
         config.seed,
         inverse_propensity,
     )
@@ -365,11 +387,27 @@ def _fit_ladder(config, features, labels, user_ids, session_ids, propensities):
         "lr_plus_sequence",
         features[:split],
         labels[:split],
-        sequence_columns,
+        FEATURE_GROUP_COLUMNS["sequence"],
         config.seed,
         inverse_propensity,
     )
-    learned_policies = (basic_lr, sequence_lr, *policies)
+    realtime_lr = fit_logistic_policy(
+        "lr_plus_realtime",
+        features[:split],
+        labels[:split],
+        FEATURE_GROUP_COLUMNS["realtime"],
+        config.seed,
+        inverse_propensity,
+    )
+    local_lr = fit_logistic_policy(
+        "lr_plus_local_context",
+        features[:split],
+        labels[:split],
+        FEATURE_GROUP_COLUMNS["local_context"],
+        config.seed,
+        inverse_propensity,
+    )
+    learned_policies = (basic_lr, sequence_lr, realtime_lr, local_lr, *policies)
     replay_deltas = serialized_replay_deltas(learned_policies, features[split:])
     ladder = (PopularPolicy(), HeuristicPolicy(), *learned_policies)
     offline = {}
@@ -379,6 +417,14 @@ def _fit_ladder(config, features, labels, user_ids, session_ids, propensities):
             **binary_metrics(labels[split:], scores),
             "user_gauc": grouped_auc(labels[split:], scores, user_ids[split:]),
             "session_gauc": grouped_auc(labels[split:], scores, session_ids[split:]),
+            "feature_names": [
+                FEATURE_NAMES[index]
+                for index in (
+                    policy.columns
+                    if policy.columns is not None
+                    else range(len(FEATURE_NAMES))
+                )
+            ],
         }
     return policies, ladder, offline, replay_deltas, inverse_propensity, split
 
@@ -556,6 +602,13 @@ def _simulator_acceptance(report: dict[str, object]) -> dict[str, object]:
         "coarse_and_exposure_samples_close": (
             joiner["coarse_examples"]
             == report["config"]["candidates"] * joiner["fine_examples"]
+        ),
+        "request_candidate_authority_closes": (
+            joiner["request_candidate_dataset"]["one_exposure_per_request"]
+            and joiner["request_candidate_dataset"]["candidate_decisions"]
+            == joiner["request_candidate_dataset"]["mature_label_rows"]
+            and joiner["request_candidate_dataset"]["requests"]
+            == joiner["fine_examples"]
         ),
         "ab_estimators_recover_assignment_distribution": all(
             all(

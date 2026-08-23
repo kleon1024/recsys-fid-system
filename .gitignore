@@ -17,4 +17,7 @@ artifacts/models/*
 !artifacts/models/stateful-v2/MANIFEST.sha256
 !artifacts/models/stateful-v2/lr_full_feed.joblib
 !artifacts/models/stateful-v2/xgboost_stay.json
+!artifacts/models/feature-lr-v1/
+!artifacts/models/feature-lr-v1/MANIFEST.sha256
+!artifacts/models/feature-lr-v1/*.joblib
 checkpoints/

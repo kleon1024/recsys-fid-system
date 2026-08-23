@@ -17,6 +17,32 @@ from .features import build_tensor_features, nonlinear_stay_adjustment
 V2_STAY_LOG_INTERCEPT_CALIBRATION = 0.25
 
 
+def _selected_candidate(
+    candidates, choice, user_ids, state, device, features
+):
+    batch = torch.arange(len(user_ids), device=device)
+    names = (
+        "topics", "quality", "is_poi", "commerce", "poi_quality",
+        "inventory", "same_city", "search_match", "retarget_match",
+        "fulfillment", "candidate_topic", "item_ids", "content_type",
+        "ad_value", "live_value", "duration",
+    )
+    selected = {name: candidates[name][batch, choice] for name in names}
+    selected["stay_nonlinear"] = (
+        nonlinear_stay_adjustment(features[batch, choice])
+        + V2_STAY_LOG_INTERCEPT_CALIBRATION
+    )
+    true_affinity = torch.einsum("bkd,bd->bk", candidates["topics"], state["interest"])
+    true_utility = true_affinity + 0.45 * candidates["quality"]
+    chosen_utility = true_utility[batch, choice]
+    selected["coarse_oracle_survives"] = torch.ones_like(chosen_utility).bool()
+    selected["coarse_pass_fraction"] = torch.ones_like(chosen_utility)
+    selected["oracle_regret"] = true_utility.max(dim=1).values - chosen_utility
+    selected["poi_candidate_fraction"] = candidates["is_poi"].mean(dim=1)
+    selected["organic_opportunity_cost"] = torch.zeros_like(chosen_utility)
+    return selected
+
+
 class TensorArtifactPolicy:
     eligible_fraction = 1.0
     observation_noise = 0.45
@@ -90,27 +116,65 @@ class TensorArtifactPolicy:
             choice = stay.masked_fill(~eligible, -1e9).argmax(dim=1)
         else:
             choice = base.argmax(dim=1)
-        batch = torch.arange(len(user_ids), device=device)
-        names = (
-            "topics", "quality", "is_poi", "commerce", "poi_quality",
-            "inventory", "same_city", "search_match", "retarget_match",
-            "fulfillment", "candidate_topic", "item_ids", "content_type",
-            "ad_value", "live_value", "duration",
+        return _selected_candidate(
+            candidates, choice, user_ids, state, device, features
         )
-        selected = {name: candidates[name][batch, choice] for name in names}
-        selected_features = features[batch, choice]
-        selected["stay_nonlinear"] = (
-            nonlinear_stay_adjustment(selected_features)
-            + V2_STAY_LOG_INTERCEPT_CALIBRATION
+
+
+class TensorColumnLogisticPolicy:
+    """Serve one published feature-group LR on canonical GPU features."""
+
+    eligible_fraction = 1.0
+    observation_noise = 0.45
+    local_observation_noise = 0.15
+    realtime_interest_rate = 0.06
+    multi_queue = False
+
+    def __init__(
+        self,
+        report_path: Path,
+        artifact_dir: Path,
+        group: str,
+        device: str,
+    ) -> None:
+        report = json.loads(report_path.read_text())
+        evidence = report["offline"][group]
+        manifest = evidence["artifact_manifest"]
+        if manifest["feature_schema_sha256"] != feature_schema_hash():
+            raise ValueError("feature-group artifact schema does not match tensor features")
+        path = artifact_dir / manifest["artifact_file"]
+        TensorArtifactPolicy._verify(path, manifest["artifact_id"])
+        model = joblib.load(path)
+        self.device = torch.device(device)
+        self.name = manifest["model_name"]
+        self.group = group
+        self.manifest = manifest
+        self.columns = torch.as_tensor(
+            manifest["feature_columns"], dtype=torch.long, device=self.device
         )
-        true_affinity = torch.einsum(
-            "bkd,bd->bk", candidates["topics"], state["interest"]
+        self.coefficients = torch.as_tensor(
+            model.coef_[0], dtype=torch.float32, device=self.device
         )
-        true_utility = true_affinity + 0.45 * candidates["quality"]
-        chosen_utility = true_utility[batch, choice]
-        selected["coarse_oracle_survives"] = torch.ones_like(chosen_utility).bool()
-        selected["coarse_pass_fraction"] = torch.ones_like(chosen_utility)
-        selected["oracle_regret"] = true_utility.max(dim=1).values - chosen_utility
-        selected["poi_candidate_fraction"] = candidates["is_poi"].mean(dim=1)
-        selected["organic_opportunity_cost"] = torch.zeros_like(chosen_utility)
-        return selected
+        self.intercept = torch.tensor(
+            float(model.intercept_[0]), dtype=torch.float32, device=self.device
+        )
+        if len(self.columns) != len(self.coefficients):
+            raise ValueError("feature-group columns and LR coefficients differ")
+
+    def describe(self) -> dict[str, object]:
+        return {
+            "name": self.name,
+            "feature_group": self.group,
+            "artifact_manifest": self.manifest,
+        }
+
+    def select_candidate(self, user_ids, state, candidates, device, step, config):
+        features = build_tensor_features(config, user_ids, state, candidates, step)
+        model_features = features.index_select(2, self.columns)
+        scores = torch.sigmoid(
+            model_features @ self.coefficients + self.intercept
+        )
+        choice = scores.argmax(dim=1)
+        return _selected_candidate(
+            candidates, choice, user_ids, state, device, features
+        )

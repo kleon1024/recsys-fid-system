@@ -34,7 +34,7 @@ GUARDED_TOLERANCES = {
 }
 
 
-def _logging_examples(config, catalog):
+def logging_examples(config, catalog):
     trajectories = run_population(
         config, catalog, HeuristicPolicy(), range(config.users), explore=True
     )
@@ -61,7 +61,7 @@ def _logging_examples(config, catalog):
     return rows, features, labels, task_labels, users, sessions, propensities
 
 
-def _candidate_quality(rows, policy) -> dict[str, float]:
+def candidate_quality(rows, policy) -> dict[str, float]:
     candidate_features = np.asarray(
         [row.candidate_features for row in rows], dtype=np.float32
     )
@@ -296,7 +296,7 @@ def _offline_evidence(
         offline[policy.name] = {
             **binary_metrics(test_labels, scores),
             "user_gauc": grouped_auc(test_labels, scores, test_users),
-            "candidate": _candidate_quality(test_rows, policy),
+            "candidate": candidate_quality(test_rows, policy),
             "shadow_replay_score_delta": replay_deltas[policy.name],
             "artifact_manifest": published[policy.name].artifact_manifest,
             **training[policy.name],
@@ -369,7 +369,7 @@ def run_feed_model_ladder(
     )
     catalog = build_catalog(config)
     rows, features, labels, task_labels, user_ids, sessions, propensities = (
-        _logging_examples(config, catalog)
+        logging_examples(config, catalog)
     )
     policies, training, train_mask, validation_mask, test_mask, weights = _train_models(
         config, features, labels, task_labels, sessions, propensities, epochs, device,

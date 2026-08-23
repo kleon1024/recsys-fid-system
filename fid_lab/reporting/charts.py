@@ -284,6 +284,53 @@ def tensor_migration() -> None:
     _save(figure, "tensor-migration.svg")
 
 
+def feature_lr_launches() -> None:
+    training = _load("2026-08-23-feature-lr-training-gpu.json")
+    launches = _load("2026-08-23-feature-lr-1m-gpu.json")
+    stateful = _load("2026-08-23-feature-lr-stateful-500.json")
+    groups = ("basic", "sequence", "realtime", "local_context", "full")
+    labels = ("Basic", "+Sequence", "+Realtime", "+Local", "Full")
+    figure, axes = plt.subplots(1, 3, figsize=(13.2, 3.8))
+    auc = [training["offline"][name]["auc"] for name in groups]
+    axes[0].bar(labels, auc, color=COLORS[:5])
+    axes[0].set_ylim(0.58, 0.79)
+    axes[0].set_ylabel("Test AUC")
+    axes[0].set_title("Same samples, cumulative features")
+    launch_labels = ("Sequence", "Realtime", "Local", "Hash IDs")
+    lt_lifts = [
+        launch["ab"]["lt_value_per_user"]["relative_lift"] * 100
+        for launch in launches["launches"]
+    ]
+    decisions = [launch["decision"] for launch in launches["launches"]]
+    colors = [
+        COLORS[2] if value.startswith("pass")
+        else COLORS[3] if value.startswith("reject")
+        else COLORS[1]
+        for value in decisions
+    ]
+    axes[1].bar(launch_labels, lt_lifts, color=colors)
+    axes[1].axhline(0, color="#475569", linewidth=1)
+    axes[1].set_ylabel("Unified LT relative lift (%)")
+    axes[1].set_title("Adjacent million-user Launch Reviews")
+    attribution = stateful["joiner"]["request_candidate_dataset"][
+        "stage_attribution"
+    ]
+    stage_names = ("recall_miss", "coarse_miss", "fine_rank_miss", "served_oracle")
+    stage_labels = ("Recall", "Coarse", "Fine", "Served")
+    total = attribution["requests"]
+    stage_rates = [attribution[name] / total * 100 for name in stage_names]
+    axes[2].bar(stage_labels, stage_rates, color=COLORS[:4])
+    axes[2].set_ylabel("Requests (%)")
+    axes[2].set_title("Request-level failure attribution")
+    for axis in axes:
+        axis.grid(axis="y", color="#e2e8f0", linewidth=0.8)
+        axis.set_axisbelow(True)
+        axis.tick_params(axis="x", labelrotation=15)
+    figure.suptitle("Small feature launches: offline gain is not launch evidence", y=1.02)
+    figure.tight_layout()
+    _save(figure, "feature-lr-launches.svg")
+
+
 def main() -> None:
     _setup()
     model_quality()
@@ -292,6 +339,7 @@ def main() -> None:
     cascade_and_local()
     model_scale()
     tensor_migration()
+    feature_lr_launches()
 
 
 if __name__ == "__main__":

@@ -79,6 +79,76 @@ class StageDecision:
 
 
 @dataclass(frozen=True)
+class RequestRecord:
+    request_id: str
+    viewer_id: int
+    session_id: int
+    request_index: int
+    impression_time: int
+    experiment_snapshot: Mapping[str, object]
+    manifest: Mapping[str, str]
+    sequence_snapshot: tuple[tuple[float, ...], ...]
+
+
+@dataclass(frozen=True)
+class CandidateDecisionRecord:
+    request_id: str
+    candidate_id: int
+    author_id: int
+    poi_id: int
+    recall_routes: tuple[str, ...]
+    recall_score: float
+    recall_rank: int
+    synthetic_oracle_score: float
+    is_corpus_oracle: bool
+    coarse_score: float
+    coarse_rank: int
+    coarse_pass: bool
+    fine_features: tuple[float, ...]
+    fine_score: float | None
+    fine_rank: int | None
+    value_tree_score: float | None
+    mix_score: float | None
+    mix_rank: int | None
+    exposed_position: int | None
+    filter_reason: str | None
+
+    @property
+    def key(self) -> tuple[str, int]:
+        return self.request_id, self.candidate_id
+
+
+@dataclass(frozen=True)
+class MatureLabelRecord:
+    request_id: str
+    candidate_id: int
+    poi_id: int
+    labels: Mapping[str, float]
+    label_masks: Mapping[str, bool]
+    exchanged_lt_components: Mapping[str, float]
+
+    @property
+    def key(self) -> tuple[str, int, int]:
+        return self.request_id, self.candidate_id, self.poi_id
+
+
+@dataclass(frozen=True)
+class RequestCandidateDataset:
+    requests: tuple[RequestRecord, ...]
+    candidates: tuple[CandidateDecisionRecord, ...]
+    labels: tuple[MatureLabelRecord, ...]
+    stage_attribution: Mapping[str, int]
+
+
+def synthetic_impression_time(
+    user_index: int,
+    session_id: int,
+    request_index: int,
+) -> int:
+    return 1_800_000_000 + user_index * 100_000 + session_id * 1_000 + request_index * 10
+
+
+@dataclass(frozen=True)
 class ActionEvent:
     event_id: str
     request_id: str

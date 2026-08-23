@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections import Counter
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
 import numpy as np
@@ -13,10 +15,20 @@ from fid_lab.evolution.data.contracts import (
     StageDecision,
 )
 from fid_lab.evolution.data.joiner import EvolutionJoiner
+from fid_lab.evolution.data.request_dataset import (
+    build_request_candidate_dataset,
+    dataset_tables,
+    materialize_dataset,
+)
 from fid_lab.evolution.data.sampling import mixed_negative_sample
 from fid_lab.scale import FeedTensorDataset, ScaleConfig, build_scale_dataset
 from fid_lab.scale.dataset import tensorflow_generator
 from fid_lab.scale.diagnostics import diagnose_auc_without_lift
+from fid_lab.simulation.contracts import SimulationConfig
+from fid_lab.simulation.environment import build_catalog
+from fid_lab.simulation.experiment import build_feed_joiner
+from fid_lab.simulation.policies import HeuristicPolicy
+from fid_lab.simulation.population import run_population
 
 
 def decision(request: str, video: int, event_time: int = 100) -> StageDecision:
@@ -91,6 +103,77 @@ class ScaleDataTest(unittest.TestCase):
 
 
 class SamplingAndJoinerTest(unittest.TestCase):
+    def test_request_candidate_dataset_closes_every_stage_and_label(self) -> None:
+        config = SimulationConfig(
+            users=4,
+            items=300,
+            candidates=10,
+            joiner_users=4,
+            seed=19,
+            signal_version="heterogeneous-nonlinear-v2",
+        )
+        catalog = build_catalog(config)
+        policy = HeuristicPolicy()
+        trajectories = run_population(config, catalog, policy, range(config.users))
+        assigned = np.zeros(config.users, dtype=bool)
+        joined = build_feed_joiner(
+            config, catalog, trajectories, (policy, policy), assigned
+        )
+        dataset = build_request_candidate_dataset(
+            trajectories,
+            catalog,
+            joined,
+            {"model": policy.name, "feature": "stateful-v2"},
+        )
+        self.assertEqual(
+            len(dataset.candidates),
+            sum(row.recall_count for value in trajectories for row in value.rows),
+        )
+        by_request = {
+            request.request_id: [
+                candidate
+                for candidate in dataset.candidates
+                if candidate.request_id == request.request_id
+            ]
+            for request in dataset.requests
+        }
+        for request_id, candidates in by_request.items():
+            self.assertEqual(sum(value.coarse_pass for value in candidates), 10)
+            self.assertEqual(sum(value.exposed_position == 1 for value in candidates), 1)
+            self.assertEqual(len({value.candidate_id for value in candidates}), len(candidates))
+            self.assertTrue(all(value.recall_routes for value in candidates))
+        self.assertEqual(
+            dataset.stage_attribution["requests"],
+            sum(
+                dataset.stage_attribution[name]
+                for name in (
+                    "recall_miss",
+                    "coarse_miss",
+                    "fine_rank_miss",
+                    "mix_rank_miss",
+                    "served_oracle",
+                )
+            ),
+        )
+        exposed_labels = [
+            label for label in dataset.labels if label.exchanged_lt_components
+        ]
+        self.assertEqual(len(exposed_labels), len(dataset.requests))
+        self.assertFalse(dataset.requests[0].sequence_snapshot)
+        self.assertEqual(
+            set(dataset_tables(dataset)),
+            {"requests", "candidate_decisions", "mature_labels"},
+        )
+        with TemporaryDirectory() as directory:
+            output = Path(directory)
+            manifest = materialize_dataset(dataset, output)
+            self.assertEqual(manifest["schema"], "request-candidate-v1")
+            self.assertEqual(
+                manifest["tables"]["candidate_decisions"]["rows"],
+                len(dataset.candidates),
+            )
+            self.assertTrue((output / "manifest.json").exists())
+
     def test_negative_mix_is_exact_and_probability_carrying(self) -> None:
         samples = mixed_negative_sample(
             tuple(range(100)), tuple(range(100, 150)), tuple(range(150, 250)), 20, 4

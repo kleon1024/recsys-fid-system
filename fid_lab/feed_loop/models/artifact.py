@@ -27,7 +27,7 @@ from .multitask_policy import FeedMMoEPolicy
 @dataclass(frozen=True)
 class PublishedPolicy:
     policy: object
-    artifact_manifest: Mapping[str, str]
+    artifact_manifest: Mapping[str, object]
 
     @property
     def name(self) -> str:
@@ -164,4 +164,8 @@ def publish_policy(
         "training_device": _device(policy),
         "serving_device": _device(serving, serving=True),
     }
+    if isinstance(policy, LearnedPolicy):
+        columns = policy.columns or tuple(range(len(FEATURE_NAMES)))
+        manifest["feature_columns"] = tuple(columns)
+        manifest["feature_names"] = tuple(FEATURE_NAMES[index] for index in columns)
     return PublishedPolicy(serving, manifest), replay_delta

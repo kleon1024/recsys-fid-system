@@ -167,6 +167,15 @@ def _record_step(
     session_id = environment.session_id
     request_index = environment.request_index
     candidate_ids = environment.candidates.copy()
+    candidate_routes = environment.candidate_routes
+    recall_count = environment.recall_count
+    coarse_count = environment.coarse_count
+    recalled_candidate_ids = environment.recalled_candidate_ids
+    recalled_candidate_routes = environment.recalled_candidate_routes
+    recall_merge_scores = environment.recall_merge_scores
+    recalled_coarse_scores = environment.recalled_coarse_scores
+    recalled_synthetic_oracle_scores = environment.recalled_synthetic_oracle_scores
+    corpus_oracle_item_id = environment.corpus_oracle_item_id
     query_embedding = tuple(float(value) for value in environment.observed_interest)
     action, propensities = _selection(
         scores,
@@ -197,9 +206,9 @@ def _record_step(
             tuple(float(value) for value in scores),
             tuple(float(value) for value in propensities),
             oracle,
-            environment.candidate_routes,
-            environment.recall_count,
-            environment.coarse_count,
+            candidate_routes,
+            recall_count,
+            coarse_count,
             tuple(float(value) for value in observation[action]),
             float(scores[action]),
             float(propensities[action]),
@@ -207,6 +216,12 @@ def _record_step(
             returned,
             environment.parameter_snapshot,
             query_embedding,
+            recalled_candidate_ids,
+            recalled_candidate_routes,
+            recall_merge_scores,
+            recalled_coarse_scores,
+            recalled_synthetic_oracle_scores,
+            corpus_oracle_item_id,
         )
     )
     accumulator.watch_minutes += response.watch_minutes

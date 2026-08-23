@@ -20,6 +20,12 @@ class CandidateBatch:
     routes: tuple[tuple[str, ...], ...]
     recall_count: int
     coarse_count: int
+    recalled_item_ids: tuple[int, ...] = ()
+    recalled_routes: tuple[tuple[str, ...], ...] = ()
+    recall_scores: tuple[float, ...] = ()
+    coarse_scores: tuple[float, ...] = ()
+    synthetic_oracle_scores: tuple[float, ...] = ()
+    corpus_oracle_item_id: int = -1
 
 
 class CascadeCandidateProvider:
@@ -179,9 +185,23 @@ class CascadeCandidateProvider:
             raise ValueError(f"unsupported coarse model: {model}")
         selected_index = self._top(coarse, self.config.candidates)
         selected = recalled_array[selected_index]
+        synthetic_oracle = (
+            self.catalog.topics[recalled_array] @ state.interest
+            + 0.45 * self.catalog.quality[recalled_array]
+        )
+        corpus_utility = self.catalog.topics @ state.interest + 0.45 * self.catalog.quality
+        if seen:
+            corpus_utility[np.asarray(tuple(seen), dtype=np.int64)] = -np.inf
+        corpus_oracle = int(np.argmax(corpus_utility))
         return CandidateBatch(
             selected,
             tuple(tuple(item_routes[int(item)]) for item in selected),
             len(recalled),
             len(selected),
+            tuple(int(item) for item in recalled),
+            tuple(tuple(item_routes[int(item)]) for item in recalled),
+            tuple(float(merged[int(item)]) for item in recalled),
+            tuple(float(value) for value in coarse),
+            tuple(float(value) for value in synthetic_oracle),
+            corpus_oracle,
         )

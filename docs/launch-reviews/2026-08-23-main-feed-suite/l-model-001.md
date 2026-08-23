@@ -1,5 +1,9 @@
 # L-MODEL-001 — Fine-rank model ladder under platform LT
 
+Gate note: this record preserves a historical pre-unified-LT decision. Its
+offline and trajectory evidence remains valid, but the old proxy-metric gate is
+superseded by the unified exchanged-LT authority.
+
 Decision: keep LR. W&D, DeepFM, DCNv2, and MMoE are all rejected in this
 synthetic launch. Model complexity is not a launch criterion.
 
@@ -51,15 +55,15 @@ training loss is not evidence of better candidate ordering.
 | DCNv2 | -4.23% | +2.12% | -22.31% | +1.90% | Reject quality guardrail |
 | MMoE | -5.58% | -1.46% | +5.40% | -24.95% | Reject stay regression |
 
-Positive composite LT does not rescue W&D, DeepFM, or DCNv2 because their
-quality-view and stay regressions are hard guardrails. MMoE improves its quality
-head but worsens stay and LT. A gate-order defect initially returned an
-underpowered LT Hold before checking significant stay regression; hard
-guardrails now execute first and the launch is rejected.
+The original review rejected W&D, DeepFM, and DCNv2 because quality-view and
+stay were treated as hard guardrails. Under the current protocol those metrics
+remain diagnostics unless their causal effect is exchanged into LT. These
+candidates therefore require re-evaluation; this historical record alone cannot
+replace or retain LR. MMoE still has negative LT and remains a reject.
 
-W&D、DeepFM、DCNv2 的综合 LT 即使为正，也不能覆盖 quality-view 与 stay 硬护栏
-回退。MMoE 提升了 quality head，但 stay 与 LT 都下降。此前门禁顺序错误，先返回
-LT 风险 Hold、遮蔽显著 stay 回退；现在硬护栏优先，结果为 Reject。
+原复盘将 quality-view 与 stay 作为硬护栏，因此拒绝 W&D、DeepFM 和 DCNv2。当前
+协议要求未兑换指标只作诊断，这些候选需要按统一 LT 重新评估；旧记录本身不能证明
+继续保留或替换 LR。MMoE 的 LT 为负，仍然拒绝。
 
 Numeric authority / 数值权威：
 `reports/launches/2026-08-23-feed-model-ladder.json`.

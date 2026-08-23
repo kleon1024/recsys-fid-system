@@ -93,6 +93,12 @@ class TraceRow:
     returned_next_session: bool
     parameter_snapshot: Mapping[str, object] | None = None
     query_embedding: tuple[float, ...] = ()
+    recalled_candidate_ids: tuple[int, ...] = ()
+    recalled_candidate_routes: tuple[tuple[str, ...], ...] = ()
+    recall_merge_scores: tuple[float, ...] = ()
+    recalled_coarse_scores: tuple[float, ...] = ()
+    recalled_synthetic_oracle_scores: tuple[float, ...] = ()
+    corpus_oracle_item_id: int = -1
 
 
 @dataclass(frozen=True)

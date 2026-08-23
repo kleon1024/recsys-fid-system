@@ -134,9 +134,9 @@ def check_visual_manifest() -> None:
         raise SystemExit("\n".join(failures))
 
 
-def check_model_artifacts() -> None:
-    manifest = ROOT / "artifacts/models/stateful-v2/MANIFEST.sha256"
+def _model_manifest_failures(relative_manifest: str) -> list[str]:
     failures = []
+    manifest = ROOT / relative_manifest
     for line in manifest.read_text().splitlines():
         expected, relative = line.split(maxsplit=1)
         path = ROOT / relative
@@ -144,6 +144,17 @@ def check_model_artifacts() -> None:
             failures.append(f"missing model artifact: {relative}")
         elif sha256(path.read_bytes()).hexdigest() != expected:
             failures.append(f"model artifact hash mismatch: {relative}")
+    return failures
+
+
+def check_model_artifacts() -> None:
+    manifests = (
+        "artifacts/models/stateful-v2/MANIFEST.sha256",
+        "artifacts/models/feature-lr-v1/MANIFEST.sha256",
+    )
+    failures = []
+    for relative_manifest in manifests:
+        failures.extend(_model_manifest_failures(relative_manifest))
     if failures:
         raise SystemExit("\n".join(failures))
 
@@ -185,6 +196,17 @@ def main() -> None:
     tensor_launch = json.loads(
         (ROOT / "reports/launches/2026-08-23-tensor-artifact-v2-1m-gpu.json").read_text()
     )
+    feature_launch = json.loads(
+        (ROOT / "reports/launches/2026-08-23-feature-lr-1m-gpu.json").read_text()
+    )
+    stateful_feature = json.loads(
+        (ROOT / "reports/launches/2026-08-23-feature-lr-stateful-500.json").read_text()
+    )
+    feature_decisions = {
+        launch["launch_id"]: launch["decision"]
+        for launch in feature_launch["launches"]
+    }
+    request_dataset = stateful_feature["joiner"]["request_candidate_dataset"]
     required = {
         "full_slate_rate": result["full_slate_rate"] == 1.0,
         "unsafe_items": result["unsafe_items"] == 0,
@@ -218,6 +240,23 @@ def main() -> None:
             "requests_per_second"
         ]
         > 2_000_000,
+        "feature_lr_isolated_decisions": feature_decisions
+        == {
+            "F-LR-001": "hold_unified_lt_uncertain",
+            "F-LR-002": "hold_unified_lt_uncertain",
+            "F-LR-003": "pass_unified_lt_nonnegative",
+            "F-LR-004": "reject_unified_lt_negative",
+        },
+        "feature_lr_tensor_throughput": min(
+            value["requests_per_second"]
+            for value in feature_launch["world_performance"].values()
+        )
+        > 2_000_000,
+        "request_candidate_dataset_closes": (
+            request_dataset["one_exposure_per_request"]
+            and request_dataset["candidate_decisions"]
+            == request_dataset["mature_label_rows"]
+        ),
     }
     failed = [name for name, passed in required.items() if not passed]
     if failed:

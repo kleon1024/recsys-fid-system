@@ -34,6 +34,8 @@ source_roots = ["."]
 oracle_paths = ["tests/test_*.py"]
 entry_points = [
   "fid_lab/evolution/data/joiner.py",
+  "fid_lab/evolution/data/request_dataset.py",
+  "fid_lab/evolution/data/request_dataset_cli.py",
   "fid_lab/scale/dataset.py",
   "fid_lab/scale/diagnostics.py",
   "fid_lab/simulation/experimentation/assignment.py",
@@ -41,6 +43,10 @@ entry_points = [
   "fid_lab/value/container.py",
   "fid_lab/value/gate.py",
   "fid_lab/feed_loop/scale/tensor_catalog.py",
+  "fid_lab/simulation/features/groups.py",
+  "fid_lab/feed_loop/models/feature_lr.py",
+  "fid_lab/feed_loop/models/feature_lr_cli.py",
+  "fid_lab/feed_loop/scale/artifact/feature_lr_cli.py",
   "fid_lab/feed_loop/scale/queue_value_cli.py",
   "fid_lab/value/tree.py",
   "fid_lab/simulation/local/switchback.py",

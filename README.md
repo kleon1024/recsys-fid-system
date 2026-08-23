@@ -26,6 +26,16 @@ pass the stateful replay and A/B loop.
 
 ![Observed model A/B impact](docs/assets/model-ab-impact.svg)
 
+![Small feature Launch Reviews](docs/assets/feature-lr-launches.svg)
+
+The first isolated Feature LR ladder now uses five published logistic-regression
+artifacts over the same samples: 7 basic, 9 sequence, 12 realtime, 19 Local
+context, and 24 full features. Only the Local-context step clears the simulated
+unified-LT gate; the final hash/category/duration bundle improves offline AUC but
+is rejected online. See the
+[request-level candidate authority](docs/architecture/request-candidate-dataset.md)
+and individual F-LR Launch Reviews.
+
 The full bilingual diagnosis is
 [Why LR still serves](docs/research/model-simulator-root-cause.md). It separates
 simulator/DGP, sample and label, feature, training, cascade, experiment, and

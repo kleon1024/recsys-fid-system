@@ -1,5 +1,9 @@
 # Main Feed Foundation Launch Review — 2026-08-23
 
+Gate note: the model decisions below preserve the original pre-unified-LT
+review and are historical evidence only. Current launches use exchanged unified
+LT plus independent safety, legal, privacy, and integrity constraints.
+
 Status: main-Feed simulation foundation accepted; candidate model launches are
 accepted or rejected independently. Local Service is out of scope for this gate.
 All numbers below are deterministic synthetic evidence, not TikTok metrics.
@@ -28,13 +32,15 @@ percentage points.
 | LR fine rank | AUC 0.7175; candidate regret 0.0625 | Keep authority | The simplest model generalizes best on the current DGP and sample. |
 | LR → W&D | stay truth -4.49%; quality view -24.11% | Reject | More capacity worsens held-out candidate ordering. |
 | LR → DeepFM | stay truth -4.20%; quality view -23.26% | Reject | Automatic second-order crosses do not match this sample regime. |
-| LR → DCNv2 | stay truth -4.23%; quality view -22.31% | Reject | Positive composite LT cannot override hard Feed guardrails. |
+| LR → DCNv2 | stay truth -4.23%; quality view -22.31% | Historical reject | Re-evaluate under unified LT. |
 | LR → MMoE | quality view +5.40%, but stay -5.58% and platform LT -1.46% | Reject | One task head improves while overall user value regresses. |
 
 The first model-ladder implementation also overloaded LT as long view and is
 superseded. The corrected ladder uses exposure-normalized stay, long view,
 quality long view, negative feedback, and the separate platform LT container.
-W&D, DeepFM, and DCNv2 fail the quality-view guardrail in the current run.
+W&D, DeepFM, and DCNv2 failed the historical quality-view gate in this run.
+Those proxy metrics are now diagnostics unless their causal effect is exchanged
+into LT.
 
 The first deep model also embedded `user_id % 1024`. Because the experiment uses
 fresh users, this mapped unseen users onto unrelated learned embeddings. Removing

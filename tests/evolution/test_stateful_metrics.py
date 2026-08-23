@@ -1,5 +1,8 @@
 import unittest
 from dataclasses import replace
+import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import torch
@@ -18,9 +21,38 @@ from fid_lab.feed_loop.scale.tensor_engine import (
 from fid_lab.feed_loop.scale.tensor_catalog import build_tensor_catalog
 from fid_lab.feed_loop.scale.artifact.cli import _launch_decision
 from fid_lab.feed_loop.scale.artifact.features import build_tensor_features
+from fid_lab.feed_loop.models.feature_lr import train_feature_lr_suite
+from fid_lab.feed_loop.scale.artifact.feature_lr_cli import run_feature_lr_launches
 
 
 class GroupedAUCTest(unittest.TestCase):
+    def test_feature_lr_artifacts_run_adjacent_tensor_launches(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = train_feature_lr_suite(80, 300, root / "artifacts", seed=31)
+            report_path = root / "training.json"
+            report_path.write_text(json.dumps(report))
+            launches = run_feature_lr_launches(
+                report_path,
+                root / "artifacts",
+                TensorFeedConfig(
+                    users=40,
+                    steps=2,
+                    candidates=5,
+                    batch_users=20,
+                    device="cpu",
+                    signal_version="heterogeneous-nonlinear-v2",
+                ),
+            )
+        self.assertEqual(len(launches["launches"]), 4)
+        self.assertEqual(
+            launches["launches"][0]["added_features"],
+            ["long_sequence_match", "short_sequence_match"],
+        )
+        self.assertTrue(
+            all("unified_lt_exchange" in launch for launch in launches["launches"])
+        )
+
     def test_tensor_v2_features_are_finite_and_match_stateful_width(self):
         config = TensorFeedConfig(
             users=4,

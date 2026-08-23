@@ -158,6 +158,12 @@ class StatefulFeedEnv(gym.Env):
         self.candidate_routes = batch.routes
         self.recall_count = batch.recall_count
         self.coarse_count = batch.coarse_count
+        self.recalled_candidate_ids = batch.recalled_item_ids
+        self.recalled_candidate_routes = batch.recalled_routes
+        self.recall_merge_scores = batch.recall_scores
+        self.recalled_coarse_scores = batch.coarse_scores
+        self.recalled_synthetic_oracle_scores = batch.synthetic_oracle_scores
+        self.corpus_oracle_item_id = batch.corpus_oracle_item_id
 
     def _observation(self) -> np.ndarray:
         item_topics = self.catalog.topics[self.candidates]
