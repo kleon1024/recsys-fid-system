@@ -55,6 +55,7 @@ def base_v3_components(root: Path) -> dict[str, object]:
     behavior_sources = [
         _component(root, "fid_lab/feed_loop/scale/tensor_engine.py"),
         _component(root, "fid_lab/feed_loop/scale/calibration/behavior.py"),
+        _component(root, "fid_lab/feed_loop/scale/calibration/nonlinear.py"),
         _component(root, "fid_lab/value/contracts.py"),
         _component(
             root,
@@ -191,7 +192,54 @@ def attach_dataset(
     authority = json.loads(path.read_text())
     if authority["epoch"] != "v3":
         raise ValueError("dataset can attach only to the active V3 authority")
-    authority["dataset"] = dataset_manifest
+    dataset = dict(dataset_manifest)
+    candidates = (
+        (authority["active_bundle_id"], authority["active_bundle"]),
+        (authority.get("rollback_bundle_id"), authority.get("rollback_bundle")),
+    )
+    logging = next(
+        (bundle_id, bundle) for bundle_id, bundle in candidates
+        if bundle_id == dataset["authority_bundle_id"] and bundle is not None
+    )
+    dataset["logging_bundle_id"], dataset["logging_bundle"] = logging
+    authority["dataset"] = dataset
+    write_authority(root, authority)
+    return authority
+
+
+def refresh_source_closure(root: Path) -> dict[str, object]:
+    path = root / "artifacts/releases/simulated-feed-control.json"
+    authority = json.loads(path.read_text())
+    dataset = dict(authority["dataset"])
+    if "logging_bundle" not in dataset:
+        logging_bundle = (
+            authority["rollback_bundle"]
+            if authority.get("rollback_bundle") is not None
+            else authority["active_bundle"]
+        )
+        logging_bundle_id = (
+            authority["rollback_bundle_id"]
+            if authority.get("rollback_bundle") is not None
+            else authority["active_bundle_id"]
+        )
+        if dataset["authority_bundle_id"] != logging_bundle_id:
+            raise ValueError("dataset authority differs from historical logger")
+        dataset["logging_bundle_id"] = logging_bundle_id
+        dataset["logging_bundle"] = logging_bundle
+    base = base_v3_components(root)
+    active = {"model": authority["active_bundle"]["model"], **base}
+    rollback = None
+    if authority.get("rollback_bundle") is not None:
+        rollback = {"model": authority["rollback_bundle"]["model"], **base}
+    authority.update({
+        "active_bundle": active,
+        "active_bundle_id": f"sha256:{_payload_hash(active)}",
+        "rollback_bundle": rollback,
+        "rollback_bundle_id": (
+            None if rollback is None else f"sha256:{_payload_hash(rollback)}"
+        ),
+        "dataset": dataset,
+    })
     write_authority(root, authority)
     return authority
 
@@ -199,7 +247,7 @@ def attach_dataset(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "mode", choices=("initialize-rule", "promote-model")
+        "mode", choices=("initialize-rule", "promote-model", "refresh-sources")
     )
     parser.add_argument("--launch-report")
     parser.add_argument(
@@ -209,10 +257,13 @@ def main() -> None:
     root = Path(__file__).resolve().parents[2]
     if args.mode == "initialize-rule":
         path = write_authority(root, build_rule_v3_authority(root))
-    else:
+    elif args.mode == "promote-model":
         if not args.launch_report:
             parser.error("--launch-report is required for promote-model")
         promote_v3_authority(root, args.launch_report, args.artifact_dir)
+        path = root / "artifacts/releases/simulated-feed-control.json"
+    else:
+        refresh_source_closure(root)
         path = root / "artifacts/releases/simulated-feed-control.json"
     print(path)
 

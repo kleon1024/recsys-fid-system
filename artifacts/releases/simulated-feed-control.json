@@ -3,7 +3,7 @@
   "environment": "externally_calibrated_synthetic_simulator",
   "epoch": "v3",
   "active_control_key": "mmoe_multitask_guarded_a015_t008",
-  "active_bundle_id": "sha256:411c99f5abeff91ea8b5732dd0b0d5a827997a114dc5cb1f7d366e856ae8a6cc",
+  "active_bundle_id": "sha256:ce44d637645b05647d03c8f2206e112b0af4911dcd467de114d2f3abb96d6334",
   "active_bundle": {
     "model": {
       "kind": "guarded_learned_residual_rerank",
@@ -232,24 +232,28 @@
     },
     "feature": {
       "schema_sha256": "ffdd75784f7606739c691130436d1646c2dfe11ce4b5ea3b01e6c6f390f1f5e0",
-      "artifact_id": "sha256:7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a",
+      "artifact_id": "sha256:9890ddae43e4be1a61624659b96907f76a1f7822be78109c0e6ce1d0313083eb",
       "source": {
         "path": "fid_lab/feed_loop/scale/artifact/features.py",
-        "sha256": "7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a"
+        "sha256": "9890ddae43e4be1a61624659b96907f76a1f7822be78109c0e6ce1d0313083eb"
       },
       "dense_fields": 28
     },
     "behavior": {
       "signal_version": "kuairand-calibrated-v3",
-      "artifact_id": "sha256:48951b607bff61f5adee433753e0ddb1284f767310c1ba5a43fe22b45e9a2f9e",
+      "artifact_id": "sha256:9f1b2b21d4d78f29b9de80287ef6f97134e84c1773ade0139a38fc54e14403a0",
       "sources": [
         {
           "path": "fid_lab/feed_loop/scale/tensor_engine.py",
-          "sha256": "1e301a2daf02b4c57a928622b17666e8c239a939f3f35b1aec4a920889f59a5a"
+          "sha256": "b93c262f8a89cf854b0d9b2de6b7cb2aca564cea50288cb4ed3ba6eb8f1ccb97"
         },
         {
           "path": "fid_lab/feed_loop/scale/calibration/behavior.py",
           "sha256": "0b2848f69eb42cb0a163551ab024ee530e1ff054e74de43ca75748c5ca894e15"
+        },
+        {
+          "path": "fid_lab/feed_loop/scale/calibration/nonlinear.py",
+          "sha256": "12429be2cb3a5d8403ff4b7f6657d5f5f70ebe6793a75f3f3ad0cbaf32fd7939"
         },
         {
           "path": "fid_lab/value/contracts.py",
@@ -295,24 +299,28 @@
     },
     "feature": {
       "schema_sha256": "ffdd75784f7606739c691130436d1646c2dfe11ce4b5ea3b01e6c6f390f1f5e0",
-      "artifact_id": "sha256:7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a",
+      "artifact_id": "sha256:9890ddae43e4be1a61624659b96907f76a1f7822be78109c0e6ce1d0313083eb",
       "source": {
         "path": "fid_lab/feed_loop/scale/artifact/features.py",
-        "sha256": "7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a"
+        "sha256": "9890ddae43e4be1a61624659b96907f76a1f7822be78109c0e6ce1d0313083eb"
       },
       "dense_fields": 28
     },
     "behavior": {
       "signal_version": "kuairand-calibrated-v3",
-      "artifact_id": "sha256:48951b607bff61f5adee433753e0ddb1284f767310c1ba5a43fe22b45e9a2f9e",
+      "artifact_id": "sha256:9f1b2b21d4d78f29b9de80287ef6f97134e84c1773ade0139a38fc54e14403a0",
       "sources": [
         {
           "path": "fid_lab/feed_loop/scale/tensor_engine.py",
-          "sha256": "1e301a2daf02b4c57a928622b17666e8c239a939f3f35b1aec4a920889f59a5a"
+          "sha256": "b93c262f8a89cf854b0d9b2de6b7cb2aca564cea50288cb4ed3ba6eb8f1ccb97"
         },
         {
           "path": "fid_lab/feed_loop/scale/calibration/behavior.py",
           "sha256": "0b2848f69eb42cb0a163551ab024ee530e1ff054e74de43ca75748c5ca894e15"
+        },
+        {
+          "path": "fid_lab/feed_loop/scale/calibration/nonlinear.py",
+          "sha256": "12429be2cb3a5d8403ff4b7f6657d5f5f70ebe6793a75f3f3ad0cbaf32fd7939"
         },
         {
           "path": "fid_lab/value/contracts.py",
@@ -395,7 +403,71 @@
         "sha256": "e59861397fb390ff165136d99733c9e961dc119ad509b981667345e3678056ff"
       }
     },
-    "manifest_sha256": "88e0cbef072bde9560a9c415f835b0b124eb0e9b5ffca13eba83c56233d7308e"
+    "manifest_sha256": "88e0cbef072bde9560a9c415f835b0b124eb0e9b5ffca13eba83c56233d7308e",
+    "logging_bundle_id": "sha256:0aa4baa95637e0a21eac1feccb9a75f17d796ff61d83e975ddb6cc232add68de",
+    "logging_bundle": {
+      "model": {
+        "kind": "parameterized_rule",
+        "name": "personalized_rank",
+        "artifact_id": "sha256:83c99d3c44a72bced9a8fec1a6c8ce3c0d89f2ad498ce1e4dbfddf8ace06101c",
+        "sources": [
+          {
+            "path": "fid_lab/feed_loop/tensor_policies.py",
+            "sha256": "cce40d9653f4923bceec4f8c7df6a4b5dddc5ba1ce64e01842511ad131b176bb"
+          },
+          {
+            "path": "fid_lab/feed_loop/tensor_cascade.py",
+            "sha256": "f41165de3de7b2c81f63b07d896359a9b9a1681839ad419d7f81ed96f039e207"
+          }
+        ]
+      },
+      "index": {
+        "version": "multiroute-rrf-coarse-v2",
+        "artifact_id": "sha256:91c56d53898ab4683645beb93c48a984c49179afe5440da4a0e532852b3a1c00",
+        "sources": [
+          {
+            "path": "fid_lab/feed_loop/scale/graph/candidate.py",
+            "sha256": "a7b0a0192316d7d4bb78fa3dfa45e46233fc96964aa32ecaad642dd0d5b7d2d8"
+          },
+          {
+            "path": "fid_lab/feed_loop/scale/tensor_catalog.py",
+            "sha256": "92a529558727a846247abf2fc1351f29d080e7a256d11f15fea580c94d0235b4"
+          }
+        ],
+        "catalog_items": 200000
+      },
+      "feature": {
+        "schema_sha256": "ffdd75784f7606739c691130436d1646c2dfe11ce4b5ea3b01e6c6f390f1f5e0",
+        "artifact_id": "sha256:7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a",
+        "source": {
+          "path": "fid_lab/feed_loop/scale/artifact/features.py",
+          "sha256": "7a06647552544533ff07102dc93672bbbbfc50340564c27da0e4aa239920427a"
+        },
+        "dense_fields": 28
+      },
+      "behavior": {
+        "signal_version": "kuairand-calibrated-v3",
+        "artifact_id": "sha256:48951b607bff61f5adee433753e0ddb1284f767310c1ba5a43fe22b45e9a2f9e",
+        "sources": [
+          {
+            "path": "fid_lab/feed_loop/scale/tensor_engine.py",
+            "sha256": "1e301a2daf02b4c57a928622b17666e8c239a939f3f35b1aec4a920889f59a5a"
+          },
+          {
+            "path": "fid_lab/feed_loop/scale/calibration/behavior.py",
+            "sha256": "0b2848f69eb42cb0a163551ab024ee530e1ff054e74de43ca75748c5ca894e15"
+          },
+          {
+            "path": "fid_lab/value/contracts.py",
+            "sha256": "88595413f423615ecc4e55128477d2fd90c49cf3a167514461943d9c7d9c64b2"
+          },
+          {
+            "path": "reports/calibration/2026-08-23-kuairand-standard-calibration.json",
+            "sha256": "b9ef8b1096b4da4f66404ccccb0c92a5be50b7784bc505b0af1ffe4fcf0040db"
+          }
+        ]
+      }
+    }
   },
   "source_report": {
     "path": "reports/launches/2026-08-23-v3-model-ladder-1m-gpu.json",
@@ -412,5 +484,5 @@
   "production_readiness": "synthetic_research_only",
   "evidence_boundary": "V3 is the current simulator authority; it is not a production deployment.",
   "rollback_key": "rule_personalized_v1",
-  "rollback_bundle_id": "sha256:0aa4baa95637e0a21eac1feccb9a75f17d796ff61d83e975ddb6cc232add68de"
+  "rollback_bundle_id": "sha256:21549aa72c19d7f2e5d57517f7060eca95b38899559057bc4cddedba20b69a11"
 }

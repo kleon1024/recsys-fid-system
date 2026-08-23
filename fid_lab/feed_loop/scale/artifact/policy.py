@@ -12,7 +12,8 @@ from xgboost import Booster
 
 from ...models.artifact import feature_schema_hash
 from ...tensor_cascade import stage_diagnostics
-from .features import build_tensor_features, nonlinear_stay_adjustment
+from ..calibration.nonlinear import nonlinear_stay_adjustment
+from .features import build_tensor_features
 
 
 V2_STAY_LOG_INTERCEPT_CALIBRATION = 0.25

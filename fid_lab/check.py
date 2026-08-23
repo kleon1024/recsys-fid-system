@@ -221,12 +221,18 @@ def check_simulated_release() -> None:
         ):
             failures.append("authority active artifact differs from Launch Review")
     dataset = release["dataset"]
-    logging_bundle_id = (
-        release["rollback_bundle_id"] if rollback is not None
-        else release["active_bundle_id"]
-    )
+    logging_bundle_id = dataset.get("logging_bundle_id")
+    logging_bundle = dataset.get("logging_bundle")
     if dataset["authority_bundle_id"] != logging_bundle_id:
         failures.append("V3 request log is not bound to its logging bundle")
+    if logging_bundle is None:
+        failures.append("V3 request log is missing its historical logging bundle")
+    else:
+        encoded = json.dumps(
+            logging_bundle, sort_keys=True, separators=(",", ":")
+        ).encode()
+        if logging_bundle_id != f"sha256:{sha256(encoded).hexdigest()}":
+            failures.append("V3 historical logging bundle id mismatch")
     public_dataset = json.loads(
         (ROOT / "reports/datasets/2026-08-23-v3-request-log-manifest.json").read_text()
     )
