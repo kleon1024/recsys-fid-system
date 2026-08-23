@@ -281,6 +281,10 @@ The [POI distribution stage ladder](docs/launch-reviews/2026-08-24-poi-distribut
 repairs the `48 recall -> 20 coarse -> fine -> mix` boundary and records the
 adjacent three-seed Launch Reviews. Only retarget recall passes; Local expansion
 is rejected because Local value rises while platform LT falls.
+The [POI posting request ladder](docs/launch-reviews/2026-08-24-poi-posting-request-ladder.md)
+adds a teacher-hidden creator world, non-oracle candidate sets, actual
+LR/W&D/MMoE artifacts, and a supply-to-Feed LT review. History recall and W&D
+pass all three seeds; MMoE is held because its incremental effect is unstable.
 
 The [model evolution laboratory](docs/architecture/model-evolution.md) compares
 mature open-source LR, XGBoost, WDL, DeepFM, DCN-Mix, DIN, MMoE, and PLE

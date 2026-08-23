@@ -1,0 +1,40 @@
+{
+  "schema": "simulated-poi-posting-authority-v1",
+  "active_key": "history_recall_plus_wide_deep",
+  "active_bundle_id": "sha256:58aaf19cc30e4e8099c0edddc0a26a04a349c9be25935ca6a3457025b2c5951a",
+  "active_bundle": {
+    "candidate_policy": "history_recall",
+    "fine_model": "wide_deep",
+    "model_artifact": {
+      "path": "artifacts/models/poi-posting-request-v1/seed-20260824-wide_deep.pt",
+      "sha256": "a9c499aa7cd14e900d269f3620a3f26601ed89c170c0f2f79fb33ea7a6e4750e"
+    },
+    "model_seed": 20260824,
+    "world_version": "teacher-hidden-posting-v1",
+    "sources": [
+      {
+        "path": "fid_lab/poi_posting/world/contracts.py",
+        "sha256": "3b53a9a1a6eec88cc8322298cf0aa8a8943e4dd5c267ab0b951fc7337b5b40c6"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/generator.py",
+        "sha256": "7d5f607ec663e0ca46caaa360f08d9a42c5f3f61d50ef51903f999c5f9115bfe"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/models.py",
+        "sha256": "6390210c9863d81447a0531662a64c929f77f0837d1aa2fd50ddb21d75eef8ce"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/launch.py",
+        "sha256": "f194d09dff40c0dea1417bb0aac5a22f17cd15a368d76b1290d33afc9d5d5c4b"
+      }
+    ]
+  },
+  "rollback_key": "popular_geo_plus_rule",
+  "source_report": {
+    "path": "reports/launches/2026-08-24-poi-posting-request-launch-review.json",
+    "sha256": "1a2aa027264760fda8f9fe1415054d4cf0043db7f5d614cf2633d9b79c148bb9"
+  },
+  "production_readiness": "hold_external_creator_and_supply_validation",
+  "evidence_boundary": "Teacher-hidden multi-agent synthetic posting world. It validates request closure, model training, stage isolation, and effect recovery; supply remains outside external V4 authority until creator logs and randomized supply interventions are available."
+}

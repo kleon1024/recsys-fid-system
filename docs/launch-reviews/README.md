@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-POI-POST-REQUEST-001](2026-08-24-poi-posting-request-ladder.md) | POI posting candidate/fine/end-to-end ladder | Promote History recall + W&D in simulator; external supply hold |
 | [L-POI-STAGE-001](2026-08-24-poi-distribution-stage-ladder.md) | POI recall/coarse/fine/mix ladder | Promote retarget recall only |
 | [L-SIMULATOR-009](2026-08-24-v4-composite-world.md) | Randomized V4 composite world authority | Promote Feed kernel only; hold unified NeuralSCM |
 | [L-RECALL-EXT-001](2026-08-24-feed-retrieval-ladder.md) | Main Feed retrieval ladder | Retain Popular; learned routes unstable |

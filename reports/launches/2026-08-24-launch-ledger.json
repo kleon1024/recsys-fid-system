@@ -570,6 +570,96 @@
         "report_sha256": "c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521"
       },
       "evidence_boundary": "GPU common-random V3 Local behavior simulation; validates stage mechanics and synthetic effect recovery, not live business lift."
+    },
+    {
+      "launch_id": "L-POI-POST-CANDIDATE-001",
+      "surface": "poi_posting",
+      "stage": "candidate",
+      "change_type": "posting_candidate_evolution",
+      "control": "popular_geo",
+      "treatment": "semantic_recall",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-request-launch-review.json",
+        "report_sha256": "1a2aa027264760fda8f9fe1415054d4cf0043db7f5d614cf2633d9b79c148bb9"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic posting world. It validates request closure, model training, stage isolation, and effect recovery; supply remains outside external V4 authority until creator logs and randomized supply interventions are available."
+    },
+    {
+      "launch_id": "L-POI-POST-CANDIDATE-002",
+      "surface": "poi_posting",
+      "stage": "candidate",
+      "change_type": "posting_candidate_evolution",
+      "control": "popular_geo",
+      "treatment": "history_recall",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "pass_all_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-request-launch-review.json",
+        "report_sha256": "1a2aa027264760fda8f9fe1415054d4cf0043db7f5d614cf2633d9b79c148bb9"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic posting world. It validates request closure, model training, stage isolation, and effect recovery; supply remains outside external V4 authority until creator logs and randomized supply interventions are available."
+    },
+    {
+      "launch_id": "L-POI-POST-FINE-001",
+      "surface": "poi_posting",
+      "stage": "fine",
+      "change_type": "posting_fine_evolution",
+      "control": "rule",
+      "treatment": "linear",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "pass_all_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-request-launch-review.json",
+        "report_sha256": "1a2aa027264760fda8f9fe1415054d4cf0043db7f5d614cf2633d9b79c148bb9"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic posting world. It validates request closure, model training, stage isolation, and effect recovery; supply remains outside external V4 authority until creator logs and randomized supply interventions are available."
+    },
+    {
+      "launch_id": "L-POI-POST-FINE-002",
+      "surface": "poi_posting",
+      "stage": "fine",
+      "change_type": "posting_fine_evolution",
+      "control": "linear",
+      "treatment": "wide_deep",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "pass_all_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-request-launch-review.json",
+        "report_sha256": "1a2aa027264760fda8f9fe1415054d4cf0043db7f5d614cf2633d9b79c148bb9"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic posting world. It validates request closure, model training, stage isolation, and effect recovery; supply remains outside external V4 authority until creator logs and randomized supply interventions are available."
+    },
+    {
+      "launch_id": "L-POI-POST-FINE-003",
+      "surface": "poi_posting",
+      "stage": "fine",
+      "change_type": "posting_fine_evolution",
+      "control": "wide_deep",
+      "treatment": "mmoe",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-request-launch-review.json",
+        "report_sha256": "1a2aa027264760fda8f9fe1415054d4cf0043db7f5d614cf2633d9b79c148bb9"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic posting world. It validates request closure, model training, stage isolation, and effect recovery; supply remains outside external V4 authority until creator logs and randomized supply interventions are available."
+    },
+    {
+      "launch_id": "L-POI-POST-END_TO_END-001",
+      "surface": "poi_posting",
+      "stage": "end_to_end",
+      "change_type": "posting_end_to_end_evolution",
+      "control": "popular_geo_plus_rule",
+      "treatment": "history_recall_plus_wide_deep",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "pass_all_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-request-launch-review.json",
+        "report_sha256": "1a2aa027264760fda8f9fe1415054d4cf0043db7f5d614cf2633d9b79c148bb9"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic posting world. It validates request closure, model training, stage isolation, and effect recovery; supply remains outside external V4 authority until creator logs and randomized supply interventions are available."
     }
   ],
   "coverage": {
@@ -588,8 +678,8 @@
       "end_to_end": "evidenced"
     },
     "poi_posting": {
-      "candidate": "missing",
-      "fine": "missing",
+      "candidate": "evidenced",
+      "fine": "evidenced",
       "end_to_end": "evidenced"
     },
     "feed_posting": {
@@ -608,11 +698,11 @@
     }
   },
   "summary": {
-    "records": 38,
-    "passed": 10,
-    "held": 14,
+    "records": 44,
+    "passed": 14,
+    "held": 16,
     "rejected": 14,
-    "missing_cells": 10
+    "missing_cells": 8
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."
 }

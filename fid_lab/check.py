@@ -161,6 +161,7 @@ def check_model_artifacts() -> None:
         "artifacts/models/feature-lr-v4-local-ablation/MANIFEST.sha256",
         "artifacts/models/feature-lr-v5-intent-trigger/MANIFEST.sha256",
         "artifacts/models/v3-model-ladder/MANIFEST.sha256",
+        "artifacts/models/poi-posting-request-v1/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
@@ -272,6 +273,34 @@ def check_simulator_world_release() -> None:
         failures.append("active Feed kernel differs from the accepted review")
     if release.get("production_readiness") != "simulator_only":
         failures.append("simulator world release overstates production readiness")
+    if failures:
+        raise SystemExit("\n".join(failures))
+
+
+def check_poi_posting_release() -> None:
+    release = json.loads(
+        (ROOT / "artifacts/releases/simulated-poi-posting-control.json").read_text()
+    )
+    failures = []
+    if release.get("schema") != "simulated-poi-posting-authority-v1":
+        failures.append("POI posting release schema mismatch")
+    bundle = release["active_bundle"]
+    encoded = json.dumps(bundle, sort_keys=True, separators=(",", ":")).encode()
+    if release["active_bundle_id"] != f"sha256:{sha256(encoded).hexdigest()}":
+        failures.append("POI posting bundle id mismatch")
+    resources = [
+        bundle["model_artifact"], *bundle["sources"], release["source_report"]
+    ]
+    for resource in resources:
+        path = ROOT / resource["path"]
+        if not path.exists():
+            failures.append(f"POI posting resource missing: {resource['path']}")
+        elif sha256(path.read_bytes()).hexdigest() != resource["sha256"]:
+            failures.append(f"POI posting resource hash mismatch: {resource['path']}")
+    if release["production_readiness"] != (
+        "hold_external_creator_and_supply_validation"
+    ):
+        failures.append("POI posting release overclaims production readiness")
     if failures:
         raise SystemExit("\n".join(failures))
 
@@ -455,6 +484,7 @@ def main() -> None:
     check_model_artifacts()
     check_simulated_release()
     check_simulator_world_release()
+    check_poi_posting_release()
     run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
     run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
     benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)

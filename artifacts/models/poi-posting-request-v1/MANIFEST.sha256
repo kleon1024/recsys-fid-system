@@ -1,0 +1,9 @@
+ae27f66b3eab53abf9b7701db791e12cdb882e7a5ab97f971440dd5fdf14bcff  artifacts/models/poi-posting-request-v1/seed-20260824-linear.pt
+bd38f39685cac7b97cc49ab77f45e1423644a6c95fc054206bd5c18db8d60ed2  artifacts/models/poi-posting-request-v1/seed-20260824-mmoe.pt
+a9c499aa7cd14e900d269f3620a3f26601ed89c170c0f2f79fb33ea7a6e4750e  artifacts/models/poi-posting-request-v1/seed-20260824-wide_deep.pt
+b4aadd48d9ef9f33f151d6feb01e38be5f0b226b78b2a6f2c556380186f2a83b  artifacts/models/poi-posting-request-v1/seed-20260825-linear.pt
+2d93296ec4079b33fa9360a37027989618ceebeae829287787002029df29b0b9  artifacts/models/poi-posting-request-v1/seed-20260825-mmoe.pt
+aaeca9d1a24bf66db172ae1c9409db82ec7edf4dbba7c0284c7637fae6398e6e  artifacts/models/poi-posting-request-v1/seed-20260825-wide_deep.pt
+b40912618254e31cf55847d0429d59c47391db530b113afb740cf2275c691491  artifacts/models/poi-posting-request-v1/seed-20260826-linear.pt
+fba556db861de7c346eefb94a7ed382e4624cb6b2cf284ba8533f6ee94c5f784  artifacts/models/poi-posting-request-v1/seed-20260826-mmoe.pt
+2c382a8614847f70a20ca08dacdf6982a66b1e73389cdaff62e41cfd6ac6e232  artifacts/models/poi-posting-request-v1/seed-20260826-wide_deep.pt

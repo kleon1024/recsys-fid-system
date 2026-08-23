@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
+import torch
 
 from fid_lab.poi_posting import PoiPostingConfig, PoiPostingRanker, build_dataset
 from fid_lab.poi_posting.training import sampled_training_indices, tensor_batch, time_split
+from fid_lab.poi_posting.world import PostingWorldConfig, run_posting_launch_ladder
+from fid_lab.poi_posting.world.generator import (
+    build_world,
+    candidate_features,
+    retrieve,
+    rule_score,
+    simulate_response,
+)
 from fid_lab.simulation.local import (
     SupplySwitchbackConfig,
     calibrate_supply_switchback,
@@ -15,6 +26,52 @@ from fid_lab.value import DEFAULT_LT_CONFIG
 
 
 class PoiPostingTest(unittest.TestCase):
+    def test_teacher_hidden_posting_world_closes_request_candidates(self) -> None:
+        config = PostingWorldConfig(
+            requests=500, cities=8, categories=4, items_per_cell=32,
+            semantic_dim=8, train_epochs=1, device="cpu",
+        )
+        world = build_world(config)
+        candidates = retrieve(world, ("popular", "geo"))
+        features = candidate_features(world, candidates)
+        response = simulate_response(world, candidates, rule_score(features))
+        self.assertEqual(tuple(candidates.item_ids.shape), (500, 20))
+        self.assertLess(float(candidates.audit_oracle_recalled.float().mean()), 0.5)
+        self.assertTrue(torch.all(response["labels"][:, :, 0].sum(dim=1) <= 1))
+        self.assertTrue(torch.all(
+            response["labels"][:, :, 1] <= response["labels"][:, :, 0]
+        ))
+        self.assertEqual(tuple(response["top_indices"].shape), (500, 8))
+
+    def test_posting_launch_ladder_uses_last_accepted_controls(self) -> None:
+        with TemporaryDirectory() as directory:
+            report = run_posting_launch_ladder(PostingWorldConfig(
+                requests=1_000, cities=8, categories=4, items_per_cell=32,
+                semantic_dim=8, train_epochs=1, train_batch_pairs=512,
+                device="cpu",
+            ), Path(directory))
+            for model in report["models"].values():
+                self.assertEqual(model["serialized_replay_max_abs_delta"], 0.0)
+                self.assertTrue(
+                    (Path(directory) / model["artifact"]["artifact_file"]).exists()
+                )
+        self.assertFalse(
+            report["logging_contract"]["oracle_forced_into_candidates"]
+        )
+        self.assertEqual(
+            {row["stage"] for row in report["launches"]},
+            {"candidate", "fine", "end_to_end"},
+        )
+        active = {"candidate": "popular_geo", "fine": "rule"}
+        for row in report["launches"][:-1]:
+            expected = (
+                "popular_geo" if row["stage"] == "candidate"
+                else active[row["stage"]]
+            )
+            self.assertEqual(row["control"], expected)
+            if row["promoted"] and row["stage"] == "fine":
+                active[row["stage"]] = row["treatment"]
+
     def test_supply_switchback_uses_platform_metrics_for_lt(self) -> None:
         config = SupplySwitchbackConfig(cities=20, periods=12, users_per_city_period=100)
         report = run_supply_switchback(config)

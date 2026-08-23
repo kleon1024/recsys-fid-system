@@ -2,6 +2,27 @@
 
 This module is a public, local reconstruction of a realistic POI posting recommendation problem. It is not ByteDance source code, an internal architecture disclosure, or evidence that every component was deployed in the author's employment. Its purpose is to make an interview answer executable and falsifiable.
 
+## Current authority versus historical demo
+
+The original `fid_lab.poi_posting.demo` remains a small model-API teaching
+example. It is not the Launch Review authority because its candidate generator
+forces the latent target into every slate and its trained model does not feed
+the supply switchback.
+
+The current simulated authority is `fid_lab.poi_posting.world`. It generates a
+closed request-level candidate dataset with a hidden teacher, trains actual
+Linear, Wide & Deep, and MMoE artifacts, replays the serialized models, and
+evaluates candidate, fine-rank, and end-to-end supply effects across three
+seeds. See the [posting Launch Review](../launch-reviews/2026-08-24-poi-posting-request-ladder.md).
+
+```bash
+python3 -m fid_lab.poi_posting.world.cli \
+  --requests 200000 --epochs 3 --device cuda:0 \
+  --seeds 20260824 20260825 20260826 \
+  --artifact-dir artifacts/models/poi-posting-request-v1 \
+  --output reports/launches/2026-08-24-poi-posting-request-launch-review.json
+```
+
 ## What is actually modeled
 
 The online decision is a ranking over POIs already retrieved for one posting draft. The model predicts three different facts:
