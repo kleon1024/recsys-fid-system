@@ -65,28 +65,52 @@ def _fine_score(policy, eligible, user_ids, state, candidates):
     return score, observed_affinity
 
 
-def _coarse_mask(policy, observed_affinity, candidates):
+def coarse_rank(policy, observed_affinity, candidates, default_keep=None):
+    """Return the score, survivor mask, and budget owned by coarse ranking."""
     candidate_count = observed_affinity.shape[1]
-    keep = candidate_count if policy.coarse_keep <= 0 else min(
-        policy.coarse_keep, candidate_count
+    requested = default_keep if policy.coarse_keep <= 0 else policy.coarse_keep
+    keep = candidate_count if requested is None else min(
+        requested, candidate_count
     )
-    if keep == candidate_count:
-        return torch.ones_like(observed_affinity, dtype=torch.bool), keep
-    coarse_score = (
-        policy.coarse_affinity_weight * observed_affinity
-        + policy.coarse_quality_weight * candidates["quality"]
-        + policy.coarse_local_weight
-        * candidates["is_poi"]
-        * (
-            candidates["same_city"]
-            + candidates["search_match"]
-            + candidates["retarget_match"]
+    if policy.coarse_model == "quality_only":
+        coarse_score = candidates["quality"]
+    else:
+        coarse_score = (
+            policy.coarse_affinity_weight * observed_affinity
+            + policy.coarse_quality_weight * candidates["quality"]
+            + policy.coarse_local_weight
+            * candidates["is_poi"]
+            * (
+                candidates["same_city"]
+                + candidates["search_match"]
+                + candidates["retarget_match"]
+            )
         )
-    )
+        if policy.coarse_model == "dcnv2_distilled":
+            coarse_score += (
+                0.07 * observed_affinity * candidates["quality"]
+                + 0.03 * candidates["same_city"] * candidates["freshness"]
+            )
+        elif policy.coarse_model != "lr_v1":
+            raise ValueError(f"unsupported tensor coarse model: {policy.coarse_model}")
+    if keep == candidate_count:
+        return coarse_score, torch.ones_like(coarse_score, dtype=torch.bool), keep
     indices = torch.topk(coarse_score, keep, dim=1).indices
     mask = torch.zeros_like(coarse_score, dtype=torch.bool)
     mask.scatter_(1, indices, True)
-    return mask, keep
+    return coarse_score, mask, keep
+
+
+def _local_mix_value(candidates, observed_affinity):
+    return candidates["is_poi"] * (
+        0.24 * observed_affinity
+        + 0.18 * candidates["commerce"]
+        + 0.16 * candidates["poi_quality"]
+        + 0.14 * candidates["inventory"]
+        + 0.14 * candidates["same_city"]
+        + 0.08 * candidates["search_match"]
+        + 0.06 * candidates["retarget_match"]
+    )
 
 
 def stage_diagnostics(candidates, choice, fine_choice, coarse_survives):
@@ -118,7 +142,7 @@ def stage_diagnostics(candidates, choice, fine_choice, coarse_survives):
 
 def materialize_selected(
     policy, user_ids, state, candidates, choice, fine_choice, fine_scores,
-    mix_scores, coarse_mask, coarse_keep, device,
+    mix_scores, coarse_scores, coarse_mask, coarse_keep, device,
 ):
     """Materialize one exposure while preserving every candidate-stage score."""
     batch_index = torch.arange(len(user_ids), device=device)
@@ -126,13 +150,15 @@ def materialize_selected(
         "topics", "quality", "is_poi", "commerce", "poi_quality", "inventory",
         "same_city", "search_match", "retarget_match", "fulfillment", "candidate_topic",
         "item_ids", "content_type", "ad_value", "live_value", "duration",
-        "popularity", "author", "route_bits", "recall_score", "coarse_score",
+        "popularity", "author", "route_bits", "recall_score",
     )
     selected = {name: candidates[name][batch_index, choice] for name in names}
     if "stay_nonlinear" in candidates:
         selected["stay_nonlinear"] = candidates["stay_nonlinear"][batch_index, choice]
     selected["fine_scores"] = fine_scores
     selected["mix_scores"] = mix_scores
+    selected["coarse_scores"] = coarse_scores
+    selected["coarse_mask"] = coarse_mask
     selected["fine_choice"] = fine_choice
     selected["final_choice"] = choice
     true_affinity = torch.einsum(
@@ -149,7 +175,7 @@ def materialize_selected(
     )
     selected["coarse_pass_fraction"] = torch.full_like(
         chosen_utility, coarse_keep / fine_scores.shape[1]
-    ) * candidates["coarse_pass_fraction"]
+    )
     selected["oracle_regret"] = torch.maximum(
         candidates["merged_oracle_utility"], candidates["audit_oracle_utility"]
     ) - chosen_utility
@@ -177,12 +203,18 @@ def select_candidate(policy, user_ids, state, candidates, device, step, config=N
     score, observed_affinity = _fine_score(
         policy, state["eligible"], user_ids, state, candidates
     )
-    coarse_mask, coarse_keep = _coarse_mask(
-        policy, observed_affinity, candidates
+    coarse_scores, coarse_mask, coarse_keep = coarse_rank(
+        policy, observed_affinity, candidates,
+        None if config is None else config.candidates,
     )
     score = score.masked_fill(~coarse_mask, -1e9)
     fine_choice = score.argmax(dim=1)
     fine_scores = score.clone()
+    score += (
+        state["eligible"]
+        * policy.mix_local_weight
+        * _local_mix_value(candidates, observed_affinity)
+    )
     if policy.multi_queue:
         is_live = candidates["content_type"] == 1
         is_ad = candidates["content_type"] == 2
@@ -198,5 +230,5 @@ def select_candidate(policy, user_ids, state, candidates, device, step, config=N
     choice = score.argmax(dim=1)
     return materialize_selected(
         policy, user_ids, state, candidates, choice, fine_choice, fine_scores,
-        score, coarse_mask, coarse_keep, device,
+        score, coarse_scores, coarse_mask, coarse_keep, device,
     )

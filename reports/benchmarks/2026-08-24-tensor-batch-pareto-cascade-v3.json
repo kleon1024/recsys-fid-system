@@ -1,0 +1,69 @@
+{
+  "schema": "tensor-batch-pareto-v1",
+  "config": {
+    "users": 1000000,
+    "steps": 8,
+    "signal_version": "kuairand-calibrated-v3",
+    "candidate_graph_version": "multiroute-rrf-cascade-v3"
+  },
+  "memory_budget_bytes": 8589934592,
+  "selected_batch_users": 200000,
+  "runs": [
+    {
+      "batch_users": 200000,
+      "performance": {
+        "seconds": 3.933820973004913,
+        "users_per_second": 254205.7726730085,
+        "requests_per_second": 1975812.0802490045,
+        "peak_gpu_memory_bytes": 6644727808
+      },
+      "metrics": {
+        "stay_per_exposure": 23.100376378692495,
+        "long_view_rate": 0.3623875537456396,
+        "lt_value_per_user": 3.9195429375,
+        "anchor_click_rate": 0.006868840375627325,
+        "coarse_pass_fraction": 0.41666665527499486
+      },
+      "stage_counts_equal": true,
+      "max_metric_absolute_delta": 0.0
+    },
+    {
+      "batch_users": 400000,
+      "performance": {
+        "seconds": 3.626356794993626,
+        "users_per_second": 275758.8556593637,
+        "requests_per_second": 2143333.2237827033,
+        "peak_gpu_memory_bytes": 13250097664
+      },
+      "metrics": {
+        "stay_per_exposure": 23.100376571680815,
+        "long_view_rate": 0.3623875537456396,
+        "lt_value_per_user": 3.9195429296875,
+        "anchor_click_rate": 0.006868840375627325,
+        "coarse_pass_fraction": 0.4166666502492573
+      },
+      "stage_counts_equal": true,
+      "max_metric_absolute_delta": 1.92988320435461e-07
+    },
+    {
+      "batch_users": 600000,
+      "performance": {
+        "seconds": 3.6738432059937622,
+        "users_per_second": 272194.52326341276,
+        "requests_per_second": 2115629.482314166,
+        "peak_gpu_memory_bytes": 19849672192
+      },
+      "metrics": {
+        "stay_per_exposure": 23.10037618570417,
+        "long_view_rate": 0.3623875537456396,
+        "lt_value_per_user": 3.91954290625,
+        "anchor_click_rate": 0.006868840375627325,
+        "coarse_pass_fraction": 0.41666665527499486
+      },
+      "stage_counts_equal": true,
+      "max_metric_absolute_delta": 1.9298832398817467e-07
+    }
+  ],
+  "invariant": "Stage counts must be equal and metric deltas must remain below the floating-point reduction tolerance.",
+  "evidence_boundary": "Single RTX 4090 synthetic throughput benchmark."
+}

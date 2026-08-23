@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .cascade.contracts import RECALL_ROUTES, validate_coarse_model, validate_routes
+
 
 @dataclass(frozen=True)
 class TensorPolicy:
@@ -22,6 +24,9 @@ class TensorPolicy:
     retarget_weight: float = 0.0
     local_intent_quality_weight: float = 0.0
     local_embedding_correction_weight: float = 0.0
+    mix_local_weight: float = 0.0
+    enabled_routes: tuple[str, ...] = RECALL_ROUTES
+    coarse_model: str = "lr_v1"
     coarse_keep: int = 0
     coarse_affinity_weight: float = 1.0
     coarse_quality_weight: float = 0.35
@@ -32,6 +37,10 @@ class TensorPolicy:
     max_ads_per_session: int = 0
     min_ad_gap: int = 4
     max_live_per_session: int = 0
+
+    def __post_init__(self):
+        validate_routes(self.enabled_routes)
+        validate_coarse_model(self.coarse_model)
 
 
 POPULAR = TensorPolicy("quality_baseline", 0.0, 1.0, 0.15)
@@ -86,4 +95,5 @@ LOCAL_EXPANSION = TensorPolicy(
     local_intent_quality_weight=0.10,
     local_observation_noise=0.04,
     local_embedding_correction_weight=1.0,
+    mix_local_weight=0.06,
 )

@@ -1,20 +1,11 @@
-"""Device-resident multi-route recall, RRF merge, and coarse truncation."""
+"""Device-resident multi-route recall and RRF merge."""
 
 from __future__ import annotations
 
 import torch
 
+from ...cascade.contracts import RECALL_ROUTES as ROUTE_NAMES, validate_routes
 
-ROUTE_NAMES = (
-    "ann",
-    "graph",
-    "geo",
-    "fresh",
-    "long_tail",
-    "popular",
-    "post_search",
-    "retarget",
-)
 ROUTE_WEIGHTS = (1.00, 0.85, 0.75, 0.65, 0.60, 0.55, 0.95, 0.90)
 
 
@@ -40,7 +31,7 @@ def _sampled_top(items, score, limit):
     return items.gather(1, positions)
 
 
-def _route_candidates(config, state, catalog, step):
+def _route_candidates(config, state, catalog, step, enabled_routes=None):
     users = len(state["active"])
     route_k = config.route_candidates
     pool_k = route_k * config.route_oversample
@@ -108,6 +99,13 @@ def _route_candidates(config, state, catalog, step):
     valid = torch.ones_like(items, dtype=torch.bool)
     valid[:, 6, :] &= state["search_ttl"][:, None] > 0
     valid[:, 7, :] &= state["retarget_item"][:, None] >= 0
+    if enabled_routes is not None:
+        validate_routes(enabled_routes)
+        enabled = torch.tensor(
+            [name in enabled_routes for name in ROUTE_NAMES],
+            device=items.device,
+        )
+        valid &= enabled[None, :, None]
     for position in range(1, route_k):
         duplicate = (
             items[:, :, :position] == items[:, :, position : position + 1]
@@ -180,56 +178,33 @@ def _audit_oracle(config, state, catalog, step, route_items, route_valid):
     return items[batch, position], utility[batch, position]
 
 
-def build_candidate_graph(config, state, catalog, step):
-    """Return the coarse-surviving candidate set plus stage lineage."""
-    route_items, route_valid = _route_candidates(config, state, catalog, step)
-    merged, rrf_score, route_bits, unique_count, merged_valid = _rrf_merge(
+def build_candidate_graph(config, state, catalog, step, enabled_routes=None):
+    """Return the merged recall pool; coarse ranking is a separate owner."""
+    route_items, route_valid = _route_candidates(
+        config, state, catalog, step, enabled_routes
+    )
+    merged, rrf_score, route_bits, unique_count, _ = _rrf_merge(
         config, route_items, route_valid
     )
-    observed_affinity = torch.einsum(
-        "bkd,bd->bk", catalog.topics[merged], state["observed_interest"]
-    )
-    same_city = (catalog.city[merged] == state["city"][:, None]).float()
-    coarse_score = (
-        0.46 * observed_affinity
-        + 0.18 * catalog.quality[merged]
-        + 0.12 * catalog.popularity[merged]
-        + 0.10 * catalog.freshness[merged]
-        + 0.08 * same_city
-        + 0.04 * rrf_score
-        + 0.02 * catalog.poi_quality[merged]
-    )
-    coarse_score.masked_fill_(~merged_valid, -1e9)
-    coarse_positions = torch.topk(coarse_score, config.candidates, dim=1).indices
-    coarse_items = merged.gather(1, coarse_positions)
     audit_item, audit_utility = _audit_oracle(
         config, state, catalog, step, route_items, route_valid
     )
     audit_in_recall = (merged == audit_item[:, None]).any(dim=1)
-    audit_in_coarse = (coarse_items == audit_item[:, None]).any(dim=1)
     true_utility = (
         torch.einsum("bkd,bd->bk", catalog.topics[merged], state["interest"])
         + 0.45 * catalog.quality[merged]
     )
     return {
-        "item_ids": coarse_items,
-        "route_bits": route_bits.gather(1, coarse_positions),
-        "recall_score": rrf_score.gather(1, coarse_positions),
-        "coarse_score": coarse_score.gather(1, coarse_positions),
+        "item_ids": merged,
+        "route_bits": route_bits,
+        "recall_score": rrf_score,
         "route_valid_counts": route_valid.sum(dim=2),
         "unique_recall_count": unique_count,
-        "coarse_pass_fraction": torch.full(
-            (len(coarse_items),),
-            config.candidates / config.merged_candidates,
-            device=coarse_items.device,
-        ),
         "audit_oracle_item": audit_item,
         "audit_oracle_utility": audit_utility,
         "audit_oracle_in_recall": audit_in_recall,
-        "audit_oracle_in_coarse": audit_in_coarse,
         "merged_oracle_utility": true_utility.max(dim=1).values,
         "recalled_item_ids": merged,
         "recalled_scores": rrf_score,
         "recalled_route_bits": route_bits,
-        "recalled_coarse_scores": coarse_score,
     }

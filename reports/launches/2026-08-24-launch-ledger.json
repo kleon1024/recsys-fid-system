@@ -450,6 +450,126 @@
         "report_sha256": "f38aa1d13d5fceae4372e3dddf348336ddec598f5e018ae2321ac0180528687f"
       },
       "evidence_boundary": "Random-exposure offline retrieval plus paired fixed-ranker shadow; not stateful LT or a live A/B test."
+    },
+    {
+      "launch_id": "L-POI-RETRIEVAL-001",
+      "surface": "poi_distribution",
+      "stage": "retrieval",
+      "change_type": "retrieval_evolution",
+      "control": "poi_retrieval_base_6route",
+      "treatment": "poi_retrieval_post_search_7route",
+      "primary_metric": "anchor_click_rate",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-stage-ladder.json",
+        "report_sha256": "c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521"
+      },
+      "evidence_boundary": "GPU common-random V3 Local behavior simulation; validates stage mechanics and synthetic effect recovery, not live business lift."
+    },
+    {
+      "launch_id": "L-POI-RETRIEVAL-002",
+      "surface": "poi_distribution",
+      "stage": "retrieval",
+      "change_type": "retrieval_evolution",
+      "control": "poi_retrieval_post_search_7route",
+      "treatment": "poi_retrieval_retarget_8route",
+      "primary_metric": "anchor_click_rate",
+      "decision": "pass_all_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-stage-ladder.json",
+        "report_sha256": "c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521"
+      },
+      "evidence_boundary": "GPU common-random V3 Local behavior simulation; validates stage mechanics and synthetic effect recovery, not live business lift."
+    },
+    {
+      "launch_id": "L-POI-COARSE-001",
+      "surface": "poi_distribution",
+      "stage": "coarse",
+      "change_type": "coarse_evolution",
+      "control": "poi_coarse_quality",
+      "treatment": "poi_coarse_lr",
+      "primary_metric": "anchor_click_rate",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-stage-ladder.json",
+        "report_sha256": "c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521"
+      },
+      "evidence_boundary": "GPU common-random V3 Local behavior simulation; validates stage mechanics and synthetic effect recovery, not live business lift."
+    },
+    {
+      "launch_id": "L-POI-COARSE-002",
+      "surface": "poi_distribution",
+      "stage": "coarse",
+      "change_type": "coarse_evolution",
+      "control": "poi_coarse_lr",
+      "treatment": "poi_coarse_dcnv2_distilled",
+      "primary_metric": "anchor_click_rate",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-stage-ladder.json",
+        "report_sha256": "c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521"
+      },
+      "evidence_boundary": "GPU common-random V3 Local behavior simulation; validates stage mechanics and synthetic effect recovery, not live business lift."
+    },
+    {
+      "launch_id": "L-POI-FINE-001",
+      "surface": "poi_distribution",
+      "stage": "fine",
+      "change_type": "fine_evolution",
+      "control": "poi_fine_static",
+      "treatment": "poi_fine_post_search",
+      "primary_metric": "local_value_tree_score_per_exposure",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-stage-ladder.json",
+        "report_sha256": "c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521"
+      },
+      "evidence_boundary": "GPU common-random V3 Local behavior simulation; validates stage mechanics and synthetic effect recovery, not live business lift."
+    },
+    {
+      "launch_id": "L-POI-FINE-002",
+      "surface": "poi_distribution",
+      "stage": "fine",
+      "change_type": "fine_evolution",
+      "control": "poi_fine_post_search",
+      "treatment": "poi_fine_retarget",
+      "primary_metric": "local_value_tree_score_per_exposure",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-stage-ladder.json",
+        "report_sha256": "c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521"
+      },
+      "evidence_boundary": "GPU common-random V3 Local behavior simulation; validates stage mechanics and synthetic effect recovery, not live business lift."
+    },
+    {
+      "launch_id": "L-POI-FINE-003",
+      "surface": "poi_distribution",
+      "stage": "fine",
+      "change_type": "fine_evolution",
+      "control": "poi_fine_retarget",
+      "treatment": "poi_fine_intent_ranker",
+      "primary_metric": "local_value_tree_score_per_exposure",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-stage-ladder.json",
+        "report_sha256": "c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521"
+      },
+      "evidence_boundary": "GPU common-random V3 Local behavior simulation; validates stage mechanics and synthetic effect recovery, not live business lift."
+    },
+    {
+      "launch_id": "L-POI-MIX-001",
+      "surface": "poi_distribution",
+      "stage": "mix",
+      "change_type": "mix_evolution",
+      "control": "poi_mix_feed_guarded",
+      "treatment": "poi_mix_local_expansion",
+      "primary_metric": "local_value_tree_score_per_exposure",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-distribution-stage-ladder.json",
+        "report_sha256": "c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521"
+      },
+      "evidence_boundary": "GPU common-random V3 Local behavior simulation; validates stage mechanics and synthetic effect recovery, not live business lift."
     }
   ],
   "coverage": {
@@ -461,10 +581,10 @@
       "end_to_end": "evidenced"
     },
     "poi_distribution": {
-      "retrieval": "missing",
-      "coarse": "missing",
-      "fine": "missing",
-      "mix": "missing",
+      "retrieval": "evidenced",
+      "coarse": "evidenced",
+      "fine": "evidenced",
+      "mix": "evidenced",
       "end_to_end": "evidenced"
     },
     "poi_posting": {
@@ -488,11 +608,11 @@
     }
   },
   "summary": {
-    "records": 30,
-    "passed": 9,
-    "held": 12,
-    "rejected": 9,
-    "missing_cells": 14
+    "records": 38,
+    "passed": 10,
+    "held": 14,
+    "rejected": 14,
+    "missing_cells": 10
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."
 }

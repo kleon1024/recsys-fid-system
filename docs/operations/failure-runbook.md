@@ -9,6 +9,7 @@ root-cause evidence.
 | Index/model version mismatch | Manifest mismatch and route Recall@K drop | Disable mismatched ANN route | Atomic model-index publication and replay gate |
 | Hard-negative drift | Source mix or sampling-probability change | Restore accepted sampler manifest | One mixture authority and per-source metrics |
 | Coarse loses fine winners | Teacher Top-K preservation drops | Increase budget or restore prior model | Distillation and slice-level pass-through gate |
+| Recall and coarse ownership overlap | Logged coarse score differs from the score that selected survivors | Reject the report and freeze rollout | Recall emits only the merged pool; coarse alone emits score, mask, and budget |
 | Late commerce becomes negative | Label changes with watermark | Mask immature tasks and rebuild partition | Task event-time windows and lateness accounting |
 | Pixel duplication or loss | Duplicate, orphan, identity-missing rates | Deduplicate and mask unobservable outcomes | Idempotent ingestion and observability contract |
 | Join explosion | More than one example per decision | Quarantine the partition | Unique decision key and pre-join deduplication |
@@ -19,6 +20,7 @@ root-cause evidence.
 | Simulator predicts impossible lift | Funnel rates or state transitions miss logged slices | Do not use the forecast | Calibrate dynamics on held-out logs and retain sensitivity ranges |
 | Offline and served XGBoost devices differ | Device-fallback warning and latency jump | Serve the accepted CPU path | Use a device-matched input/runtime and gate P99 plus score replay |
 | PS shard unavailable | Missing shard and lookup errors | Use compatible cached snapshot | Replication, checkpoint and staleness policy |
+| Remote GPU job survives its SSH session | Duplicate PIDs and abnormal QPS/memory contention | Kill the stale owned PID and invalidate timing evidence | Job manifest records PID, source hash, output path, and terminal state |
 
 ```mermaid
 flowchart LR

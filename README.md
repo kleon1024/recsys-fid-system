@@ -237,7 +237,8 @@ container.
 flowchart LR
     U["User state: interest, satisfaction, fatigue"] --> Q["Feed request"]
     Q --> R["Eight-route recall, including post-search and retarget"]
-    R --> C["Coarse Top 20"]
+    R --> M["RRF merge and dedupe: 48 candidates"]
+    M --> C["Independent coarse rank: Top 20"]
     C --> F["LR / XGBoost / W&D / DeepFM / DCNv2 / multi-task MMoE"]
     F --> V["Calibration and business Value Trees"]
     V --> E["Constrained mixing and exposure"]
@@ -276,6 +277,10 @@ The [production model suite](docs/architecture/model-suite.md) extends that supp
 The bilingual [unified LT and Local Service design](docs/architecture/unified-lt-local-service.md)
 defines the value-exchange authority, closed/open-loop behavior world,
 post-search and retarget routes, stable GPU catalog, and multi-seed LR gate.
+The [POI distribution stage ladder](docs/launch-reviews/2026-08-24-poi-distribution-stage-ladder.md)
+repairs the `48 recall -> 20 coarse -> fine -> mix` boundary and records the
+adjacent three-seed Launch Reviews. Only retarget recall passes; Local expansion
+is rejected because Local value rises while platform LT falls.
 
 The [model evolution laboratory](docs/architecture/model-evolution.md) compares
 mature open-source LR, XGBoost, WDL, DeepFM, DCN-Mix, DIN, MMoE, and PLE

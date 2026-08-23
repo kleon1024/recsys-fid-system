@@ -11,7 +11,8 @@ import torch
 from xgboost import Booster
 
 from ...models.artifact import canonical_feature_schema_hash, feature_schema_hash
-from ...tensor_cascade import stage_diagnostics
+from ...tensor_cascade import _fine_score, coarse_rank, stage_diagnostics
+from ...tensor_policies import PERSONALIZED
 from ..calibration.nonlinear import nonlinear_stay_adjustment
 from .features import build_tensor_features
 
@@ -27,7 +28,8 @@ def _known_feature_schema(schema_hash: str) -> bool:
 
 
 def _selected_candidate(
-    candidates, choice, user_ids, state, device, features, scores
+    candidates, choice, user_ids, state, device, features, scores,
+    coarse_scores, coarse_mask,
 ):
     batch = torch.arange(len(user_ids), device=device)
     names = (
@@ -39,6 +41,8 @@ def _selected_candidate(
     selected = {name: candidates[name][batch, choice] for name in names}
     selected["fine_scores"] = scores
     selected["mix_scores"] = scores
+    selected["coarse_scores"] = coarse_scores
+    selected["coarse_mask"] = coarse_mask
     selected["fine_choice"] = choice
     selected["final_choice"] = choice
     if "stay_nonlinear" in candidates:
@@ -51,8 +55,12 @@ def _selected_candidate(
     true_affinity = torch.einsum("bkd,bd->bk", candidates["topics"], state["interest"])
     true_utility = true_affinity + 0.45 * candidates["quality"]
     chosen_utility = true_utility[batch, choice]
-    selected["coarse_oracle_survives"] = torch.ones_like(chosen_utility).bool()
-    selected["coarse_pass_fraction"] = candidates["coarse_pass_fraction"]
+    audit_in_coarse = (
+        (candidates["item_ids"] == candidates["audit_oracle_item"][:, None])
+        & coarse_mask
+    ).any(dim=1)
+    selected["coarse_oracle_survives"] = audit_in_coarse
+    selected["coarse_pass_fraction"] = coarse_mask.float().mean(dim=1)
     selected["oracle_regret"] = torch.maximum(
         candidates["merged_oracle_utility"], candidates["audit_oracle_utility"]
     ) - chosen_utility
@@ -63,10 +71,17 @@ def _selected_candidate(
             candidates,
             choice,
             choice,
-            candidates["audit_oracle_in_coarse"],
+            audit_in_coarse,
         )
     )
     return selected
+
+
+def _artifact_coarse(candidates, state, user_ids, config):
+    _, affinity = _fine_score(
+        PERSONALIZED, state["eligible"], user_ids, state, candidates
+    )
+    return coarse_rank(PERSONALIZED, affinity, candidates, config.candidates)
 
 
 class TensorArtifactPolicy:
@@ -108,7 +123,6 @@ class TensorArtifactPolicy:
         )
         self.booster = Booster(model_file=challenger_path)
         self.booster.set_param({"device": device})
-        self.candidates = 20
         self.tolerance = float(manifest["base_score_tolerance"])
 
     @staticmethod
@@ -130,21 +144,28 @@ class TensorArtifactPolicy:
 
     def select_candidate(self, user_ids, state, candidates, device, step, config):
         features = build_tensor_features(config, user_ids, state, candidates, step)
-        if features.shape[1] != self.candidates:
-            raise ValueError("artifact candidate count does not match training")
+        coarse_scores, coarse_mask, _ = _artifact_coarse(
+            candidates, state, user_ids, config
+        )
         flat = features.reshape(-1, features.shape[-1]).contiguous()
         base = torch.sigmoid(flat @ self.coefficients + self.intercept).reshape(
             features.shape[:2]
         )
         if self.treatment:
             stay = self._xgboost_score(flat).reshape(features.shape[:2])
-            eligible = base >= (base.max(dim=1, keepdim=True).values - self.tolerance)
+            coarse_base = base.masked_fill(~coarse_mask, -torch.inf)
+            eligible = coarse_mask & (
+                coarse_base
+                >= coarse_base.max(dim=1, keepdim=True).values - self.tolerance
+            )
             choice = stay.masked_fill(~eligible, -1e9).argmax(dim=1)
         else:
+            base = base.masked_fill(~coarse_mask, -1e9)
             choice = base.argmax(dim=1)
         return _selected_candidate(
             candidates, choice, user_ids, state, device, features,
             stay.masked_fill(~eligible, -1e9) if self.treatment else base,
+            coarse_scores, coarse_mask,
         )
 
 
@@ -201,7 +222,12 @@ class TensorColumnLogisticPolicy:
         scores = torch.sigmoid(
             model_features @ self.coefficients + self.intercept
         )
+        coarse_scores, coarse_mask, _ = _artifact_coarse(
+            candidates, state, user_ids, config
+        )
+        scores = scores.masked_fill(~coarse_mask, -1e9)
         choice = scores.argmax(dim=1)
         return _selected_candidate(
-            candidates, choice, user_ids, state, device, features, scores
+            candidates, choice, user_ids, state, device, features, scores,
+            coarse_scores, coarse_mask,
         )

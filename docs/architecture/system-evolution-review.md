@@ -153,6 +153,8 @@ expert utilization 和任务切片。
 
 | Evidence | Scale | Result |
 |---|---:|---|
+| Feed cascade-v3 | 1M users × 24 steps | 48 recalled → 20 coarse; 3.19M–3.41M req/s; Local treatment improves anchor but regresses stay and does not improve LT |
+| POI stage ladder | 1M users × 24 steps × 3 seeds | only retarget recall passes; coarse/fine/mix proposals hold or reject |
 | Fine-rank actual-model ladder | 45,794 exposures; 5,000 fresh A/B users | LR AUC 0.7175，advanced candidates 均因效果或护栏拒绝 |
 | Coarse cascade | 1M users × 24 steps × 3 seeds; 100 candidates | weak baseline oracle pass-through 65.3% → 99.9%；成熟改动 Hold |
 | Local intent scale | 10M users × 24 steps | v4 Local tree +3.33%，LT +0.0344% 不显著；需约 52.6M users |

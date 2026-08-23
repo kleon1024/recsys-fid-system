@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from ..feed_loop.cascade.contracts import RECALL_ROUTES
 from .contracts import Catalog, SimulationConfig
 
 if TYPE_CHECKING:
@@ -31,16 +32,10 @@ class CandidateBatch:
 class CascadeCandidateProvider:
     """Production-shaped candidate opportunity; the fine model never sees the full corpus."""
 
-    ROUTE_WEIGHTS = {
-        "ann": 1.00,
-        "graph": 0.85,
-        "geo": 0.75,
-        "fresh": 0.65,
-        "long_tail": 0.60,
-        "popular": 0.55,
-        "post_search": 0.95,
-        "retarget": 0.90,
-    }
+    ROUTE_WEIGHTS = dict(zip(
+        RECALL_ROUTES,
+        (1.00, 0.85, 0.75, 0.65, 0.60, 0.55, 0.95, 0.90),
+    ))
 
     def __init__(
         self,

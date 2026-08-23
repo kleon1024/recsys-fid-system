@@ -11,6 +11,7 @@ import subprocess
 import sys
 
 from .feed_loop.models.artifact import feature_schema_hash
+from .feed_loop.scale.tensor_runtime.contracts import CANDIDATE_GRAPH_VERSION
 from .simulation.environment import FEATURE_NAMES
 
 
@@ -346,7 +347,7 @@ def digital_twin_requirements(
     )
     return {
         "gpu_candidate_graph_closes": (
-            graph["version"] == "multiroute-rrf-coarse-v2"
+            graph["version"] == CANDIDATE_GRAPH_VERSION
             and sum(attribution.values()) == graph["requests"]
             and all(attribution[name] > 0 for name in (
                 "recall_miss", "coarse_miss", "fine_rank_miss"
@@ -368,8 +369,8 @@ def digital_twin_requirements(
         "gpu_batch_scale_preserves_world": (
             batch_scale["selected_batch_users"] == 200_000
             and all(
-                run["relative_to_25k"]["stage_counts_equal"]
-                and run["relative_to_25k"]["max_metric_absolute_delta"] < 1e-6
+                run["stage_counts_equal"]
+                and run["max_metric_absolute_delta"] < 1e-6
                 for run in batch_scale["runs"]
             )
         ),
@@ -501,7 +502,7 @@ def main() -> None:
     digital_twin = json.loads(
         (
             ROOT
-            / "reports/launches/2026-08-23-feed-digital-twin-v2-1m-gpu.json"
+            / "reports/launches/2026-08-24-feed-digital-twin-cascade-v3-1m-gpu.json"
         ).read_text()
     )
     trigger_launch = json.loads(
@@ -513,7 +514,7 @@ def main() -> None:
     batch_scale = json.loads(
         (
             ROOT
-            / "reports/benchmarks/2026-08-23-tensor-batch-scale-1m-gpu.json"
+            / "reports/benchmarks/2026-08-24-tensor-batch-pareto-cascade-v3.json"
         ).read_text()
     )
     stateful_feature = json.loads(

@@ -3,6 +3,8 @@ from dataclasses import replace
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import numpy as np
 import torch
@@ -28,10 +30,78 @@ from fid_lab.feed_loop.models.feature_lr import (
     train_feature_lr_suite,
 )
 from fid_lab.feed_loop.scale.artifact.feature_lr_cli import run_feature_lr_launches
+from fid_lab.feed_loop.scale.logging.dataset import _choice
+from fid_lab.poi_feed.launches.stage_ladder import _seed_run
 from fid_lab.simulation.features import campaign_candidate_sets
 
 
+def _stage_world(_config, policy):
+    item = sum(ord(value) for value in policy.name)
+    return {
+        "request_candidate_trace": {"rows": [{
+            "request_id": "request-1", "candidate_id": item,
+            "coarse_pass": True, "exposed": True,
+        }]},
+        "candidate_graph": {"requests": 1},
+        "performance": {"requests_per_second": 1.0},
+    }
+
+
+def _stage_ab(_control, _treatment):
+    positive = {
+        "confidence_interval": [0.001, 0.002],
+        "control_mean": 0.0, "treatment_mean": 0.001,
+    }
+    return {
+        "anchor_click_rate": positive,
+        "local_value_tree_score_per_exposure": positive,
+        "lt_value_per_user": positive,
+        "stay_per_exposure": positive,
+        "negative_rate": {
+            "confidence_interval": [-0.001, 0.0001],
+            "control_mean": 0.0, "treatment_mean": 0.0,
+        },
+    }
+
+
 class GroupedAUCTest(unittest.TestCase):
+    def test_exploration_samples_only_coarse_survivors(self):
+        config = SimpleNamespace(epsilon=1.0, seed=20260823)
+        eligible = torch.tensor([
+            [True, False, True, False],
+            [False, True, False, True],
+            [True, True, False, False],
+            [False, False, True, True],
+        ])
+        scores = torch.arange(16, dtype=torch.float32).reshape(4, 4)
+        scores = scores.masked_fill(~eligible, -1e9)
+        choice, _, propensity = _choice(
+            config, torch.arange(4), 0, scores, eligible
+        )
+        self.assertTrue(bool(eligible[torch.arange(4), choice].all()))
+        self.assertTrue(torch.allclose(propensity, torch.full((4,), 0.5)))
+
+    @patch("fid_lab.poi_feed.launches.stage_ladder.combine_tensor_ab", _stage_ab)
+    @patch("fid_lab.poi_feed.launches.stage_ladder.run_tensor_feed", _stage_world)
+    def test_poi_ladders_reuse_semantically_identical_worlds(self):
+        report = _seed_run(10, 2, 7, "cpu")
+        launches = [
+            row for stage in report["stages"].values() for row in stage
+        ]
+        self.assertEqual(len(launches), 8)
+        self.assertEqual(report["execution"]["declared_policy_arms"], 12)
+        self.assertEqual(report["execution"]["unique_semantic_worlds"], 9)
+        self.assertEqual(
+            report["stages"]["retrieval"][1]["control"],
+            "poi_retrieval_post_search_7route",
+        )
+        self.assertEqual(
+            report["stages"]["coarse"][1]["control"], "poi_coarse_lr"
+        )
+        self.assertTrue(all(
+            row["gates"]["audit_stage_output_changed"] for row in launches
+        ))
+
     def test_counter_rng_event_streams_are_decorrelated(self):
         user_ids = torch.arange(20_000)
         draws = torch.stack(
@@ -251,7 +321,7 @@ class GroupedAUCTest(unittest.TestCase):
             config, generator, torch.device("cpu"), state, catalog, step=0
         )
         features = build_tensor_features(config, user_ids, state, candidates, 0)
-        self.assertEqual(features.shape, (4, 5, 28))
+        self.assertEqual(features.shape, (4, 48, 28))
         self.assertTrue(torch.isfinite(features).all())
 
     def test_tensor_launch_uses_unified_lt_not_unexchanged_quality(self):
@@ -346,7 +416,7 @@ class GroupedAUCTest(unittest.TestCase):
         candidates = candidate_batch(
             config, generator, torch.device("cpu"), state, catalog, step=0
         )
-        self.assertEqual(candidates["item_ids"].shape, (4, 5))
+        self.assertEqual(candidates["item_ids"].shape, (4, 48))
         self.assertTrue(torch.all(candidates["route_valid_counts"][:, 7] > 0))
         self.assertEqual(candidates["route_valid_counts"][1, 6], 0)
         self.assertEqual(candidates["route_valid_counts"][3, 6], 0)
@@ -382,6 +452,12 @@ class GroupedAUCTest(unittest.TestCase):
                 row for row in trace["rows"] if row["request_id"] == request_id
             ]
             self.assertEqual(sum(row["exposed"] for row in request_rows), 1)
+            self.assertEqual(sum(row["coarse_pass"] for row in request_rows), 10)
+            self.assertTrue(all(
+                row["fine_score"] is None
+                for row in request_rows
+                if not row["coarse_pass"]
+            ))
             self.assertEqual(
                 sum(bool(row["mature_labels"]) for row in request_rows), 1
             )

@@ -25,6 +25,14 @@ remains ordinary PyTorch. Until scheduling, partial retries, or multi-machine
 materialization becomes a measured operational problem, adding Dagster would be
 an unused dependency and a second execution authority.
 
+The current POI stage runner is therefore a declarative in-process DAG, not a
+Dagster deployment. Its nodes are semantic policy worlds keyed by every policy
+field except the display name. Twelve declared arms collapse to nine unique GPU
+worlds per seed; adjacent Launch Reviews reuse the exact same materialization.
+This removes duplicate simulation without changing random streams or stage
+outputs. A future orchestrator may schedule these nodes, but it must consume
+the same semantic key and report contract rather than introduce another graph.
+
 ## Runtime boundary
 
 ```text
@@ -45,6 +53,13 @@ bounded by the 200k-user batch. This proves the current engine can run large
 synthetic experiments on one GPU; it does not prove production serving QPS or
 business lift.
 
+After the candidate graph was expanded to preserve all 48 merged candidates
+until coarse rank, the current eight-step Pareto benchmark reports 1.976M,
+2.143M, and 2.116M requests/s for 200k, 400k, and 600k batches. Peak memory is
+6.64GB, 13.25GB, and 19.85GB. The default remains 200k under the explicit 8GiB
+per-world budget so multiple experiment worlds retain scheduling headroom. All
+stage counts are identical and the maximum metric delta is below 2e-7.
+
 ## Next performance work
 
 Performance changes are accepted only when stage counts are identical and
@@ -55,8 +70,8 @@ metric deltas remain within the existing batch-invariance tolerance.
 2. Remove repeated per-step tensor allocation and cache static catalog views.
 3. Benchmark `torch.compile` on the stable response and state kernels; keep eager
    mode if graph breaks or compilation amortization is negative.
-4. Add an orthogonal-experiment dimension only after memory and common-random
-   semantics are proven; do not run one Python process per A/B arm.
+4. Vectorize an orthogonal-experiment arm dimension after the current semantic
+   world cache is profiled; do not run one Python process per A/B arm.
 5. Scale beyond one GPU by disjoint user-id ranges and reduce sufficient
    statistics. Persist request-level rows only for a deterministic audit sample.
 6. Use ClickHouse or Parquet for event/Joiner analysis. Rust or C++ is justified

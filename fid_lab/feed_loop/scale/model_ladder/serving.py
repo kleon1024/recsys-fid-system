@@ -13,7 +13,7 @@ from xgboost import Booster
 from ...models.deep_policy import DENSE_INDICES, SPARSE_SPECS, FeedDeepPolicy
 from ...models.feed_multitask import FeedMultiTaskPolicy
 from ...models.multitask_policy import FeedMMoEPolicy
-from ...tensor_cascade import _fine_score, materialize_selected
+from ...tensor_cascade import _fine_score, coarse_rank, materialize_selected
 from ...tensor_policies import PERSONALIZED
 from ....value.predicted_tree import predicted_feed_value
 from ..artifact.features import build_tensor_features
@@ -144,6 +144,12 @@ class TensorV3ModelPolicy:
     def select_candidate(self, user_ids, state, candidates, device, step, config):
         features = build_tensor_features(config, user_ids, state, candidates, step)
         scores = self._scores(features.flatten(0, 1)).reshape(features.shape[:2])
+        _, affinity = _fine_score(
+            PERSONALIZED, state["eligible"], user_ids, state, candidates
+        )
+        coarse_scores, coarse_mask, coarse_keep = coarse_rank(
+            PERSONALIZED, affinity, candidates, config.candidates
+        )
         if self.blend_weight is not None and self.base_tolerance is not None:
             base_scores, _ = _fine_score(
                 PERSONALIZED, state["eligible"], user_ids, state, candidates
@@ -151,15 +157,18 @@ class TensorV3ModelPolicy:
             normalized = (scores - scores.mean(dim=1, keepdim=True)) / (
                 scores.std(dim=1, keepdim=True).clamp_min(1e-4)
             )
-            eligible = base_scores >= (
-                base_scores.max(dim=1, keepdim=True).values - self.base_tolerance
+            coarse_base = base_scores.masked_fill(~coarse_mask, -torch.inf)
+            eligible = coarse_mask & (
+                coarse_base
+                >= coarse_base.max(dim=1, keepdim=True).values - self.base_tolerance
             )
             scores = (base_scores + self.blend_weight * normalized).masked_fill(
                 ~eligible, -1e9
             )
+        else:
+            scores = scores.masked_fill(~coarse_mask, -1e9)
         choice = scores.argmax(dim=1)
-        coarse_mask = torch.ones_like(scores, dtype=torch.bool)
         return materialize_selected(
             self, user_ids, state, candidates, choice, choice, scores, scores,
-            coarse_mask, scores.shape[1], device,
+            coarse_scores, coarse_mask, coarse_keep, device,
         )

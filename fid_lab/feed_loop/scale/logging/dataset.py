@@ -11,8 +11,8 @@ import torch
 
 from ...authority import attach_dataset
 from ...tensor_cascade import (
-    _coarse_mask,
     _fine_score,
+    coarse_rank,
     materialize_selected,
 )
 from ...tensor_policies import PERSONALIZED
@@ -21,12 +21,11 @@ from ..experiment.trigger import refresh_search_state
 from ..graph.random import uniform
 from ..tensor_engine import (
     TensorFeedConfig,
-    _advance_state,
-    _candidate_batch,
-    _new_user_state,
-    _prepare_run,
-    _sample_step,
+    candidate_batch,
+    prepare_run,
+    sample_step,
 )
+from ..tensor_runtime.state import advance_state, new_user_state
 
 
 LABEL_NAMES = (
@@ -65,19 +64,23 @@ def _split(step: int, steps: int) -> str:
     return "train" if ratio < 0.60 else ("validation" if ratio < 0.80 else "test")
 
 
-def _choice(config, user_ids, step, scores):
-    count = scores.shape[1]
+def _choice(config, user_ids, step, scores, eligible):
     greedy = scores.argmax(dim=1)
     explore = uniform(user_ids, step, 80, config.seed) < config.epsilon
-    random_choice = torch.floor(
-        uniform(user_ids, step, 81, config.seed) * count
-    ).long().clamp_max(count - 1)
+    eligible_count = eligible.sum(dim=1).clamp_min(1)
+    random_rank = torch.floor(
+        uniform(user_ids, step, 81, config.seed) * eligible_count
+    ).long().clamp_max(eligible_count - 1)
+    eligible_rank = eligible.long().cumsum(dim=1) - 1
+    random_choice = (
+        (eligible_rank == random_rank[:, None]) & eligible
+    ).long().argmax(dim=1)
     choice = torch.where(explore, random_choice, greedy)
-    base = config.epsilon / count
+    base = config.epsilon / eligible_count
     propensity = torch.where(
         choice == greedy,
-        torch.full_like(scores[:, 0], 1.0 - config.epsilon + base),
-        torch.full_like(scores[:, 0], base),
+        1.0 - config.epsilon + base,
+        base,
     )
     return choice, greedy, propensity
 
@@ -159,11 +162,12 @@ def _capture_step(storage, config, state, candidates, selected, features, labels
         "recalled_item_ids": (candidates["recalled_item_ids"], torch.int32),
         "recalled_route_bits": (candidates["recalled_route_bits"], torch.uint8),
         "recall_scores": (candidates["recalled_scores"], torch.float16),
-        "recalled_coarse_scores": (candidates["recalled_coarse_scores"], torch.float16),
+        "recalled_coarse_scores": (selected["coarse_scores"], torch.float16),
         "candidate_item_ids": (candidates["item_ids"], torch.int32),
         "candidate_route_bits": (candidates["route_bits"], torch.uint8),
         "candidate_features": (features, torch.float16),
-        "candidate_coarse_scores": (candidates["coarse_score"], torch.float16),
+        "candidate_coarse_scores": (selected["coarse_scores"], torch.float16),
+        "candidate_coarse_mask": (selected["coarse_mask"], torch.uint8),
         "candidate_fine_scores": (selected["fine_scores"], torch.float16),
         "candidate_mix_scores": (selected["mix_scores"], torch.float16),
         "candidate_audit_utility": (audit_utility, torch.float16),
@@ -188,14 +192,16 @@ def _capture_step(storage, config, state, candidates, selected, features, labels
 def _simulate_batch(storage, config, tensor_config, catalog, generator, device, offset):
     users = min(config.batch_users, config.users - offset)
     user_ids = torch.arange(offset, offset + users, device=device)
-    state = _new_user_state(tensor_config, PERSONALIZED, generator, device, user_ids)
+    state = new_user_state(
+        tensor_config, PERSONALIZED, generator, device, user_ids
+    )
     sequence = torch.zeros(
         users, config.sequence_length, len(SEQUENCE_FIELDS), device=device
     )
     for step in range(config.steps):
         refresh_search_state(tensor_config, state, step)
-        candidates = _candidate_batch(
-            tensor_config, generator, device, state, catalog, step
+        candidates = candidate_batch(
+            tensor_config, generator, device, state, catalog, step, PERSONALIZED
         )
         features = build_tensor_features(
             tensor_config, user_ids, state, candidates, step
@@ -203,19 +209,23 @@ def _simulate_batch(storage, config, tensor_config, catalog, generator, device, 
         scores, affinity = _fine_score(
             PERSONALIZED, state["eligible"], user_ids, state, candidates
         )
-        coarse_mask, coarse_keep = _coarse_mask(PERSONALIZED, affinity, candidates)
+        coarse_scores, coarse_mask, coarse_keep = coarse_rank(
+            PERSONALIZED, affinity, candidates, tensor_config.candidates
+        )
         scores = scores.masked_fill(~coarse_mask, -1e9)
-        choice, greedy, propensity = _choice(config, user_ids, step, scores)
+        choice, greedy, propensity = _choice(
+            config, user_ids, step, scores, coarse_mask
+        )
         selected = materialize_selected(
             PERSONALIZED, user_ids, state, candidates, choice, greedy, scores,
-            scores, coarse_mask, coarse_keep, device,
+            scores, coarse_scores, coarse_mask, coarse_keep, device,
         )
         active = state["active"].clone()
         session_id = state["sessions"].clone()
-        values = _sample_step(
+        values = sample_step(
             tensor_config, PERSONALIZED, generator, device, state, selected, step
         )
-        return_value, returned = _advance_state(
+        return_value, returned = advance_state(
             tensor_config, PERSONALIZED, generator, state, selected, values, step
         )
         _capture_step(
@@ -268,7 +278,7 @@ def build_v3_logging_dataset(root: Path, output_dir: Path, config: V3LoggingConf
         users=config.users, steps=config.steps, batch_users=config.batch_users,
         seed=config.seed, device=config.device, signal_version="kuairand-calibrated-v3",
     )
-    device, generator, catalog = _prepare_run(tensor_config, None, 0, None)
+    device, generator, catalog = prepare_run(tensor_config, None, 0, None)
     storage = {}
     for offset in range(0, config.users, config.batch_users):
         _simulate_batch(

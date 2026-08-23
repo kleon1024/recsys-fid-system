@@ -9,10 +9,11 @@ from pathlib import Path
 
 from ..simulation.environment import FEATURE_NAMES
 from .models.artifact import feature_schema_hash
+from .scale.tensor_runtime.contracts import CANDIDATE_GRAPH_VERSION
 
 
 V3_SIGNAL = "kuairand-calibrated-v3"
-V3_INDEX = "multiroute-rrf-coarse-v2"
+V3_INDEX = CANDIDATE_GRAPH_VERSION
 
 
 def _hash(path: Path) -> str:
@@ -36,6 +37,7 @@ def _payload_hash(payload: object) -> str:
 
 def rule_model_component(root: Path) -> dict[str, object]:
     sources = [
+        _component(root, "fid_lab/feed_loop/cascade/contracts.py"),
         _component(root, "fid_lab/feed_loop/tensor_policies.py"),
         _component(root, "fid_lab/feed_loop/tensor_cascade.py"),
     ]
@@ -47,8 +49,20 @@ def rule_model_component(root: Path) -> dict[str, object]:
     }
 
 
+def refresh_model_component(root: Path, model: dict[str, object]):
+    if model.get("kind") == "parameterized_rule":
+        return rule_model_component(root)
+    refreshed = dict(model)
+    if "sources" in model:
+        refreshed["sources"] = [
+            _component(root, source["path"]) for source in model["sources"]
+        ]
+    return refreshed
+
+
 def base_v3_components(root: Path) -> dict[str, object]:
     index_sources = [
+        _component(root, "fid_lab/feed_loop/cascade/contracts.py"),
         _component(root, "fid_lab/feed_loop/scale/graph/candidate.py"),
         _component(root, "fid_lab/feed_loop/scale/tensor_catalog.py"),
     ]
@@ -239,10 +253,20 @@ def refresh_source_closure(root: Path) -> dict[str, object]:
         dataset["logging_bundle_id"] = logging_bundle_id
         dataset["logging_bundle"] = logging_bundle
     base = base_v3_components(root)
-    active = {"model": authority["active_bundle"]["model"], **base}
+    active = {
+        "model": refresh_model_component(
+            root, authority["active_bundle"]["model"]
+        ),
+        **base,
+    }
     rollback = None
     if authority.get("rollback_bundle") is not None:
-        rollback = {"model": authority["rollback_bundle"]["model"], **base}
+        rollback = {
+            "model": refresh_model_component(
+                root, authority["rollback_bundle"]["model"]
+            ),
+            **base,
+        }
     authority.update({
         "active_bundle": active,
         "active_bundle_id": f"sha256:{_payload_hash(active)}",

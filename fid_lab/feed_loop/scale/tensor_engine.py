@@ -60,7 +60,9 @@ __all__ = [
     "combine_tensor_trigger_ab",
     "candidate_batch",
     "new_user_state",
+    "prepare_run",
     "run_tensor_feed",
+    "sample_step",
 ]
 
 
@@ -87,9 +89,12 @@ def _accumulate_cells(cell_stats, user_ids, user_metrics, cohort=None):
 
 
 
-def candidate_batch(config, generator, device, state, catalog, step):
+def candidate_batch(config, generator, device, state, catalog, step, policy=None):
     del generator, device
-    graph = build_candidate_graph(config, state, catalog, step)
+    graph = build_candidate_graph(
+        config, state, catalog, step,
+        None if policy is None else getattr(policy, "enabled_routes", None),
+    )
     item_ids = graph["item_ids"]
     has_search = state["search_ttl"] > 0
     candidate_topic = catalog.category[item_ids]
@@ -130,7 +135,7 @@ def candidate_batch(config, generator, device, state, catalog, step):
     return batch
 
 
-def _sample_step(config, policy, generator, device, state, selected, step):
+def sample_step(config, policy, generator, device, state, selected, step):
     del generator, device
     affinity = (selected["topics"] * state["interest"]).sum(dim=1)
     is_live = selected["content_type"] == 1 if policy.multi_queue else torch.zeros_like(affinity).bool()
@@ -280,12 +285,13 @@ def _simulate_batches(
             if trigger_kind and step == measurement_start_step:
                 trigger_cohort = trigger_mask(state, trigger_kind)
                 trigger_users += trigger_cohort.sum()
-            candidates = candidate_batch(config, generator, device, state, catalog, step)
+            candidates = candidate_batch(
+                config, generator, device, state, catalog, step, active_policy)
             selected = select_candidate(
                 active_policy, user_ids, state, candidates, device, step, config
             )
             active_before = state["active"].clone()
-            values = _sample_step(
+            values = sample_step(
                 config, active_policy, generator, device, state, selected, step
             )
             measured = step >= measurement_start_step
@@ -365,7 +371,7 @@ def _simulate_batches(
     )
 
 
-def _prepare_run(config, policy_schedule, measurement_start_step, trigger_kind):
+def prepare_run(config, policy_schedule, measurement_start_step, trigger_kind):
     if policy_schedule is not None and len(policy_schedule) != config.steps:
         raise ValueError("policy schedule must contain one policy per step")
     if not 0 <= measurement_start_step < config.steps:
@@ -393,7 +399,7 @@ def run_tensor_feed(
     measurement_start_step: int = 0,
     trigger_kind: str | None = None,
 ) -> dict[str, object]:
-    device, generator, catalog = _prepare_run(
+    device, generator, catalog = prepare_run(
         config, policy_schedule, measurement_start_step, trigger_kind
     )
     _sync(device)

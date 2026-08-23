@@ -226,6 +226,31 @@ def _retrieval_records(root: Path) -> list[dict]:
     ]
 
 
+def _poi_distribution_stage_records(root: Path) -> list[dict]:
+    relative = "reports/launches/2026-08-24-poi-distribution-stage-ladder.json"
+    report, evidence = _load(root, relative)
+    stage_counter = {stage: 0 for stage in ("retrieval", "coarse", "fine", "mix")}
+    records = []
+    for row in report["launches"]:
+        stage = row["stage"]
+        stage_counter[stage] += 1
+        records.append(_record(
+            launch_id=(
+                f"L-POI-{stage.upper()}-{stage_counter[stage]:03d}"
+            ),
+            surface="poi_distribution",
+            stage=stage,
+            change_type=f"{stage}_evolution",
+            control=row["control"],
+            treatment=row["treatment"],
+            decision=row["decision"],
+            evidence=evidence,
+            primary_metric=row["primary_metric"],
+            evidence_boundary=report["evidence_boundary"],
+        ))
+    return records
+
+
 def build_launch_ledger(root: Path) -> dict:
     records = [
         *_main_feed_policy_records(root),
@@ -235,6 +260,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_local_records(root),
         *_world_records(root),
         *_retrieval_records(root),
+        *_poi_distribution_stage_records(root),
     ]
     identifiers = [record["launch_id"] for record in records]
     if len(identifiers) != len(set(identifiers)):

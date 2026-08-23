@@ -8,6 +8,7 @@ from ....simulation.contracts import DEFAULT_SEARCH_EVENT_RATE
 
 
 DEFAULT_GPU_BATCH_USERS = 200_000
+CANDIDATE_GRAPH_VERSION = "multiroute-rrf-cascade-v3"
 
 
 @dataclass(frozen=True)
@@ -19,7 +20,7 @@ class TensorFeedConfig:
     route_oversample: int = 3
     merged_candidates: int = 48
     audit_candidates: int = 24
-    candidate_graph_version: str = "multiroute-rrf-coarse-v2"
+    candidate_graph_version: str = CANDIDATE_GRAPH_VERSION
     trace_users: int = 0
     trace_requests_per_user: int = 2
     topics: int = 12
@@ -51,9 +52,8 @@ class TensorFeedConfig:
             raise ValueError("merged candidates must cover the coarse output")
         if self.audit_candidates < 1:
             raise ValueError("audit candidate count must be positive")
-        if self.candidate_graph_version != "multiroute-rrf-coarse-v2":
+        if self.candidate_graph_version != CANDIDATE_GRAPH_VERSION:
             raise ValueError("unsupported candidate graph version")
         if self.trace_users < 0 or self.trace_requests_per_user < 1:
             raise ValueError("trace sampling limits are invalid")
-
 

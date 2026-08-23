@@ -5,20 +5,17 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Mapping
 
+from ...feed_loop.cascade.contracts import (
+    RECALL_ROUTES,
+    validate_coarse_model,
+    validate_routes,
+)
+
 
 @dataclass(frozen=True)
 class FeedParameters:
     recall_model: str = "two_tower_v1"
-    enabled_routes: tuple[str, ...] = (
-        "ann",
-        "graph",
-        "geo",
-        "fresh",
-        "long_tail",
-        "popular",
-        "post_search",
-        "retarget",
-    )
+    enabled_routes: tuple[str, ...] = RECALL_ROUTES
     recall_budget: int = 100
     coarse_model: str = "lr_v1"
     coarse_budget: int = 20
@@ -35,18 +32,21 @@ class FeedParameters:
     feature_snapshot: str = "feed_features_v1"
     model_manifest: str = "feed_manifest_v1"
 
+    def __post_init__(self) -> None:
+        validate_routes(self.enabled_routes)
+        validate_coarse_model(self.coarse_model)
+        if self.coarse_budget > self.recall_budget:
+            raise ValueError("coarse_budget cannot exceed recall_budget")
+        if self.calibration_temperature <= 0.0:
+            raise ValueError("calibration_temperature must be positive")
+        if not 0.0 <= self.exploration_rate <= 1.0:
+            raise ValueError("exploration_rate must be in [0, 1]")
+
     def overlay(self, changes: Mapping[str, object]) -> "FeedParameters":
         unknown = set(changes) - set(self.__dataclass_fields__)
         if unknown:
             raise ValueError(f"unknown Feed parameters: {sorted(unknown)}")
-        candidate = replace(self, **changes)
-        if candidate.coarse_budget > candidate.recall_budget:
-            raise ValueError("coarse_budget cannot exceed recall_budget")
-        if candidate.calibration_temperature <= 0.0:
-            raise ValueError("calibration_temperature must be positive")
-        if not 0.0 <= candidate.exploration_rate <= 1.0:
-            raise ValueError("exploration_rate must be in [0, 1]")
-        return candidate
+        return replace(self, **changes)
 
 
 @dataclass(frozen=True)

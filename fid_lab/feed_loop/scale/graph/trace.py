@@ -31,8 +31,9 @@ def append_trace(rows, config, state, candidates, selected, values, step):
     recalled = candidates["recalled_item_ids"][:take].cpu()
     route_bits = candidates["recalled_route_bits"][:take].cpu()
     recall_scores = candidates["recalled_scores"][:take].cpu()
-    coarse_scores = candidates["recalled_coarse_scores"][:take].cpu()
-    coarse_items = candidates["item_ids"][:take].cpu()
+    coarse_scores = selected["coarse_scores"][:take].cpu()
+    coarse_mask = selected["coarse_mask"][:take].cpu()
+    candidate_items = candidates["item_ids"][:take].cpu()
     fine_scores = selected["fine_scores"][:take].cpu()
     mix_scores = selected["mix_scores"][:take].cpu()
     exposed = selected["item_ids"][:take].cpu()
@@ -51,13 +52,14 @@ def append_trace(rows, config, state, candidates, selected, values, step):
         "conversion": (values["paid"] | values["pixel"])[:take].cpu(),
     }
     for user in range(take):
-        fine_index = {
-            int(item): index for index, item in enumerate(coarse_items[user])
+        candidate_index = {
+            int(item): index for index, item in enumerate(candidate_items[user])
         }
         request_id = f"gpu-u{int(user_ids[user])}-r{step}"
         for recall_index, item in enumerate(recalled[user]):
             item_id = int(item)
-            index = fine_index.get(item_id)
+            index = candidate_index.get(item_id)
+            coarse_pass = index is not None and bool(coarse_mask[user, index])
             is_exposed = item_id == int(exposed[user])
             rows.append({
                 "request_id": request_id,
@@ -69,11 +71,19 @@ def append_trace(rows, config, state, candidates, selected, values, step):
                 "recall_rank": int(recall_ranks[user, recall_index]),
                 "coarse_score": float(coarse_scores[user, recall_index]),
                 "coarse_rank": int(coarse_ranks[user, recall_index]),
-                "coarse_pass": index is not None,
-                "fine_score": None if index is None else float(fine_scores[user, index]),
-                "fine_rank": None if index is None else int(fine_ranks[user, index]),
-                "mix_score": None if index is None else float(mix_scores[user, index]),
-                "mix_rank": None if index is None else int(mix_ranks[user, index]),
+                "coarse_pass": coarse_pass,
+                "fine_score": (
+                    None if not coarse_pass else float(fine_scores[user, index])
+                ),
+                "fine_rank": (
+                    None if not coarse_pass else int(fine_ranks[user, index])
+                ),
+                "mix_score": (
+                    None if not coarse_pass else float(mix_scores[user, index])
+                ),
+                "mix_rank": (
+                    None if not coarse_pass else int(mix_ranks[user, index])
+                ),
                 "exposed": is_exposed,
                 "audit_oracle": item_id == int(audit[user]),
                 "mature_labels": (
