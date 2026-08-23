@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import combinations
 
+from ..contracts import DEFAULT_SEARCH_EVENT_RATE
 from ..environment import FEATURE_NAMES
 
 
@@ -28,6 +29,9 @@ class FeatureCampaign:
     report_logical_key: str
     artifact_collection: str
     operation: str
+    trigger_kinds: tuple[tuple[str, str], ...] = ()
+    burn_in_steps: int = 0
+    search_event_rate: float = DEFAULT_SEARCH_EVENT_RATE
 
 
 def feature_set_key(proposals: tuple[str, ...]) -> str:
@@ -91,6 +95,28 @@ FEATURE_CAMPAIGNS = {
         artifact_collection="feature-lr-v4-local-ablation",
         operation="remove",
     ),
+    "intent_trigger_ablation_v1": FeatureCampaign(
+        name="intent_trigger_ablation_v1",
+        base_key="basic__realtime__local_context__category_hash",
+        base_columns=(
+            *feature_set_columns(("realtime", "local_context")),
+            17,
+        ),
+        proposals=(
+            ("without_post_search", (18,)),
+            ("without_retarget", (19,)),
+        ),
+        launch_start=13,
+        report_logical_key="feature-lr-intent-trigger-ablation-ab",
+        artifact_collection="feature-lr-v5-intent-trigger",
+        operation="remove",
+        trigger_kinds=(
+            ("without_post_search", "post_search"),
+            ("without_retarget", "retarget"),
+        ),
+        burn_in_steps=8,
+        search_event_rate=0.04,
+    ),
 }
 
 
@@ -143,6 +169,9 @@ def feature_campaign_manifest(name: str) -> dict[str, object]:
         "report_logical_key": campaign.report_logical_key,
         "artifact_collection": campaign.artifact_collection,
         "operation": campaign.operation,
+        "trigger_kinds": dict(campaign.trigger_kinds),
+        "burn_in_steps": campaign.burn_in_steps,
+        "search_event_rate": campaign.search_event_rate,
     }
 
 

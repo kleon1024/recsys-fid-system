@@ -4,10 +4,13 @@ bce06e97da111ebc22b6558d80d8d523c939462efd659a961b486e16ff24c938  reports/launch
 0675f4efe980e8fbd52f65abf3277731befae5662327a2a6125c198763ef9031  reports/launches/2026-08-23-feature-lr-hash-split-training-gpu.json
 69b54844478e0940eb0f1dd392c840a1b98a2eddf6fc62cccf656335ebcd4083  reports/launches/2026-08-23-feature-lr-local-ablation-1m-gpu.json
 bfb44cae3ad8bc9d5eac9d7411c16430ae5f32640ad0d639bfc8c0945671a32b  reports/launches/2026-08-23-feature-lr-local-ablation-training-gpu.json
+e17f0cd25f40f7232aebe9460bd68ed4aa3e3be4b96a734821513e68ccb6ffa4  reports/launches/2026-08-23-feature-lr-intent-trigger-1m-gpu.json
+3a8e394e71deed48c4f5abe9b2d959c7af868adc6a9180f2bd764c49c3b7ccfb  reports/launches/2026-08-23-feature-lr-intent-trigger-training-gpu.json
 78d46fc58dc576626f0f9879c88eb15d53cf6e9cbb5789622edf214d61404af3  reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json
 8a238c07c82e5f641246cd6139566b5c5ea8804cec43ff74bf0f230aaf581acf  reports/launches/2026-08-23-feature-lr-stateful-500.json
 ad5a1851b4523a0ad1dfa5da93947632d67eb8693221b6aacb8a003c30bb9aa6  reports/launches/2026-08-23-feature-lr-training-gpu-v2.json
 66c437f92e455f4bc83490ca550cb7eac4b360c4659f24dbbd7425cc7608af89  reports/launches/2026-08-23-feature-lr-training-gpu.json
+ddfec8f0ade2c45e6d9c0bc276dd0d436ab71d90f6334a85a0cd20f53e547705  reports/launches/2026-08-23-feed-digital-twin-v2-1m-gpu.json
 94c94ad36fa3d80fcec562a9fd4302ad34f66ebaf7b82d5db1b99082a39ea416  reports/launches/2026-08-23-feed-model-ladder.json
 2ff6f752d63a63dcbe26d7d7814ffac7c356ce69672efefbec982abcd3767f2e  reports/launches/2026-08-23-feed-online-learning.json
 54cb67aa5435797e46d4795cbc58495549d39543a6e8174458b12982e9b896fc  reports/launches/2026-08-23-feed-xgb-guarded-v2-10k-gpu.json

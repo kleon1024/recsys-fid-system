@@ -89,6 +89,33 @@ def _coarse_mask(policy, observed_affinity, candidates):
     return mask, keep
 
 
+def stage_diagnostics(candidates, choice, fine_choice, coarse_survives):
+    batch = torch.arange(len(choice), device=choice.device)
+    chosen_item = candidates["item_ids"][batch, choice]
+    fine_item = candidates["item_ids"][batch, fine_choice]
+    oracle = candidates["audit_oracle_item"]
+    recall = candidates["audit_oracle_in_recall"]
+    coarse = coarse_survives
+    attribution = torch.zeros_like(choice)
+    attribution = torch.where(recall, torch.ones_like(attribution), attribution)
+    attribution = torch.where(coarse, torch.full_like(attribution, 2), attribution)
+    attribution = torch.where(
+        coarse & (fine_item == oracle), torch.full_like(attribution, 3), attribution
+    )
+    attribution = torch.where(
+        coarse & (fine_item == oracle) & (chosen_item == oracle),
+        torch.full_like(attribution, 4),
+        attribution,
+    )
+    return {
+        "recall_oracle_survives": recall,
+        "coarse_oracle_survives": coarse,
+        "stage_attribution": attribution,
+        "route_valid_counts": candidates["route_valid_counts"],
+        "unique_recall_count": candidates["unique_recall_count"],
+    }
+
+
 def select_candidate(policy, user_ids, state, candidates, device, step, config=None):
     if hasattr(policy, "select_candidate"):
         if config is None:
@@ -103,6 +130,12 @@ def select_candidate(policy, user_ids, state, candidates, device, step, config=N
         policy, observed_affinity, candidates
     )
     score = score.masked_fill(~coarse_mask, -1e9)
+    fine_choice = score.argmax(dim=1)
+    fine_scores = score.clone()
+    audit_coarse_survives = (
+        (candidates["item_ids"] == candidates["audit_oracle_item"][:, None])
+        & coarse_mask
+    ).any(dim=1)
     if policy.multi_queue:
         is_live = candidates["content_type"] == 1
         is_ad = candidates["content_type"] == 2
@@ -120,22 +153,31 @@ def select_candidate(policy, user_ids, state, candidates, device, step, config=N
     names = (
         "topics", "quality", "is_poi", "commerce", "poi_quality", "inventory",
         "same_city", "search_match", "retarget_match", "fulfillment", "candidate_topic",
-        "item_ids", "content_type", "ad_value", "live_value",
+        "item_ids", "content_type", "ad_value", "live_value", "duration",
+        "popularity", "author", "route_bits", "recall_score", "coarse_score",
     )
     selected = {name: candidates[name][batch_index, choice] for name in names}
+    selected["fine_scores"] = fine_scores
+    selected["mix_scores"] = score
+    selected["fine_choice"] = fine_choice
+    selected["final_choice"] = choice
     true_affinity = torch.einsum(
         "bkd,bd->bk", candidates["topics"], state["interest"]
     )
     true_feed_utility = true_affinity + 0.45 * candidates["quality"]
     oracle_choice = true_feed_utility.argmax(dim=1)
     chosen_utility = true_feed_utility[batch_index, choice]
-    selected["coarse_oracle_survives"] = coarse_mask[
-        batch_index, oracle_choice
-    ]
+    selected.update(
+        stage_diagnostics(
+            candidates, choice, fine_choice, audit_coarse_survives
+        )
+    )
     selected["coarse_pass_fraction"] = torch.full_like(
         chosen_utility, coarse_keep / score.shape[1]
-    )
-    selected["oracle_regret"] = true_feed_utility.max(dim=1).values - chosen_utility
+    ) * candidates["coarse_pass_fraction"]
+    selected["oracle_regret"] = torch.maximum(
+        candidates["merged_oracle_utility"], candidates["audit_oracle_utility"]
+    ) - chosen_utility
     selected["poi_candidate_fraction"] = candidates["is_poi"].float().mean(dim=1)
     if policy.multi_queue:
         organic = candidates["content_type"] == 0

@@ -1,24 +1,28 @@
-"""Device-resident batched Feed trajectory simulator.
-
-The semantic simulator remains the contract oracle. This engine deliberately
-uses dense synthetic candidates so millions of users can exercise sequential
-state transitions and A/B power without Python objects per user.
-"""
+"""Device-resident batched Feed trajectory and candidate-graph simulator."""
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from math import erfc, sqrt
+from dataclasses import dataclass
 from time import perf_counter
 
 import torch
 
+from ...simulation.contracts import DEFAULT_SEARCH_EVENT_RATE
 from ...value import BUSINESS_TREE_WEIGHTS, DEFAULT_LT_CONFIG
 from .lt_exchange import (
     accumulate_lt_exchange_components,
-    render_lt_exchange_components,
 )
 from .tensor_catalog import build_tensor_catalog
+from .graph.candidate import ROUTE_NAMES, build_candidate_graph
+from .graph.reporting import render_report
+from .graph.trace import append_trace
+from .graph.random import normal, uniform, uniform_for_items
+from .experiment.trigger import (
+    combine_tensor_ab,
+    combine_tensor_trigger_ab,
+    refresh_search_state,
+    trigger_mask,
+)
 from ..tensor_policies import (
     LOCAL_EXPANSION,
     LOCAL_INTENT_RANKER,
@@ -33,20 +37,32 @@ from ..tensor_policies import (
 from ..tensor_cascade import select_candidate
 
 
+DEFAULT_GPU_BATCH_USERS = 200_000
+
+
 @dataclass(frozen=True)
 class TensorFeedConfig:
     users: int = 1_000_000
     steps: int = 24
     candidates: int = 20
+    route_candidates: int = 8
+    route_oversample: int = 3
+    merged_candidates: int = 48
+    audit_candidates: int = 24
+    candidate_graph_version: str = "multiroute-rrf-coarse-v2"
+    trace_users: int = 0
+    trace_requests_per_user: int = 2
     topics: int = 12
     catalog_items: int = 200_000
-    batch_users: int = 25_000
+    batch_users: int = DEFAULT_GPU_BATCH_USERS
     seed: int = 20260823
     device: str = "cuda:0"
     count_inactive_play_bug: bool = False
     signal_version: str = "industrial-cross-sequence-v1"
     max_sessions: int = 4
     requests_per_session: int = 8
+    search_event_rate: float = DEFAULT_SEARCH_EVENT_RATE
+    search_ttl_requests: int = 3
 
     def __post_init__(self) -> None:
         if self.signal_version not in {
@@ -54,6 +70,20 @@ class TensorFeedConfig:
             "heterogeneous-nonlinear-v2",
         }:
             raise ValueError(f"unsupported signal version: {self.signal_version}")
+        if not 0.0 <= self.search_event_rate <= 1.0:
+            raise ValueError("search event rate must be in [0, 1]")
+        if self.search_ttl_requests < 1:
+            raise ValueError("search TTL must be positive")
+        if self.route_candidates < 1 or self.route_oversample < 1:
+            raise ValueError("route candidate budgets must be positive")
+        if self.merged_candidates < self.candidates:
+            raise ValueError("merged candidates must cover the coarse output")
+        if self.audit_candidates < 1:
+            raise ValueError("audit candidate count must be positive")
+        if self.candidate_graph_version != "multiroute-rrf-coarse-v2":
+            raise ValueError("unsupported candidate graph version")
+        if self.trace_users < 0 or self.trace_requests_per_user < 1:
+            raise ValueError("trace sampling limits are invalid")
 
 
 def _sync(device: torch.device) -> None:
@@ -62,14 +92,14 @@ def _sync(device: torch.device) -> None:
 
 
 def _sample_response(
-    generator, active, fatigue, satisfaction, affinity, quality, device,
+    user_ids, step, seed, active, fatigue, satisfaction, affinity, quality,
     duration=None, stay_adjustment=None,
 ):
     users = len(active)
     if duration is None:
-        duration = 3.0 + 177.0 * torch.rand(users, generator=generator, device=device)
+        duration = 3.0 + 177.0 * uniform(user_ids, step, 30, seed)
     play_draw = (
-        torch.rand(users, generator=generator, device=device)
+        uniform(user_ids, step, 31, seed)
         < torch.sigmoid(3.0 + 0.4 * affinity - 0.6 * fatigue)
     )
     played = play_draw & active
@@ -82,24 +112,26 @@ def _sample_response(
         duration,
         torch.exp(
             stay_log_mean
-            + 0.65 * torch.randn(users, generator=generator, device=device)
+            + 0.65 * normal(user_ids, step, 32, seed)
         ),
     ) * played
     long_view = (stay >= torch.minimum(torch.full_like(stay, 10.0), duration)) & active
     hlt = (stay >= torch.minimum(torch.full_like(stay, 30.0), duration)) & active
     like = (
-        torch.rand(users, generator=generator, device=device)
+        uniform(user_ids, step, 34, seed)
         < torch.sigmoid(-4.2 + 1.8 * affinity + 0.8 * quality)
     ) & played
     negative = (
-        torch.rand(users, generator=generator, device=device)
+        uniform(user_ids, step, 35, seed)
         < torch.sigmoid(-5.0 - 1.7 * affinity - 0.8 * quality + 2.0 * fatigue)
     ) & active
     return stay, long_view, hlt, like, negative, played, play_draw
 
 
 def _sample_local_response(
-    generator,
+    user_ids,
+    step,
+    seed,
     active,
     affinity,
     is_poi,
@@ -112,7 +144,7 @@ def _sample_local_response(
     fulfillment,
 ):
     anchor = (
-        torch.rand(len(active), generator=generator, device=active.device)
+        uniform(user_ids, step, 40, seed)
         < torch.sigmoid(
             -5.0
             + 1.7 * affinity
@@ -123,15 +155,15 @@ def _sample_local_response(
         )
     ) & active & is_poi.bool()
     detail = (
-        torch.rand(len(active), generator=generator, device=active.device)
+        uniform(user_ids, step, 41, seed)
         < torch.sigmoid(-1.3 + affinity + 0.8 * poi_quality + 0.7 * search_match)
     ) & anchor
     favorite = (
-        torch.rand(len(active), generator=generator, device=active.device)
+        uniform(user_ids, step, 42, seed)
         < torch.sigmoid(-3.2 + 0.8 * affinity + poi_quality)
     ) & detail
     order = (
-        torch.rand(len(active), generator=generator, device=active.device)
+        uniform(user_ids, step, 43, seed)
         < torch.sigmoid(
             -4.5
             + 1.2 * commerce
@@ -141,10 +173,10 @@ def _sample_local_response(
         )
     ) & detail
     paid = order & (fulfillment == 1) & (
-        torch.rand(len(active), generator=generator, device=active.device) < 0.92
+        uniform(user_ids, step, 44, seed) < 0.92
     )
     pixel = order & (fulfillment == 2) & (
-        torch.rand(len(active), generator=generator, device=active.device) < 0.35
+        uniform(user_ids, step, 45, seed) < 0.35
     )
     return anchor, detail, favorite, paid, pixel
 
@@ -193,122 +225,51 @@ def _business_and_lt_values(
     return lt_value, feed_tree, local_tree, commercialization
 
 
-def _accumulate_cells(cell_stats, user_ids, user_metrics):
+def _accumulate_cells(cell_stats, user_ids, user_metrics, cohort=None):
     bucket = torch.remainder(user_ids * 1_664_525 + 1_013_904_223, 2**31)
     assigned = bucket < 2**30
     rates = user_metrics[:, 1:].clone()
     rates[:, :16] /= user_metrics[:, :1].clamp_min(1.0)
     rates[:, 19:23] /= user_metrics[:, :1].clamp_min(1.0)
     for cell, mask in enumerate((~assigned, assigned)):
+        if cohort is not None:
+            mask &= cohort
         values = rates[mask]
         cell_stats[cell, :, 0] += mask.sum()
         cell_stats[cell, :, 1] += values.sum(dim=0)
         cell_stats[cell, :, 2] += values.square().sum(dim=0)
 
 
-def _render_cells(cell_stats):
-    names = (
-        "stay_per_exposure",
-        "long_view_rate",
-        "quality_long_view_rate",
-        "negative_rate",
-        "lt_value_per_exposure",
-        "local_value_tree_score_per_exposure",
-        "anchor_click_rate",
-        "conversion_rate",
-        "ad_load",
-        "effective_ad_load",
-        "ad_contribution_per_exposure",
-        "organic_opportunity_cost_per_exposure",
-        "feed_value_tree_score_per_exposure",
-        "ads_live_value_tree_score_per_exposure",
-        "accepted_platform_commercialization_per_exposure",
-        "local_commercialization_value_per_exposure",
-        "active_days_per_user",
-        "accepted_platform_commercialization_per_user",
-        "lt_value_per_user",
-        "coarse_feed_oracle_recall",
-        "coarse_pass_fraction",
-        "fine_oracle_regret_per_exposure",
-        "poi_candidate_fraction",
-        "lt_stay_per_user",
-        "lt_active_days_per_user",
-    )
-    report = {}
-    for cell, cell_name in enumerate(("control", "treatment")):
-        report[cell_name] = {}
-        for metric, name in enumerate(names):
-            count, total, total_square = cell_stats[cell, metric]
-            mean = total / count
-            variance = (total_square - total.square() / count) / (count - 1.0)
-            report[cell_name][name] = {
-                "users": int(count),
-                "mean": float(mean),
-                "variance": float(variance),
-            }
-    return report
-
-
-def combine_tensor_ab(control_report, treatment_report):
-    """Combine stable control/treatment cells from two common-random worlds."""
-    report = {}
-    control_cell = control_report["experiment_cells"]["control"]
-    treatment_cell = treatment_report["experiment_cells"]["treatment"]
-    for name in control_cell:
-        control = control_cell[name]
-        treatment = treatment_cell[name]
-        difference = treatment["mean"] - control["mean"]
-        standard_error = sqrt(
-            control["variance"] / control["users"]
-            + treatment["variance"] / treatment["users"]
-        )
-        z_score = difference / max(standard_error, 1e-12)
-        report[name] = {
-            "control_mean": control["mean"],
-            "treatment_mean": treatment["mean"],
-            "relative_lift": (
-                difference / control["mean"] if abs(control["mean"]) > 1e-12 else None
-            ),
-            "standard_error": standard_error,
-            "confidence_interval": (
-                difference - 1.96 * standard_error,
-                difference + 1.96 * standard_error,
-            ),
-            "p_value": erfc(abs(z_score) / sqrt(2.0)),
-        }
-    return report
-
-
 def _new_user_state(config, policy, generator, device, user_ids):
+    del generator
     users = len(user_ids)
     if config.signal_version == "heterogeneous-nonlinear-v2":
         interest = (
-            -torch.log(
-                torch.rand(
-                    users, config.topics, generator=generator, device=device
-                ).clamp_min(1e-7)
-            )
+            -torch.log(uniform(
+                user_ids, 0, 1, config.seed, config.topics
+            ).clamp_min(1e-7))
         ).pow(1.0 / 0.8)
         interest = torch.nn.functional.normalize(interest, dim=1)
         observed_interest = torch.clamp(
             interest
             + policy.observation_noise
-            * torch.randn(interest.shape, generator=generator, device=device),
+            * normal(user_ids, 0, 3, config.seed, config.topics),
             min=0.0,
         )
         observed_interest = torch.nn.functional.normalize(observed_interest, dim=1)
     else:
         interest = torch.nn.functional.normalize(
-            torch.randn(users, config.topics, generator=generator, device=device), dim=1
+            normal(user_ids, 0, 5, config.seed, config.topics), dim=1
         )
         observed_interest = torch.nn.functional.normalize(
             interest
             + policy.observation_noise
-            * torch.randn(interest.shape, generator=generator, device=device),
+            * normal(user_ids, 0, 7, config.seed, config.topics),
             dim=1,
         )
     trigger = torch.remainder(user_ids * 1_103_515_245 + 12_345, 2**31)
     return {
+        "user_ids": user_ids,
         "eligible": (trigger.float() / float(2**31) < policy.eligible_fraction).float()[:, None],
         "interest": interest,
         "observed_interest": observed_interest,
@@ -316,13 +277,13 @@ def _new_user_state(config, policy, generator, device, user_ids):
             torch.clamp(
                 interest
                 + policy.local_observation_noise
-                * torch.randn(interest.shape, generator=generator, device=device),
+                * normal(user_ids, 0, 9, config.seed, config.topics),
                 min=0.0,
             )
             if config.signal_version == "heterogeneous-nonlinear-v2"
             else interest
             + policy.local_observation_noise
-            * torch.randn(interest.shape, generator=generator, device=device),
+            * normal(user_ids, 0, 11, config.seed, config.topics),
             dim=1,
         ),
         "satisfaction": torch.zeros(users, device=device),
@@ -331,12 +292,17 @@ def _new_user_state(config, policy, generator, device, user_ids):
         "sessions": torch.ones(users, device=device),
         "requests_in_session": torch.zeros(users, device=device),
         "returns": torch.zeros(users, device=device),
-        "search_topic": torch.randint(
-            config.topics, (users,), generator=generator, device=device
+        "search_topic": torch.floor(
+            uniform(user_ids, 0, 13, config.seed) * config.topics
+        ).long(),
+        "search_strength": (
+            torch.zeros(users, device=device)
+            if config.search_event_rate > 0.0
+            else uniform(user_ids, 0, 14, config.seed)
         ),
-        "search_strength": torch.rand(users, generator=generator, device=device),
+        "search_ttl": torch.zeros(users, device=device, dtype=torch.long),
         "retarget_item": torch.full((users,), -1, device=device, dtype=torch.long),
-        "city": torch.randint(100, (users,), generator=generator, device=device),
+        "city": torch.floor(uniform(user_ids, 0, 15, config.seed) * 100).long(),
         "trust": torch.remainder(user_ids * 48_271 + 17, 10_007).float() / 10_007,
         "commerce_propensity": (
             torch.remainder(user_ids * 69_697 + 29, 10_009).float() / 10_009
@@ -350,24 +316,18 @@ def _new_user_state(config, policy, generator, device, user_ids):
 
 
 def _candidate_batch(config, generator, device, state, catalog, step):
-    shape = (len(state["active"]), config.candidates)
-    item_ids = torch.randint(catalog.size, shape, generator=generator, device=device)
-    search_base = torch.randint(
-        max(catalog.size // config.topics, 1),
-        (shape[0],),
-        generator=generator,
-        device=device,
-    ) * config.topics
-    item_ids[:, 1] = torch.remainder(
-        search_base + state["search_topic"], catalog.size
-    )
-    has_retarget = state["retarget_item"] >= 0
-    item_ids[has_retarget, 0] = state["retarget_item"][has_retarget]
+    del generator, device
+    graph = build_candidate_graph(config, state, catalog, step)
+    item_ids = graph["item_ids"]
+    shape = item_ids.shape
+    has_search = state["search_ttl"] > 0
     candidate_topic = catalog.category[item_ids]
     dynamic_inventory = catalog.inventory[item_ids] * (
-        torch.rand(*shape, generator=generator, device=device) > 0.01
+        uniform_for_items(
+            state["user_ids"], item_ids, step, 20, config.seed
+        ) > 0.01
     )
-    return {
+    batch = {
         "item_ids": item_ids,
         "topics": catalog.topics[item_ids],
         "candidate_topic": candidate_topic,
@@ -379,7 +339,8 @@ def _candidate_batch(config, generator, device, state, catalog, step):
         "inventory": dynamic_inventory.float(),
         "same_city": (catalog.city[item_ids] == state["city"][:, None]).float(),
         "search_match": (candidate_topic == state["search_topic"][:, None]).float()
-        * state["search_strength"][:, None],
+        * state["search_strength"][:, None]
+        * has_search[:, None],
         "retarget_match": (item_ids == state["retarget_item"][:, None]).float(),
         "fulfillment": catalog.fulfillment[item_ids],
         "content_type": catalog.content_type[item_ids],
@@ -389,27 +350,33 @@ def _candidate_batch(config, generator, device, state, catalog, step):
         "duration": catalog.duration_seconds[item_ids],
         "author": catalog.author[item_ids],
     }
+    batch.update(graph)
+    return batch
 
 
 def _sample_step(config, policy, generator, device, state, selected, step):
+    del generator, device
     affinity = (selected["topics"] * state["interest"]).sum(dim=1)
     is_live = selected["content_type"] == 1 if policy.multi_queue else torch.zeros_like(affinity).bool()
     is_ad = selected["content_type"] == 2 if policy.multi_queue else torch.zeros_like(affinity).bool()
     response_affinity = affinity + 0.03 * is_live.float() - 0.10 * is_ad.float()
     feed = _sample_response(
-        generator,
+        state["user_ids"],
+        step,
+        config.seed,
         state["active"],
         state["fatigue"],
         state["satisfaction"],
         response_affinity,
         selected["quality"],
-        device,
         selected.get("duration"),
         selected.get("stay_nonlinear"),
     )
     stay, long_view, quality_view, like, negative, played, play_draw = feed
     local = _sample_local_response(
-        generator,
+        state["user_ids"],
+        step,
+        config.seed,
         state["active"],
         response_affinity,
         *(selected[name] for name in (
@@ -460,11 +427,15 @@ def _sample_step(config, policy, generator, device, state, selected, step):
         "poi_candidate_fraction": (
             selected["poi_candidate_fraction"] * state["active"]
         ),
+        "stage_attribution": selected["stage_attribution"],
+        "route_valid_counts": selected["route_valid_counts"],
+        "unique_recall_count": selected["unique_recall_count"],
     }
     return values
 
 
 def _advance_state(config, policy, generator, state, selected, values, step):
+    del generator
     engagement = values["long_view"].float() + values["like"].float()
     state["satisfaction"] = torch.clamp(
         0.82 * state["satisfaction"] + 0.10 * engagement - 0.24 * values["negative"].float(),
@@ -508,9 +479,12 @@ def _advance_state(config, policy, generator, state, selected, values, step):
         state["last_ad_step"],
     )
     state["search_strength"] *= 0.78
+    if config.search_event_rate > 0.0:
+        state["search_ttl"] = torch.clamp(state["search_ttl"] - 1, min=0)
+        state["search_strength"] *= (state["search_ttl"] > 0).float()
     state["requests_in_session"] += state["active"]
     leave = (
-        torch.rand(len(state["active"]), generator=generator, device=state["active"].device)
+        uniform(state["user_ids"], step, 50, config.seed)
         < torch.sigmoid(-3.4 - 1.2 * state["satisfaction"] + 1.7 * state["fatigue"])
     ) & state["active"]
     if config.signal_version == "heterogeneous-nonlinear-v2":
@@ -519,7 +493,7 @@ def _advance_state(config, policy, generator, state, selected, values, step):
         ) & state["active"]
     can_return = state["sessions"] < config.max_sessions
     returned = leave & (
-        torch.rand(len(leave), generator=generator, device=leave.device)
+        uniform(state["user_ids"], step, 51, config.seed)
         < torch.sigmoid(1.0 + 1.6 * state["satisfaction"] - 1.1 * state["fatigue"])
     ) & can_return
     return_value = (
@@ -568,6 +542,16 @@ def _step_totals(config, state, values):
     )).to(torch.float64)
 
 
+def _maybe_append_trace(
+    rows, config, state, candidates, selected, values, step, offset,
+    measurement_start,
+):
+    inside_window = step < measurement_start + config.trace_requests_per_user
+    if offset == 0 and inside_window:
+        append_trace(rows, config, state, candidates, selected, values, step)
+
+
+@torch.inference_mode()
 def _simulate_batches(
     config,
     policy,
@@ -576,19 +560,34 @@ def _simulate_batches(
     catalog,
     policy_schedule,
     measurement_start_step,
+    trigger_kind,
 ):
     totals = torch.zeros(28, dtype=torch.float64, device=device)
     cell_stats = torch.zeros(2, 25, 3, dtype=torch.float64, device=device)
     lt_exchange_stats = torch.zeros(2, 6, dtype=torch.float64, device=device)
+    trigger_cell_stats = torch.zeros(2, 25, 3, dtype=torch.float64, device=device)
+    trigger_users = torch.zeros((), dtype=torch.long, device=device)
+    candidate_diagnostics = torch.zeros(
+        5 + len(ROUTE_NAMES) + 2, dtype=torch.float64, device=device
+    )
+    trace_rows = []
     for offset in range(0, config.users, config.batch_users):
         users = min(config.batch_users, config.users - offset)
         user_ids = torch.arange(offset, offset + users, device=device, dtype=torch.int64)
-        state = _new_user_state(config, policy, generator, device, user_ids)
+        initial_policy = policy_schedule[0] if policy_schedule else policy
+        state = _new_user_state(
+            config, initial_policy, generator, device, user_ids
+        )
         user_metrics = torch.zeros(users, 26, device=device)
+        trigger_cohort = torch.zeros(users, dtype=torch.bool, device=device)
         for step in range(config.steps):
             active_policy = (
                 policy_schedule[step] if policy_schedule is not None else policy
             )
+            refresh_search_state(config, state, step)
+            if trigger_kind and step == measurement_start_step:
+                trigger_cohort = trigger_mask(state, trigger_kind)
+                trigger_users += trigger_cohort.sum()
             candidates = _candidate_batch(config, generator, device, state, catalog, step)
             selected = select_candidate(
                 active_policy, user_ids, state, candidates, device, step, config
@@ -601,6 +600,23 @@ def _simulate_batches(
             if measured:
                 totals += _step_totals(
                     config, {**state, "active": active_before}, values
+                )
+                active_attribution = values["stage_attribution"][active_before]
+                candidate_diagnostics[:5] += torch.bincount(
+                    active_attribution, minlength=5
+                ).to(torch.float64)
+                candidate_diagnostics[5 : 5 + len(ROUTE_NAMES)] += (
+                    values["route_valid_counts"][active_before]
+                    .sum(dim=0)
+                    .to(torch.float64)
+                )
+                candidate_diagnostics[-2] += values["unique_recall_count"][
+                    active_before
+                ].sum()
+                candidate_diagnostics[-1] += active_before.sum()
+                _maybe_append_trace(
+                    trace_rows, config, state, candidates, selected, values,
+                    step, offset, measurement_start_step,
                 )
                 user_metrics += torch.stack((
                     active_before, values["stay"], values["long_view"], values["quality_view"],
@@ -638,10 +654,42 @@ def _simulate_batches(
                 user_metrics[:, 19] += return_value
                 user_metrics[:, 25] += return_value
         _accumulate_cells(cell_stats, user_ids, user_metrics)
+        if trigger_kind:
+            _accumulate_cells(
+                trigger_cell_stats, user_ids, user_metrics, trigger_cohort
+            )
         accumulate_lt_exchange_components(
             lt_exchange_stats, user_ids, user_metrics
         )
-    return totals, cell_stats, lt_exchange_stats
+    return (
+        totals,
+        cell_stats,
+        lt_exchange_stats,
+        trigger_cell_stats,
+        trigger_users,
+        candidate_diagnostics,
+        trace_rows,
+    )
+
+
+def _prepare_run(config, policy_schedule, measurement_start_step, trigger_kind):
+    if policy_schedule is not None and len(policy_schedule) != config.steps:
+        raise ValueError("policy schedule must contain one policy per step")
+    if not 0 <= measurement_start_step < config.steps:
+        raise ValueError("measurement start must be inside the trajectory")
+    if trigger_kind not in {None, "post_search", "retarget"}:
+        raise ValueError(f"unsupported trigger kind: {trigger_kind}")
+    device = torch.device(config.device)
+    if device.type == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA requested but unavailable")
+    if device.type == "cuda":
+        torch.cuda.set_device(device.index or 0)
+        torch.cuda.current_device()
+    generator = torch.Generator(device=device).manual_seed(config.seed)
+    catalog = build_tensor_catalog(config, generator, device)
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device.index or 0)
+    return device, generator, catalog
 
 
 def run_tensor_feed(
@@ -650,26 +698,14 @@ def run_tensor_feed(
     *,
     policy_schedule: tuple[TensorPolicy, ...] | None = None,
     measurement_start_step: int = 0,
+    trigger_kind: str | None = None,
 ) -> dict[str, object]:
-    if policy_schedule is not None and len(policy_schedule) != config.steps:
-        raise ValueError("policy schedule must contain one policy per step")
-    if not 0 <= measurement_start_step < config.steps:
-        raise ValueError("measurement start must be inside the trajectory")
-    device = torch.device(config.device)
-    if device.type == "cuda" and not torch.cuda.is_available():
-        raise RuntimeError("CUDA requested but unavailable")
-    if device.type == "cuda":
-        # Accept both the convenient CLI spelling ``cuda`` and an explicit
-        # device such as ``cuda:0``.
-        torch.cuda.set_device(device.index or 0)
-        torch.cuda.current_device()
-    generator = torch.Generator(device=device).manual_seed(config.seed)
-    catalog = build_tensor_catalog(config, generator, device)
-    if device.type == "cuda":
-        torch.cuda.reset_peak_memory_stats(device.index or 0)
+    device, generator, catalog = _prepare_run(
+        config, policy_schedule, measurement_start_step, trigger_kind
+    )
     _sync(device)
     started = perf_counter()
-    totals, cell_stats, lt_exchange_stats = _simulate_batches(
+    simulation = _simulate_batches(
         config,
         policy,
         generator,
@@ -677,84 +713,32 @@ def run_tensor_feed(
         catalog,
         policy_schedule,
         measurement_start_step,
+        trigger_kind,
     )
+    (
+        totals,
+        cell_stats,
+        lt_exchange_stats,
+        trigger_stats,
+        trigger_users,
+        candidate_diagnostics,
+        trace_rows,
+    ) = simulation
     _sync(device)
     seconds = perf_counter() - started
-    values = totals.cpu().numpy()
-    exposures = max(values[0], 1.0)
-    report = {
-        "config": asdict(config),
-        "policy": policy.describe() if hasattr(policy, "describe") else asdict(policy),
-        "policy_schedule": (
-            None
-            if policy_schedule is None
-            else [value.name for value in policy_schedule]
-        ),
-        "measurement_start_step": measurement_start_step,
-        "experiment_cells": _render_cells(cell_stats.cpu()),
-        "lt_exchange_components": render_lt_exchange_components(
-            lt_exchange_stats.cpu()
-        ),
-        "metrics": {
-            "exposures": int(values[0]),
-            "stay_per_exposure": float(values[1] / exposures),
-            "long_view_rate": float(values[2] / exposures),
-            "quality_long_view_rate": float(values[3] / exposures),
-            "like_rate": float(values[4] / exposures),
-            "negative_rate": float(values[5] / exposures),
-            "play_rate": float(values[6] / exposures),
-            "play_3s_rate": float(values[7] / exposures),
-            "sessions_per_user": float(values[8] / config.users),
-            "returned_sessions_per_user": float(values[9] / config.users),
-            "active_days_per_user": float(values[9] / config.users),
-            "lt_value_per_exposure": float(values[10] / exposures),
-            "lt_value_per_user": float(values[10] / config.users),
-            "lt_stay_per_user": float(
-                values[1]
-                / 60.0
-                * DEFAULT_LT_CONFIG.rates["stay_minute"].unit_value
-                / config.users
-            ),
-            "lt_active_days_per_user": float(
-                values[9]
-                * DEFAULT_LT_CONFIG.rates["active_day"].unit_value
-                / config.users
-            ),
-            "local_value_tree_score_per_exposure": float(values[11] / exposures),
-            "anchor_click_rate": float(values[12] / exposures),
-            "poi_detail_rate": float(values[13] / exposures),
-            "closed_loop_payment_rate": float(values[14] / exposures),
-            "open_loop_conversion_rate": float(values[15] / exposures),
-            "conversion_rate": float((values[14] + values[15]) / exposures),
-            "ad_load": float(values[16] / exposures),
-            "effective_ad_load": float(values[17] / exposures),
-            "ad_contribution_per_exposure": float(values[18] / exposures),
-            "organic_opportunity_cost_per_exposure": float(values[19] / exposures),
-            "feed_value_tree_score_per_exposure": float(values[20] / exposures),
-            "ads_live_value_tree_score_per_exposure": float(values[21] / exposures),
-            "accepted_platform_commercialization_per_exposure": float(
-                values[22] / exposures
-            ),
-            "accepted_platform_commercialization_per_user": float(
-                values[22] / config.users
-            ),
-            "local_commercialization_value_per_exposure": float(
-                values[23] / exposures
-            ),
-            "coarse_feed_oracle_recall": float(values[24] / exposures),
-            "coarse_pass_fraction": float(values[25] / exposures),
-            "fine_oracle_regret_per_exposure": float(values[26] / exposures),
-            "poi_candidate_fraction": float(values[27] / exposures),
-        },
-        "performance": {
-            "seconds": seconds,
-            "users_per_second": config.users / seconds,
-            "requests_per_second": values[0] / seconds,
-            "peak_gpu_memory_bytes": (
-                int(torch.cuda.max_memory_allocated(device.index or 0))
-                if device.type == "cuda"
-                else 0
-            ),
-        },
-    }
-    return report
+    return render_report(
+        config,
+        policy,
+        policy_schedule,
+        measurement_start_step,
+        totals,
+        cell_stats,
+        lt_exchange_stats,
+        trigger_kind,
+        trigger_users,
+        trigger_stats,
+        candidate_diagnostics,
+        trace_rows,
+        seconds,
+        device,
+    )

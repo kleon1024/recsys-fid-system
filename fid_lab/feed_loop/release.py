@@ -13,6 +13,9 @@ from typing import Mapping
 PASS_DECISION = "pass_unified_lt_nonnegative"
 
 RELEASE_RESOURCE_PATHS = {
+    "feed-digital-twin-v2-ab": (
+        "reports/launches/2026-08-23-feed-digital-twin-v2-1m-gpu.json"
+    ),
     "feature-lr-sequential-ab": (
         "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json"
     ),
@@ -22,11 +25,15 @@ RELEASE_RESOURCE_PATHS = {
     "feature-lr-local-ablation-ab": (
         "reports/launches/2026-08-23-feature-lr-local-ablation-1m-gpu.json"
     ),
+    "feature-lr-intent-trigger-ablation-ab": (
+        "reports/launches/2026-08-23-feature-lr-intent-trigger-1m-gpu.json"
+    ),
     "feature-lr-v2": "artifacts/models/feature-lr-v2",
     "feature-lr-v3-hash-split": "artifacts/models/feature-lr-v3-hash-split",
     "feature-lr-v4-local-ablation": (
         "artifacts/models/feature-lr-v4-local-ablation"
     ),
+    "feature-lr-v5-intent-trigger": "artifacts/models/feature-lr-v5-intent-trigger",
 }
 
 

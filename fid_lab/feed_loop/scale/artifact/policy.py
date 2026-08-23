@@ -11,6 +11,7 @@ import torch
 from xgboost import Booster
 
 from ...models.artifact import feature_schema_hash
+from ...tensor_cascade import stage_diagnostics
 from .features import build_tensor_features, nonlinear_stay_adjustment
 
 
@@ -18,7 +19,7 @@ V2_STAY_LOG_INTERCEPT_CALIBRATION = 0.25
 
 
 def _selected_candidate(
-    candidates, choice, user_ids, state, device, features
+    candidates, choice, user_ids, state, device, features, scores
 ):
     batch = torch.arange(len(user_ids), device=device)
     names = (
@@ -28,6 +29,10 @@ def _selected_candidate(
         "ad_value", "live_value", "duration",
     )
     selected = {name: candidates[name][batch, choice] for name in names}
+    selected["fine_scores"] = scores
+    selected["mix_scores"] = scores
+    selected["fine_choice"] = choice
+    selected["final_choice"] = choice
     selected["stay_nonlinear"] = (
         nonlinear_stay_adjustment(features[batch, choice])
         + V2_STAY_LOG_INTERCEPT_CALIBRATION
@@ -36,10 +41,20 @@ def _selected_candidate(
     true_utility = true_affinity + 0.45 * candidates["quality"]
     chosen_utility = true_utility[batch, choice]
     selected["coarse_oracle_survives"] = torch.ones_like(chosen_utility).bool()
-    selected["coarse_pass_fraction"] = torch.ones_like(chosen_utility)
-    selected["oracle_regret"] = true_utility.max(dim=1).values - chosen_utility
+    selected["coarse_pass_fraction"] = candidates["coarse_pass_fraction"]
+    selected["oracle_regret"] = torch.maximum(
+        candidates["merged_oracle_utility"], candidates["audit_oracle_utility"]
+    ) - chosen_utility
     selected["poi_candidate_fraction"] = candidates["is_poi"].mean(dim=1)
     selected["organic_opportunity_cost"] = torch.zeros_like(chosen_utility)
+    selected.update(
+        stage_diagnostics(
+            candidates,
+            choice,
+            choice,
+            candidates["audit_oracle_in_coarse"],
+        )
+    )
     return selected
 
 
@@ -117,7 +132,8 @@ class TensorArtifactPolicy:
         else:
             choice = base.argmax(dim=1)
         return _selected_candidate(
-            candidates, choice, user_ids, state, device, features
+            candidates, choice, user_ids, state, device, features,
+            stay.masked_fill(~eligible, -1e9) if self.treatment else base,
         )
 
 
@@ -176,5 +192,5 @@ class TensorColumnLogisticPolicy:
         )
         choice = scores.argmax(dim=1)
         return _selected_candidate(
-            candidates, choice, user_ids, state, device, features
+            candidates, choice, user_ids, state, device, features, scores
         )

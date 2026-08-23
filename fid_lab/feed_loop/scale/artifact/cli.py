@@ -8,7 +8,12 @@ from pathlib import Path
 
 from ....value import unified_lt_exchange_report, unified_lt_launch_decision
 from .policy import TensorArtifactPolicy
-from ..tensor_engine import TensorFeedConfig, combine_tensor_ab, run_tensor_feed
+from ..tensor_engine import (
+    DEFAULT_GPU_BATCH_USERS,
+    TensorFeedConfig,
+    combine_tensor_ab,
+    run_tensor_feed,
+)
 
 
 def _semantic_parity(source, control, ab, candidate_name):
@@ -59,7 +64,7 @@ def main() -> None:
     parser.add_argument("--artifact-dir", required=True)
     parser.add_argument("--users", type=int, default=1_000_000)
     parser.add_argument("--steps", type=int, default=24)
-    parser.add_argument("--batch-users", type=int, default=25_000)
+    parser.add_argument("--batch-users", type=int, default=DEFAULT_GPU_BATCH_USERS)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output")
     args = parser.parse_args()

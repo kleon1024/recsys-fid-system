@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from ...feed_loop.scale.tensor_engine import TensorFeedConfig
+from ...feed_loop.scale.tensor_engine import DEFAULT_GPU_BATCH_USERS, TensorFeedConfig
 from .runner import run_policy_launch_suite
 
 
@@ -14,7 +14,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--users", type=int, default=1_000_000)
     parser.add_argument("--steps", type=int, default=24)
-    parser.add_argument("--batch-users", type=int, default=25_000)
+    parser.add_argument("--batch-users", type=int, default=DEFAULT_GPU_BATCH_USERS)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output")
     args = parser.parse_args()

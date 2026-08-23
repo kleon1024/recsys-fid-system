@@ -29,6 +29,9 @@ artifacts/models/*
 !artifacts/models/feature-lr-v4-local-ablation/
 !artifacts/models/feature-lr-v4-local-ablation/MANIFEST.sha256
 !artifacts/models/feature-lr-v4-local-ablation/*.joblib
+!artifacts/models/feature-lr-v5-intent-trigger/
+!artifacts/models/feature-lr-v5-intent-trigger/MANIFEST.sha256
+!artifacts/models/feature-lr-v5-intent-trigger/*.joblib
 !artifacts/releases/
 !artifacts/releases/*.json
 checkpoints/

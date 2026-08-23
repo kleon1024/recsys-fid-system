@@ -6,6 +6,7 @@ import argparse
 import json
 
 from .tensor_engine import (
+    DEFAULT_GPU_BATCH_USERS,
     PERSONALIZED,
     PERSONALIZED_1PCT,
     POPULAR,
@@ -19,7 +20,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--users", type=int, default=1_000_000)
     parser.add_argument("--steps", type=int, default=24)
-    parser.add_argument("--batch-users", type=int, default=25_000)
+    parser.add_argument("--batch-users", type=int, default=DEFAULT_GPU_BATCH_USERS)
     parser.add_argument("--device", default="cuda:0")
     args = parser.parse_args()
     config = TensorFeedConfig(

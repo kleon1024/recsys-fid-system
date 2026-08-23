@@ -8,6 +8,9 @@ from typing import Mapping
 import numpy as np
 
 
+DEFAULT_SEARCH_EVENT_RATE = 0.02
+
+
 @dataclass(frozen=True)
 class SimulationConfig:
     users: int = 2_000

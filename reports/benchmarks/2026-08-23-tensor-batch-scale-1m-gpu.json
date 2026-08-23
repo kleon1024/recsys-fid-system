@@ -1,0 +1,155 @@
+{
+  "suite": "tensor-batch-scale-v3-counter-rng",
+  "device": "RTX 4090",
+  "users": 1000000,
+  "steps": 24,
+  "selected_batch_users": 200000,
+  "runs": [
+    {
+      "batch_users": 25000,
+      "performance": {
+        "seconds": 8.808478708997427,
+        "users_per_second": 113526.98156363246,
+        "requests_per_second": 1362949.1989050237,
+        "peak_gpu_memory_bytes": 375652352
+      },
+      "stage_attribution": {
+        "recall_miss": 2290245,
+        "coarse_miss": 1920,
+        "fine_rank_miss": 2336722,
+        "mix_rank_miss": 0,
+        "served_audit_oracle": 7376622
+      },
+      "stage_attribution_rate": {
+        "recall_miss": 0.19076617242967375,
+        "coarse_miss": 0.00015992658037239404,
+        "fine_rank_miss": 0.19463747851090696,
+        "mix_rank_miss": 0.0,
+        "served_audit_oracle": 0.614436422479047
+      },
+      "metrics": {
+        "stay_per_exposure": 10.436628519222925,
+        "long_view_rate": 0.3627268114996207,
+        "lt_value_per_user": 9.57994407067871,
+        "coarse_pass_fraction": 0.4166666763329105,
+        "fine_oracle_regret_per_exposure": 0.020497400670451207
+      },
+      "relative_to_25k": {
+        "requests_per_second": 0.0,
+        "peak_gpu_memory": 0.0,
+        "max_metric_absolute_delta": 0.0,
+        "stage_counts_equal": true
+      }
+    },
+    {
+      "batch_users": 100000,
+      "performance": {
+        "seconds": 4.437949919003586,
+        "users_per_second": 225329.26649711299,
+        "requests_per_second": 2705192.5368944886,
+        "peak_gpu_memory_bytes": 1352834048
+      },
+      "stage_attribution": {
+        "recall_miss": 2290245,
+        "coarse_miss": 1920,
+        "fine_rank_miss": 2336722,
+        "mix_rank_miss": 0,
+        "served_audit_oracle": 7376622
+      },
+      "stage_attribution_rate": {
+        "recall_miss": 0.19076617242967375,
+        "coarse_miss": 0.00015992658037239404,
+        "fine_rank_miss": 0.19463747851090696,
+        "mix_rank_miss": 0.0,
+        "served_audit_oracle": 0.614436422479047
+      },
+      "metrics": {
+        "stay_per_exposure": 10.436628436578575,
+        "long_view_rate": 0.3627268114996207,
+        "lt_value_per_user": 9.579944059570312,
+        "coarse_pass_fraction": 0.4166667757745632,
+        "fine_oracle_regret_per_exposure": 0.020497400603089147
+      },
+      "relative_to_25k": {
+        "requests_per_second": 0.9848080464538269,
+        "peak_gpu_memory": 2.60129263346127,
+        "max_metric_absolute_delta": 9.944165269004657e-08,
+        "stage_counts_equal": true
+      }
+    },
+    {
+      "batch_users": 200000,
+      "performance": {
+        "seconds": 4.162971871999616,
+        "users_per_second": 240213.00905875835,
+        "requests_per_second": 2883879.442172005,
+        "peak_gpu_memory_bytes": 2670903808
+      },
+      "stage_attribution": {
+        "recall_miss": 2290245,
+        "coarse_miss": 1920,
+        "fine_rank_miss": 2336722,
+        "mix_rank_miss": 0,
+        "served_audit_oracle": 7376622
+      },
+      "stage_attribution_rate": {
+        "recall_miss": 0.19076617242967375,
+        "coarse_miss": 0.00015992658037239404,
+        "fine_rank_miss": 0.19463747851090696,
+        "mix_rank_miss": 0.0,
+        "served_audit_oracle": 0.614436422479047
+      },
+      "metrics": {
+        "stay_per_exposure": 10.436628540697441,
+        "long_view_rate": 0.3627268114996207,
+        "lt_value_per_user": 9.579944048828125,
+        "coarse_pass_fraction": 0.41666665473637976,
+        "fine_oracle_regret_per_exposure": 0.020497400653928438
+      },
+      "relative_to_25k": {
+        "requests_per_second": 1.1159111759182787,
+        "peak_gpu_memory": 6.110041488572924,
+        "max_metric_absolute_delta": 2.185058534109885e-08,
+        "stage_counts_equal": true
+      }
+    },
+    {
+      "batch_users": 400000,
+      "performance": {
+        "seconds": 4.234109293000074,
+        "users_per_second": 236177.18174002328,
+        "requests_per_second": 2835427.280974485,
+        "peak_gpu_memory_bytes": 5304091136
+      },
+      "stage_attribution": {
+        "recall_miss": 2290245,
+        "coarse_miss": 1920,
+        "fine_rank_miss": 2336722,
+        "mix_rank_miss": 0,
+        "served_audit_oracle": 7376622
+      },
+      "stage_attribution_rate": {
+        "recall_miss": 0.19076617242967375,
+        "coarse_miss": 0.00015992658037239404,
+        "fine_rank_miss": 0.19463747851090696,
+        "mix_rank_miss": 0.0,
+        "served_audit_oracle": 0.614436422479047
+      },
+      "metrics": {
+        "stay_per_exposure": 10.436628603168762,
+        "long_view_rate": 0.3627268114996207,
+        "lt_value_per_user": 9.5799440703125,
+        "coarse_pass_fraction": 0.4166666550617512,
+        "fine_oracle_regret_per_exposure": 0.020497400389564126
+      },
+      "relative_to_25k": {
+        "requests_per_second": 1.0803616769080109,
+        "peak_gpu_memory": 13.11968035807746,
+        "max_metric_absolute_delta": 8.394583694837365e-08,
+        "stage_counts_equal": true
+      }
+    }
+  ],
+  "invariant": "Counter-based RNG binds every draw to user_id, request step, stream, and seed; batch size is runtime-only.",
+  "evidence_boundary": "Single-device synthetic throughput benchmark."
+}

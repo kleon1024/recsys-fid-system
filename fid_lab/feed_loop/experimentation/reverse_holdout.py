@@ -16,6 +16,7 @@ from ..scale.local_value_cli import (
 )
 from ..scale.lt_exchange import combine_lt_exchange_sensitivity
 from ..scale.tensor_engine import (
+    DEFAULT_GPU_BATCH_USERS,
     TensorFeedConfig,
     combine_tensor_ab,
     run_tensor_feed,
@@ -29,7 +30,7 @@ class ReverseHoldoutConfig:
     steps: int = 48
     burn_in_steps: int = 12
     seeds: int = 3
-    batch_users: int = 25_000
+    batch_users: int = DEFAULT_GPU_BATCH_USERS
     seed: int = 20260823
     device: str = "cuda:0"
 
@@ -191,7 +192,7 @@ def main() -> None:
     parser.add_argument("--steps", type=int, default=48)
     parser.add_argument("--burn-in-steps", type=int, default=12)
     parser.add_argument("--seeds", type=int, default=3)
-    parser.add_argument("--batch-users", type=int, default=25_000)
+    parser.add_argument("--batch-users", type=int, default=DEFAULT_GPU_BATCH_USERS)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output", type=Path)
     arguments = parser.parse_args()

@@ -1,0 +1,341 @@
+{
+  "suite": "feature-lr-small-campaign-v1",
+  "campaign": {
+    "name": "intent_trigger_ablation_v1",
+    "base_key": "basic__realtime__local_context__category_hash",
+    "base_features": [
+      "estimated_interest_affinity",
+      "item_quality",
+      "commerce_value",
+      "item_popularity",
+      "same_city",
+      "trust",
+      "commerce_propensity",
+      "realtime_satisfaction_proxy",
+      "realtime_fatigue_proxy",
+      "session_progress",
+      "poi_video_indicator",
+      "post_search_match",
+      "retarget_match",
+      "poi_quality",
+      "inventory_available",
+      "distance_score",
+      "local_interest_affinity",
+      "category_norm"
+    ],
+    "proposals": {
+      "without_post_search": [
+        "post_search_match"
+      ],
+      "without_retarget": [
+        "retarget_match"
+      ]
+    },
+    "launch_start": 13,
+    "report_logical_key": "feature-lr-intent-trigger-ablation-ab",
+    "artifact_collection": "feature-lr-v5-intent-trigger",
+    "operation": "remove",
+    "trigger_kinds": {
+      "without_post_search": "post_search",
+      "without_retarget": "retarget"
+    },
+    "burn_in_steps": 8,
+    "search_event_rate": 0.04
+  },
+  "config": {
+    "users": 3000,
+    "items": 8000,
+    "topics": 12,
+    "candidates": 20,
+    "max_sessions": 4,
+    "requests_per_session": 8,
+    "exploration_rate": 0.08,
+    "joiner_users": 0,
+    "seed": 20260823,
+    "signal_version": "heterogeneous-nonlinear-v2"
+  },
+  "examples": 46909,
+  "split": {
+    "train": 20274,
+    "validation": 12711,
+    "test": 13924
+  },
+  "offline": {
+    "basic__realtime__local_context__category_hash": {
+      "auc": 0.7445861566392067,
+      "pr_auc": 0.5889744690963156,
+      "log_loss": 0.6078761887029426,
+      "ece": 0.12374903611067975,
+      "ndcg": 0.9350735487635813,
+      "user_gauc": {
+        "value": 0.7331841623593609,
+        "total_groups": 1403,
+        "eligible_groups": 1259,
+        "eligible_group_rate": 0.8973627940128297,
+        "total_records": 13924,
+        "eligible_records": 13185,
+        "eligible_record_rate": 0.9469261706406205
+      },
+      "candidate": {
+        "chosen_true_lt_probability": 0.44225236773490906,
+        "oracle_regret": 0.1165221780538559
+      },
+      "artifact_manifest": {
+        "artifact_id": "sha256:65e1b955c50b36545bc7364b9fdfbb96125f25d71eeb86744de7f90376c753cf",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "shadow_replay_score_delta": 0.0
+    },
+    "basic__realtime__local_context__category_hash__without_post_search": {
+      "auc": 0.744630295310222,
+      "pr_auc": 0.5892003398364306,
+      "log_loss": 0.603999325373824,
+      "ece": 0.11907474545512844,
+      "ndcg": 0.9353562476513241,
+      "user_gauc": {
+        "value": 0.7333954843454268,
+        "total_groups": 1403,
+        "eligible_groups": 1259,
+        "eligible_group_rate": 0.8973627940128297,
+        "total_records": 13924,
+        "eligible_records": 13185,
+        "eligible_record_rate": 0.9469261706406205
+      },
+      "candidate": {
+        "chosen_true_lt_probability": 0.4425501525402069,
+        "oracle_regret": 0.11622440069913864
+      },
+      "artifact_manifest": {
+        "artifact_id": "sha256:ae5e97cfb289672256cc34448310ccf269d6abd94560d74adff7a76f731b9171",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_post_search",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_post_search.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          19,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "retarget_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "shadow_replay_score_delta": 0.0
+    },
+    "basic__realtime__local_context__category_hash__without_retarget": {
+      "auc": 0.7445959349125382,
+      "pr_auc": 0.5889782000506042,
+      "log_loss": 0.6078881165056356,
+      "ece": 0.12376936368584114,
+      "ndcg": 0.935074333681952,
+      "user_gauc": {
+        "value": 0.733206225999172,
+        "total_groups": 1403,
+        "eligible_groups": 1259,
+        "eligible_group_rate": 0.8973627940128297,
+        "total_records": 13924,
+        "eligible_records": 13185,
+        "eligible_record_rate": 0.9469261706406205
+      },
+      "candidate": {
+        "chosen_true_lt_probability": 0.44226548075675964,
+        "oracle_regret": 0.11650905013084412
+      },
+      "artifact_manifest": {
+        "artifact_id": "sha256:23209cf95926c5582108a6e311d63a04962b65d040b2326b4710f3c45ce8d580",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_retarget",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_retarget.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          18,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "post_search_match",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "shadow_replay_score_delta": 0.0
+    },
+    "basic__realtime__local_context__category_hash__without_post_search__without_retarget": {
+      "auc": 0.7446515346295048,
+      "pr_auc": 0.5892101824736415,
+      "log_loss": 0.6039538750466638,
+      "ece": 0.1190341034809463,
+      "ndcg": 0.9353564106132025,
+      "user_gauc": {
+        "value": 0.7334284129050903,
+        "total_groups": 1403,
+        "eligible_groups": 1259,
+        "eligible_group_rate": 0.8973627940128297,
+        "total_records": 13924,
+        "eligible_records": 13185,
+        "eligible_record_rate": 0.9469261706406205
+      },
+      "candidate": {
+        "chosen_true_lt_probability": 0.44254615902900696,
+        "oracle_regret": 0.1162283644080162
+      },
+      "artifact_manifest": {
+        "artifact_id": "sha256:d333a8ead8c8a2c766fdae8746360b5d22ed98d1ec106662c6e2df7108bfde5a",
+        "model_name": "lr_feature_basic__realtime__local_context__category_hash__without_post_search__without_retarget",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2",
+        "artifact_format": "joblib",
+        "artifact_file": "lr_feature_basic__realtime__local_context__category_hash__without_post_search__without_retarget.joblib",
+        "training_device": "cpu",
+        "serving_device": "cpu",
+        "feature_columns": [
+          0,
+          1,
+          2,
+          3,
+          5,
+          8,
+          9,
+          6,
+          7,
+          10,
+          13,
+          20,
+          21,
+          22,
+          23,
+          17
+        ],
+        "feature_names": [
+          "estimated_interest_affinity",
+          "item_quality",
+          "commerce_value",
+          "item_popularity",
+          "same_city",
+          "trust",
+          "commerce_propensity",
+          "realtime_satisfaction_proxy",
+          "realtime_fatigue_proxy",
+          "session_progress",
+          "poi_video_indicator",
+          "poi_quality",
+          "inventory_available",
+          "distance_score",
+          "local_interest_affinity",
+          "category_norm"
+        ]
+      },
+      "shadow_replay_score_delta": 0.0
+    }
+  }
+}

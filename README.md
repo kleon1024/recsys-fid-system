@@ -28,6 +28,28 @@ pass the stateful replay and A/B loop.
 
 ![Small feature Launch Reviews](docs/assets/feature-lr-launches.svg)
 
+The million-user GPU path now executes a request-level candidate graph instead
+of selecting directly from 20 dense random items. Eight routes feed an RRF
+merge and deduplication stage, about 49 unique candidates reach 48-to-20 coarse
+truncation, and fine rank plus constrained mixing produce explicit stage
+attribution. The checked control processes 12.01M measured requests at 2.69M
+requests/s with 2.67GB peak GPU memory. Recall, coarse, fine, and mix misses are
+now observable; a bounded content-hashed request trace retains one exposure and
+mature labels per request. See [L-SIMULATOR-003](docs/launch-reviews/2026-08-23-main-feed-suite/l-simulator-003.md).
+
+Post-search is also a sparse exogenous event rather than an always-on feature.
+At a 4.001% pre-treatment trigger rate, the Local intent treatment is held:
+unified LT is -0.0172% overall and +0.190% in the triggered cohort, with both
+confidence intervals crossing zero. These are synthetic mechanism checks, not
+production-lift estimates.
+
+The RTX 4090 runtime now uses counter-based random streams keyed by user,
+request step, stream, and seed. Changing the GPU batch from 25K to 200K leaves
+all stage-attribution counts identical and changes checked metrics by at most
+2.2e-8, while throughput rises from 1.36M to 2.88M requests/s. The selected
+200K batch uses 2.67GB; 400K uses 5.30GB but is slower, so additional memory is
+not treated as a goal by itself.
+
 The Feature LR release ladder now trains every legal combination of four atomic
 feature proposals on one immutable sample snapshot. Each A/B compares a proposal
 with the last accepted control. Sequence is held; realtime promotes over Basic;
@@ -52,6 +74,13 @@ rejected at LT -3.073%. No ablation promotes, so the active artifact remains
 Basic + Realtime + Local + Category. This is a valid launch outcome: the system
 keeps the accepted control instead of deleting features on inconclusive offline
 evidence.
+
+The ambiguous post-search and retarget ablations are rerun as triggered
+experiments after an eight-request burn-in. Search eligibility is 4.001% and
+retarget eligibility is 3.143%; both cohorts are frozen before treatment.
+Removing post-search yields overall LT +0.0341%, while removing retarget yields
++0.0186%; both intervals cross zero. F-LR-013 and F-LR-014 are held, and the
+accepted Basic + Realtime + Local + Category artifact remains active.
 
 The full bilingual diagnosis is
 [Why LR still serves](docs/research/model-simulator-root-cause.md). It separates

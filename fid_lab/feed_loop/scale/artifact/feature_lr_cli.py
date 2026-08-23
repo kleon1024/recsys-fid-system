@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict
+from dataclasses import asdict, replace
 import json
 from pathlib import Path
 
@@ -18,8 +18,78 @@ from ...release import (
     release_state_from_manifest,
     write_release_manifest,
 )
-from ..tensor_engine import TensorFeedConfig, combine_tensor_ab, run_tensor_feed
+from ..tensor_engine import (
+    DEFAULT_GPU_BATCH_USERS,
+    TensorFeedConfig,
+    combine_tensor_ab,
+    combine_tensor_trigger_ab,
+    run_tensor_feed,
+)
 from .policy import TensorColumnLogisticPolicy
+
+
+def _run_world(config, policy, burn_policy, burn_in, trigger_kind):
+    schedule = None
+    if burn_in:
+        schedule = (burn_policy,) * burn_in + (policy,) * (config.steps - burn_in)
+    return run_tensor_feed(
+        config,
+        policy,
+        policy_schedule=schedule,
+        measurement_start_step=burn_in,
+        trigger_kind=trigger_kind,
+    )
+
+
+def _evaluate_proposal(
+    config,
+    worlds,
+    active_key,
+    active_policy,
+    candidate_key,
+    candidate_policy,
+    trigger_kind,
+    burn_in,
+):
+    if trigger_kind:
+        control = _run_world(
+            config, active_policy, active_policy, burn_in, trigger_kind
+        )
+        treatment = _run_world(
+            config, candidate_policy, active_policy, burn_in, trigger_kind
+        )
+        worlds[f"{active_key}@{trigger_kind}"] = control
+        worlds[f"{candidate_key}@{trigger_kind}"] = treatment
+        trigger_analysis = combine_tensor_trigger_ab(control, treatment)
+    else:
+        if active_key not in worlds:
+            worlds[active_key] = run_tensor_feed(config, active_policy)
+        worlds[candidate_key] = run_tensor_feed(config, candidate_policy)
+        control = worlds[active_key]
+        treatment = worlds[candidate_key]
+        trigger_analysis = None
+    return combine_tensor_ab(control, treatment), trigger_analysis
+
+
+def _campaign_settings(training_report, config):
+    campaign = training_report.get("campaign")
+    if campaign:
+        updated = replace(
+            config, search_event_rate=float(campaign.get("search_event_rate", 0.0))
+        )
+        return (
+            campaign["base_key"], tuple(campaign["proposals"]),
+            int(campaign["launch_start"]), campaign["report_logical_key"],
+            campaign["artifact_collection"], campaign["operation"],
+            campaign.get("trigger_kinds", {}),
+            int(campaign.get("burn_in_steps", 0)), updated,
+            "feature-lr-small-sequential-launches-v1",
+        )
+    return (
+        feature_set_key(()), tuple(FEATURE_PROPOSAL_COLUMNS), 1,
+        "feature-lr-sequential-ab", "feature-lr-v2", "add", {}, 0, config,
+        "feature-lr-sequential-launches-v2",
+    )
 
 
 def run_feature_lr_launches(
@@ -29,29 +99,19 @@ def run_feature_lr_launches(
     prior_release_path: Path | None = None,
 ) -> dict[str, object]:
     training_report = json.loads(report_path.read_text())
-    campaign = training_report.get("campaign")
-    if campaign:
-        base_key = campaign["base_key"]
-        proposals = tuple(campaign["proposals"])
-        launch_start = int(campaign["launch_start"])
-        report_logical_key = campaign["report_logical_key"]
-        artifact_collection = campaign["artifact_collection"]
-        operation = campaign["operation"]
-        suite = "feature-lr-small-sequential-launches-v1"
-    else:
-        base_key = feature_set_key(())
-        proposals = tuple(FEATURE_PROPOSAL_COLUMNS)
-        launch_start = 1
-        report_logical_key = "feature-lr-sequential-ab"
-        artifact_collection = "feature-lr-v2"
-        operation = "add"
-        suite = "feature-lr-sequential-launches-v2"
+    settings = _campaign_settings(training_report, config)
+    (
+        base_key, proposals, launch_start, report_logical_key,
+        artifact_collection, operation, trigger_kinds, burn_in, config, suite,
+    ) = settings
     active_proposals: tuple[str, ...] = ()
     active_key = base_key
     active_policy = TensorColumnLogisticPolicy(
         report_path, artifact_dir, active_key, config.device
     )
-    worlds = {active_key: run_tensor_feed(config, active_policy)}
+    worlds = {}
+    if not trigger_kinds:
+        worlds[active_key] = run_tensor_feed(config, active_policy)
     if prior_release_path:
         prior_release = json.loads(prior_release_path.read_text())
         state = release_state_from_manifest(prior_release, active_key)
@@ -71,8 +131,17 @@ def run_feature_lr_launches(
         candidate_policy = TensorColumnLogisticPolicy(
             report_path, artifact_dir, candidate_key, config.device
         )
-        worlds[candidate_key] = run_tensor_feed(config, candidate_policy)
-        metrics = combine_tensor_ab(worlds[active_key], worlds[candidate_key])
+        trigger_kind = trigger_kinds.get(proposal)
+        metrics, trigger_analysis = _evaluate_proposal(
+            config,
+            worlds,
+            active_key,
+            active_policy,
+            candidate_key,
+            candidate_policy,
+            trigger_kind,
+            burn_in,
+        )
         decision = unified_lt_launch_decision(metrics["lt_value_per_user"])
         launch_id = f"F-LR-{launch_start + offset:03d}"
         state, promotion = apply_launch_decision(
@@ -97,6 +166,7 @@ def run_feature_lr_launches(
             "control_artifact": promotion["prior_active_artifact"],
             "treatment_artifact": candidate_policy.manifest,
             "ab": metrics,
+            "trigger_analysis": trigger_analysis,
             "unified_lt_exchange": unified_lt_exchange_report(metrics),
             "decision": decision,
             "promotion": promotion,
@@ -111,6 +181,7 @@ def run_feature_lr_launches(
         if promotion["promoted"]:
             active_proposals = candidate_proposals
             active_key = candidate_key
+            active_policy = candidate_policy
     return {
         "suite": suite,
         "report_logical_key": report_logical_key,
@@ -140,7 +211,7 @@ def main() -> None:
     parser.add_argument("--artifact-dir", type=Path, required=True)
     parser.add_argument("--users", type=int, default=1_000_000)
     parser.add_argument("--steps", type=int, default=24)
-    parser.add_argument("--batch-users", type=int, default=25_000)
+    parser.add_argument("--batch-users", type=int, default=DEFAULT_GPU_BATCH_USERS)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--release-manifest", type=Path, required=True)

@@ -22,6 +22,7 @@ All launches use the same immutable evidence JSON, common-random shadow, stable 
 | [L-COARSE-001](l-coarse-001.md) | coarse_rank | pass weak baseline; hold mature changes | 99.9% oracle pass-through |
 | [L-LOCAL-REVERSE-004](l-local-reverse-004.md) | reverse_holdout | retain staged launch and holdout | LT +0.282%, retention component noisy |
 | [L-TENSOR-003](l-tensor-003.md) | published_model | pass_unified_lt_nonnegative | LT +0.265%, 95% CI lower bound +0.00393 |
+| [L-SIMULATOR-003](l-simulator-003.md) | GPU candidate graph | accept simulator; hold Local launch | 2.69M req/s; LT -0.0172%, CI crosses zero |
 | [F-LR-001](l-feature-lr-001.md) | sequence features | hold_unified_lt_uncertain | LT -0.189%, CI crosses zero |
 | [F-LR-002](l-feature-lr-002.md) | realtime features | pass_unified_lt_nonnegative | LT +1.204%, promoted |
 | [F-LR-003](l-feature-lr-003.md) | Local context | pass_unified_lt_nonnegative | LT +3.215%, promoted |
@@ -34,3 +35,5 @@ All launches use the same immutable evidence JSON, common-random shadow, stable 
 | [F-LR-010](l-feature-lr-010.md) | remove retarget | hold_unified_lt_uncertain | LT +0.004%, CI crosses zero |
 | [F-LR-011](l-feature-lr-011.md) | remove quality/inventory | hold_unified_lt_uncertain | LT +0.100%, CI crosses zero |
 | [F-LR-012](l-feature-lr-012.md) | remove geo/interest | reject_unified_lt_negative | LT -3.073%, active unchanged |
+| [F-LR-013](l-feature-lr-013.md) | triggered post-search ablation | hold_unified_lt_uncertain | 4.001% trigger; overall LT +0.0341% |
+| [F-LR-014](l-feature-lr-014.md) | triggered retarget ablation | hold_unified_lt_uncertain | 3.143% trigger; overall LT +0.0186% |

@@ -11,6 +11,7 @@ from pathlib import Path
 from ...value import unified_lt_launch_decision
 from .lt_exchange import combine_lt_exchange_sensitivity
 from .tensor_engine import (
+    DEFAULT_GPU_BATCH_USERS,
     LOCAL_EXPANSION,
     LOCAL_INTENT_RANKER,
     LOCAL_RETARGET,
@@ -247,7 +248,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--users", type=int, default=1_000_000)
     parser.add_argument("--steps", type=int, default=24)
-    parser.add_argument("--batch-users", type=int, default=25_000)
+    parser.add_argument("--batch-users", type=int, default=DEFAULT_GPU_BATCH_USERS)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--seeds", type=int, default=1)
     parser.add_argument("--intent-only", action="store_true")

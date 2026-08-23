@@ -155,6 +155,7 @@ def check_model_artifacts() -> None:
         "artifacts/models/feature-lr-v2/MANIFEST.sha256",
         "artifacts/models/feature-lr-v3-hash-split/MANIFEST.sha256",
         "artifacts/models/feature-lr-v4-local-ablation/MANIFEST.sha256",
+        "artifacts/models/feature-lr-v5-intent-trigger/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
@@ -247,6 +248,58 @@ def feature_campaign_requirements(feature, small, ablation) -> dict[str, bool]:
     }
 
 
+def digital_twin_requirements(
+    digital_twin, trigger_launch, batch_scale
+) -> dict[str, bool]:
+    graph = digital_twin["control"]["candidate_graph"]
+    attribution = graph["stage_attribution"]
+    trigger_decisions = {
+        launch["launch_id"]: launch["decision"]
+        for launch in trigger_launch["launches"]
+    }
+    traces = (
+        digital_twin["control"]["request_candidate_trace"],
+        digital_twin["treatment"]["request_candidate_trace"],
+    )
+    return {
+        "gpu_candidate_graph_closes": (
+            graph["version"] == "multiroute-rrf-coarse-v2"
+            and sum(attribution.values()) == graph["requests"]
+            and all(attribution[name] > 0 for name in (
+                "recall_miss", "coarse_miss", "fine_rank_miss"
+            ))
+        ),
+        "gpu_candidate_graph_has_real_attrition": digital_twin["control"][
+            "metrics"
+        ]["coarse_pass_fraction"] < 1.0,
+        "gpu_request_trace_closes": all(
+            trace["requests"] > 0
+            and trace["candidate_rows"] == trace["requests"] * 48
+            and len(trace["sha256"]) == 64
+            for trace in traces
+        ),
+        "gpu_candidate_graph_throughput": min(
+            digital_twin[world]["performance"]["requests_per_second"]
+            for world in ("control", "treatment")
+        ) > 1_000_000,
+        "gpu_batch_scale_preserves_world": (
+            batch_scale["selected_batch_users"] == 200_000
+            and all(
+                run["relative_to_25k"]["stage_counts_equal"]
+                and run["relative_to_25k"]["max_metric_absolute_delta"] < 1e-6
+                for run in batch_scale["runs"]
+            )
+        ),
+        "triggered_feature_decisions": trigger_decisions == {
+            "F-LR-013": "hold_unified_lt_uncertain",
+            "F-LR-014": "hold_unified_lt_uncertain",
+        },
+        "triggered_feature_preserves_active": trigger_launch["release_state"][
+            "active_key"
+        ] == "basic__realtime__local_context__category_hash",
+    }
+
+
 def acceptance_requirements(
     result,
     training,
@@ -260,6 +313,9 @@ def acceptance_requirements(
     feature_launch,
     small_feature_launch,
     local_ablation_launch,
+    digital_twin,
+    trigger_launch,
+    batch_scale,
     request_dataset,
 ) -> dict[str, bool]:
     return {
@@ -298,6 +354,7 @@ def acceptance_requirements(
         **feature_campaign_requirements(
             feature_launch, small_feature_launch, local_ablation_launch
         ),
+        **digital_twin_requirements(digital_twin, trigger_launch, batch_scale),
         "request_candidate_dataset_closes": (
             request_dataset["one_exposure_per_request"]
             and request_dataset["candidate_decisions"]
@@ -357,6 +414,24 @@ def main() -> None:
             / "reports/launches/2026-08-23-feature-lr-local-ablation-1m-gpu.json"
         ).read_text()
     )
+    digital_twin = json.loads(
+        (
+            ROOT
+            / "reports/launches/2026-08-23-feed-digital-twin-v2-1m-gpu.json"
+        ).read_text()
+    )
+    trigger_launch = json.loads(
+        (
+            ROOT
+            / "reports/launches/2026-08-23-feature-lr-intent-trigger-1m-gpu.json"
+        ).read_text()
+    )
+    batch_scale = json.loads(
+        (
+            ROOT
+            / "reports/benchmarks/2026-08-23-tensor-batch-scale-1m-gpu.json"
+        ).read_text()
+    )
     stateful_feature = json.loads(
         (ROOT / "reports/launches/2026-08-23-feature-lr-stateful-500.json").read_text()
     )
@@ -374,6 +449,9 @@ def main() -> None:
         feature_launch,
         small_feature_launch,
         local_ablation_launch,
+        digital_twin,
+        trigger_launch,
+        batch_scale,
         request_dataset,
     )
     failed = [name for name, passed in required.items() if not passed]

@@ -61,18 +61,19 @@ production system with hundreds of fields or billions of ID values.
 FID 哈希与稀疏发布，但没有冒充已经模拟了数百字段或数十亿 ID 的生产规模。
 
 The request-level dataset is the most important attribution repair because it
-preserves the full candidate pool and every stage decision. It can answer
-whether an item was absent at recall, dropped by coarse rank, misordered by
-fine rank, displaced by mixing, or harmed by an incorrect LT exchange. It does
-not by itself make the simulator realistic. The tensor feature launches still
-select from a dense synthetic candidate batch with oracle coarse pass-through
-and no independent mixer. The next simulator iteration must replay the
-materialized candidate graph instead of bypassing it.
+preserves the full candidate pool and every stage decision. The GPU simulator
+now follows the same stage contract: eight routes, RRF merge and deduplication,
+coarse truncation, fine rank, constrained mixing, exposure, and bounded mature
+label traces. The one-million-user control reports 19.08% audit recall miss,
+0.016% coarse miss, 19.46% fine-rank miss, and 61.44% served audit oracle rather
+than fixed oracle pass-through. The remaining limitation is sim-to-real
+calibration: the route generators are production-shaped synthetic retrieval,
+not a replay of proprietary traffic or a full-corpus ANN index.
 
-请求级候选数据集是当前最重要的归因修复，因为它保留召回全集和每一层决策，能区分
-召回没找到、粗排丢失、精排排错、混排挤掉和 LT 兑换错误。但它本身不能让模拟器自动
-变真实。当前 tensor feature A/B 仍从 dense 合成候选中直接选 item，粗排通过率为 oracle，
-也没有独立 mixer。下一步必须让 GPU simulator 重放这份候选图，而不是继续绕过级联。
+请求级候选数据集仍是归因权威。GPU simulator 现已执行同构的八路召回、RRF 合并去重、
+粗排、精排、约束混排、曝光和成熟标签 trace，不再固定全通过。百万用户 control 中
+audit recall miss 为 19.08%，coarse miss 为 0.016%，fine-rank miss 为 19.46%。剩余问题
+是 sim-to-real 校准：当前 route 是生产形态的合成召回，并非公司真实流量或全库 ANN 回放。
 
 The first small-LR campaign also falsifies the five-feature bundle conclusion.
 Duration alone loses 1.329% unified LT, identity hash is statistically

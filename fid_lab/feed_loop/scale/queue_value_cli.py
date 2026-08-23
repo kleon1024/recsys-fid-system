@@ -9,7 +9,7 @@ from pathlib import Path
 
 from ...value import DEFAULT_LT_CONFIG
 from .local_value_cli import run_repeated_suite, run_suite
-from .tensor_engine import LOCAL_RETARGET, TensorFeedConfig
+from .tensor_engine import DEFAULT_GPU_BATCH_USERS, LOCAL_RETARGET, TensorFeedConfig
 
 
 QUEUE_POLICIES = (
@@ -138,7 +138,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--users", type=int, default=1_000_000)
     parser.add_argument("--steps", type=int, default=24)
-    parser.add_argument("--batch-users", type=int, default=25_000)
+    parser.add_argument("--batch-users", type=int, default=DEFAULT_GPU_BATCH_USERS)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--seeds", type=int, default=3)
     parser.add_argument("--output", type=Path)
