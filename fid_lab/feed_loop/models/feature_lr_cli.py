@@ -6,7 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
-from .feature_lr import train_feature_lr_suite
+from .feature_lr import train_feature_lr_campaign, train_feature_lr_suite
 
 
 def main() -> None:
@@ -15,10 +15,23 @@ def main() -> None:
     parser.add_argument("--items", type=int, default=8_000)
     parser.add_argument("--artifact-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--campaign")
+    parser.add_argument("--base-report", type=Path)
+    parser.add_argument("--base-artifact-dir", type=Path)
     args = parser.parse_args()
-    report = train_feature_lr_suite(
-        args.users, args.items, args.artifact_dir
-    )
+    if args.campaign:
+        report = train_feature_lr_campaign(
+            args.campaign,
+            args.users,
+            args.items,
+            args.artifact_dir,
+            base_report_path=args.base_report,
+            base_artifact_dir=args.base_artifact_dir,
+        )
+    else:
+        report = train_feature_lr_suite(
+            args.users, args.items, args.artifact_dir
+        )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({

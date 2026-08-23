@@ -37,6 +37,14 @@ content-bound in `artifacts/releases/simulated-feed-control.json`. See the
 [request-level candidate authority](docs/architecture/request-candidate-dataset.md)
 and individual F-LR Launch Reviews.
 
+The rejected hash/content bundle is now split into three smaller Launch Reviews.
+Duration is rejected at unified LT -1.329%; identity hash is held at +0.004%
+with an interval crossing zero; category hash passes at +0.366%. Only category
+is promoted. The active simulated artifact is therefore Basic + Realtime +
+Local + Category, with the prior Basic + Realtime + Local artifact retained as
+rollback. Category still worsens negative feedback and oracle regret, which
+remain explicit diagnostics rather than hidden behind the LT pass.
+
 The full bilingual diagnosis is
 [Why LR still serves](docs/research/model-simulator-root-cause.md). It separates
 simulator/DGP, sample and label, feature, training, cascade, experiment, and

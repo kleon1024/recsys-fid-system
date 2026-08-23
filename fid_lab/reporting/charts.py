@@ -285,24 +285,23 @@ def tensor_migration() -> None:
 
 
 def feature_lr_launches() -> None:
-    training = _load("2026-08-23-feature-lr-training-gpu-v2.json")
-    launches = _load("2026-08-23-feature-lr-sequential-1m-gpu.json")
+    training = _load("2026-08-23-feature-lr-hash-split-training-gpu.json")
+    launches = _load("2026-08-23-feature-lr-hash-split-1m-gpu.json")
     stateful = _load("2026-08-23-feature-lr-stateful-500.json")
     groups = (
-        "basic",
-        "basic__sequence",
-        "basic__realtime",
         "basic__realtime__local_context",
-        "basic__realtime__local_context__hash_content",
+        "basic__realtime__local_context__duration",
+        "basic__realtime__local_context__identity_hash",
+        "basic__realtime__local_context__category_hash",
     )
-    labels = ("Basic", "Sequence", "Realtime", "+Local", "+Hash")
+    labels = ("Active", "+Duration", "+Identity", "+Category")
     figure, axes = plt.subplots(1, 3, figsize=(13.2, 3.8))
     auc = [training["offline"][name]["auc"] for name in groups]
     axes[0].bar(labels, auc, color=COLORS[:5])
-    axes[0].set_ylim(0.58, 0.79)
+    axes[0].set_ylim(0.738, 0.747)
     axes[0].set_ylabel("Test AUC")
-    axes[0].set_title("Same samples, legal release states")
-    launch_labels = ("Sequence", "Realtime", "Local", "Hash IDs")
+    axes[0].set_title("Rejected bundle split offline")
+    launch_labels = ("Duration", "Identity", "Category")
     lt_lifts = [
         launch["ab"]["lt_value_per_user"]["relative_lift"] * 100
         for launch in launches["launches"]
@@ -314,7 +313,8 @@ def feature_lr_launches() -> None:
         else COLORS[1]
         for value in decisions
     ]
-    axes[1].bar(launch_labels, lt_lifts, color=colors)
+    bars = axes[1].bar(launch_labels, lt_lifts, color=colors)
+    axes[1].bar_label(bars, fmt="%.3f%%", padding=3)
     axes[1].axhline(0, color="#475569", linewidth=1)
     axes[1].set_ylabel("Unified LT relative lift (%)")
     axes[1].set_title("Last-accepted-control Launch Reviews")
@@ -332,7 +332,7 @@ def feature_lr_launches() -> None:
         axis.grid(axis="y", color="#e2e8f0", linewidth=0.8)
         axis.set_axisbelow(True)
         axis.tick_params(axis="x", labelrotation=15)
-    figure.suptitle("Small feature launches: offline gain is not launch evidence", y=1.02)
+    figure.suptitle("Small LR launches: isolate one feature contract at a time", y=1.02)
     figure.tight_layout()
     _save(figure, "feature-lr-launches.svg")
 

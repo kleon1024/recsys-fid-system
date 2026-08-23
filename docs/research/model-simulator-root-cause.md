@@ -74,6 +74,12 @@ materialized candidate graph instead of bypassing it.
 变真实。当前 tensor feature A/B 仍从 dense 合成候选中直接选 item，粗排通过率为 oracle，
 也没有独立 mixer。下一步必须让 GPU simulator 重放这份候选图，而不是继续绕过级联。
 
+The first small-LR campaign also falsifies the five-feature bundle conclusion.
+Duration alone loses 1.329% unified LT, identity hash is statistically
+uncertain, and category alone gains 0.366%. Only category is promoted. This is
+why feature contracts must be launched independently: a bundle-level offline
+AUC gain cannot identify the harmful field or preserve a useful one.
+
 ## Why lower loss did not launch / 为什么 loss 降了仍不能上线
 
 ![Training loss](../assets/training-loss.svg)

@@ -6,6 +6,7 @@ import unittest
 from fid_lab.feed_loop.release import (
     apply_launch_decision,
     initial_release_state,
+    release_state_from_manifest,
     write_release_manifest,
 )
 
@@ -62,6 +63,8 @@ class ReleaseStateTest(unittest.TestCase):
         state = initial_release_state("basic", artifact("basic"))
         report = {
             "release_state": state,
+            "report_logical_key": "test-release-report",
+            "artifact_collection": "test-artifacts",
             "production_readiness": "hold_synthetic_rates",
         }
         with TemporaryDirectory() as directory:
@@ -75,6 +78,19 @@ class ReleaseStateTest(unittest.TestCase):
         self.assertEqual(saved, manifest)
         self.assertEqual(saved["active_control_key"], "basic")
         self.assertEqual(len(saved["source_report"]["sha256"]), 64)
+
+    def test_release_continuity_fails_closed_on_wrong_campaign_base(self):
+        release = {
+            "active_control_key": "basic",
+            "active_control_artifact": artifact("basic"),
+            "rollback_key": None,
+            "rollback_artifact": None,
+            "promoted_by_launch": None,
+        }
+        with self.assertRaises(ValueError):
+            release_state_from_manifest(
+                release, "basic__realtime__local_context"
+            )
 
 
 if __name__ == "__main__":

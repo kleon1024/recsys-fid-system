@@ -26,3 +26,6 @@ All launches use the same immutable evidence JSON, common-random shadow, stable 
 | [F-LR-002](l-feature-lr-002.md) | realtime features | pass_unified_lt_nonnegative | LT +1.204%, promoted |
 | [F-LR-003](l-feature-lr-003.md) | Local context | pass_unified_lt_nonnegative | LT +3.215%, promoted |
 | [F-LR-004](l-feature-lr-004.md) | hash/category/duration | reject_unified_lt_negative | LT -1.024%, active unchanged |
+| [F-LR-005](l-feature-lr-005.md) | duration | reject_unified_lt_negative | LT -1.329%, active unchanged |
+| [F-LR-006](l-feature-lr-006.md) | identity hash | hold_unified_lt_uncertain | LT +0.004%, CI crosses zero |
+| [F-LR-007](l-feature-lr-007.md) | category hash | pass_unified_lt_nonnegative | LT +0.366%, promoted |

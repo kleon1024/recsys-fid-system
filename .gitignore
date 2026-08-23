@@ -23,6 +23,9 @@ artifacts/models/*
 !artifacts/models/feature-lr-v2/
 !artifacts/models/feature-lr-v2/MANIFEST.sha256
 !artifacts/models/feature-lr-v2/*.joblib
+!artifacts/models/feature-lr-v3-hash-split/
+!artifacts/models/feature-lr-v3-hash-split/MANIFEST.sha256
+!artifacts/models/feature-lr-v3-hash-split/*.joblib
 !artifacts/releases/
-!artifacts/releases/simulated-feed-control.json
+!artifacts/releases/*.json
 checkpoints/

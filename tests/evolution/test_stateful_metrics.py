@@ -21,8 +21,12 @@ from fid_lab.feed_loop.scale.tensor_engine import (
 from fid_lab.feed_loop.scale.tensor_catalog import build_tensor_catalog
 from fid_lab.feed_loop.scale.artifact.cli import _launch_decision
 from fid_lab.feed_loop.scale.artifact.features import build_tensor_features
-from fid_lab.feed_loop.models.feature_lr import train_feature_lr_suite
+from fid_lab.feed_loop.models.feature_lr import (
+    train_feature_lr_campaign,
+    train_feature_lr_suite,
+)
 from fid_lab.feed_loop.scale.artifact.feature_lr_cli import run_feature_lr_launches
+from fid_lab.simulation.features import campaign_candidate_sets
 
 
 class GroupedAUCTest(unittest.TestCase):
@@ -62,6 +66,61 @@ class GroupedAUCTest(unittest.TestCase):
         self.assertEqual(
             launches["release_state"]["active_key"], expected_control
         )
+
+    def test_small_lr_campaign_reuses_exact_active_artifact(self):
+        candidates = campaign_candidate_sets("hash_content_split_v1")
+        self.assertEqual(len(candidates), 8)
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            base_dir = root / "base-artifacts"
+            base = train_feature_lr_suite(80, 300, base_dir, seed=31)
+            base_report = root / "base.json"
+            base_report.write_text(json.dumps(base))
+            campaign_dir = root / "campaign-artifacts"
+            campaign = train_feature_lr_campaign(
+                "hash_content_split_v1",
+                80,
+                300,
+                campaign_dir,
+                seed=31,
+                base_report_path=base_report,
+                base_artifact_dir=base_dir,
+            )
+            campaign_report = root / "campaign.json"
+            campaign_report.write_text(json.dumps(campaign))
+            base_key = campaign["campaign"]["base_key"]
+            active_artifact = campaign["offline"][base_key]["artifact_manifest"]
+            prior_release = root / "release.json"
+            prior_release.write_text(json.dumps({
+                "active_control_key": base_key,
+                "active_control_artifact": active_artifact,
+                "rollback_key": "basic__realtime",
+                "rollback_artifact": None,
+                "promoted_by_launch": "F-LR-003",
+            }))
+            launches = run_feature_lr_launches(
+                campaign_report,
+                campaign_dir,
+                TensorFeedConfig(
+                    users=40,
+                    steps=2,
+                    candidates=5,
+                    batch_users=20,
+                    device="cpu",
+                    signal_version="heterogeneous-nonlinear-v2",
+                ),
+                prior_release,
+            )
+
+        self.assertEqual(
+            active_artifact["artifact_id"],
+            base["offline"][base_key]["artifact_manifest"]["artifact_id"],
+        )
+        self.assertEqual(
+            [launch["launch_id"] for launch in launches["launches"]],
+            ["F-LR-005", "F-LR-006", "F-LR-007"],
+        )
+        self.assertEqual(launches["launches"][0]["control"], base_key)
 
     def test_tensor_v2_features_are_finite_and_match_stateful_width(self):
         config = TensorFeedConfig(

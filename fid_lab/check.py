@@ -10,6 +10,8 @@ import re
 import subprocess
 import sys
 
+from .feed_loop.release import release_resource_path
+
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIRS = (ROOT / "fid_lab", ROOT / "tests")
@@ -151,6 +153,7 @@ def check_model_artifacts() -> None:
     manifests = (
         "artifacts/models/stateful-v2/MANIFEST.sha256",
         "artifacts/models/feature-lr-v2/MANIFEST.sha256",
+        "artifacts/models/feature-lr-v3-hash-split/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
@@ -163,8 +166,8 @@ def check_simulated_release() -> None:
     release = json.loads(
         (ROOT / "artifacts/releases/simulated-feed-control.json").read_text()
     )
-    report_path = (
-        ROOT / "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json"
+    report_path = release_resource_path(
+        ROOT, release["source_report"]["logical_key"]
     )
     report = json.loads(report_path.read_text())
     failures = []
@@ -172,12 +175,15 @@ def check_simulated_release() -> None:
         failures.append("simulated release does not bind the launch report")
     if release["active_control_artifact"] != report["release_state"]["active_artifact"]:
         failures.append("simulated release active artifact differs from launch state")
-    artifact = ROOT / "artifacts/models/feature-lr-v2" / release[
-        "active_control_artifact"
-    ]["artifact_file"]
-    artifact_id = f"sha256:{sha256(artifact.read_bytes()).hexdigest()}"
-    if artifact_id != release["active_control_artifact"]["artifact_id"]:
-        failures.append("simulated release active artifact hash mismatch")
+    if release["artifact_collection"] != report["artifact_collection"]:
+        failures.append("simulated release artifact collection differs from report")
+    artifact_dir = release_resource_path(ROOT, release["artifact_collection"])
+    for role in ("active_control_artifact", "rollback_artifact"):
+        manifest = release[role]
+        artifact = artifact_dir / manifest["artifact_file"]
+        artifact_id = f"sha256:{sha256(artifact.read_bytes()).hexdigest()}"
+        if artifact_id != manifest["artifact_id"]:
+            failures.append(f"simulated release {role} hash mismatch")
     if failures:
         raise SystemExit("\n".join(failures))
 
@@ -186,55 +192,29 @@ def run(command: list[str], capture: bool = False) -> subprocess.CompletedProces
     return subprocess.run(command, cwd=ROOT, check=True, text=True, capture_output=capture)
 
 
-def main() -> None:
-    check_structure()
-    check_public_docs()
-    check_report_manifests()
-    check_visual_manifest()
-    check_model_artifacts()
-    check_simulated_release()
-    run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
-    run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
-    benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)
-    result = json.loads(benchmark.stdout)
-    training_demo = run([sys.executable, "-m", "fid_lab.training.demo"], capture=True)
-    training = json.loads(training_demo.stdout)
-    generative_demo = run([sys.executable, "-m", "fid_lab.generative.demo"], capture=True)
-    generative = json.loads(generative_demo.stdout)
-    poi_demo = run([sys.executable, "-m", "fid_lab.poi_posting.demo"], capture=True)
-    poi = json.loads(poi_demo.stdout)
-    poi_feed_demo = run([sys.executable, "-m", "fid_lab.poi_feed.demo"], capture=True)
-    poi_feed = json.loads(poi_feed_demo.stdout)
-    surface_demo = run([sys.executable, "-m", "fid_lab.surfaces.demo"], capture=True)
-    surfaces = json.loads(surface_demo.stdout)
-    evolution_demo = run(
-        [sys.executable, "-m", "fid_lab.evolution.evaluation.benchmark", "--profile", "ci"],
-        capture=True,
-    )
-    evolution = json.loads(evolution_demo.stdout)
-    ab_demo = run(
-        [sys.executable, "-m", "fid_lab.evolution.cli.ab_demo", "--users", "200000"],
-        capture=True,
-    )
-    ab = json.loads(ab_demo.stdout)
-    tensor_launch = json.loads(
-        (ROOT / "reports/launches/2026-08-23-tensor-artifact-v2-1m-gpu.json").read_text()
-    )
-    feature_launch = json.loads(
-        (
-            ROOT
-            / "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json"
-        ).read_text()
-    )
-    stateful_feature = json.loads(
-        (ROOT / "reports/launches/2026-08-23-feature-lr-stateful-500.json").read_text()
-    )
+def acceptance_requirements(
+    result,
+    training,
+    generative,
+    poi,
+    poi_feed,
+    surfaces,
+    evolution,
+    ab,
+    tensor_launch,
+    feature_launch,
+    small_feature_launch,
+    request_dataset,
+) -> dict[str, bool]:
     feature_decisions = {
         launch["launch_id"]: launch["decision"]
         for launch in feature_launch["launches"]
     }
-    request_dataset = stateful_feature["joiner"]["request_candidate_dataset"]
-    required = {
+    small_decisions = {
+        launch["launch_id"]: launch["decision"]
+        for launch in small_feature_launch["launches"]
+    }
+    return {
         "full_slate_rate": result["full_slate_rate"] == 1.0,
         "unsafe_items": result["unsafe_items"] == 0,
         "duplicates": result["slates_with_duplicates"] == 0,
@@ -285,12 +265,94 @@ def main() -> None:
             for value in feature_launch["world_performance"].values()
         )
         > 2_000_000,
+        "small_feature_lr_decisions": small_decisions
+        == {
+            "F-LR-005": "reject_unified_lt_negative",
+            "F-LR-006": "hold_unified_lt_uncertain",
+            "F-LR-007": "pass_unified_lt_nonnegative",
+        },
+        "small_feature_lr_active_control": all(
+            launch["control"] == launch["promotion"]["prior_active_key"]
+            for launch in small_feature_launch["launches"]
+        )
+        and small_feature_launch["release_state"]["active_key"]
+        == "basic__realtime__local_context__category_hash",
+        "small_feature_lr_tensor_throughput": min(
+            value["requests_per_second"]
+            for value in small_feature_launch["world_performance"].values()
+        )
+        > 2_000_000,
         "request_candidate_dataset_closes": (
             request_dataset["one_exposure_per_request"]
             and request_dataset["candidate_decisions"]
             == request_dataset["mature_label_rows"]
         ),
     }
+
+
+def main() -> None:
+    check_structure()
+    check_public_docs()
+    check_report_manifests()
+    check_visual_manifest()
+    check_model_artifacts()
+    check_simulated_release()
+    run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
+    run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
+    benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)
+    result = json.loads(benchmark.stdout)
+    training_demo = run([sys.executable, "-m", "fid_lab.training.demo"], capture=True)
+    training = json.loads(training_demo.stdout)
+    generative_demo = run([sys.executable, "-m", "fid_lab.generative.demo"], capture=True)
+    generative = json.loads(generative_demo.stdout)
+    poi_demo = run([sys.executable, "-m", "fid_lab.poi_posting.demo"], capture=True)
+    poi = json.loads(poi_demo.stdout)
+    poi_feed_demo = run([sys.executable, "-m", "fid_lab.poi_feed.demo"], capture=True)
+    poi_feed = json.loads(poi_feed_demo.stdout)
+    surface_demo = run([sys.executable, "-m", "fid_lab.surfaces.demo"], capture=True)
+    surfaces = json.loads(surface_demo.stdout)
+    evolution_demo = run(
+        [sys.executable, "-m", "fid_lab.evolution.evaluation.benchmark", "--profile", "ci"],
+        capture=True,
+    )
+    evolution = json.loads(evolution_demo.stdout)
+    ab_demo = run(
+        [sys.executable, "-m", "fid_lab.evolution.cli.ab_demo", "--users", "200000"],
+        capture=True,
+    )
+    ab = json.loads(ab_demo.stdout)
+    tensor_launch = json.loads(
+        (ROOT / "reports/launches/2026-08-23-tensor-artifact-v2-1m-gpu.json").read_text()
+    )
+    feature_launch = json.loads(
+        (
+            ROOT
+            / "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json"
+        ).read_text()
+    )
+    small_feature_launch = json.loads(
+        (
+            ROOT / "reports/launches/2026-08-23-feature-lr-hash-split-1m-gpu.json"
+        ).read_text()
+    )
+    stateful_feature = json.loads(
+        (ROOT / "reports/launches/2026-08-23-feature-lr-stateful-500.json").read_text()
+    )
+    request_dataset = stateful_feature["joiner"]["request_candidate_dataset"]
+    required = acceptance_requirements(
+        result,
+        training,
+        generative,
+        poi,
+        poi_feed,
+        surfaces,
+        evolution,
+        ab,
+        tensor_launch,
+        feature_launch,
+        small_feature_launch,
+        request_dataset,
+    )
     failed = [name for name, passed in required.items() if not passed]
     if failed:
         raise SystemExit(f"acceptance failures: {', '.join(failed)}")

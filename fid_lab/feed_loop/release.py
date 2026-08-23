@@ -12,6 +12,24 @@ from typing import Mapping
 
 PASS_DECISION = "pass_unified_lt_nonnegative"
 
+RELEASE_RESOURCE_PATHS = {
+    "feature-lr-sequential-ab": (
+        "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json"
+    ),
+    "feature-lr-hash-content-split-ab": (
+        "reports/launches/2026-08-23-feature-lr-hash-split-1m-gpu.json"
+    ),
+    "feature-lr-v2": "artifacts/models/feature-lr-v2",
+    "feature-lr-v3-hash-split": "artifacts/models/feature-lr-v3-hash-split",
+}
+
+
+def release_resource_path(root: Path, logical_key: str) -> Path:
+    try:
+        return root / RELEASE_RESOURCE_PATHS[logical_key]
+    except KeyError as error:
+        raise ValueError(f"unknown release resource: {logical_key}") from error
+
 
 def initial_release_state(
     key: str, artifact: Mapping[str, object]
@@ -22,6 +40,23 @@ def initial_release_state(
         "rollback_key": None,
         "rollback_artifact": None,
         "promoted_by_launch": None,
+    }
+
+
+def release_state_from_manifest(
+    release: Mapping[str, object], expected_active_key: str
+) -> dict[str, object]:
+    active_key = str(release["active_control_key"])
+    if active_key != expected_active_key:
+        raise ValueError(
+            f"campaign base {expected_active_key} differs from active {active_key}"
+        )
+    return {
+        "active_key": active_key,
+        "active_artifact": dict(release["active_control_artifact"]),
+        "rollback_key": release["rollback_key"],
+        "rollback_artifact": release["rollback_artifact"],
+        "promoted_by_launch": release["promoted_by_launch"],
     }
 
 
@@ -72,11 +107,12 @@ def release_manifest(
         "environment": "synthetic_simulator",
         "active_control_key": state["active_key"],
         "active_control_artifact": state["active_artifact"],
+        "artifact_collection": report["artifact_collection"],
         "rollback_key": state["rollback_key"],
         "rollback_artifact": state["rollback_artifact"],
         "promoted_by_launch": state["promoted_by_launch"],
         "source_report": {
-            "logical_key": "feature-lr-sequential-ab",
+            "logical_key": report["report_logical_key"],
             "sha256": report_sha256,
         },
         "production_readiness": report["production_readiness"],
