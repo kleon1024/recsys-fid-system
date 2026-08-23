@@ -17,10 +17,10 @@ TRAJECTORY_METRICS = {
     "plays": "plays",
     "play_3s": "play_3s",
     "slides": "slides",
-    "lt_views": "long_views",
-    "lt_rate": "__lt_rate__",
-    "hlt_views": "high_quality_long_views",
-    "hlt_rate": "__hlt_rate__",
+    "long_views": "long_views",
+    "long_view_rate": "__long_view_rate__",
+    "quality_long_views": "high_quality_long_views",
+    "quality_long_view_rate": "__quality_long_view_rate__",
     "likes": "likes",
     "favorites": "favorites",
     "comments": "comments",
@@ -34,8 +34,11 @@ TRAJECTORY_METRICS = {
     "negative_feedback": "negative_feedback",
     "sessions": "sessions",
     "returned_sessions": "returned_sessions",
-    "local_service_value": "local_service_value",
-    "long_term_value": "discounted_value",
+    "local_value_tree_score": "local_value_tree_score",
+    "lt_value": "lt_value",
+    "lt_stay": "__lt_component__:stay",
+    "lt_active_days": "__lt_component__:active_days",
+    "lt_accepted_commercialization": "__lt_component__:accepted_commercialization",
 }
 
 
@@ -45,10 +48,12 @@ def _trajectory_value(trajectory: Trajectory, attribute: str) -> float:
         return float(len(trajectory.rows))
     if attribute == "__stay_per_exposure__":
         return trajectory.stay_seconds / exposures
-    if attribute == "__lt_rate__":
+    if attribute == "__long_view_rate__":
         return trajectory.long_views / exposures
-    if attribute == "__hlt_rate__":
+    if attribute == "__quality_long_view_rate__":
         return trajectory.high_quality_long_views / exposures
+    if attribute.startswith("__lt_component__:"):
+        return float(trajectory.lt_components[attribute.split(":", 1)[1]])
     return float(getattr(trajectory, attribute))
 
 
@@ -107,23 +112,30 @@ def experiment_metrics(
 def launch_decision(metrics: dict[str, dict[str, float]]) -> str:
     negative = metrics["negative_feedback"]
     stay = metrics["stay_per_exposure"]
-    hlt = metrics["hlt_rate"]
-    long_term = metrics["long_term_value"]
+    quality_long_view = metrics["quality_long_view_rate"]
+    lt_value = metrics["lt_value"]
     if negative["absolute_lift"] > 0.0 and negative["p_value"] < 0.05:
         return "reject_negative_feedback"
-    if hlt["relative_lift"] is not None and hlt["relative_lift"] < -0.01:
-        return "reject_hlt_guardrail" if hlt["p_value"] < 0.05 else "hold_hlt_risk"
     if (
-        long_term["relative_lift"] is not None
-        and long_term["relative_lift"] < -0.01
+        quality_long_view["relative_lift"] is not None
+        and quality_long_view["relative_lift"] < -0.01
     ):
         return (
-            "reject_long_term_guardrail"
-            if long_term["p_value"] < 0.05
-            else "hold_long_term_risk"
+            "reject_quality_long_view_guardrail"
+            if quality_long_view["p_value"] < 0.05
+            else "hold_quality_long_view_risk"
         )
     if stay["absolute_lift"] < 0.0 and stay["p_value"] < 0.05:
         return "reject_primary_regression"
+    if (
+        lt_value["relative_lift"] is not None
+        and lt_value["relative_lift"] < -0.01
+    ):
+        return (
+            "reject_lt_value_guardrail"
+            if lt_value["p_value"] < 0.05
+            else "hold_lt_value_risk"
+        )
     if stay["absolute_lift"] > 0.0 and stay["p_value"] < 0.05:
         return "pass_primary_metric"
     return "hold_underpowered_or_neutral"

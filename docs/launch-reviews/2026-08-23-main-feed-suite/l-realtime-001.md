@@ -9,8 +9,8 @@ Status: `hold_underpowered_or_neutral`. Synthetic main-Feed experiment; not comp
 - Hypothesis: A fresher sequence state reacts faster without harming HLT.
 - Change: Increase online interest update rate from 0.06 to 0.12.
 - Product dependency: none
-- Short-term value: stay and LT
-- Long-term value: HLT, negative feedback, and return behavior
+- Short-term value: stay and long-view behavior
+- Long-term value: LT container, quality view, negative feedback, and return
 
 ## Training and artifacts
 
@@ -22,30 +22,33 @@ the randomized estimate uses stable user-level 50/50 assignment.
 
 | Metric | Observed relative lift | p-value | Known DGP effect |
 |---|---:|---:|---:|
-| stay_per_exposure | +0.0344% | 0.5024 | +0.0043% |
-| lt_rate | +0.1096% | 0.6074 | +0.0171% |
-| hlt_rate | +0.6650% | 0.2232 | +0.0132% |
-| negative_rate | -0.3164% | 0.7222 | +0.0012% |
+| stay_per_exposure | -0.0749% | 0.1952 | +0.0077% |
+| long_view_rate | -0.3710% | 0.09791 | +0.0267% |
+| quality_long_view_rate | +0.0138% | 0.9796 | +0.0349% |
+| negative_rate | +0.2796% | 0.7552 | -0.0064% |
+| lt_value_per_exposure | +0.0246% | 0.902 | +0.0021% |
+| local_value_tree_score_per_exposure | -1.7853% | 0.2659 | +0.0029% |
 
-Primary metric `stay_per_exposure`: +0.0344%,
-p=0.5024. Absolute 95% confidence interval:
-[-0.00229153,
-+0.00467535].
+Primary metric `stay_per_exposure`: -0.0749%,
+p=0.1952. Absolute 95% confidence interval:
+[-0.00659808,
++0.00134731].
 
 ## Gate and review
 
 The evidence does not justify rollout. Preserve control and revise or stop.
 
-The gate checks the declared primary metric, HLT regression, and negative feedback.
+The gate checks the declared primary metric, quality-view regression, LT value,
+and negative feedback.
 A low p-value alone is insufficient; effect size, DGP truth, product trigger rate,
 and long-term guardrails remain part of the decision.
 
 ## Performance
 
-- Control: 12,831,826 requests/s,
-  91.0 MiB peak.
-- Treatment: 12,596,490 requests/s,
-  91.0 MiB peak.
+- Control: 4,579,859 requests/s,
+  170.3 MiB peak.
+- Treatment: 4,482,037 requests/s,
+  170.3 MiB peak.
 
 ## Next action
 

@@ -1,0 +1,86 @@
+{
+  "items": 5000,
+  "queries": 2000,
+  "top_k": 20,
+  "device": "cuda:0",
+  "split_contract": {
+    "train_queries": 1400,
+    "validation_queries": 300,
+    "test_queries": 300,
+    "query_disjoint": true,
+    "frozen_item_corpus": true
+  },
+  "negative_sampling": {
+    "negatives_per_query": 20,
+    "source_fractions": {
+      "in_batch": 0.6,
+      "hard": 0.25,
+      "random": 0.15
+    },
+    "log_q_correction": true
+  },
+  "models": {
+    "popular": {
+      "recall_at_k": 0.0,
+      "ndcg_at_k": 0.0,
+      "long_tail_recall_at_k": 0.0,
+      "catalog_coverage": 0.004,
+      "duplicate_rate": 0.0
+    },
+    "co_visit_graph": {
+      "recall_at_k": 0.09,
+      "ndcg_at_k": 0.0276710981712433,
+      "long_tail_recall_at_k": 0.0,
+      "catalog_coverage": 0.196,
+      "duplicate_rate": 0.0
+    },
+    "exact_content": {
+      "recall_at_k": 0.05333333333333334,
+      "ndcg_at_k": 0.020081901126375784,
+      "long_tail_recall_at_k": 0.052980132450331126,
+      "catalog_coverage": 0.6858,
+      "duplicate_rate": 0.0,
+      "milliseconds_per_query": 1.2109185366716702
+    },
+    "two_tower": {
+      "recall_at_k": 0.02,
+      "ndcg_at_k": 0.0059402891803489195,
+      "long_tail_recall_at_k": 0.013245033112582781,
+      "catalog_coverage": 0.4632,
+      "duplicate_rate": 0.0,
+      "milliseconds_per_query": 0.0021256966526076817,
+      "training": {
+        "seconds": 0.6076162280005519,
+        "loss": [
+          10.494387944539389,
+          10.234222253163656,
+          10.044584115346273,
+          9.69733476638794,
+          9.533323764801025
+        ],
+        "validation_recall_at_20": 0.016666666666666666,
+        "parameters": 7360
+      }
+    },
+    "multi_interest": {
+      "recall_at_k": 0.006666666666666667,
+      "ndcg_at_k": 0.0017623341478697806,
+      "long_tail_recall_at_k": 0.013245033112582781,
+      "catalog_coverage": 0.304,
+      "duplicate_rate": 0.0,
+      "milliseconds_per_query": 0.0020408033257505545,
+      "training": {
+        "seconds": 0.31760613700316753,
+        "loss": [
+          10.510446230570475,
+          10.262149651845297,
+          10.121867656707764,
+          10.006608486175537,
+          9.811022758483887
+        ],
+        "validation_recall_at_20": 0.0033333333333333335,
+        "parameters": 9760
+      }
+    }
+  }
+}

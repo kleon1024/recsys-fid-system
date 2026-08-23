@@ -34,6 +34,9 @@ class Catalog:
     city: np.ndarray
     author: np.ndarray
     poi: np.ndarray
+    poi_quality: np.ndarray
+    inventory_available: np.ndarray
+    fulfillment: np.ndarray
 
 
 @dataclass(frozen=True)
@@ -81,6 +84,7 @@ class TraceRow:
     response: Response
     returned_next_session: bool
     parameter_snapshot: Mapping[str, object] | None = None
+    query_embedding: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -105,8 +109,10 @@ class Trajectory:
     poi_favorites: int
     orders: int
     negative_feedback: int
-    discounted_value: float
-    local_service_value: float
+    lt_value: float
+    local_value_tree_score: float
+    lt_components: Mapping[str, float]
+    business_value_components: Mapping[str, float]
 
 
 @dataclass(frozen=True)

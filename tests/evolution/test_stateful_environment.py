@@ -32,7 +32,7 @@ class StatefulEnvironmentTest(unittest.TestCase):
         np.testing.assert_allclose(observation, observation_after)
         self.assertNotEqual(probability_before, probability_after)
 
-    def test_six_routes_feed_a_bounded_coarse_pool(self):
+    def test_feed_and_local_routes_feed_a_bounded_coarse_pool(self):
         config = SimulationConfig(users=2, items=500, candidates=20)
         environment = StatefulFeedEnv(config, build_catalog(config))
         environment.reset(options={"user_id": 9})
@@ -40,7 +40,19 @@ class StatefulEnvironmentTest(unittest.TestCase):
 
         self.assertEqual(environment.coarse_count, 20)
         self.assertGreater(environment.recall_count, environment.coarse_count)
-        self.assertEqual(routes, {"ann", "graph", "geo", "fresh", "long_tail", "popular"})
+        self.assertEqual(
+            routes,
+            {
+                "ann",
+                "graph",
+                "geo",
+                "fresh",
+                "long_tail",
+                "popular",
+                "post_search",
+                "retarget",
+            },
+        )
 
     def test_resolved_parameters_drive_recall_and_are_logged(self):
         config = SimulationConfig(users=1, items=500, candidates=10)
@@ -62,6 +74,16 @@ class StatefulEnvironmentTest(unittest.TestCase):
             trajectory.rows[0].parameter_snapshot["enabled_routes"],
             ("ann", "popular"),
         )
+
+    def test_trained_retrieval_fails_closed_without_matching_snapshot(self):
+        config = SimulationConfig(users=1, items=300, candidates=10)
+        parameters = FeedParameters(
+            recall_model="two_tower_trained_v2",
+            coarse_budget=10,
+        )
+        environment = StatefulFeedEnv(config, build_catalog(config), parameters)
+        with self.assertRaisesRegex(ValueError, "requires a retrieval snapshot"):
+            environment.reset(options={"user_id": 5})
 
     def test_fine_model_binding_fails_closed_and_value_parameters_change_score(self):
         policy = PopularPolicy()

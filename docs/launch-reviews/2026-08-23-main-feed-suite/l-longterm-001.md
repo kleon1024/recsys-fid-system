@@ -9,8 +9,8 @@ Status: `hold_underpowered_or_neutral`. Synthetic main-Feed experiment; not comp
 - Hypothesis: More aggressive fatigue control improves long-term quality.
 - Change: Increase fatigue penalty from 0.12 to 0.24.
 - Product dependency: none
-- Short-term value: stay and LT
-- Long-term value: HLT, negative feedback, and return behavior
+- Short-term value: stay and long-view behavior
+- Long-term value: LT container, quality view, negative feedback, and return
 
 ## Training and artifacts
 
@@ -22,30 +22,33 @@ the randomized estimate uses stable user-level 50/50 assignment.
 
 | Metric | Observed relative lift | p-value | Known DGP effect |
 |---|---:|---:|---:|
-| stay_per_exposure | +0.0302% | 0.5559 | -0.0002% |
-| lt_rate | +0.0938% | 0.66 | -0.0005% |
-| hlt_rate | +0.6487% | 0.2347 | +0.0000% |
-| negative_rate | -0.3164% | 0.7222 | -0.0013% |
+| stay_per_exposure | -0.0818% | 0.1569 | -0.0003% |
+| long_view_rate | -0.3916% | 0.08059 | -0.0011% |
+| quality_long_view_rate | -0.0178% | 0.9737 | -0.0015% |
+| negative_rate | +0.2863% | 0.7495 | +0.0000% |
+| lt_value_per_exposure | +0.0225% | 0.9105 | -0.0001% |
+| local_value_tree_score_per_exposure | -1.7789% | 0.2677 | -0.0046% |
 
-Primary metric `hlt_rate`: +0.6487%,
-p=0.2347. Absolute 95% confidence interval:
-[-0.00003614,
-+0.00014742].
+Primary metric `quality_long_view_rate`: -0.0178%,
+p=0.9737. Absolute 95% confidence interval:
+[-0.00009535,
++0.00009220].
 
 ## Gate and review
 
 The evidence does not justify rollout. Preserve control and revise or stop.
 
-The gate checks the declared primary metric, HLT regression, and negative feedback.
+The gate checks the declared primary metric, quality-view regression, LT value,
+and negative feedback.
 A low p-value alone is insufficient; effect size, DGP truth, product trigger rate,
 and long-term guardrails remain part of the decision.
 
 ## Performance
 
-- Control: 12,969,594 requests/s,
-  91.0 MiB peak.
-- Treatment: 12,768,244 requests/s,
-  91.0 MiB peak.
+- Control: 4,370,568 requests/s,
+  170.3 MiB peak.
+- Treatment: 4,550,188 requests/s,
+  170.3 MiB peak.
 
 ## Next action
 

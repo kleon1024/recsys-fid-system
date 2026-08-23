@@ -89,17 +89,51 @@ is accepted only when the data and validation result justify it.
 
 The earlier ten-million-impression throughput run produced 200,481 anchor
 examples, but predates this regularization change and is retained only as scale
-evidence, not the current model-selection leaderboard. At an equal Recall@20
-budget, deterministic evaluation now reaches 0.005 for popular, 0.208 for
-co-visit graph, 0.637 for two-tower, and 0.735 for multi-interest two-tower;
-exact content search reaches 0.996 because the synthetic query is a noisy form
-of its target embedding. These results describe the checked-in synthetic
-mechanism, not an expected ordering on production data.
+evidence, not the current model-selection leaderboard. The earlier retrieval
+numbers were invalidated because training and test reused queries and the query
+was constructed directly from its target item embedding. The corrected RTX
+4090 benchmark freezes 5,000 items, splits 2,000 queries 70/15/15, and applies
+60/25/15 negative-source sampling with `log q` correction. At equal Recall@20,
+popular, co-visit graph, exact content, two-tower, and multi-interest reach
+0.0000, 0.0900, 0.0533, 0.0200, and 0.0067 respectively. The learned towers
+therefore fail the offline launch gate; decreasing training loss is not treated
+as retrieval progress. Raw evidence is stored in
+`reports/benchmarks/2026-08-23-retrieval-gpu.json`.
+
+旧版召回结果因 train/test query 复用、query 直接由 target item embedding 构造而
+失效。修复后使用冻结 item corpus、query-disjoint 70/15/15 split、60/25/15 负样本
+及 `log q` 修正。Two-Tower 和 Multi-interest Recall@20 仅为 2.00% 和 0.67%，均未
+超过 graph 的 9.00%，因此离线门禁直接拒绝，不能用 loss 下降宣称模型进步。
+
+The offline leaderboard is not the launch authority. A separate actual-model
+fine-rank run trains on 45,794 stateful Feed impressions and evaluates 5,000
+disjoint fresh A/B users. LR has AUC 0.7175 and candidate oracle regret 0.0625;
+W&D, DeepFM, DCNv2, and MMoE have higher regret or violate stay/quality-view
+guardrails, so LR remains the serving authority for this DGP. Positive
+composite LT cannot override a hard Feed regression.
+
+离线 leaderboard 不是上线权威。另一组 actual-model 精排实验使用 45,794 条有状态
+Feed 曝光训练，并在 5,000 个独立 fresh A/B 用户上评估。LR 的 AUC 为 0.7175、
+candidate oracle regret 为 0.0625；W&D、DeepFM、DCNv2 和 MMoE 的 regret 更高，
+或违反 stay/quality-view 护栏，因此当前 DGP 继续使用 LR。综合 LT 为正也不能覆盖
+Feed 硬护栏回退。
+
+The scale cascade freezes 100 recalled candidates and the same fine ranker.
+Replacing quality-only coarse Top-20 with LR-style affinity raises oracle
+pass-through from 65.3% to 99.9%; later Local crosses and Top-40 add no
+significant platform LT. This separates model quality from candidate budget.
+
+规模级联实验固定 100 个召回候选和同一精排模型。将 quality-only Top-20 替换为
+LR-style affinity 后，oracle 通过率从 65.3% 升至 99.9%；后续 Local cross 与
+Top-40 均未显著提升平台 LT，因此模型质量与候选预算可以分别归因。
 
 ```bash
 python3 -m fid_lab.evolution.evaluation.benchmark --profile ci
 python3 -m fid_lab.evolution.evaluation.benchmark --profile local --seeds 3 --epochs 5
 python3 -m fid_lab.evolution.evaluation.benchmark --profile gpu --seeds 3 --epochs 5 --device cuda:0
+python3 -m fid_lab.feed_loop.models.cli --users 3000 --items 8000 --ab-users 5000 --epochs 8 --device cuda:0
+python3 -m fid_lab.feed_loop.experimentation.cascade_cli --users 1000000 --candidates 100 --seeds 3 --device cuda:0
+python3 -m fid_lab.feed_loop.experimentation.reverse_holdout --users 1000000 --steps 48 --burn-in-steps 12 --seeds 3 --device cuda:0
 ```
 
 ## Joiner and transaction authority

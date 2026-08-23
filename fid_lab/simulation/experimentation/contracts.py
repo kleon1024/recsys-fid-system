@@ -16,6 +16,8 @@ class FeedParameters:
         "fresh",
         "long_tail",
         "popular",
+        "post_search",
+        "retarget",
     )
     recall_budget: int = 100
     coarse_model: str = "lr_v1"

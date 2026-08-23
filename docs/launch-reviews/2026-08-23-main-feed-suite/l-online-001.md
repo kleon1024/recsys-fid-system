@@ -1,51 +1,57 @@
-# L-ONLINE-001 — Joiner-to-PS streaming LR
+# L-ONLINE-001 — Joiner-to-PS streaming correctness LR / Joiner 到 PS 流式正确性评审
 
-Status: `reject_primary_regression`. The online-training mechanics pass, but no
-tested serving policy protects the main Feed primary metric.
+Status / 状态: `reject_negative_feedback`.
 
-## Change
+This run validates the semantic online-learning path only. It is deliberately
+small and CPU-bound; all scale and power conclusions use the RTX 4090 tensor
+engine. / 本次只验证在线学习链路的语义正确性。该路径刻意保持小规模 CPU
+执行；规模和统计功效结论统一使用 RTX 4090 tensor engine。
 
-Consume mature main-Feed FineRankExample records, train LT/HLT/negative-feedback
-heads in microbatches, publish versioned parameters, replay the frozen snapshot,
-then compare fresh-user trajectories against the established heuristic policy.
+## Scope / 范围
 
-## Samples and training
+- 2,955 mature joined examples; 2,371 train and 584 evaluation examples. / 2,955
+  条成熟 Joiner 样本，训练 2,371 条，独立评估 584 条。
+- Two epochs and ten idempotent parameter-server updates; replayed update was
+  rejected as `duplicate_update`. / 两轮训练、10 次幂等 PS 更新，重复更新被
+  `duplicate_update` 拒绝。
+- Loss fell from 1.559 to 1.203. This proves optimization runs, not model
+  quality. / Loss 从 1.559 降到 1.203，只证明优化过程可运行，不证明模型有效。
+- Schema, FID, Joiner, model/index versions, feature replay and prediction
+  shadow all passed; maximum replay delta was zero. / Schema、FID、Joiner、模型与
+  索引版本、特征回放及 shadow prediction 全部通过，最大回放误差为 0。
 
-- Mature joined examples: 7,322.
-- User-disjoint train/evaluation: 5,841 / 1,481.
-- Positive rates: LT 32.19%, HLT 10.64%, negative feedback 0.355%.
-- Four epochs, 512-example microbatches, 48 applied PS updates.
-- Duplicate update replay: rejected as `duplicate_update` at PS version 48.
-- Loss: 1.431 first epoch → 0.882 last epoch.
+## Offline evidence / 离线证据
 
-The first 256-dimensional, 256-bin feature hash was diagnosed as both sparse and
-collision-heavy. The corrected version uses 16 bins and a 4,096-dimensional PS.
-Independent-user AUC improved from 0.553→0.632 for LT, 0.523→0.644 for HLT,
-and 0.463→0.578 for negative feedback. This proves the feature/architecture fix,
-but not online business value.
+| Head / 任务 | AUC | PR-AUC | ECE |
+|---|---:|---:|---:|
+| Long view / 长播 | 0.525 | 0.328 | 0.064 |
+| High-quality long view / 高质量长播 | 0.501 | 0.115 | 0.153 |
+| Negative feedback / 负反馈 | 0.570 | 0.0058 | 0.220 |
 
-## Consistency and shadow
+The sample is intentionally too small for model selection. The near-random
+quality head and poor rare-event calibration forbid an online ramp. / 样本只用于
+正确性验证，不用于模型选择；高质量长播接近随机、稀疏负反馈校准较差，因此不能放量。
 
-Schema, FID layout, Joiner, model version, index version, task order, feature
-replay, and prediction shadow all pass. Serialized/snapshotted score delta is 0.
+## Fresh-user A/B diagnostic / 新用户 A/B 诊断
 
-## Fresh-user A/B
+| Candidate / 候选 | Stay per exposure / 单曝停留 | Platform LT / 平台 LT | Quality long-view rate / 高质长播率 | Decision / 决策 |
+|---|---:|---:|---:|---|
+| PS replacement | -6.09% (p=.057) | +5.44% (p=.538) | +7.42% (p=.470) | Hold / 暂缓 |
+| Balanced replacement | -7.13% (p=.021) | +19.43% (p=.043) | +1.92% (p=.839) | Reject primary regression / 拒绝主指标回退 |
+| 0.25 blend | -2.80% (p=.400) | +10.92% (p=.238) | -10.88% (p=.262) | Reject negative feedback / 拒绝负反馈恶化 |
 
-| Candidate | Stay | LT | HLT | Negative | Long-term Value | Decision |
-|---|---:|---:|---:|---:|---:|---|
-| PS v1 replacement | -5.48% | +0.01% | +19.02% | -67.13% | +16.74% | Reject stay regression |
-| HLT-balanced replacement | -10.90% | -9.84% | -2.27% | -47.53% | +19.61% | Hold HLT risk |
-| 0.25 PS-score blend | -5.21% | -8.70% | +3.30% | +68.52% | +2.88% | Reject stay regression |
+The blend increased observed negative feedback by 316% (p=.048); its known DGP
+effect was also positive, so this is a real guardrail failure rather than an LT
+trade. Accepted commercialization contributes zero to LT in this Local run. /
+混合策略的观测负反馈上升 316%（p=.048），已知 DGP 方向也为正，因此这是实际护栏
+失败，不能用 LT 抵消。本次 Local 实验中，可接受商业化价值对 LT 的贡献为 0。
 
-For the blended candidate, known DGP truth is stay -0.96%, LT -1.09%, HLT
-+0.87%, negative -8.33%, and long-term Value +2.18%. The 500-user observed
-estimate is noisy, but neither observed nor DGP evidence supports ramping.
+## Decision / 决策
 
-## Root cause and decision
-
-The PS model now learns non-random task structure, yet a small linear hashed
-model cannot reproduce the established policy's continuous candidate ordering.
-Optimizing sparse negative feedback and HLT changes duration/content mix and
-loses stay/LT. Keep the online training path in shadow; do not publish it as the
-serving authority. The next model change must use a distilled teacher or deeper
-incremental model and clear offline Top-K overlap before another user A/B.
+Keep this CPU path for Joiner, PS idempotency and exact replay tests. Do not use
+it for scale claims or as serving authority. The next serving attempt must train
+on the GPU path, clear frozen-candidate Top-K overlap and calibration gates, and
+then enter the same shadow/replay/A/B protocol. / 保留该 CPU 路径验证 Joiner、PS
+幂等和精确回放，不用它证明规模能力，也不设为线上 authority。下一版必须在 GPU
+路径训练，先通过冻结候选 Top-K overlap 与校准门禁，再进入同一套 shadow、replay
+和 A/B 协议。

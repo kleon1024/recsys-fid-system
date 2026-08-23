@@ -1,31 +1,42 @@
 # L-LOCAL-VALUE-001 — Feed-guarded Local Value Tree
 
-Status: `hold_hlt_risk` on a fixed treatment catalog.
+Status: `hold_quality_long_view_risk` on a frozen treatment catalog.
 
 ## Change
 
-Within candidates no more than 0.03 below the base Feed score, add a 0.15 Local
-Value proxy using interest, POI value, city match, and quality. Supply is frozen,
-so viewer-level randomization is valid and does not contain author interference.
+For candidates no more than 0.03 below the base Feed score, add a 0.15 Local
+proxy using interest, POI value, city match and quality. Supply is frozen, so
+viewer-level randomization is valid.
 
 ## Known DGP effect
 
 | Metric | Relative effect |
 |---|---:|
-| Stay | -0.033% |
-| LT | +0.067% |
-| HLT | +0.412% |
-| Anchor click | +1.064% |
-| Local Service Value | +0.894% |
-| Long-term Feed Value | +0.170% |
+| Stay per exposure | -0.014% |
+| Long-view rate | +0.028% |
+| Quality long-view rate | -0.094% |
+| Anchor clicks | 0.000% |
+| Local Value Tree | 0.000% |
+| Platform LT container | -0.004% |
 
-The 300-user observed A/B was noisy: HLT -10.19%, anchor click -10.35%, and
-Local Value -4.16%, none significant. Randomization audit contains the paired
-DGP truth, so the direction mismatch is attributed to low power rather than
-silently presented as a regression or win.
+## Observed 300-user A/B
+
+| Metric | Relative lift | p-value |
+|---|---:|---:|
+| Stay per exposure | +0.41% | .896 |
+| Long-view rate | +5.83% | .338 |
+| Quality long-view rate | -17.06% | .081 |
+| Anchor clicks | -3.62% | .895 |
+| Local Value Tree | -4.05% | .906 |
+| Platform LT container | -2.09% | .818 |
+| Negative feedback | +87.10% | .285 |
 
 ## Decision
 
-Hold. The treatment has a plausible sub-1% Local Value effect with neutral Feed
-truth, but the current viewer sample cannot clear HLT or Local Value uncertainty.
-Increase the fixed-catalog viewer sample and use CUPED before reconsidering.
+Hold. The known Local and LT effects are effectively zero, while the observed
+quality-view and negative-feedback directions are unsafe and underpowered.
+There is no business case for increasing sample size without first changing the
+ranking hypothesis.
+
+结论是 Hold。已知 DGP 中 Local 与平台 LT 增量接近零，观测样本又出现高质长播下降和
+负反馈上升方向；应先修改策略，不应为了得到显著结果盲目扩大样本。

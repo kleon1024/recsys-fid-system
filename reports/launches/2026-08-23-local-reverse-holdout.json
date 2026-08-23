@@ -1,0 +1,1838 @@
+{
+  "aggregate": [
+    {
+      "control": "revert_to_local_search_retarget_v3",
+      "decision": "retain_launch_long_horizon",
+      "launch_id": "L-LOCAL-REVERSE-001",
+      "lt_exchange_sensitivity": {
+        "0": {
+          "exchange_rate": 0.0,
+          "known_mean_absolute_effect": 0.007512996337890598,
+          "known_mean_relative_effect": 0.0011603394950536114,
+          "pooled_absolute_lift": 0.01825300174655881,
+          "pooled_confidence_interval": [
+            0.006829285996264808,
+            0.02967671749685281
+          ],
+          "pooled_p_value": 0.0017378530369514236,
+          "pooled_relative_lift": 0.00282133025876148,
+          "pooled_standard_error": 0.005828426403211225
+        },
+        "0.1": {
+          "exchange_rate": 0.1,
+          "known_mean_absolute_effect": 0.007512996337890598,
+          "known_mean_relative_effect": 0.0011603394950536114,
+          "pooled_absolute_lift": 0.01825300174655881,
+          "pooled_confidence_interval": [
+            0.006829285996264808,
+            0.02967671749685281
+          ],
+          "pooled_p_value": 0.0017378530369514236,
+          "pooled_relative_lift": 0.00282133025876148,
+          "pooled_standard_error": 0.005828426403211225
+        },
+        "0.25": {
+          "exchange_rate": 0.25,
+          "known_mean_absolute_effect": 0.007512996337890598,
+          "known_mean_relative_effect": 0.0011603394950536114,
+          "pooled_absolute_lift": 0.01825300174655881,
+          "pooled_confidence_interval": [
+            0.006829285996264808,
+            0.02967671749685281
+          ],
+          "pooled_p_value": 0.0017378530369514236,
+          "pooled_relative_lift": 0.00282133025876148,
+          "pooled_standard_error": 0.005828426403211225
+        },
+        "1": {
+          "exchange_rate": 1.0,
+          "known_mean_absolute_effect": 0.007512996337890598,
+          "known_mean_relative_effect": 0.0011603394950536114,
+          "pooled_absolute_lift": 0.01825300174655881,
+          "pooled_confidence_interval": [
+            0.006829285996264808,
+            0.02967671749685281
+          ],
+          "pooled_p_value": 0.0017378530369514236,
+          "pooled_relative_lift": 0.00282133025876148,
+          "pooled_standard_error": 0.005828426403211225
+        }
+      },
+      "metrics": {
+        "accepted_platform_commercialization_per_exposure": {
+          "known_mean_absolute_effect": 0.0,
+          "known_mean_relative_effect": null,
+          "mde_absolute_80pct_power": 1.616580753730952e-12,
+          "observed_mean_relative_lift": null,
+          "pooled_absolute_lift": 0.0,
+          "pooled_p_value": 1.0,
+          "pooled_relative_lift": null,
+          "pooled_standard_error": 5.773502691896257e-13,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": null
+        },
+        "accepted_platform_commercialization_per_user": {
+          "known_mean_absolute_effect": 0.0,
+          "known_mean_relative_effect": null,
+          "mde_absolute_80pct_power": 1.616580753730952e-12,
+          "observed_mean_relative_lift": null,
+          "pooled_absolute_lift": 0.0,
+          "pooled_p_value": 1.0,
+          "pooled_relative_lift": null,
+          "pooled_standard_error": 5.773502691896257e-13,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": null
+        },
+        "active_days_per_user": {
+          "known_mean_absolute_effect": -1.6666666666775853e-06,
+          "known_mean_relative_effect": -2.4962527936070836e-06,
+          "mde_absolute_80pct_power": 0.002771436028702142,
+          "observed_mean_relative_lift": 0.004336023014217791,
+          "pooled_absolute_lift": 0.002859631664378233,
+          "pooled_p_value": 0.003863405019363478,
+          "pooled_relative_lift": 0.004333563115724526,
+          "pooled_standard_error": 0.0009897985816793365,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 1,
+          "required_total_users_for_known_effect_80pct_power": 8295326273975
+        },
+        "ad_contribution_per_exposure": {
+          "known_mean_absolute_effect": 0.0,
+          "known_mean_relative_effect": null,
+          "mde_absolute_80pct_power": 1.616580753730952e-12,
+          "observed_mean_relative_lift": null,
+          "pooled_absolute_lift": 0.0,
+          "pooled_p_value": 1.0,
+          "pooled_relative_lift": null,
+          "pooled_standard_error": 5.773502691896257e-13,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": null
+        },
+        "ad_load": {
+          "known_mean_absolute_effect": 0.0,
+          "known_mean_relative_effect": null,
+          "mde_absolute_80pct_power": 1.616580753730952e-12,
+          "observed_mean_relative_lift": null,
+          "pooled_absolute_lift": 0.0,
+          "pooled_p_value": 1.0,
+          "pooled_relative_lift": null,
+          "pooled_standard_error": 5.773502691896257e-13,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": null
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "known_mean_absolute_effect": 0.0,
+          "known_mean_relative_effect": null,
+          "mde_absolute_80pct_power": 1.616580753730952e-12,
+          "observed_mean_relative_lift": null,
+          "pooled_absolute_lift": 0.0,
+          "pooled_p_value": 1.0,
+          "pooled_relative_lift": null,
+          "pooled_standard_error": 5.773502691896257e-13,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": null
+        },
+        "anchor_click_rate": {
+          "known_mean_absolute_effect": 0.0004982753024250752,
+          "known_mean_relative_effect": 0.02931541023849725,
+          "mde_absolute_80pct_power": 0.00012380321656310148,
+          "observed_mean_relative_lift": 0.022108462545451554,
+          "pooled_absolute_lift": 0.0003277019036505515,
+          "pooled_p_value": 1.248956070454235e-13,
+          "pooled_relative_lift": 0.022098665625107587,
+          "pooled_standard_error": 4.421543448682196e-05,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 185203
+        },
+        "coarse_feed_oracle_recall": {
+          "known_mean_absolute_effect": 0.0,
+          "known_mean_relative_effect": 0.0,
+          "mde_absolute_80pct_power": 0.0009340671077637269,
+          "observed_mean_relative_lift": -0.0005468032889236816,
+          "pooled_absolute_lift": -0.0004969787704956907,
+          "pooled_p_value": 0.13628601647300756,
+          "pooled_relative_lift": -0.0005471308168867452,
+          "pooled_standard_error": 0.0003335953956299025,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": null
+        },
+        "coarse_pass_fraction": {
+          "known_mean_absolute_effect": 0.0,
+          "known_mean_relative_effect": 0.0,
+          "mde_absolute_80pct_power": 0.0009340671077637269,
+          "observed_mean_relative_lift": -0.0005468032889236816,
+          "pooled_absolute_lift": -0.0004969787704956907,
+          "pooled_p_value": 0.13628601647300756,
+          "pooled_relative_lift": -0.0005471308168867452,
+          "pooled_standard_error": 0.0003335953956299025,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": null
+        },
+        "conversion_rate": {
+          "known_mean_absolute_effect": 4.3974488301572506e-05,
+          "known_mean_relative_effect": 0.04201636697802402,
+          "mde_absolute_80pct_power": 2.1102266553615513e-05,
+          "observed_mean_relative_lift": 0.03724259056829848,
+          "pooled_absolute_lift": 3.326835535207122e-05,
+          "pooled_p_value": 1.0134490356749983e-05,
+          "pooled_relative_lift": 0.0370863498063387,
+          "pooled_standard_error": 7.536523769148398e-06,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 690841
+        },
+        "effective_ad_load": {
+          "known_mean_absolute_effect": 0.0,
+          "known_mean_relative_effect": null,
+          "mde_absolute_80pct_power": 1.616580753730952e-12,
+          "observed_mean_relative_lift": null,
+          "pooled_absolute_lift": 0.0,
+          "pooled_p_value": 1.0,
+          "pooled_relative_lift": null,
+          "pooled_standard_error": 5.773502691896257e-13,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": null
+        },
+        "feed_value_tree_score_per_exposure": {
+          "known_mean_absolute_effect": 0.0003703285666077731,
+          "known_mean_relative_effect": 0.0036372045882658074,
+          "mde_absolute_80pct_power": 0.0003077941870388494,
+          "observed_mean_relative_lift": 0.0008124411231417837,
+          "pooled_absolute_lift": 7.072815399284021e-05,
+          "pooled_p_value": 0.5199560450753531,
+          "pooled_relative_lift": 0.0007845938597220776,
+          "pooled_standard_error": 0.00010992649537101765,
+          "positive_observed_seeds": 2,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 2072372
+        },
+        "fine_oracle_regret_per_exposure": {
+          "known_mean_absolute_effect": -0.0003254812211906481,
+          "known_mean_relative_effect": -0.013699620820225118,
+          "mde_absolute_80pct_power": 6.511873791238995e-05,
+          "observed_mean_relative_lift": -0.01282507057430135,
+          "pooled_absolute_lift": -0.00028378562265529185,
+          "pooled_p_value": 3.0208849118082833e-34,
+          "pooled_relative_lift": -0.012823634264064713,
+          "pooled_standard_error": 2.3256692111567838e-05,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": 120083
+        },
+        "local_commercialization_value_per_exposure": {
+          "known_mean_absolute_effect": 0.0002344394148028932,
+          "known_mean_relative_effect": 0.043096141163780216,
+          "mde_absolute_80pct_power": 0.00012146126265951207,
+          "observed_mean_relative_lift": 0.03379328302657221,
+          "pooled_absolute_lift": 0.00015720227770276836,
+          "pooled_p_value": 0.0002901669683672772,
+          "pooled_relative_lift": 0.03363718212058911,
+          "pooled_standard_error": 4.337902237839717e-05,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 805259
+        },
+        "local_value_tree_score_per_exposure": {
+          "known_mean_absolute_effect": 0.0010814589463525616,
+          "known_mean_relative_effect": 0.03478280210583424,
+          "mde_absolute_80pct_power": 0.00031314335376952116,
+          "observed_mean_relative_lift": 0.02920930124514261,
+          "pooled_absolute_lift": 0.0007836725752360525,
+          "pooled_p_value": 2.429953919984067e-12,
+          "pooled_relative_lift": 0.029105297747025152,
+          "pooled_standard_error": 0.00011183691206054328,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 251529
+        },
+        "long_view_rate": {
+          "known_mean_absolute_effect": 0.0009046666051346353,
+          "known_mean_relative_effect": 0.004565382318097395,
+          "mde_absolute_80pct_power": 0.0004150446358812048,
+          "observed_mean_relative_lift": 0.0029445358915321895,
+          "pooled_absolute_lift": 0.0005194758342011522,
+          "pooled_p_value": 0.0004574307588883549,
+          "pooled_relative_lift": 0.002943810821378534,
+          "pooled_standard_error": 0.0001482302271004303,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 631443
+        },
+        "lt_active_days_per_user": {
+          "known_mean_absolute_effect": -8.333333333461942e-06,
+          "known_mean_relative_effect": -2.496252793629419e-06,
+          "mde_absolute_80pct_power": 0.013857180143510709,
+          "observed_mean_relative_lift": 0.004336023014217779,
+          "pooled_absolute_lift": 0.014298158321891125,
+          "pooled_p_value": 0.0038634050193635714,
+          "pooled_relative_lift": 0.004333563115724514,
+          "pooled_standard_error": 0.004948992908396682,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 1,
+          "required_total_users_for_known_effect_80pct_power": 8295326273828
+        },
+        "lt_stay_per_user": {
+          "known_mean_absolute_effect": 0.007521324305555706,
+          "known_mean_relative_effect": 0.0023738680080169655,
+          "mde_absolute_80pct_power": 0.005512158382533765,
+          "observed_mean_relative_lift": 0.0012478040193881835,
+          "pooled_absolute_lift": 0.003955347509430194,
+          "pooled_p_value": 0.04451699694396099,
+          "pooled_relative_lift": 0.0012476467588297992,
+          "pooled_standard_error": 0.001968627993762059,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 1611299
+        },
+        "lt_value_per_exposure": {
+          "known_mean_absolute_effect": 0.00025040298015771567,
+          "known_mean_relative_effect": 0.001113866799638757,
+          "mde_absolute_80pct_power": 0.0005107382158825492,
+          "observed_mean_relative_lift": 0.0028217850266518464,
+          "pooled_absolute_lift": 0.0005663980230912625,
+          "pooled_p_value": 0.0019018797276292771,
+          "pooled_relative_lift": 0.0028218021413237747,
+          "pooled_standard_error": 0.00018240650567233902,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 12480701
+        },
+        "lt_value_per_user": {
+          "known_mean_absolute_effect": 0.007512996337890598,
+          "known_mean_relative_effect": 0.0011603394950536114,
+          "mde_absolute_80pct_power": 0.016319593983758856,
+          "observed_mean_relative_lift": 0.0028215895357729406,
+          "pooled_absolute_lift": 0.018253019868529924,
+          "pooled_p_value": 0.0017378346963931334,
+          "pooled_relative_lift": 0.002821333063901899,
+          "pooled_standard_error": 0.005828426422771021,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 14155122
+        },
+        "negative_rate": {
+          "known_mean_absolute_effect": -2.644082554734891e-06,
+          "known_mean_relative_effect": -0.0014188115715719034,
+          "mde_absolute_80pct_power": 3.496021477975461e-05,
+          "observed_mean_relative_lift": 0.003205925032676851,
+          "pooled_absolute_lift": 5.573409307270049e-06,
+          "pooled_p_value": 0.6553226659648365,
+          "pooled_relative_lift": 0.0031426140766921775,
+          "pooled_standard_error": 1.2485790992769503e-05,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": 524468510
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "known_mean_absolute_effect": 0.0,
+          "known_mean_relative_effect": null,
+          "mde_absolute_80pct_power": 1.616580753730952e-12,
+          "observed_mean_relative_lift": null,
+          "pooled_absolute_lift": 0.0,
+          "pooled_p_value": 1.0,
+          "pooled_relative_lift": null,
+          "pooled_standard_error": 5.773502691896257e-13,
+          "positive_observed_seeds": 0,
+          "positive_truth_seeds": 0,
+          "required_total_users_for_known_effect_80pct_power": null
+        },
+        "poi_candidate_fraction": {
+          "known_mean_absolute_effect": 1.5527983497354292e-06,
+          "known_mean_relative_effect": 5.439397173453678e-06,
+          "mde_absolute_80pct_power": 0.00027777085372269697,
+          "observed_mean_relative_lift": -0.0005335622624273941,
+          "pooled_absolute_lift": -0.0001385942739298642,
+          "pooled_p_value": 0.1623939939409447,
+          "pooled_relative_lift": -0.0005349155480454112,
+          "pooled_standard_error": 9.920387632953463e-05,
+          "positive_observed_seeds": 1,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 95998507330
+        },
+        "quality_long_view_rate": {
+          "known_mean_absolute_effect": 0.00017662347646358692,
+          "known_mean_relative_effect": 0.005906200920963605,
+          "mde_absolute_80pct_power": 0.00012518910600829058,
+          "observed_mean_relative_lift": 0.0031167634275564558,
+          "pooled_absolute_lift": 8.306093621867125e-05,
+          "pooled_p_value": 0.06320388928734132,
+          "pooled_relative_lift": 0.0031274869310377895,
+          "pooled_standard_error": 4.471039500296092e-05,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 1507154
+        },
+        "stay_per_exposure": {
+          "known_mean_absolute_effect": 0.01536126462905892,
+          "known_mean_relative_effect": 0.0023273389945755903,
+          "mde_absolute_80pct_power": 0.008398635207706435,
+          "observed_mean_relative_lift": 0.0013003608961614467,
+          "pooled_absolute_lift": 0.007712364967363687,
+          "pooled_p_value": 0.010134500041597926,
+          "pooled_relative_lift": 0.0012985085976156049,
+          "pooled_standard_error": 0.0029995125741808697,
+          "positive_observed_seeds": 3,
+          "positive_truth_seeds": 3,
+          "required_total_users_for_known_effect_80pct_power": 896778
+        }
+      },
+      "seed_decisions": [
+        "hold_underpowered_or_neutral",
+        "hold_underpowered_or_neutral",
+        "pass_lt_value"
+      ],
+      "statistical_decision": "pass_lt_value",
+      "treatment": "continue_local_intent_quality_rank_v4"
+    }
+  ],
+  "config": {
+    "batch_users": 25000,
+    "burn_in_steps": 12,
+    "device": "cuda:0",
+    "seed": 20260823,
+    "seeds": 3,
+    "steps": 48,
+    "users": 1000000
+  },
+  "evidence_boundary": "Synthetic reverse holdout validates protocol and power; it is not a company production lift estimate.",
+  "protocol": {
+    "burn_in_steps": 12,
+    "control": "new model during burn-in, then reverted old model",
+    "measurement_steps": 36,
+    "treatment": "new model during burn-in and measurement"
+  },
+  "replicates": [
+    {
+      "config": {
+        "batch_users": 25000,
+        "candidates": 20,
+        "catalog_items": 200000,
+        "count_inactive_play_bug": false,
+        "device": "cuda:0",
+        "seed": 20260823,
+        "steps": 48,
+        "topics": 12,
+        "users": 1000000
+      },
+      "launches": [
+        {
+          "control": "revert_to_local_search_retarget_v3",
+          "control_performance": {
+            "peak_gpu_memory_bytes": 177403904,
+            "requests_per_second": 3185420.740283558,
+            "seconds": 9.043072594999103,
+            "users_per_second": 110581.88347984829
+          },
+          "decision": "hold_underpowered_or_neutral",
+          "known_dgp_effect": {
+            "accepted_platform_commercialization_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "accepted_platform_commercialization_per_user": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "active_days_per_user": {
+              "absolute_effect": 3.500000000000725e-05,
+              "relative_effect": 5.2945509993854156e-05
+            },
+            "ad_contribution_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "ad_load": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "ads_live_value_tree_score_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "anchor_click_rate": {
+              "absolute_effect": 0.0004972136065657905,
+              "relative_effect": 0.02913723968299296
+            },
+            "coarse_feed_oracle_recall": {
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0
+            },
+            "coarse_pass_fraction": {
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0
+            },
+            "conversion_rate": {
+              "absolute_effect": 4.261453011729973e-05,
+              "relative_effect": 0.04062864139234014
+            },
+            "effective_ad_load": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "feed_value_tree_score_per_exposure": {
+              "absolute_effect": 0.000385891279021236,
+              "relative_effect": 0.0037942534540666055
+            },
+            "fine_oracle_regret_per_exposure": {
+              "absolute_effect": -0.0003229491880428169,
+              "relative_effect": -0.013626445626658256
+            },
+            "local_commercialization_value_per_exposure": {
+              "absolute_effect": 0.00022272681216223625,
+              "relative_effect": 0.04071365534516402
+            },
+            "local_value_tree_score_per_exposure": {
+              "absolute_effect": 0.0010661634171396858,
+              "relative_effect": 0.034159078527445125
+            },
+            "long_view_rate": {
+              "absolute_effect": 0.0009246203130408304,
+              "relative_effect": 0.004672997501066523
+            },
+            "lt_active_days_per_user": {
+              "absolute_effect": 0.00017500000000003624,
+              "relative_effect": 5.2945509993854156e-05
+            },
+            "lt_stay_per_user": {
+              "absolute_effect": 0.007598983333333642,
+              "relative_effect": 0.0024008698558185874
+            },
+            "lt_value_per_exposure": {
+              "absolute_effect": 0.0002595303603261101,
+              "relative_effect": 0.0011554233283512158
+            },
+            "lt_value_per_user": {
+              "absolute_effect": 0.007773993652343769,
+              "relative_effect": 0.0012014738508244983
+            },
+            "negative_rate": {
+              "absolute_effect": -2.7585118087078853e-06,
+              "relative_effect": -0.001482576754949588
+            },
+            "organic_opportunity_cost_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "poi_candidate_fraction": {
+              "absolute_effect": 1.3396751747385416e-06,
+              "relative_effect": 4.6712798016074035e-06
+            },
+            "quality_long_view_rate": {
+              "absolute_effect": 0.00018198234725206458,
+              "relative_effect": 0.00609259193149134
+            },
+            "stay_per_exposure": {
+              "absolute_effect": 0.015523967370890901,
+              "relative_effect": 0.0023547641668136927
+            }
+          },
+          "launch_id": "L-LOCAL-REVERSE-001",
+          "lt_exchange_sensitivity": {
+            "0": {
+              "absolute_lift": 0.013097073411959315,
+              "confidence_interval": [
+                -0.00668059236478781,
+                0.03287473918870644
+              ],
+              "control_mean": 6.467866853680111,
+              "exchange_rate": 0.0,
+              "known_absolute_effect": 0.007773993652343769,
+              "known_relative_effect": 0.0012014738508244983,
+              "p_value": 0.19430725204892682,
+              "relative_lift": 0.0020249448092004695,
+              "standard_error": 0.01009064580446282,
+              "treatment_mean": 6.480963927092071
+            },
+            "0.1": {
+              "absolute_lift": 0.013097073411959315,
+              "confidence_interval": [
+                -0.00668059236478781,
+                0.03287473918870644
+              ],
+              "control_mean": 6.467866853680111,
+              "exchange_rate": 0.1,
+              "known_absolute_effect": 0.007773993652343769,
+              "known_relative_effect": 0.0012014738508244983,
+              "p_value": 0.19430725204892682,
+              "relative_lift": 0.0020249448092004695,
+              "standard_error": 0.01009064580446282,
+              "treatment_mean": 6.480963927092071
+            },
+            "0.25": {
+              "absolute_lift": 0.013097073411959315,
+              "confidence_interval": [
+                -0.00668059236478781,
+                0.03287473918870644
+              ],
+              "control_mean": 6.467866853680111,
+              "exchange_rate": 0.25,
+              "known_absolute_effect": 0.007773993652343769,
+              "known_relative_effect": 0.0012014738508244983,
+              "p_value": 0.19430725204892682,
+              "relative_lift": 0.0020249448092004695,
+              "standard_error": 0.01009064580446282,
+              "treatment_mean": 6.480963927092071
+            },
+            "1": {
+              "absolute_lift": 0.013097073411959315,
+              "confidence_interval": [
+                -0.00668059236478781,
+                0.03287473918870644
+              ],
+              "control_mean": 6.467866853680111,
+              "exchange_rate": 1.0,
+              "known_absolute_effect": 0.007773993652343769,
+              "known_relative_effect": 0.0012014738508244983,
+              "p_value": 0.19430725204892682,
+              "relative_lift": 0.0020249448092004695,
+              "standard_error": 0.01009064580446282,
+              "treatment_mean": 6.480963927092071
+            }
+          },
+          "metrics": {
+            "accepted_platform_commercialization_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "accepted_platform_commercialization_per_user": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "active_days_per_user": {
+              "confidence_interval": [
+                -0.0016983766709053535,
+                0.005016903389360804
+              ],
+              "control_mean": 0.660256423076077,
+              "p_value": 0.3327528232732799,
+              "relative_lift": 0.0025130590195508616,
+              "standard_error": 0.001713081648027081,
+              "treatment_mean": 0.6619156864353047
+            },
+            "ad_contribution_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "ad_load": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "ads_live_value_tree_score_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "anchor_click_rate": {
+              "confidence_interval": [
+                0.00016772710269257962,
+                0.0004686964891098336
+              ],
+              "control_mean": 0.01490019255164706,
+              "p_value": 3.404442981499248e-05,
+              "relative_lift": 0.021356220384281654,
+              "standard_error": 7.677790469827906e-05,
+              "treatment_mean": 0.015218404347548266
+            },
+            "coarse_feed_oracle_recall": {
+              "confidence_interval": [
+                -0.0014758566676727502,
+                0.0007876278006747083
+              ],
+              "control_mean": 0.9083960458609732,
+              "p_value": 0.5512071506644138,
+              "relative_lift": -0.0003788154242490906,
+              "standard_error": 0.0005774195072314946,
+              "treatment_mean": 0.9080519314274742
+            },
+            "coarse_pass_fraction": {
+              "confidence_interval": [
+                -0.0014758566676727502,
+                0.0007876278006747083
+              ],
+              "control_mean": 0.9083960458609732,
+              "p_value": 0.5512071506644138,
+              "relative_lift": -0.0003788154242490906,
+              "standard_error": 0.0005774195072314946,
+              "treatment_mean": 0.9080519314274742
+            },
+            "conversion_rate": {
+              "confidence_interval": [
+                3.635428194001515e-06,
+                5.313874597341953e-05
+              ],
+              "control_mean": 0.0008994280835777827,
+              "p_value": 0.02458401881326451,
+              "relative_lift": 0.0315612638764749,
+              "standard_error": 1.2628397392708677e-05,
+              "treatment_mean": 0.0009278151706614932
+            },
+            "effective_ad_load": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "feed_value_tree_score_per_exposure": {
+              "confidence_interval": [
+                -9.062175161308756e-05,
+                0.0006580298106325628
+              ],
+              "control_mean": 0.08992514770392342,
+              "p_value": 0.13741216591906694,
+              "relative_lift": 0.0031548908926324693,
+              "standard_error": 0.00019098254138919652,
+              "treatment_mean": 0.09020885173343315
+            },
+            "fine_oracle_regret_per_exposure": {
+              "confidence_interval": [
+                -0.000344545467711311,
+                -0.0001871488799731597
+              ],
+              "control_mean": 0.02207732970043899,
+              "p_value": 3.568058964388647e-11,
+              "relative_lift": -0.01204163625988469,
+              "standard_error": 4.015219074952839e-05,
+              "treatment_mean": 0.021811482526596756
+            },
+            "local_commercialization_value_per_exposure": {
+              "confidence_interval": [
+                -2.182707741214189e-05,
+                0.0002628668287090886
+              ],
+              "control_mean": 0.004712974862848505,
+              "p_value": 0.09702330206750043,
+              "relative_lift": 0.025571932623385894,
+              "standard_error": 7.262599645949757e-05,
+              "treatment_mean": 0.004833494738496979
+            },
+            "local_value_tree_score_per_exposure": {
+              "confidence_interval": [
+                0.00029765236838182,
+                0.0010429074790008698
+              ],
+              "control_mean": 0.027071157090253137,
+              "p_value": 0.00042246922258419627,
+              "relative_lift": 0.024759928859216608,
+              "standard_error": 0.00019011609964771683,
+              "treatment_mean": 0.02774143701394448
+            },
+            "long_view_rate": {
+              "confidence_interval": [
+                6.553679125836703e-05,
+                0.0010750941253743229
+              ],
+              "control_mean": 0.17616214722406445,
+              "p_value": 0.02679631670899887,
+              "relative_lift": 0.0032374461103210125,
+              "standard_error": 0.0002575401362540704,
+              "treatment_mean": 0.1767324626823808
+            },
+            "lt_active_days_per_user": {
+              "confidence_interval": [
+                -0.008491883354526657,
+                0.02508451694680413
+              ],
+              "control_mean": 3.301282115380385,
+              "p_value": 0.3327528232732734,
+              "relative_lift": 0.0025130590195508954,
+              "standard_error": 0.008565408240135405,
+              "treatment_mean": 3.3095784321765236
+            },
+            "lt_stay_per_user": {
+              "confidence_interval": [
+                -0.0018936931887996748,
+                0.011495274010311422
+              ],
+              "control_mean": 3.1665847241582057,
+              "p_value": 0.15985256452205715,
+              "relative_lift": 0.0015160783080048802,
+              "standard_error": 0.003415552856916096,
+              "treatment_mean": 3.1713855145689616
+            },
+            "lt_value_per_exposure": {
+              "confidence_interval": [
+                -9.801291558029156e-05,
+                0.0011384821531262071
+              ],
+              "control_mean": 0.20053999531734032,
+              "p_value": 0.09909142465873841,
+              "relative_lift": 0.0025941688985766827,
+              "standard_error": 0.00031543241548635174,
+              "treatment_mean": 0.20106022993611328
+            },
+            "lt_value_per_user": {
+              "confidence_interval": [
+                -0.006680652595624413,
+                0.032874679501163816
+              ],
+              "control_mean": 6.467866855162559,
+              "p_value": 0.19430930019851794,
+              "relative_lift": 0.002024935538417253,
+              "standard_error": 0.010090645943058222,
+              "treatment_mean": 6.480963868615329
+            },
+            "negative_rate": {
+              "confidence_interval": [
+                -3.864219046057239e-05,
+                4.786884525155704e-05
+              ],
+              "control_mean": 0.0017747670740523118,
+              "p_value": 0.8344172250451729,
+              "relative_lift": 0.0025993987960114405,
+              "standard_error": 2.2069141763298323e-05,
+              "treatment_mean": 0.0017793804014478041
+            },
+            "organic_opportunity_cost_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "poi_candidate_fraction": {
+              "confidence_interval": [
+                -0.0004921784691810647,
+                0.00018389414369371333
+              ],
+              "control_mean": 0.2602749385532742,
+              "p_value": 0.3714577404679503,
+              "relative_lift": -0.0005922282168251291,
+              "standard_error": 0.00017246750328438212,
+              "treatment_mean": 0.26012079639053054
+            },
+            "quality_long_view_rate": {
+              "confidence_interval": [
+                2.2605928814731783e-05,
+                0.0003253542956267627
+              ],
+              "control_mean": 0.02648557086101458,
+              "p_value": 0.024277905483053055,
+              "relative_lift": 0.006568863972527667,
+              "standard_error": 7.723172622755892e-05,
+              "treatment_mean": 0.026659550973235326
+            },
+            "stay_per_exposure": {
+              "confidence_interval": [
+                0.0008559257344694111,
+                0.021267885493714445
+              ],
+              "control_mean": 5.930898888798339,
+              "p_value": 0.03363874558466542,
+              "relative_lift": 0.001865131377468683,
+              "standard_error": 0.0052071325916441405,
+              "treatment_mean": 5.941960794412431
+            }
+          },
+          "treatment": "continue_local_intent_quality_rank_v4",
+          "treatment_performance": {
+            "peak_gpu_memory_bytes": 177552896,
+            "requests_per_second": 3228696.65978893,
+            "seconds": 8.922273919000872,
+            "users_per_second": 112079.05171689476
+          }
+        }
+      ]
+    },
+    {
+      "config": {
+        "batch_users": 25000,
+        "candidates": 20,
+        "catalog_items": 200000,
+        "count_inactive_play_bug": false,
+        "device": "cuda:0",
+        "seed": 20260824,
+        "steps": 48,
+        "topics": 12,
+        "users": 1000000
+      },
+      "launches": [
+        {
+          "control": "revert_to_local_search_retarget_v3",
+          "control_performance": {
+            "peak_gpu_memory_bytes": 177552896,
+            "requests_per_second": 3168051.766457304,
+            "seconds": 9.091871636999713,
+            "users_per_second": 109988.35442533773
+          },
+          "decision": "hold_underpowered_or_neutral",
+          "known_dgp_effect": {
+            "accepted_platform_commercialization_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "accepted_platform_commercialization_per_user": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "active_days_per_user": {
+              "absolute_effect": -3.399999999997849e-05,
+              "relative_effect": -5.1354241558236457e-05
+            },
+            "ad_contribution_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "ad_load": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "ads_live_value_tree_score_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "anchor_click_rate": {
+              "absolute_effect": 0.0004962211135439328,
+              "relative_effect": 0.029410620991865758
+            },
+            "coarse_feed_oracle_recall": {
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0
+            },
+            "coarse_pass_fraction": {
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0
+            },
+            "conversion_rate": {
+              "absolute_effect": 4.265764161525678e-05,
+              "relative_effect": 0.041166289188792206
+            },
+            "effective_ad_load": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "feed_value_tree_score_per_exposure": {
+              "absolute_effect": 0.0003619001747877937,
+              "relative_effect": 0.00355568677906344
+            },
+            "fine_oracle_regret_per_exposure": {
+              "absolute_effect": -0.000324873066226819,
+              "relative_effect": -0.013658187210662353
+            },
+            "local_commercialization_value_per_exposure": {
+              "absolute_effect": 0.00023076144128989385,
+              "relative_effect": 0.04308873266550702
+            },
+            "local_value_tree_score_per_exposure": {
+              "absolute_effect": 0.0010636918426391029,
+              "relative_effect": 0.03451565947388446
+            },
+            "long_view_rate": {
+              "absolute_effect": 0.0008922020816121146,
+              "relative_effect": 0.00450636423734126
+            },
+            "lt_active_days_per_user": {
+              "absolute_effect": -0.00017000000000022553,
+              "relative_effect": -5.1354241558337064e-05
+            },
+            "lt_stay_per_user": {
+              "absolute_effect": 0.007438740885417072,
+              "relative_effect": 0.002347691605992877
+            },
+            "lt_value_per_exposure": {
+              "absolute_effect": 0.0002428656971815435,
+              "relative_effect": 0.0010797226019096879
+            },
+            "lt_value_per_user": {
+              "absolute_effect": 0.0072687509765625435,
+              "relative_effect": 0.0011219157360558088
+            },
+            "negative_rate": {
+              "absolute_effect": -2.7169788261477857e-06,
+              "relative_effect": -0.0014582792128673115
+            },
+            "organic_opportunity_cost_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "poi_candidate_fraction": {
+              "absolute_effect": 1.6200717334879933e-06,
+              "relative_effect": 5.7002451327762726e-06
+            },
+            "quality_long_view_rate": {
+              "absolute_effect": 0.00017732172201793267,
+              "relative_effect": 0.005931086347939141
+            },
+            "stay_per_exposure": {
+              "absolute_effect": 0.015216654375706185,
+              "relative_effect": 0.0023054468104806197
+            }
+          },
+          "launch_id": "L-LOCAL-REVERSE-001",
+          "lt_exchange_sensitivity": {
+            "0": {
+              "absolute_lift": 0.017968364488043065,
+              "confidence_interval": [
+                -0.001826974183455194,
+                0.03776370315954132
+              ],
+              "control_mean": 6.473723696301693,
+              "exchange_rate": 0.0,
+              "known_absolute_effect": 0.0072687509765625435,
+              "known_relative_effect": 0.0011219157360558088,
+              "p_value": 0.07522247966156868,
+              "relative_lift": 0.0027755840890008984,
+              "standard_error": 0.010099662587499112,
+              "treatment_mean": 6.491692060789736
+            },
+            "0.1": {
+              "absolute_lift": 0.017968364488043065,
+              "confidence_interval": [
+                -0.001826974183455194,
+                0.03776370315954132
+              ],
+              "control_mean": 6.473723696301693,
+              "exchange_rate": 0.1,
+              "known_absolute_effect": 0.0072687509765625435,
+              "known_relative_effect": 0.0011219157360558088,
+              "p_value": 0.07522247966156868,
+              "relative_lift": 0.0027755840890008984,
+              "standard_error": 0.010099662587499112,
+              "treatment_mean": 6.491692060789736
+            },
+            "0.25": {
+              "absolute_lift": 0.017968364488043065,
+              "confidence_interval": [
+                -0.001826974183455194,
+                0.03776370315954132
+              ],
+              "control_mean": 6.473723696301693,
+              "exchange_rate": 0.25,
+              "known_absolute_effect": 0.0072687509765625435,
+              "known_relative_effect": 0.0011219157360558088,
+              "p_value": 0.07522247966156868,
+              "relative_lift": 0.0027755840890008984,
+              "standard_error": 0.010099662587499112,
+              "treatment_mean": 6.491692060789736
+            },
+            "1": {
+              "absolute_lift": 0.017968364488043065,
+              "confidence_interval": [
+                -0.001826974183455194,
+                0.03776370315954132
+              ],
+              "control_mean": 6.473723696301693,
+              "exchange_rate": 1.0,
+              "known_absolute_effect": 0.0072687509765625435,
+              "known_relative_effect": 0.0011219157360558088,
+              "p_value": 0.07522247966156868,
+              "relative_lift": 0.0027755840890008984,
+              "standard_error": 0.010099662587499112,
+              "treatment_mean": 6.491692060789736
+            }
+          },
+          "metrics": {
+            "accepted_platform_commercialization_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "accepted_platform_commercialization_per_user": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "active_days_per_user": {
+              "confidence_interval": [
+                -0.0007717658028220786,
+                0.00595455177739841
+              ],
+              "control_mean": 0.6607723890223245,
+              "p_value": 0.13098573556859264,
+              "relative_lift": 0.003921763424652743,
+              "standard_error": 0.0017158973418929819,
+              "treatment_mean": 0.6633637820096127
+            },
+            "ad_contribution_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "ad_load": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "ads_live_value_tree_score_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "anchor_click_rate": {
+              "confidence_interval": [
+                0.00014014429406724224,
+                0.0004386013996808257
+              ],
+              "control_mean": 0.014735279241589586,
+              "p_value": 0.0001442964157211786,
+              "relative_lift": 0.019638097258265298,
+              "standard_error": 7.613701673815906e-05,
+              "treatment_mean": 0.01502465208846362
+            },
+            "coarse_feed_oracle_recall": {
+              "confidence_interval": [
+                -0.0022045245232317438,
+                6.02644978914494e-05
+              ],
+              "control_mean": 0.9086420296260447,
+              "p_value": 0.06349754848465881,
+              "relative_lift": -0.0011799256227574973,
+              "standard_error": 0.000577752301306937,
+              "treatment_mean": 0.9075698996133745
+            },
+            "coarse_pass_fraction": {
+              "confidence_interval": [
+                -0.0022045245232317438,
+                6.02644978914494e-05
+              ],
+              "control_mean": 0.9086420296260447,
+              "p_value": 0.06349754848465881,
+              "relative_lift": -0.0011799256227574973,
+              "standard_error": 0.000577752301306937,
+              "treatment_mean": 0.9075698996133745
+            },
+            "conversion_rate": {
+              "confidence_interval": [
+                1.3755537269201343e-05,
+                6.510765455928923e-05
+              ],
+              "control_mean": 0.0008853147515231524,
+              "p_value": 0.00261214478102401,
+              "relative_lift": 0.04453963502404612,
+              "standard_error": 1.3100029920940788e-05,
+              "treatment_mean": 0.0009247463474373977
+            },
+            "effective_ad_load": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "feed_value_tree_score_per_exposure": {
+              "confidence_interval": [
+                -0.00019180198161307036,
+                0.000556778367104254
+              ],
+              "control_mean": 0.090053312096636,
+              "p_value": 0.3392673842044978,
+              "relative_lift": 0.0020264462072173885,
+              "standard_error": 0.0001909643746727868,
+              "treatment_mean": 0.09023580028938159
+            },
+            "fine_oracle_regret_per_exposure": {
+              "confidence_interval": [
+                -0.00039339396626080614,
+                -0.00023519674236039556
+              ],
+              "control_mean": 0.02217230426707853,
+              "p_value": 6.80856422504875e-15,
+              "relative_lift": -0.014175132657604157,
+              "standard_error": 4.035643466847209e-05,
+              "treatment_mean": 0.02185800891276793
+            },
+            "local_commercialization_value_per_exposure": {
+              "confidence_interval": [
+                5.5266572889581364e-05,
+                0.0003461535589870875
+              ],
+              "control_mean": 0.004571537229653683,
+              "p_value": 0.006835094373986699,
+              "relative_lift": 0.04390428336368142,
+              "standard_error": 7.420586380038422e-05,
+              "treatment_mean": 0.004772247295592017
+            },
+            "local_value_tree_score_per_exposure": {
+              "confidence_interval": [
+                0.00045124264119498076,
+                0.0012048087766098434
+              ],
+              "control_mean": 0.026655178197203828,
+              "p_value": 1.6523426848552077e-05,
+              "relative_lift": 0.03106434715147668,
+              "standard_error": 0.00019223625903440372,
+              "treatment_mean": 0.02748320390610624
+            },
+            "long_view_rate": {
+              "confidence_interval": [
+                3.797284218616786e-05,
+                0.0010408936203727794
+              ],
+              "control_mean": 0.1763595804825319,
+              "p_value": 0.03499467256360261,
+              "relative_lift": 0.003058712375043915,
+              "standard_error": 0.00025584713729250296,
+              "treatment_mean": 0.17689901371381136
+            },
+            "lt_active_days_per_user": {
+              "confidence_interval": [
+                -0.003858829014110724,
+                0.029772758886991716
+              ],
+              "control_mean": 3.3038619451116227,
+              "p_value": 0.1309857355686025,
+              "relative_lift": 0.003921763424652642,
+              "standard_error": 0.008579486709464908,
+              "treatment_mean": 3.316818910048063
+            },
+            "lt_stay_per_user": {
+              "confidence_interval": [
+                -0.0016589177231439234,
+                0.01168176647492853
+              ],
+              "control_mean": 3.169861718814058,
+              "p_value": 0.14087324390317765,
+              "relative_lift": 0.001580959934670977,
+              "standard_error": 0.0034032357648144016,
+              "treatment_mean": 3.1748731431899504
+            },
+            "lt_value_per_exposure": {
+              "confidence_interval": [
+                -0.0002528279518815075,
+                0.0009874503520072913
+              ],
+              "control_mean": 0.2010005659938944,
+              "p_value": 0.24567574112466578,
+              "relative_lift": 0.0018274137599893596,
+              "standard_error": 0.00031639752650224463,
+              "treatment_mean": 0.2013678771939573
+            },
+            "lt_value_per_user": {
+              "confidence_interval": [
+                -0.0018269338106092665,
+                0.03776374368940037
+              ],
+              "control_mean": 6.473723671737665,
+              "p_value": 0.07522182429994854,
+              "relative_lift": 0.002775590348077447,
+              "standard_error": 0.01009966262755348,
+              "treatment_mean": 6.491692076677061
+            },
+            "negative_rate": {
+              "confidence_interval": [
+                -3.333241180641251e-05,
+                5.2979703045026705e-05
+              ],
+              "control_mean": 0.0017724121955997778,
+              "p_value": 0.6554843719272291,
+              "relative_lift": 0.0055425287885602775,
+              "standard_error": 2.201839664577531e-05,
+              "treatment_mean": 0.001782235841219085
+            },
+            "organic_opportunity_cost_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "poi_candidate_fraction": {
+              "confidence_interval": [
+                -0.0006279750889022914,
+                4.2500397629277814e-05
+              ],
+              "control_mean": 0.2579807530554546,
+              "p_value": 0.0869856602147976,
+              "relative_lift": -0.0011347255257200565,
+              "standard_error": 0.00017103966493152274,
+              "treatment_mean": 0.2576880157098181
+            },
+            "quality_long_view_rate": {
+              "confidence_interval": [
+                -8.177786797570756e-05,
+                0.0002208185272068564
+              ],
+              "control_mean": 0.026551173831023248,
+              "p_value": 0.3677986114204084,
+              "relative_lift": 0.0026183523959435883,
+              "standard_error": 7.719295795473571e-05,
+              "treatment_mean": 0.026620694160638822
+            },
+            "stay_per_exposure": {
+              "confidence_interval": [
+                -0.004556390287525353,
+                0.015747803013462507
+              ],
+              "control_mean": 5.940881979914326,
+              "p_value": 0.2799965750110342,
+              "relative_lift": 0.0009418982538093231,
+              "standard_error": 0.0051796411482111894,
+              "treatment_mean": 5.946477686277294
+            }
+          },
+          "treatment": "continue_local_intent_quality_rank_v4",
+          "treatment_performance": {
+            "peak_gpu_memory_bytes": 177552896,
+            "requests_per_second": 3176114.900697108,
+            "seconds": 9.069172527000774,
+            "users_per_second": 110263.64279903115
+          }
+        }
+      ]
+    },
+    {
+      "config": {
+        "batch_users": 25000,
+        "candidates": 20,
+        "catalog_items": 200000,
+        "count_inactive_play_bug": false,
+        "device": "cuda:0",
+        "seed": 20260825,
+        "steps": 48,
+        "topics": 12,
+        "users": 1000000
+      },
+      "launches": [
+        {
+          "control": "revert_to_local_search_retarget_v3",
+          "control_performance": {
+            "peak_gpu_memory_bytes": 177552896,
+            "requests_per_second": 3230540.881649893,
+            "seconds": 8.913737066002795,
+            "users_per_second": 112186.39192466465
+          },
+          "decision": "pass_lt_value",
+          "known_dgp_effect": {
+            "accepted_platform_commercialization_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "accepted_platform_commercialization_per_user": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "active_days_per_user": {
+              "absolute_effect": -6.000000000061512e-06,
+              "relative_effect": -9.080026816438951e-06
+            },
+            "ad_contribution_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "ad_load": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "ads_live_value_tree_score_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "anchor_click_rate": {
+              "absolute_effect": 0.0005013911871655022,
+              "relative_effect": 0.029398370040633035
+            },
+            "coarse_feed_oracle_recall": {
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0
+            },
+            "coarse_pass_fraction": {
+              "absolute_effect": 0.0,
+              "relative_effect": 0.0
+            },
+            "conversion_rate": {
+              "absolute_effect": 4.665129317216101e-05,
+              "relative_effect": 0.0442541703529397
+            },
+            "effective_ad_load": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "feed_value_tree_score_per_exposure": {
+              "absolute_effect": 0.0003631942460142895,
+              "relative_effect": 0.0035616735316673764
+            },
+            "fine_oracle_regret_per_exposure": {
+              "absolute_effect": -0.0003286214093023085,
+              "relative_effect": -0.013814229623354745
+            },
+            "local_commercialization_value_per_exposure": {
+              "absolute_effect": 0.0002498299909565495,
+              "relative_effect": 0.045486035480669616
+            },
+            "local_value_tree_score_per_exposure": {
+              "absolute_effect": 0.001114521579278896,
+              "relative_effect": 0.03567366831617314
+            },
+            "long_view_rate": {
+              "absolute_effect": 0.0008971774207509609,
+              "relative_effect": 0.004516785215884402
+            },
+            "lt_active_days_per_user": {
+              "absolute_effect": -3.0000000000196536e-05,
+              "relative_effect": -9.08002681640535e-06
+            },
+            "lt_stay_per_user": {
+              "absolute_effect": 0.0075262486979164045,
+              "relative_effect": 0.0023730425622394326
+            },
+            "lt_value_per_exposure": {
+              "absolute_effect": 0.0002488128829654934,
+              "relative_effect": 0.0011064544686553667
+            },
+            "lt_value_per_user": {
+              "absolute_effect": 0.0074962443847654825,
+              "relative_effect": 0.001157628898280527
+            },
+            "negative_rate": {
+              "absolute_effect": -2.4567570293490028e-06,
+              "relative_effect": -0.0013155787468988104
+            },
+            "organic_opportunity_cost_per_exposure": {
+              "absolute_effect": 0.0,
+              "relative_effect": null
+            },
+            "poi_candidate_fraction": {
+              "absolute_effect": 1.6986481409797527e-06,
+              "relative_effect": 5.946666585977358e-06
+            },
+            "quality_long_view_rate": {
+              "absolute_effect": 0.00017056636012076354,
+              "relative_effect": 0.005694924483460334
+            },
+            "stay_per_exposure": {
+              "absolute_effect": 0.015343172140579675,
+              "relative_effect": 0.002321806006432458
+            }
+          },
+          "launch_id": "L-LOCAL-REVERSE-001",
+          "lt_exchange_sensitivity": {
+            "0": {
+              "absolute_lift": 0.023697851878551113,
+              "confidence_interval": [
+                0.003911476215062042,
+                0.043484227542040184
+              ],
+              "control_mean": 6.467346035038039,
+              "exchange_rate": 0.0,
+              "known_absolute_effect": 0.0074962443847654825,
+              "known_relative_effect": 0.001157628898280527,
+              "p_value": 0.018901737791137952,
+              "relative_lift": 0.003664231316859131,
+              "standard_error": 0.010095089624229118,
+              "treatment_mean": 6.49104388691659
+            },
+            "0.1": {
+              "absolute_lift": 0.023697851878551113,
+              "confidence_interval": [
+                0.003911476215062042,
+                0.043484227542040184
+              ],
+              "control_mean": 6.467346035038039,
+              "exchange_rate": 0.1,
+              "known_absolute_effect": 0.0074962443847654825,
+              "known_relative_effect": 0.001157628898280527,
+              "p_value": 0.018901737791137952,
+              "relative_lift": 0.003664231316859131,
+              "standard_error": 0.010095089624229118,
+              "treatment_mean": 6.49104388691659
+            },
+            "0.25": {
+              "absolute_lift": 0.023697851878551113,
+              "confidence_interval": [
+                0.003911476215062042,
+                0.043484227542040184
+              ],
+              "control_mean": 6.467346035038039,
+              "exchange_rate": 0.25,
+              "known_absolute_effect": 0.0074962443847654825,
+              "known_relative_effect": 0.001157628898280527,
+              "p_value": 0.018901737791137952,
+              "relative_lift": 0.003664231316859131,
+              "standard_error": 0.010095089624229118,
+              "treatment_mean": 6.49104388691659
+            },
+            "1": {
+              "absolute_lift": 0.023697851878551113,
+              "confidence_interval": [
+                0.003911476215062042,
+                0.043484227542040184
+              ],
+              "control_mean": 6.467346035038039,
+              "exchange_rate": 1.0,
+              "known_absolute_effect": 0.0074962443847654825,
+              "known_relative_effect": 0.001157628898280527,
+              "p_value": 0.018901737791137952,
+              "relative_lift": 0.003664231316859131,
+              "standard_error": 0.010095089624229118,
+              "treatment_mean": 6.49104388691659
+            }
+          },
+          "metrics": {
+            "accepted_platform_commercialization_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "accepted_platform_commercialization_per_user": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "active_days_per_user": {
+              "confidence_interval": [
+                0.0009694516648017298,
+                0.007688993500914392
+              ],
+              "control_mean": 0.6586125315729162,
+              "p_value": 0.011551667472381667,
+              "relative_lift": 0.006573246598449767,
+              "standard_error": 0.0017141688357430263,
+              "treatment_mean": 0.6629417541557743
+            },
+            "ad_contribution_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "ad_load": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "ads_live_value_tree_score_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "anchor_click_rate": {
+              "confidence_interval": [
+                0.0002256402631250178,
+                0.0005268577010946355
+              ],
+              "control_mean": 0.014853260529531613,
+              "p_value": 9.75836509093253e-07,
+              "relative_lift": 0.02533106999380771,
+              "standard_error": 7.684118315551473e-05,
+              "treatment_mean": 0.01522950951164144
+            },
+            "coarse_feed_oracle_recall": {
+              "confidence_interval": [
+                -0.001207506384949241,
+                0.0010592006963032522
+              ],
+              "control_mean": 0.9079700739751176,
+              "p_value": 0.8979602212212354,
+              "relative_lift": -8.166881976445681e-05,
+              "standard_error": 0.0005782416023603299,
+              "treatment_mean": 0.9078959211307946
+            },
+            "coarse_pass_fraction": {
+              "confidence_interval": [
+                -0.001207506384949241,
+                0.0010592006963032522
+              ],
+              "control_mean": 0.9079700739751176,
+              "p_value": 0.8979602212212354,
+              "relative_lift": -8.166881976445681e-05,
+              "standard_error": 0.0005782416023603299,
+              "treatment_mean": 0.9078959211307946
+            },
+            "conversion_rate": {
+              "confidence_interval": [
+                5.896179304702985e-06,
+                5.871396701507654e-05
+              ],
+              "control_mean": 0.0009067614027555968,
+              "p_value": 0.016502910660210767,
+              "relative_lift": 0.03562687280437441,
+              "standard_error": 1.3473925436319785e-05,
+              "treatment_mean": 0.0009390664759154866
+            },
+            "effective_ad_load": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "feed_value_tree_score_per_exposure": {
+              "confidence_interval": [
+                -0.0006191645940237442,
+                0.00012274766549710023
+              ],
+              "control_mean": 0.09045452707152578,
+              "p_value": 0.18970743818263766,
+              "relative_lift": -0.002744013730424507,
+              "standard_error": 0.0001892633315104195,
+              "treatment_mean": 0.09020631860726246
+            },
+            "fine_oracle_regret_per_exposure": {
+              "confidence_interval": [
+                -0.00035047061481078873,
+                -0.00019234705543507108
+              ],
+              "control_mean": 0.022140563808237874,
+              "p_value": 1.715084383848715e-11,
+              "relative_lift": -0.012258442805415208,
+              "standard_error": 4.033764269788716e-05,
+              "treatment_mean": 0.021869154973114945
+            },
+            "local_commercialization_value_per_exposure": {
+              "confidence_interval": [
+                -3.545523830130674e-06,
+                0.00030613539558537573
+              ],
+              "control_mean": 0.004742247863691778,
+              "p_value": 0.055477190964789265,
+              "relative_lift": 0.03190363309264932,
+              "standard_error": 7.900023454477204e-05,
+              "treatment_mean": 0.0048935427995694
+            },
+            "local_value_tree_score_per_exposure": {
+              "confidence_interval": [
+                0.00047021483599589555,
+                0.001250711196648163
+              ],
+              "control_mean": 0.02705549894400329,
+              "p_value": 1.5488207073751336e-05,
+              "relative_lift": 0.03180362772473455,
+              "standard_error": 0.0001991062144521091,
+              "treatment_mean": 0.02791596196032532
+            },
+            "long_view_rate": {
+              "confidence_interval": [
+                -5.462695453427942e-05,
+                0.0009522174113816763
+              ],
+              "control_mean": 0.17686865625853068,
+              "p_value": 0.080582190458967,
+              "relative_lift": 0.002537449189231641,
+              "standard_error": 0.00025684805252958057,
+              "treatment_mean": 0.17731745148695438
+            },
+            "lt_active_days_per_user": {
+              "confidence_interval": [
+                0.0048472583240087574,
+                0.038444967504572075
+              ],
+              "control_mean": 3.293062657864581,
+              "p_value": 0.011551667472381255,
+              "relative_lift": 0.006573246598449801,
+              "standard_error": 0.008570844178715132,
+              "treatment_mean": 3.3147087707788714
+            },
+            "lt_stay_per_user": {
+              "confidence_interval": [
+                -0.004632877448764738,
+                0.008736424707858525
+              ],
+              "control_mean": 3.1742833332375064,
+              "p_value": 0.5474414024910841,
+              "relative_lift": 0.0006463738154886931,
+              "standard_error": 0.00341053626444471,
+              "treatment_mean": 3.1763351068670533
+            },
+            "lt_value_per_exposure": {
+              "confidence_interval": [
+                0.00019196101398036812,
+                0.0014306194361188521
+              ],
+              "control_mean": 0.20062707306630262,
+              "p_value": 0.01024342686258862,
+              "relative_lift": 0.004043772421389497,
+              "standard_error": 0.00031598429136185815,
+              "treatment_mean": 0.20143836329135223
+            },
+            "lt_value_per_user": {
+              "confidence_interval": [
+                0.00391155010178534,
+                0.04348430112635848
+              ],
+              "control_mean": 6.467346030162009,
+              "p_value": 0.018901366289981493,
+              "relative_lift": 0.0036642427208241203,
+              "standard_error": 0.010095089547084986,
+              "treatment_mean": 6.491043955776081
+            },
+            "negative_rate": {
+              "confidence_interval": [
+                -3.826303468627312e-05,
+                4.3497362499418036e-05
+              ],
+              "control_mean": 0.0017733294820132203,
+              "p_value": 0.9001436749734841,
+              "relative_lift": 0.0014758475134588357,
+              "standard_error": 2.0857244180023254e-05,
+              "treatment_mean": 0.0017759466459197927
+            },
+            "organic_opportunity_cost_per_exposure": {
+              "confidence_interval": [
+                0.0,
+                0.0
+              ],
+              "control_mean": 0.0,
+              "p_value": 1.0,
+              "relative_lift": null,
+              "standard_error": 0.0,
+              "treatment_mean": 0.0
+            },
+            "poi_candidate_fraction": {
+              "confidence_interval": [
+                -0.00030437232705618467,
+                0.0003697912640403809
+              ],
+              "control_mean": 0.25905010874751017,
+              "p_value": 0.8491579884774987,
+              "relative_lift": 0.00012626695526300367,
+              "standard_error": 0.00017198050793279735,
+              "treatment_mean": 0.25908281821600226
+            },
+            "quality_long_view_rate": {
+              "confidence_interval": [
+                -0.0001483466150376764,
+                0.00015703511231136366
+              ],
+              "control_mean": 0.026639752030272253,
+              "p_value": 0.9555294280173389,
+              "relative_lift": 0.00016307391419811317,
+              "standard_error": 7.790350187475512e-05,
+              "treatment_mean": 0.026644096278909096
+            },
+            "stay_per_exposure": {
+              "confidence_interval": [
+                -0.0036848975074451305,
+                0.016696227994372394
+              ],
+              "control_mean": 5.946389163315221,
+              "p_value": 0.21083747483646387,
+              "relative_lift": 0.001094053057206334,
+              "standard_error": 0.005199266709647328,
+              "treatment_mean": 5.9528948285586845
+            }
+          },
+          "treatment": "continue_local_intent_quality_rank_v4",
+          "treatment_performance": {
+            "peak_gpu_memory_bytes": 177552896,
+            "requests_per_second": 3157881.302521083,
+            "seconds": 9.119299062003847,
+            "users_per_second": 109657.55078332337
+          }
+        }
+      ]
+    }
+  ],
+  "suite": "local-intent-ranker-reverse-holdout-v1"
+}

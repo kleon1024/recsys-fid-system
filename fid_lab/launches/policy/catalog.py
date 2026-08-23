@@ -44,7 +44,7 @@ def policy_launches() -> tuple[PolicyLaunchSpec, ...]:
             "feed-strategy",
             _personalized("strategy_v1", fatigue_match_penalty=0.0),
             _personalized("strategy_v2", fatigue_match_penalty=0.12),
-            "hlt_rate",
+            "quality_long_view_rate",
             "no_weight_update_strategy_only",
         ),
         PolicyLaunchSpec(
@@ -83,7 +83,7 @@ def policy_launches() -> tuple[PolicyLaunchSpec, ...]:
             _personalized(
                 "value_v2", affinity_weight=0.85, quality_weight=0.60
             ),
-            "hlt_rate",
+            "quality_long_view_rate",
             "no_weight_update_value_tree_only",
         ),
         PolicyLaunchSpec(
@@ -95,7 +95,7 @@ def policy_launches() -> tuple[PolicyLaunchSpec, ...]:
             "feed-longterm",
             _personalized("longterm_v1"),
             _personalized("longterm_v2", fatigue_match_penalty=0.24),
-            "hlt_rate",
+            "quality_long_view_rate",
             "no_weight_update_constraint_only",
         ),
         PolicyLaunchSpec(

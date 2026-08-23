@@ -15,7 +15,14 @@ from ..contracts import PolicyLaunchSpec
 
 def _known_dgp_effect(control, treatment):
     report = {}
-    for name in ("stay_per_exposure", "lt_rate", "hlt_rate", "negative_rate"):
+    for name in (
+        "stay_per_exposure",
+        "long_view_rate",
+        "quality_long_view_rate",
+        "negative_rate",
+        "lt_value_per_exposure",
+        "local_value_tree_score_per_exposure",
+    ):
         zero = control["metrics"][name]
         one = treatment["metrics"][name]
         report[name] = {
@@ -28,12 +35,15 @@ def _known_dgp_effect(control, treatment):
 
 def _decision(spec, ab):
     negative = ab["negative_rate"]
-    hlt = ab["hlt_rate"]
+    quality_long_view = ab["quality_long_view_rate"]
     primary = ab[spec.primary_metric]
     if negative["relative_lift"] > 0.01 and negative["p_value"] < 0.05:
         return "reject_negative_guardrail"
-    if hlt["relative_lift"] < -0.01 and hlt["p_value"] < 0.05:
-        return "reject_hlt_guardrail"
+    if (
+        quality_long_view["relative_lift"] < -0.01
+        and quality_long_view["p_value"] < 0.05
+    ):
+        return "reject_quality_long_view_guardrail"
     if primary["relative_lift"] > 0.0 and primary["p_value"] < 0.05:
         return "pass_primary_metric"
     if primary["relative_lift"] < 0.0 and primary["p_value"] < 0.05:
@@ -51,7 +61,7 @@ def run_policy_launch(spec: PolicyLaunchSpec, config: TensorFeedConfig):
             "training": spec.training_mode,
             "shadow": "common_random_potential_worlds",
             "experiment": "stable_user_50_50",
-            "gate": "primary_plus_hlt_and_negative_guardrails",
+            "gate": "primary_plus_quality_view_negative_and_lt_guardrails",
             "review": "required",
         },
         "known_dgp_effect": _known_dgp_effect(control, treatment),

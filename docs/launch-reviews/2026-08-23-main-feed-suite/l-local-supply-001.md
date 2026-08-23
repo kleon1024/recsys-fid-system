@@ -4,42 +4,42 @@ Status: `pass_to_cluster_switchback`, not a viewer-level rollout.
 
 ## Change
 
-On the POI posting page, rank candidate POIs with author/history context and use
-the same recommendation to improve selection, submit, publish, and predicted
-content quality. Newly published videos mutate a copied supply catalog and then
-enter normal Fresh/Local recall before Feed distribution.
+Rank posting-page POIs with author and history context. Published videos mutate
+a copied supply catalog and enter ordinary Fresh and Local recall before Feed
+distribution.
 
 ## Posting funnel
 
 | Metric | Control | Treatment |
 |---|---:|---:|
-| Posting-page entry | 5.00% | 5.00% |
+| Posting-page entry | 5.33% | 5.33% |
 | POI selection | 1.67% | 2.67% |
-| Submit | 0.67% | 1.33% |
-| Publish | 0.67% | 1.00% |
-| Published videos | 2 | 3 |
-| Mean published quality | 0.500 | 0.636 |
+| Submit | 0.67% | 2.00% |
+| Publish | 0.67% | 1.67% |
+| Published videos | 2 | 5 |
+| Mean published quality | 0.470 | 0.726 |
+| Local supply Value Tree | 3.289 | 12.703 |
 
-Entry is unchanged, so the synthetic increment comes from ranking and downstream
-funnel quality rather than injecting more posting-page traffic.
+Entry is unchanged. The synthetic increment comes from candidate ranking and
+downstream funnel quality, not additional posting-page traffic.
 
-## Supply-to-distribution effect
+## Paired-world distribution effect
 
-| Metric | Paired-world relative effect |
+| Metric | Relative effect |
 |---|---:|
-| Feed stay | +1.20% |
-| LT | +1.56% |
-| HLT | +0.83% |
-| POI anchor clicks | +6.82% |
-| Local Service Value | +9.17% |
-| Long-term Feed Value | +0.81% |
+| Feed stay | +0.98% |
+| Long views | +1.75% |
+| Quality long views | +2.22% |
+| POI anchor clicks | +11.67% |
+| Local Value Tree | +9.83% |
+| Platform LT container | +0.61% |
 
 ## Experiment unit and decision
 
-Publishing supply changes the catalog seen by other viewers, violating viewer
-SUTVA. UID randomization is invalid. The next real experiment unit must be a
-city-day switchback or author cluster with contamination monitoring.
+Publishing supply changes the catalog seen by other viewers, so viewer SUTVA is
+violated and UID randomization is invalid. These paired worlds justify only the
+next experiment: city-time switchback or author cluster with contamination and
+platform-metric monitoring. Five treatment videos are not rollout evidence.
 
-Pass only to that cluster experiment: all paired-world Feed guardrails are
-positive, but three published treatment videos are not enough for a rollout
-claim or stable confidence interval.
+投稿供给会改变其他用户看到的候选集，因此不能用普通 UID A/B。当前结果只允许进入
+城市时段 switchback 或作者 cluster 实验，不能直接放量。

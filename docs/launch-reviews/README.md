@@ -6,7 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
-| [L-MODEL-001](2026-08-23-main-feed-suite/l-model-001.md) | Model | Pass initial synthetic gate |
+| [L-MODEL-001](2026-08-23-main-feed-suite/l-model-001.md) | Fine-rank model | Reject advanced candidates; LR remains authority |
 | [L-FEATURE-001](2026-08-23-main-feed-suite/l-feature-001.md) | Feature | Hold |
 | [L-STRATEGY-001](2026-08-23-main-feed-suite/l-strategy-001.md) | Strategy | Hold |
 | [L-ARCH-001](2026-08-23-main-feed-suite/l-arch-001.md) | Architecture | Pass parity and performance |
@@ -16,8 +16,14 @@ boundary that prevents it from being presented as company production evidence.
 | [L-CHAIN-001](2026-08-23-main-feed-suite/l-chain-001.md) | Chain diagnosis | Pass |
 | [L-PRODUCT-001](2026-08-23-main-feed-suite/l-product-001.md) | Product cooperation | Pass |
 | [L-VALUE-001](2026-08-23-main-feed-suite/l-value-001.md) | Business Value Tree | Hold |
-| [L-LONGTERM-001](2026-08-23-main-feed-suite/l-longterm-001.md) | Long-term value | Hold |
+| [L-LONGTERM-001](2026-08-23-main-feed-suite/l-longterm-001.md) | LT-oriented constraint | Hold |
 | [L-LOCAL-SUPPLY-001](2026-08-23-main-feed-suite/l-local-supply-001.md) | POI posting / supply | Pass to cluster switchback |
 | [L-LOCAL-VALUE-001](2026-08-23-main-feed-suite/l-local-value-001.md) | POI Feed Value Tree | Hold |
+| [L-LOCAL-LT-002](2026-08-23-main-feed-suite/l-local-lt-002.md) | Stable-catalog Local LT ladder | Hold; Local gains do not enter LT |
+| [L-LOCAL-SUPPLY-002](2026-08-23-main-feed-suite/l-local-supply-002.md) | Posting-supply switchback | Hold; estimator miss |
+| [L-QUEUE-LT-001](2026-08-23-main-feed-suite/l-queue-lt-001.md) | Organic/Live/Ads mixing | Calibration review required |
+| [L-LOCAL-SCALE-003](2026-08-23-main-feed-suite/l-local-scale-003.md) | 10M Local intent-ranker power review | Hold model; reject load expansion |
+| [L-COARSE-001](2026-08-23-main-feed-suite/l-coarse-001.md) | 100-candidate coarse pass-through ladder | Pass weak baseline; hold later changes |
+| [L-LOCAL-REVERSE-004](2026-08-23-main-feed-suite/l-local-reverse-004.md) | Post-ramp reverse holdout | Retain staged launch and holdout |
 
 Raw immutable evidence is under `reports/launches/`.

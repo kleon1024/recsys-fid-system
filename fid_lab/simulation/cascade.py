@@ -10,6 +10,7 @@ import numpy as np
 from .contracts import Catalog, SimulationConfig
 
 if TYPE_CHECKING:
+    from ..evolution.models.retrieval import RetrievalSnapshot
     from .experimentation.contracts import FeedParameters
 
 
@@ -31,6 +32,8 @@ class CascadeCandidateProvider:
         "fresh": 0.65,
         "long_tail": 0.60,
         "popular": 0.55,
+        "post_search": 0.95,
+        "retarget": 0.90,
     }
 
     def __init__(
@@ -38,10 +41,12 @@ class CascadeCandidateProvider:
         config: SimulationConfig,
         catalog: Catalog,
         parameters: FeedParameters | None = None,
+        retrieval_snapshot: RetrievalSnapshot | None = None,
     ) -> None:
         self.config = config
         self.catalog = catalog
         self.parameters = parameters
+        self.retrieval_snapshot = retrieval_snapshot
         self.route_limit = max(config.candidates * 2, 20)
         self.merge_limit = (
             parameters.recall_budget
@@ -59,6 +64,17 @@ class CascadeCandidateProvider:
 
     def _routes(self, state) -> dict[str, np.ndarray]:
         estimated = self.catalog.topics @ state.observed_interest
+        recall_model = self.parameters.recall_model if self.parameters else "two_tower_v1"
+        if recall_model == "two_tower_trained_v2":
+            if self.retrieval_snapshot is None:
+                raise ValueError("trained retrieval model requires a retrieval snapshot")
+            if len(self.retrieval_snapshot.item_embeddings) != len(self.catalog.topics):
+                raise ValueError("retrieval snapshot corpus does not match serving catalog")
+            ann_score = self.retrieval_snapshot.scores(state.observed_interest)
+        elif recall_model == "two_tower_v1":
+            ann_score = estimated
+        else:
+            raise ValueError(f"unsupported recall model: {recall_model}")
         if state.recent_item_ids:
             recent_vector = self.catalog.topics[list(state.recent_item_ids)].mean(axis=0)
             graph = self.catalog.topics @ recent_vector
@@ -74,13 +90,34 @@ class CascadeCandidateProvider:
             + 0.35 * (1.0 - self.catalog.popularity)
             + 0.20 * estimated
         )
+        search = np.where(
+            self.catalog.category == state.search_topic,
+            0.55 * estimated
+            + 0.25 * self.catalog.poi_quality
+            + 0.20 * (self.catalog.city == state.city),
+            -1.0,
+        )
+        if state.recent_poi_ids:
+            retarget = np.where(
+                np.isin(self.catalog.poi, np.asarray(state.recent_poi_ids)),
+                0.55 * self.catalog.poi_quality + 0.45 * estimated,
+                -1.0,
+            )
+        else:
+            retarget = np.where(
+                self.catalog.is_poi_video & (self.catalog.city == state.city),
+                0.6 * self.catalog.poi_quality + 0.4 * estimated,
+                -1.0,
+            )
         scores = {
-            "ann": estimated,
+            "ann": ann_score,
             "graph": graph,
             "geo": geo,
             "fresh": self.catalog.freshness,
             "long_tail": long_tail,
             "popular": self.catalog.popularity,
+            "post_search": search,
+            "retarget": retarget,
         }
         enabled = set(self.parameters.enabled_routes) if self.parameters else set(scores)
         unknown = enabled - set(scores)
@@ -111,6 +148,7 @@ class CascadeCandidateProvider:
         quality = self.catalog.quality[recalled_array]
         popularity = self.catalog.popularity[recalled_array]
         freshness = self.catalog.freshness[recalled_array]
+        poi_quality = self.catalog.poi_quality[recalled_array]
         route_score = np.asarray([merged[item] for item in recalled])
         model = self.parameters.coarse_model if self.parameters else "lr_v1"
         if model == "quality_only":
@@ -122,7 +160,8 @@ class CascadeCandidateProvider:
                 + 0.10 * popularity
                 + 0.10 * freshness
                 + 0.08 * same_city
-                + 0.06 * route_score
+                + 0.04 * route_score
+                + 0.02 * poi_quality
                 + 0.07 * estimated * quality
                 + 0.03 * same_city * freshness
             )
@@ -133,7 +172,8 @@ class CascadeCandidateProvider:
                 + 0.12 * popularity
                 + 0.10 * freshness
                 + 0.08 * same_city
-                + 0.06 * route_score
+                + 0.04 * route_score
+                + 0.02 * poi_quality
             )
         else:
             raise ValueError(f"unsupported coarse model: {model}")

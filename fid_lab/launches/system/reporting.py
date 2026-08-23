@@ -9,6 +9,9 @@ from pathlib import Path
 def _architecture(review):
     delta = review["distribution_relative_delta"]
     ab = review["ab"]
+    maximum_business_drift = max(
+        abs(value) for name, value in delta.items() if name != "negative_rate"
+    )
     rows = "\n".join(
         f"| {name} | {value * 100:+.4f}% | {ab[name]['p_value']:.4g} |"
         for name, value in delta.items()
@@ -29,9 +32,10 @@ Value Tree, or product parameter changes. Training is not applicable.
 |---|---:|---:|
 {rows}
 
-The stable user A/B is neutral on every business metric. Maximum non-negative
-business-distribution drift is below 0.1%; negative feedback moved 0.252%, also
-without a significant randomized effect.
+The stable user A/B is neutral on every business metric. Maximum business drift
+excluding negative feedback is {maximum_business_drift * 100:.3f}%; negative
+feedback moved {delta['negative_rate'] * 100:+.3f}%, also without a significant
+randomized effect.
 
 ## Performance and cost
 
@@ -50,10 +54,14 @@ GPU memory, so a production ramp would retain memory and P99 latency guardrails.
 
 def _bug(review):
     ab = review["ab"]
-    rows = "\n".join(
-        f"| {name} | {value['relative_lift'] * 100:+.4f}% | {value['p_value']:.4g} |"
-        for name, value in ab.items()
-    )
+    rows = []
+    for name, value in ab.items():
+        lift = value["relative_lift"]
+        rendered_lift = "n/a" if lift is None else f"{lift * 100:+.4f}%"
+        rows.append(
+            f"| {name} | {rendered_lift} | {value['p_value']:.4g} |"
+        )
+    rows = "\n".join(rows)
     return f"""# L-BUG-001 — Stop counting inactive users as plays
 
 Status: `{review['decision']}`. Synthetic measurement-chain fix.
@@ -68,7 +76,7 @@ The observed play rate could therefore exceed one.
 
 Mask play by active state before aggregation. The broken metric reproduced at
 {review['bug_play_rate']:.6f}; the fixed metric is {review['fixed_play_rate']:.6f}.
-Underlying stay/LT/HLT trajectories are exactly identical in shadow replay:
+Underlying stay/long-view/quality-view trajectories are exactly identical in shadow replay:
 `{review['shadow_business_metrics_identical']}`.
 
 ## Randomized safety check
@@ -97,4 +105,3 @@ def render_system_suite(input_path: Path, output_dir: Path):
         path.write_text(renderers[review["launch_id"]](review))
         paths.append(path)
     return paths
-

@@ -34,5 +34,5 @@ class PolicyLaunchSpec:
     primary_metric: str
     training_mode: str
     product_dependency: str = "none"
-    short_term_value: str = "stay and LT"
-    long_term_value: str = "HLT, negative feedback, and return behavior"
+    short_term_value: str = "stay and long-view behavior"
+    long_term_value: str = "LT container, quality view, negative feedback, and return"

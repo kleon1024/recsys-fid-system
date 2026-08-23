@@ -11,22 +11,25 @@ Value Tree, or product parameter changes. Training is not applicable.
 
 | Metric | Full-world distribution delta | randomized p-value |
 |---|---:|---:|
-| stay_per_exposure | -0.0106% | 0.8148 |
-| lt_rate | -0.0811% | 0.7985 |
-| hlt_rate | +0.0627% | 0.2133 |
-| negative_rate | +0.2520% | 0.6778 |
+| stay_per_exposure | -0.0214% | 0.4183 |
+| long_view_rate | -0.0190% | 0.2115 |
+| quality_long_view_rate | +0.0126% | 0.7513 |
+| lt_value_per_exposure | +0.0596% | 0.2458 |
+| local_value_tree_score_per_exposure | +0.8882% | 0.06208 |
+| negative_rate | -0.5985% | 0.2863 |
 
-The stable user A/B is neutral on every business metric. Maximum non-negative
-business-distribution drift is below 0.1%; negative feedback moved 0.252%, also
-without a significant randomized effect.
+The stable user A/B is neutral on every business metric. Maximum business drift
+excluding negative feedback is 0.888%; negative
+feedback moved -0.599%, also without a significant
+randomized effect.
 
 ## Performance and cost
 
-- Control: 4,874,540 requests/s,
-  40.2 MiB.
-- Treatment: 13,136,748 requests/s,
-  90.6 MiB.
-- Throughput lift: +169.50%.
+- Control: 1,755,450 requests/s,
+  82.1 MiB.
+- Treatment: 4,504,427 requests/s,
+  168.3 MiB.
+- Throughput lift: +156.60%.
 
 ## Decision
 

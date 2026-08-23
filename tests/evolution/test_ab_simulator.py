@@ -7,6 +7,7 @@ from fid_lab.evolution.evaluation.ab_simulator import (
     run_scenario_suite,
     simulate_experiment,
 )
+from fid_lab.simulation.ab import launch_decision
 
 
 class OnlineExperimentSimulatorTest(unittest.TestCase):
@@ -20,6 +21,15 @@ class OnlineExperimentSimulatorTest(unittest.TestCase):
         report = run_scenario_suite(users=200_000)
         self.assertTrue(report["all_truth_covered"])
         self.assertEqual(set(report["reports"]), {"product", "model", "strategy"})
+
+    def test_primary_regression_precedes_underpowered_lt_risk(self) -> None:
+        metrics = {
+            "negative_feedback": {"absolute_lift": 0.0, "p_value": 1.0},
+            "quality_long_view_rate": {"relative_lift": 0.01, "p_value": 0.2},
+            "stay_per_exposure": {"absolute_lift": -0.1, "p_value": 0.01},
+            "lt_value": {"relative_lift": -0.02, "p_value": 0.3},
+        }
+        self.assertEqual(launch_decision(metrics), "reject_primary_regression")
 
 
 if __name__ == "__main__":

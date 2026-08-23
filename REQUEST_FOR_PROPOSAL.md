@@ -347,7 +347,10 @@ The awarded contract must state ownership explicitly. At minimum:
 - no confidential third-party code, data, prompts, schemas, or documents may enter the project;
 - generated outputs remain subject to human review and repository governance.
 
-Publication of this repository does not itself grant a reusable software license. Bidders must treat the current source as evaluation material unless and until the owner adds an explicit `LICENSE` file or a contract grants rights.
+Repository source is available under the MIT License. Bidder submissions,
+third-party assets, datasets, models, infrastructure and background IP retain
+their separately declared licenses and commercial terms; the MIT License does
+not override those rights.
 
 ## 12. Public repository boundary
 

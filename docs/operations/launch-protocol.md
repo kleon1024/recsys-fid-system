@@ -53,11 +53,17 @@ cross-layer assignment is orthogonal. Reports include effect size, confidence
 interval, p-value, CUPED/MDE where applicable, trigger and exposure rates, SRM,
 known DGP truth only in simulation, and interaction slices for overlapping tests.
 
-Primary Feed metrics are stay/exposure and LT. HLT, negative feedback, return,
+Primary Feed metrics are stay/exposure and long-view behavior. Quality long-view,
+negative feedback, return, unified LT value,
 calibration, candidate coverage, latency, memory, and safety are guardrails.
 Business launches additionally report Value Tree and Local Service value, but
 those metrics cannot compensate for a failed main-Feed guardrail unless the
 trade-off was predeclared and approved.
+
+Business Value Trees are never additive LT terms. A Local, Ads, Live, or
+E-commerce outcome can enter LT only after the central platform accepts a
+versioned experiment-derived exchange rate. A synthetic or business-proposed
+rate may be shown as sensitivity analysis but must force `hold`, not `pass`.
 
 Valid decisions are pass, staged ramp, hold, reject, and rollback. An offline
 AUC improvement, lower training loss, or significant p-value alone is never a

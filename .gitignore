@@ -2,3 +2,13 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.pyc
+.DS_Store
+.coverage
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+htmlcov/
+artifacts/
+checkpoints/

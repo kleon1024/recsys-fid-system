@@ -15,8 +15,10 @@ from ...feed_loop.scale.tensor_engine import (
 def _distribution_delta(control, treatment):
     names = (
         "stay_per_exposure",
-        "lt_rate",
-        "hlt_rate",
+        "long_view_rate",
+        "quality_long_view_rate",
+        "lt_value_per_exposure",
+        "local_value_tree_score_per_exposure",
         "negative_rate",
         "play_rate",
     )

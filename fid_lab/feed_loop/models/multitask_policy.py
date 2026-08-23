@@ -1,4 +1,4 @@
-"""MMoE Feed policy for LT, HLT, and negative-feedback ranking."""
+"""MMoE Feed policy for long-view, quality-view, and negative-feedback ranking."""
 
 from __future__ import annotations
 

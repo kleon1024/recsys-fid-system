@@ -9,30 +9,32 @@ All numbers below are deterministic synthetic evidence, not TikTok metrics.
 The evaluated loop is six-route recall, RRF merge, coarse Top 20, rank policy,
 exposure, multi-action response, within-session state update, leave/return,
 point-in-time Joiner, retraining, shadow replay, and user-level A/B. Actions are
-play, 3-second play, slide, stay, LT, HLT, like, favorite, comment, share, and
-negative feedback. POI events are logged but do not decide this review.
+play, 3-second play, slide, stay, long view, quality long view, like, favorite,
+comment, share, and negative feedback. Platform LT is computed separately from
+stay, active-day, and accepted commercialization. POI events are logged but do
+not enter LT directly.
 
 The semantic run used 300 logging users, 2,000 items, 4,345 main-Feed exposures,
 fresh experiment users, and common-random-number potential trajectories. Its
 main distribution was 94.84% play, 81.77% 3-second play, 13.07% slide, 31.14%
-LT, 9.80% HLT, 9.11% like, 4.14% favorite, and 0.35% negative feedback. The
-analytic/sampled LT probability gap was 0.68 percentage points.
+long view, 9.80% quality long view, 9.11% like, 4.14% favorite, and 0.35%
+negative feedback. The analytic/sampled long-view probability gap was 0.68
+percentage points.
 
 ## Iteration decisions
 
 | Iteration | Offline/online result | Decision | Interpretation |
 |---|---|---|---|
-| Popular → quality/affinity rule | true stay/exposure +5.74%; observed p=0.027 | Pass initial baseline | A deliberately weak cold-start baseline leaves large algorithmic headroom. |
-| Rule → basic LR | true stay/exposure +3.18%; observed underpowered; HLT risk | Hold | LR demonstrates algorithmic impact, but this sample cannot clear the HLT guardrail. |
-| Basic LR → LR + sequence | true stay/exposure -1.57%; long-term value negative | Hold | Adding a feature is not automatically useful; current short history is noisy. |
-| Sequence LR → full LR | true stay/exposure -7.04% | Hold | Extra feature surface changes candidate ordering without improving value. |
-| LR → XGBoost | true stay/exposure -2.73%; observed p=0.046 | Reject | Nonlinear offline fit does not compensate for policy/state distribution shift. |
+| LR fine rank | AUC 0.7175; candidate regret 0.0625 | Keep authority | The simplest model generalizes best on the current DGP and sample. |
+| LR → W&D | stay truth -4.49%; quality view -24.11% | Reject | More capacity worsens held-out candidate ordering. |
+| LR → DeepFM | stay truth -4.20%; quality view -23.26% | Reject | Automatic second-order crosses do not match this sample regime. |
+| LR → DCNv2 | stay truth -4.23%; quality view -22.31% | Reject | Positive composite LT cannot override hard Feed guardrails. |
+| LR → MMoE | quality view +5.40%, but stay -5.58% and platform LT -1.46% | Reject | One task head improves while overall user value regresses. |
 
-The first model-ladder implementation incorrectly treated total per-user stay as
-the sole launch metric. W&D/DCNv2 appeared to gain roughly 15%-17% total stay
-while HLT and long-term value regressed. The gate now uses exposure-normalized
-stay, LT/HLT rates, negative feedback, and long-term value. Re-evaluation rejects
-W&D, DeepFM, and DCNv2 on the HLT guardrail.
+The first model-ladder implementation also overloaded LT as long view and is
+superseded. The corrected ladder uses exposure-normalized stay, long view,
+quality long view, negative feedback, and the separate platform LT container.
+W&D, DeepFM, and DCNv2 fail the quality-view guardrail in the current run.
 
 The first deep model also embedded `user_id % 1024`. Because the experiment uses
 fresh users, this mapped unseen users onto unrelated learned embeddings. Removing
@@ -40,14 +42,11 @@ raw UID from the cold-user model improved deep-model AUC but did not clear the
 business gate. The durable follow-up is separate warm-user temporal evaluation
 and cold-user OOV handling, not another hash tweak.
 
-The initial MMoE run used a record-index split that was incorrectly described as
-temporal and was rejected. After correcting the authority to session 0 train,
-session 1 validation, sessions 2-3 warm-user test, plus a disjoint fresh-user
-A/B, MMoE warm GAUC reached 0.668. In fresh-user DGP truth it produced
-stay/exposure +2.89%, LT +5.17%, HLT +7.66%, long-term Value +14.25%, and lower
-negative feedback. The observed stay p-value was 0.0038 and shadow replay delta
-was zero. Decision: pass the synthetic initial-model gate. This is not a claim
-that an advanced model should generate a multi-percent mature production lift.
+After correcting the authority to session 0 train, session 1 validation,
+sessions 2–3 warm-user test, and a disjoint fresh-user A/B, the current MMoE
+reaches GAUC 0.6823. It improves quality long view but has known stay -5.58%
+and platform LT -1.46%, so it is rejected. LR remains the fine-rank authority
+for this DGP and sample size.
 
 ## Scale and experiment evidence
 
@@ -58,13 +57,10 @@ allocated GPU memory. User state, 20 candidates, response draws, and transitions
 remain device-resident. This is a throughput/DGP benchmark, not proof of ranking
 quality or C++ serving latency.
 
-A scoped industrial-size launch then enabled personalized ranking for only 1%
-of users inside treatment. With stable 50/50 user assignment over one million
-users, the observed ITT was stay/exposure +0.745% (absolute 95% CI +0.0223 to
-+0.0291 seconds), LT rate +2.12%, HLT rate +2.31%, and negative rate -0.72%
-(not significant). The model effect comes from changed candidate choices and
-state transitions; it was not added to the outcome. The tiny stay p-value is a
-consequence of scale and must not replace effect-size and guardrail review.
+A scoped industrial-size tensor launch changes candidate choices and state
+transitions for a small eligible population; it never injects an outcome lift.
+Current scale evidence is reported in the Local, coarse, queue, and reverse
+holdout Launch Reviews with long-view terminology separated from platform LT.
 
 The vectorized A/B layer uses one million users, stable 50/50 assignment, known
 potential outcomes, and CUPED with a 0.65 pre/post correlation. CUPED reduced
@@ -88,7 +84,7 @@ received 24.997% and 24.996%; the remaining 50.007% stayed on layer default.
 Resolved simulator failures:
 
 - hidden true affinity was removed from online features;
-- LT probability was aligned with the sampled stay distribution;
+- long-view probability was aligned with the sampled stay distribution;
 - total-stay-only gating was replaced by exposure-normalized multi-metric gates;
 - inactive tensor users no longer count as plays;
 - the CUPED target correlation no longer gets squared accidentally;
@@ -99,7 +95,7 @@ Resolved simulator failures:
 Open before any advanced model can pass:
 
 - build repeated-user chronological train/validation/test periods and report warm/cold slices;
-- calibrate LT, HLT, negative, and retention heads separately;
+- calibrate long-view, quality-view, negative, and retention heads separately;
 - handle the sparse negative task with an explicit sampling/masking protocol;
 - connect orthogonal parameter snapshots to every actual cascade stage and log them per request;
 - validate semantic and tensor-engine distributions with sliced statistical parity tests;

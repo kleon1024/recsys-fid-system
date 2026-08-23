@@ -6,6 +6,12 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from ..value import (
+    BusinessValueSignals,
+    BusinessValueTree,
+    LTMetricContainer,
+    LTMetricVector,
+)
 from .contracts import TraceRow, Trajectory
 from .environment import StatefulFeedEnv
 from .policies import ParameterizedPolicy
@@ -33,8 +39,24 @@ class _Accumulator:
     poi_favorites: int = 0
     orders: int = 0
     negative_feedback: int = 0
-    discounted_value: float = 0.0
-    local_service_value: float = 0.0
+    lt_value: float = 0.0
+    local_value_tree_score: float = 0.0
+    lt_components: dict[str, float] = field(
+        default_factory=lambda: {
+            "stay": 0.0,
+            "active_days": 0.0,
+            "accepted_commercialization": 0.0,
+        }
+    )
+    business_value_components: dict[str, float] = field(
+        default_factory=lambda: {
+            "feed": 0.0,
+            "local_consumption": 0.0,
+            "local_transaction": 0.0,
+            "local_supply": 0.0,
+            "ads_live": 0.0,
+        }
+    )
 
     def finish(self) -> Trajectory:
         return Trajectory(
@@ -58,8 +80,10 @@ class _Accumulator:
             self.poi_favorites,
             self.orders,
             self.negative_feedback,
-            self.discounted_value,
-            self.local_service_value,
+            self.lt_value,
+            self.local_value_tree_score,
+            dict(self.lt_components),
+            dict(self.business_value_components),
         )
 
 
@@ -79,6 +103,60 @@ def _selection(
     return action, propensities
 
 
+def _record_values(environment, item_id, response, returned, accumulator) -> None:
+    is_open_loop = int(environment.catalog.fulfillment[item_id]) == 2
+    margin = float(environment.catalog.commerce_value[item_id]) * 8.0
+    local_commercialization = (
+        margin
+        if (response.payment and not is_open_loop)
+        or (response.pixel_conversion and is_open_loop)
+        else 0.0
+    )
+    business_value = BusinessValueTree().evaluate(
+        BusinessValueSignals(
+            quality_view=int(response.high_quality_long_view),
+            meaningful_engagements=sum(
+                map(
+                    int,
+                    (
+                        response.high_quality_long_view,
+                        response.like,
+                        response.favorite,
+                        response.comment,
+                        response.share,
+                    ),
+                )
+            ),
+            negative_feedback=int(response.negative_feedback),
+            anchor_click=int(response.anchor_click),
+            poi_detail=int(response.poi_detail),
+            poi_favorite=int(response.poi_favorite),
+            closed_loop_payment=int(response.payment and not is_open_loop),
+            open_loop_verified_conversion=float(
+                response.pixel_conversion and is_open_loop
+            ),
+            contribution_margin=local_commercialization,
+        )
+    )
+    lt_value = LTMetricContainer().evaluate(
+        LTMetricVector(
+            stay_minutes=response.watch_minutes,
+            active_days=float(returned),
+            accepted_commercialization_value=0.0,
+        )
+    )
+    accumulator.lt_value += lt_value.total
+    accumulator.local_value_tree_score += (
+        business_value.local_consumption + business_value.local_transaction
+    )
+    for name in accumulator.lt_components:
+        accumulator.lt_components[name] += float(getattr(lt_value, name))
+    for name in accumulator.business_value_components:
+        accumulator.business_value_components[name] += float(
+            getattr(business_value, name)
+        )
+
+
 def _record_step(
     environment: StatefulFeedEnv,
     observation: np.ndarray,
@@ -89,6 +167,7 @@ def _record_step(
     session_id = environment.session_id
     request_index = environment.request_index
     candidate_ids = environment.candidates.copy()
+    query_embedding = tuple(float(value) for value in environment.observed_interest)
     action, propensities = _selection(
         scores,
         exploration_rate,
@@ -103,6 +182,7 @@ def _record_step(
     )
     next_observation, _, terminated, _, info = environment.step(action)
     response = info["response"]
+    item_id = int(info["item_id"])
     returned = bool(info["session_end"] and info["returned"])
     request_id = f"u{environment.user_id}-s{session_id}-r{request_index}"
     accumulator.rows.append(
@@ -126,6 +206,7 @@ def _record_step(
             response,
             returned,
             environment.parameter_snapshot,
+            query_embedding,
         )
     )
     accumulator.watch_minutes += response.watch_minutes
@@ -145,20 +226,7 @@ def _record_step(
     accumulator.poi_favorites += int(response.poi_favorite)
     accumulator.orders += int(response.payment)
     accumulator.negative_feedback += int(response.negative_feedback)
-    accumulator.discounted_value += (
-        response.watch_minutes
-        + 2.0 * response.anchor_click
-        + 1.0 * response.high_quality_long_view
-        + 1.5 * response.like
-        + 12.0 * response.payment
-        - 4.0 * response.negative_feedback
-    ) * (0.92**session_id)
-    accumulator.local_service_value += (
-        1.0 * response.anchor_click
-        + 2.0 * response.poi_detail
-        + 3.0 * response.poi_favorite
-        + 12.0 * response.payment
-    ) * (0.92**session_id)
+    _record_values(environment, item_id, response, returned, accumulator)
     if returned:
         accumulator.returned_sessions += 1
         accumulator.sessions += 1
@@ -166,12 +234,20 @@ def _record_step(
 
 
 def run_population(
-    config, catalog, policy, user_ids, explore: bool = False, parameters=None
+    config,
+    catalog,
+    policy,
+    user_ids,
+    explore: bool = False,
+    parameters=None,
+    retrieval_snapshot=None,
 ):
     """Batch model inference by request depth while preserving per-user dynamics."""
     users = [int(user_id) for user_id in user_ids]
     serving_policy = ParameterizedPolicy(policy, parameters) if parameters else policy
-    environments = [StatefulFeedEnv(config, catalog, parameters) for _ in users]
+    environments = [
+        StatefulFeedEnv(config, catalog, parameters, retrieval_snapshot) for _ in users
+    ]
     observations = []
     for environment, user_id in zip(environments, users):
         observation, _ = environment.reset(

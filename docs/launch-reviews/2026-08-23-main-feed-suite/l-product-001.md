@@ -9,8 +9,8 @@ Status: `pass_primary_metric`. Synthetic main-Feed experiment; not company produ
 - Hypothesis: Product eligibility expansion converts model value into overall ITT.
 - Change: Increase eligible trigger coverage from 0.5% to 1.0%.
 - Product dependency: Feed trigger eligibility and exposure logging
-- Short-term value: stay and LT
-- Long-term value: HLT, negative feedback, and return behavior
+- Short-term value: stay and long-view behavior
+- Long-term value: LT container, quality view, negative feedback, and return
 
 ## Training and artifacts
 
@@ -22,30 +22,33 @@ the randomized estimate uses stable user-level 50/50 assignment.
 
 | Metric | Observed relative lift | p-value | Known DGP effect |
 |---|---:|---:|---:|
-| stay_per_exposure | +0.3870% | 2.737e-14 | +0.3577% |
-| lt_rate | +1.0966% | 2.991e-07 | +0.9971% |
-| hlt_rate | +1.4428% | 0.008612 | +0.8091% |
-| negative_rate | -0.5165% | 0.5611 | -0.2279% |
+| stay_per_exposure | +0.2707% | 2.477e-06 | +0.3583% |
+| long_view_rate | +0.5874% | 0.009019 | +0.9981% |
+| quality_long_view_rate | +0.7577% | 0.1628 | +0.8266% |
+| negative_rate | +0.0970% | 0.9137 | -0.1971% |
+| lt_value_per_exposure | +0.1401% | 0.4842 | +0.1158% |
+| local_value_tree_score_per_exposure | -0.9953% | 0.5375 | +0.8698% |
 
-Primary metric `stay_per_exposure`: +0.3870%,
-p=2.737e-14. Absolute 95% confidence interval:
-[+0.00993257,
-+0.01682360].
+Primary metric `stay_per_exposure`: +0.2707%,
+p=2.477e-06. Absolute 95% confidence interval:
+[+0.00552381,
++0.01339772].
 
 ## Gate and review
 
-The primary metric cleared the randomized gate without a significant HLT or negative-feedback regression.
+The primary metric cleared the randomized gate without a significant quality-view or negative-feedback regression.
 
-The gate checks the declared primary metric, HLT regression, and negative feedback.
+The gate checks the declared primary metric, quality-view regression, LT value,
+and negative feedback.
 A low p-value alone is insufficient; effect size, DGP truth, product trigger rate,
 and long-term guardrails remain part of the decision.
 
 ## Performance
 
-- Control: 12,169,116 requests/s,
-  91.0 MiB peak.
-- Treatment: 12,948,561 requests/s,
-  91.0 MiB peak.
+- Control: 4,676,747 requests/s,
+  170.3 MiB peak.
+- Treatment: 4,781,019 requests/s,
+  170.3 MiB peak.
 
 ## Next action
 

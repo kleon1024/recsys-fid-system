@@ -7,6 +7,7 @@ from math import exp
 
 import numpy as np
 
+from ...value import BusinessValueSignals, BusinessValueTree
 from ..ab import experiment_metrics, launch_decision, randomization_audit
 from ..contracts import Catalog, PostingResponse, Trajectory
 from ..policies import LocalConstrainedValuePolicy
@@ -109,6 +110,12 @@ def apply_published_supply(
 
 def posting_summary(responses: list[PostingResponse]) -> dict[str, float | int]:
     users = len(responses)
+    published_quality = sum(
+        value.predicted_content_quality for value in responses if value.published
+    )
+    supply_tree = BusinessValueTree().evaluate(
+        BusinessValueSignals(quality_adjusted_supply=published_quality)
+    )
     return {
         "users": users,
         "entry_rate": sum(value.entered_posting_page for value in responses) / users,
@@ -116,6 +123,8 @@ def posting_summary(responses: list[PostingResponse]) -> dict[str, float | int]:
         "submit_rate": sum(value.submitted for value in responses) / users,
         "publish_rate": sum(value.published for value in responses) / users,
         "published_videos": sum(value.published for value in responses),
+        "published_quality_sum": published_quality,
+        "local_supply_value_tree_score": supply_tree.local_supply,
         "mean_published_quality": float(
             np.mean(
                 [
@@ -133,11 +142,11 @@ def _paired_world_effects(control_distribution, treatment_distribution):
     paired_world_effects = {}
     for metric, attribute in {
         "stay_seconds": "stay_seconds",
-        "lt_views": "long_views",
-        "hlt_views": "high_quality_long_views",
+        "long_views": "long_views",
+        "quality_long_views": "high_quality_long_views",
         "anchor_clicks": "anchor_clicks",
-        "local_service_value": "local_service_value",
-        "long_term_value": "discounted_value",
+        "local_value_tree_score": "local_value_tree_score",
+        "lt_value": "lt_value",
     }.items():
         control = np.asarray(
             [getattr(value, attribute) for value in control_distribution], dtype=float

@@ -1,0 +1,171 @@
+{
+  "assignment": "city-period alternating blocks",
+  "config": {
+    "block_periods": 2,
+    "cities": 100,
+    "periods": 28,
+    "seed": 20260823,
+    "users_per_city_period": 10000
+  },
+  "decision": "hold_estimator_miss",
+  "effective_user_periods": 15000000,
+  "estimator": "two-way fixed effects with city-clustered CR1 standard errors",
+  "estimator_calibration": {
+    "estimator": "two-way fixed effects with city-clustered CR1 standard errors",
+    "metrics": {
+      "active_days_per_user": {
+        "bias": -8.0694344299872e-06,
+        "coverage_rate": 0.952,
+        "mean_estimate": -2.631021187644689e-06,
+        "mean_known_dgp_effect": 5.43841324234251e-06,
+        "rmse": 0.0002443532445060486,
+        "significant_rate": 0.048
+      },
+      "local_commercialization_per_user": {
+        "bias": 1.2240275602244667e-07,
+        "coverage_rate": 0.962,
+        "mean_estimate": 0.0002721149723255382,
+        "mean_known_dgp_effect": 0.00027199256956951566,
+        "rmse": 7.002783515576117e-05,
+        "significant_rate": 0.96
+      },
+      "lt_value_per_user": {
+        "bias": -2.9473936794749633e-05,
+        "coverage_rate": 0.954,
+        "mean_estimate": 2.503023496283774e-05,
+        "mean_known_dgp_effect": 5.450417175758737e-05,
+        "rmse": 0.0012480953344035125,
+        "significant_rate": 0.042
+      },
+      "poi_video_vv_per_user": {
+        "bias": -7.414700987649847e-06,
+        "coverage_rate": 0.954,
+        "mean_estimate": 0.0005909689520650632,
+        "mean_known_dgp_effect": 0.0005983836530527129,
+        "rmse": 0.00021663174762944772,
+        "significant_rate": 0.752
+      },
+      "posting_penetration": {
+        "bias": 1.5712873146404086e-06,
+        "coverage_rate": 0.998,
+        "mean_estimate": 0.003124027938127727,
+        "mean_known_dgp_effect": 0.0031224566508130866,
+        "rmse": 6.453421164915612e-05,
+        "significant_rate": 1.0
+      },
+      "quality_adjusted_supply": {
+        "bias": 1.1668937420613451e-07,
+        "coverage_rate": 1.0,
+        "mean_estimate": 0.0027200423850696903,
+        "mean_known_dgp_effect": 0.0027199256956954845,
+        "rmse": 4.3377786753792494e-05,
+        "significant_rate": 1.0
+      },
+      "stay_seconds_per_user": {
+        "bias": 0.0006523941213146856,
+        "coverage_rate": 0.936,
+        "mean_estimate": 0.002291120454068093,
+        "mean_known_dgp_effect": 0.0016387263327534071,
+        "rmse": 0.0189379438119159,
+        "significant_rate": 0.06
+      }
+    },
+    "simulations": 500
+  },
+  "invariant": "Local supply and commercialization remain business metrics; only stay and active-day effects enter LT.",
+  "launch_id": "L-LOCAL-SUPPLY-SWITCHBACK-002",
+  "metrics": {
+    "active_days_per_user": {
+      "cities": 100,
+      "confidence_interval": [
+        -0.00014218243120452687,
+        0.00091486915855806
+      ],
+      "estimate": 0.0003863433636767666,
+      "known_dgp_effect": 5.411202522509484e-06,
+      "p_value": 0.15193596967783823,
+      "relative_effect": 1.5476432903652255e-05,
+      "standard_error": 0.0002696560177965783,
+      "truth_inside_confidence_interval": true
+    },
+    "local_commercialization_per_user": {
+      "cities": 100,
+      "confidence_interval": [
+        0.0001224780121174793,
+        0.00045744937771648533
+      ],
+      "estimate": 0.0002899636949169823,
+      "known_dgp_effect": 0.00026935757155659504,
+      "p_value": 0.0006905645458323806,
+      "relative_effect": 0.01433045607338669,
+      "standard_error": 8.545187897933827e-05,
+      "truth_inside_confidence_interval": true
+    },
+    "lt_value_per_user": {
+      "cities": 100,
+      "confidence_interval": [
+        0.00032108397561176087,
+        0.0058555503019164755
+      ],
+      "estimate": 0.0030883171387641184,
+      "known_dgp_effect": 5.13268460489158e-05,
+      "p_value": 0.02871186622735083,
+      "relative_effect": 2.0966222975030514e-05,
+      "standard_error": 0.00141185365466957,
+      "truth_inside_confidence_interval": false
+    },
+    "poi_video_vv_per_user": {
+      "cities": 100,
+      "confidence_interval": [
+        -0.0001146194426774335,
+        0.0007524312977859057
+      ],
+      "estimate": 0.0003189059275542361,
+      "known_dgp_effect": 0.0005925866574229277,
+      "p_value": 0.14935962356220192,
+      "relative_effect": 0.0036635607837334,
+      "standard_error": 0.0002211864133835049,
+      "truth_inside_confidence_interval": true
+    },
+    "posting_penetration": {
+      "cities": 100,
+      "confidence_interval": [
+        0.002905343675811285,
+        0.003277310046157179
+      ],
+      "estimate": 0.003091326860984232,
+      "known_dgp_effect": 0.003096405678319888,
+      "p_value": 8.346359951998623e-233,
+      "relative_effect": 0.21581529510935374,
+      "standard_error": 9.488938019027902e-05,
+      "truth_inside_confidence_interval": true
+    },
+    "quality_adjusted_supply": {
+      "cities": 100,
+      "confidence_interval": [
+        0.0025134456268808593,
+        0.002816012885848044
+      ],
+      "estimate": 0.0026647292563644516,
+      "known_dgp_effect": 0.0026935757155682333,
+      "p_value": 3.5388433733201044e-261,
+      "relative_effect": 0.33832012407961304,
+      "standard_error": 7.718552524673082e-05,
+      "truth_inside_confidence_interval": true
+    },
+    "stay_seconds_per_user": {
+      "cities": 100,
+      "confidence_interval": [
+        0.030197240325426117,
+        0.10859479811970588
+      ],
+      "estimate": 0.069396019222566,
+      "known_dgp_effect": 0.001456250006164339,
+      "p_value": 0.0005206346270495261,
+      "relative_effect": 3.4679267532648024e-05,
+      "standard_error": 0.019999376988336672,
+      "truth_inside_confidence_interval": false
+    }
+  },
+  "washout": "first period after every block switch excluded"
+}

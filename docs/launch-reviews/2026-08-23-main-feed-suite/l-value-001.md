@@ -9,8 +9,8 @@ Status: `hold_underpowered_or_neutral`. Synthetic main-Feed experiment; not comp
 - Hypothesis: More quality weight improves durable value without losing stay.
 - Change: Shift affinity/quality weights from 1.0/0.45 to 0.85/0.60.
 - Product dependency: none
-- Short-term value: stay and LT
-- Long-term value: HLT, negative feedback, and return behavior
+- Short-term value: stay and long-view behavior
+- Long-term value: LT container, quality view, negative feedback, and return
 
 ## Training and artifacts
 
@@ -22,30 +22,33 @@ the randomized estimate uses stable user-level 50/50 assignment.
 
 | Metric | Observed relative lift | p-value | Known DGP effect |
 |---|---:|---:|---:|
-| stay_per_exposure | -0.0033% | 0.9482 | -0.0333% |
-| lt_rate | -0.0161% | 0.9399 | -0.1112% |
-| hlt_rate | +0.6020% | 0.2701 | -0.0743% |
-| negative_rate | -0.2962% | 0.7393 | +0.0138% |
+| stay_per_exposure | -0.1168% | 0.04288 | -0.0356% |
+| long_view_rate | -0.5105% | 0.02257 | -0.1206% |
+| quality_long_view_rate | -0.1208% | 0.8229 | -0.1117% |
+| negative_rate | +0.2920% | 0.7447 | -0.0034% |
+| lt_value_per_exposure | +0.0103% | 0.9588 | -0.0119% |
+| local_value_tree_score_per_exposure | -2.0066% | 0.2109 | -0.2668% |
 
-Primary metric `hlt_rate`: +0.6020%,
-p=0.2701. Absolute 95% confidence interval:
-[-0.00004013,
-+0.00014340].
+Primary metric `quality_long_view_rate`: -0.1208%,
+p=0.8229. Absolute 95% confidence interval:
+[-0.00010446,
++0.00008304].
 
 ## Gate and review
 
 The evidence does not justify rollout. Preserve control and revise or stop.
 
-The gate checks the declared primary metric, HLT regression, and negative feedback.
+The gate checks the declared primary metric, quality-view regression, LT value,
+and negative feedback.
 A low p-value alone is insufficient; effect size, DGP truth, product trigger rate,
 and long-term guardrails remain part of the decision.
 
 ## Performance
 
-- Control: 12,596,333 requests/s,
-  91.0 MiB peak.
-- Treatment: 12,874,176 requests/s,
-  91.0 MiB peak.
+- Control: 4,428,548 requests/s,
+  170.3 MiB peak.
+- Treatment: 4,526,311 requests/s,
+  170.3 MiB peak.
 
 ## Next action
 

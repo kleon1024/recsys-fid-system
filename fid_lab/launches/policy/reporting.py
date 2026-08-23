@@ -36,7 +36,14 @@ def render_launch_review(launch: dict[str, object]) -> str:
     primary = spec["primary_metric"]
     primary_result = ab[primary]
     metrics = []
-    for name in ("stay_per_exposure", "lt_rate", "hlt_rate", "negative_rate"):
+    for name in (
+        "stay_per_exposure",
+        "long_view_rate",
+        "quality_long_view_rate",
+        "negative_rate",
+        "lt_value_per_exposure",
+        "local_value_tree_score_per_exposure",
+    ):
         result = ab[name]
         metrics.append(
             f"| {name} | {_percent(result['relative_lift'])} | "
@@ -44,7 +51,7 @@ def render_launch_review(launch: dict[str, object]) -> str:
         )
     decision = launch["decision"]
     interpretation = (
-        "The primary metric cleared the randomized gate without a significant HLT or "
+        "The primary metric cleared the randomized gate without a significant quality-view or "
         "negative-feedback regression."
         if decision == "pass_primary_metric"
         else "The evidence does not justify rollout. Preserve control and revise or stop."
@@ -84,7 +91,8 @@ p={primary_result['p_value']:.4g}. Absolute 95% confidence interval:
 
 {interpretation}
 
-The gate checks the declared primary metric, HLT regression, and negative feedback.
+The gate checks the declared primary metric, quality-view regression, LT value,
+and negative feedback.
 A low p-value alone is insufficient; effect size, DGP truth, product trigger rate,
 and long-term guardrails remain part of the decision.
 

@@ -85,6 +85,63 @@ class LocalConstrainedValuePolicy:
         return feed_score + self.local_weight * local_proxy * eligible
 
 
+class LocalIntentPolicy:
+    """Incremental Local rank policy with explicit signal-ablation controls."""
+
+    def __init__(
+        self,
+        feed_policy,
+        name: str,
+        local_weight: float,
+        search_weight: float = 0.0,
+        retarget_weight: float = 0.0,
+        intent_quality_weight: float = 0.0,
+        embedding_correction_weight: float = 0.0,
+    ) -> None:
+        self.feed_policy = feed_policy
+        self.name = name
+        self.local_weight = local_weight
+        self.search_weight = search_weight
+        self.retarget_weight = retarget_weight
+        self.intent_quality_weight = intent_quality_weight
+        self.embedding_correction_weight = embedding_correction_weight
+
+    def score(self, features: np.ndarray) -> np.ndarray:
+        feed_score = self.feed_policy.score(features)
+        poi = features[:, 13]
+        static_local = (
+            0.24 * features[:, 0]
+            + 0.18 * features[:, 2]
+            + 0.14 * features[:, 5]
+            + 0.16 * features[:, 20]
+            + 0.14 * features[:, 21]
+            + 0.14 * features[:, 22]
+        )
+        intent = (
+            static_local
+            + self.search_weight * features[:, 18]
+            + self.retarget_weight * features[:, 19]
+        )
+        intent_match = np.clip(features[:, 18] + features[:, 19], 0.0, 1.0)
+        intent_quality = (
+            0.35 * features[:, 23]
+            + 0.25 * features[:, 1]
+            + 0.20 * features[:, 20]
+            + 0.10 * features[:, 2]
+            + 0.10 * features[:, 5]
+        )
+        correction = features[:, 23] - features[:, 0]
+        return (
+            feed_score
+            + self.local_weight * poi * intent
+            + self.intent_quality_weight * poi * intent_match * intent_quality
+            + self.embedding_correction_weight
+            * poi
+            * intent_match
+            * correction
+        )
+
+
 class LearnedPolicy:
     def __init__(
         self,

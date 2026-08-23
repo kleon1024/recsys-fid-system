@@ -34,6 +34,12 @@ FEATURE_NAMES = (
     "item_bucket_norm",
     "author_bucket_norm",
     "category_norm",
+    "post_search_match",
+    "retarget_match",
+    "poi_quality",
+    "inventory_available",
+    "distance_score",
+    "local_interest_affinity",
 )
 
 
@@ -41,6 +47,9 @@ def build_catalog(config: SimulationConfig) -> Catalog:
     rng = np.random.default_rng(config.seed)
     topics = rng.gamma(0.7, 1.0, size=(config.items, config.topics)).astype(np.float32)
     topics /= np.maximum(np.linalg.norm(topics, axis=1, keepdims=True), 1e-8)
+    is_poi_video = rng.random(config.items) < 0.28
+    fulfillment = np.zeros(config.items, dtype=np.int8)
+    fulfillment[is_poi_video] = rng.choice((1, 2), size=int(is_poi_video.sum()), p=(0.65, 0.35))
     return Catalog(
         topics=topics,
         quality=rng.beta(3.0, 2.2, config.items).astype(np.float32),
@@ -50,11 +59,14 @@ def build_catalog(config: SimulationConfig) -> Catalog:
         duration_seconds=np.clip(
             rng.lognormal(3.2, 0.65, config.items), 5.0, 180.0
         ).astype(np.float32),
-        is_poi_video=(rng.random(config.items) < 0.28),
+        is_poi_video=is_poi_video,
         category=np.argmax(topics, axis=1).astype(np.int32),
         city=rng.integers(0, 100, config.items, dtype=np.int32),
         author=rng.integers(0, max(config.items // 8, 1), config.items, dtype=np.int32),
         poi=rng.integers(0, max(config.items // 4, 1), config.items, dtype=np.int32),
+        poi_quality=rng.beta(3.2, 2.0, config.items).astype(np.float32),
+        inventory_available=(rng.random(config.items) < 0.92),
+        fulfillment=fulfillment,
     )
 
 
@@ -72,13 +84,16 @@ class StatefulFeedEnv(gym.Env):
         config: SimulationConfig,
         catalog: Catalog,
         parameters: FeedParameters | None = None,
+        retrieval_snapshot=None,
     ) -> None:
         super().__init__()
         self.config = config
         self.catalog = catalog
         self.parameters = parameters
         self.parameter_snapshot = asdict(parameters) if parameters is not None else None
-        self.candidate_provider = CascadeCandidateProvider(config, catalog, parameters)
+        self.candidate_provider = CascadeCandidateProvider(
+            config, catalog, parameters, retrieval_snapshot
+        )
         self.action_space = spaces.Discrete(config.candidates)
         self.observation_space = spaces.Box(
             low=-1.0,
@@ -98,6 +113,13 @@ class StatefulFeedEnv(gym.Env):
         observed_noise = user_rng.normal(0.0, 0.45, self.config.topics).astype(np.float32)
         self.observed_interest = np.maximum(self.base_interest + observed_noise, 0.0)
         self.observed_interest /= np.linalg.norm(self.observed_interest)
+        local_noise = user_rng.normal(0.0, 0.15, self.config.topics).astype(np.float32)
+        self.local_observed_interest = np.maximum(
+            self.base_interest + local_noise, 0.0
+        )
+        self.local_observed_interest /= np.linalg.norm(
+            self.local_observed_interest
+        )
         self.satisfaction = float(user_rng.uniform(-0.05, 0.05))
         self.fatigue = 0.0
         self.observed_satisfaction = 0.0
@@ -109,6 +131,10 @@ class StatefulFeedEnv(gym.Env):
             np.clip(self.commerce_propensity + user_rng.normal(0.0, 0.10), 0.0, 1.0)
         )
         self.city = int(user_rng.integers(0, 100))
+        search_distribution = self.base_interest / self.base_interest.sum()
+        self.search_topic = int(user_rng.choice(self.config.topics, p=search_distribution))
+        self.search_strength = float(user_rng.beta(2.0, 3.0))
+        self.recent_poi_ids: deque[int] = deque(maxlen=8)
         self.session_id = 0
         self.request_index = 0
         self.recent_topics: deque[int] = deque(maxlen=8)
@@ -138,6 +164,13 @@ class StatefulFeedEnv(gym.Env):
         affinity = item_topics @ self.observed_interest
         feature_noise = self._random(5).normal(0.0, 0.06, len(self.candidates))
         affinity = np.clip(affinity + feature_noise, -1.0, 1.0)
+        local_affinity = item_topics @ self.local_observed_interest
+        local_affinity = np.clip(
+            local_affinity
+            + self._random(6).normal(0.0, 0.03, len(self.candidates)),
+            -1.0,
+            1.0,
+        )
         categories = self.catalog.category[self.candidates]
         recent = np.fromiter(self.recent_topics, dtype=np.int32)
         short_match = (
@@ -149,6 +182,14 @@ class StatefulFeedEnv(gym.Env):
             np.zeros(len(categories), dtype=np.float32)
             if not len(recent)
             else np.asarray([np.mean(recent == category) for category in categories], dtype=np.float32)
+        )
+        search_match = self.catalog.category[self.candidates] == self.search_topic
+        candidate_pois = self.catalog.poi[self.candidates]
+        retarget_match = np.isin(candidate_pois, np.asarray(self.recent_poi_ids, dtype=np.int32))
+        distance_score = np.where(
+            self.catalog.city[self.candidates] == self.city,
+            1.0,
+            0.05,
         )
         return np.column_stack(
             (
@@ -183,6 +224,12 @@ class StatefulFeedEnv(gym.Env):
                 / 1023.0,
                 self.catalog.category[self.candidates].astype(np.float32)
                 / max(self.config.topics - 1, 1),
+                search_match.astype(np.float32) * self.search_strength,
+                retarget_match.astype(np.float32),
+                self.catalog.poi_quality[self.candidates],
+                self.catalog.inventory_available[self.candidates].astype(np.float32),
+                distance_score.astype(np.float32),
+                local_affinity,
             )
         ).astype(np.float32)
 
@@ -198,6 +245,11 @@ class StatefulFeedEnv(gym.Env):
         fatigue = self.fatigue
         trust = self.trust
         commerce = self.commerce_propensity
+        post_search_match = float(features[18])
+        retarget_match = float(features[19])
+        poi_quality = float(features[20])
+        inventory = float(features[21])
+        distance_score = float(features[22])
         stay_log_mean = (
             0.45
             + 1.7 * affinity
@@ -207,10 +259,19 @@ class StatefulFeedEnv(gym.Env):
             + 0.20 * satisfaction
             - fatigue
         )
-        p_anchor = _sigmoid(-5.0 + 2.1 * affinity + 1.0 * same_city + 0.7 * trust + 0.5 * value)
-        p_detail = _sigmoid(-1.1 + 1.3 * affinity + 1.0 * quality + 0.7 * same_city)
+        p_anchor = _sigmoid(
+            -5.0 + 1.7 * affinity + 0.7 * same_city + 0.7 * trust + 0.5 * value
+            + 1.4 * post_search_match + 1.1 * retarget_match + 0.5 * distance_score
+        )
+        p_detail = _sigmoid(
+            -1.3 + 1.0 * affinity + 0.7 * quality + 0.6 * same_city
+            + 0.8 * poi_quality + 0.7 * post_search_match
+        )
         p_favorite = _sigmoid(-5.0 + 1.8 * affinity + 0.8 * quality)
-        p_order = _sigmoid(-4.3 + 1.4 * value + 1.0 * commerce + 0.6 * trust)
+        p_order = _sigmoid(
+            -4.5 + 1.2 * value + 1.0 * commerce + 0.6 * trust
+            + 0.9 * poi_quality + 0.9 * retarget_match + 1.2 * inventory
+        )
         p_negative = _sigmoid(-5.0 - 1.7 * affinity - 0.8 * quality + 2.0 * fatigue - satisfaction)
         p_play = _sigmoid(3.0 + 0.4 * affinity - 0.6 * fatigue)
         duration = float(self.catalog.duration_seconds[item_id])
@@ -267,8 +328,9 @@ class StatefulFeedEnv(gym.Env):
         detail = bool(anchor and random[6] < probability["poi_detail"])
         poi_favorite = bool(detail and random[7] < probability["favorite"])
         order = bool(detail and random[8] < probability["order"])
-        payment = bool(order and random[9] < 0.92)
-        pixel = bool(payment and random[10] < 0.35)
+        fulfillment = int(self.catalog.fulfillment[item_id])
+        payment = bool(order and fulfillment == 1 and random[9] < 0.92)
+        pixel = bool(order and fulfillment == 2 and random[10] < 0.35)
         negative = bool(random[11] < probability["negative"])
         return Response(
             play,
@@ -301,6 +363,8 @@ class StatefulFeedEnv(gym.Env):
         topic = int(self.catalog.category[item_id])
         self.recent_topics.append(topic)
         self.recent_item_ids.append(item_id)
+        if response.anchor_click:
+            self.recent_poi_ids.append(int(self.catalog.poi[item_id]))
         engagement = (
             float(response.long_view)
             + float(response.like)
@@ -323,7 +387,15 @@ class StatefulFeedEnv(gym.Env):
             self.interest /= np.linalg.norm(self.interest)
             self.observed_interest = 0.94 * self.observed_interest + 0.06 * self.catalog.topics[item_id]
             self.observed_interest /= np.linalg.norm(self.observed_interest)
+            self.local_observed_interest = (
+                0.94 * self.local_observed_interest
+                + 0.06 * self.catalog.topics[item_id]
+            )
+            self.local_observed_interest /= np.linalg.norm(
+                self.local_observed_interest
+            )
         self.request_index += 1
+        self.search_strength *= 0.78
         leave_probability = _sigmoid(-3.4 - 1.2 * self.satisfaction + 1.7 * self.fatigue)
         session_end = (
             self.request_index >= self.config.requests_per_session

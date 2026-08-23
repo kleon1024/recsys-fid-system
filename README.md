@@ -1,24 +1,29 @@
 # Production Recommendation System Reference
 
 [![Reference acceptance](https://github.com/kleon1024/recsys-fid-system/actions/workflows/ci.yml/badge.svg)](https://github.com/kleon1024/recsys-fid-system/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
-## Main Feed first
+## Main Feed first, Local Service inside the same value contract
 
-The current acceptance boundary is the short-video main Feed. Local Service
-posting, POI distribution, detail, product, and review models remain downstream
-experiments and cannot make the main-Feed gate pass.
+The current acceptance boundary is the short-video main Feed. Local Service is
+the primary business iteration inside that Feed, but it cannot make the gate
+pass with a private metric. Business Value Trees remain separate; only measured
+stay, active-day/DAU, and accepted commercialization effects enter the LT
+container.
 
 ```mermaid
 flowchart LR
     U["User state: interest, satisfaction, fatigue"] --> Q["Feed request"]
-    Q --> R["Six-route recall"]
+    Q --> R["Eight-route recall, including post-search and retarget"]
     R --> C["Coarse Top 20"]
     C --> F["LR / W&D / DeepFM / DCNv2 / MMoE"]
-    F --> V["Calibration and Value Tree"]
-    V --> E["Exposure"]
-    E --> A["Play, 3s, slide, stay, LT, HLT, interactions, negative"]
+    F --> V["Calibration and business Value Trees"]
+    V --> E["Constrained mixing and exposure"]
+    E --> A["Play, 3s, slide, stay, long view, quality view, Local funnel, negative"]
+    A --> LT["Platform LT measurement: stay, active-day/DAU, accepted commercialization"]
     A --> S["State transition, leave, return"]
     A --> J["Point-in-time Joiner and delayed labels"]
     J --> T["Retrain, shadow replay, user-level A/B"]
@@ -44,6 +49,10 @@ The runnable [POI posting recommendation reconstruction](docs/architecture/poi-p
 
 The [production model suite](docs/architecture/model-suite.md) extends that supply-side model into POI-anchored Feed distribution, map/detail, YMAL, product, and review recommendation with separate model families, streaming samples, long sequences, cascade audits, and full-path consistency.
 
+The bilingual [unified LT and Local Service design](docs/architecture/unified-lt-local-service.md)
+defines the value-exchange authority, closed/open-loop behavior world,
+post-search and retarget routes, stable GPU catalog, and multi-seed LR gate.
+
 The [model evolution laboratory](docs/architecture/model-evolution.md) compares
 mature open-source LR, XGBoost, WDL, DeepFM, DCN-Mix, DIN, MMoE, and PLE
 implementations on one synthetic distribution. It also adds trained Semantic-ID
@@ -68,7 +77,7 @@ Public procurement package:
 | Technical questions | Public `rfp-question` GitHub issue |
 | Capability statement | Public `rfp-capability` GitHub issue |
 | Commercial response | Private channel after capability review |
-| Source license | Evaluation only until an explicit `LICENSE` or contract grant is added |
+| Source license | MIT; bidder submissions and third-party assets retain their declared licenses |
 
 ## Target architecture
 
@@ -205,13 +214,28 @@ sequence, multi-task, Joiner, and experiment boundaries. The original compact
 models remain as teaching baselines; the evolution benchmark uses
 DeepCTR-Torch rather than maintaining another local copy of its model zoo.
 
+Start with the bilingual [system evolution review](docs/architecture/system-evolution-review.md)
+for the complete strategy → algorithm → model → feature → sample → consistency
+→ launch-review narrative.
+
 ## Run
 
 ```bash
 git clone https://github.com/kleon1024/recsys-fid-system.git
 cd recsys-fid-system
-python3 -m pip install -r requirements.txt
-python3 -m unittest discover -s tests -v
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m fid_lab.check
+```
+
+The single acceptance command runs structural checks, public-document scanning,
+the complete unit and integration suite, deterministic serving demos, the CI-sized model
+ladder, and an A/B estimator calibration smoke. GPU scale runs are intentionally
+separate because GitHub-hosted CI has no RTX 4090:
+
+```bash
 python3 -m fid_lab.experiment
 python3 -m fid_lab.online.demo
 python3 -m fid_lab.online.benchmark
@@ -223,12 +247,22 @@ python3 -m fid_lab.evolution.cli.ab_demo
 python3 -m fid_lab.simulation.cli --users 2000 --items 4000
 python3 -m fid_lab.feed_loop.models.cli --users 3000 --items 4000 --ab-users 500 --epochs 10 --device cuda:0
 python3 -m fid_lab.feed_loop.scale.tensor_cli --users 1000000 --steps 24 --device cuda:0
+python3 -m fid_lab.feed_loop.scale.local_value_cli --users 1000000 --steps 24 --seeds 3 --device cuda:0
+python3 -m fid_lab.feed_loop.scale.local_value_cli --users 10000000 --steps 24 --seeds 3 --intent-only --device cuda:0
+python3 -m fid_lab.feed_loop.scale.queue_value_cli --users 1000000 --steps 24 --seeds 3 --device cuda:0
+python3 -m fid_lab.feed_loop.experimentation.cascade_cli --users 1000000 --steps 24 --candidates 100 --seeds 3 --device cuda:0
+python3 -m fid_lab.feed_loop.experimentation.reverse_holdout --users 1000000 --steps 48 --burn-in-steps 12 --seeds 3 --device cuda:0
+python3 -m fid_lab.simulation.local.switchback_cli --cities 100 --periods 28 --users-per-city-period 10000 --calibration-runs 500
 python3 -m fid_lab.feed_loop.scale.power_cli --users 1000000
 python3 -m fid_lab.feed_loop.streaming.online_learning_cli --users 1000 --ab-users 1000
 python3 -m fid_lab.launches.policy.cli --users 1000000 --device cuda:0
 python3 -m fid_lab.launches.system.cli --users 1000000 --device cuda:0
 python3 -m fid_lab.check
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) before changing contracts, reports, or
+generated evidence. All checked-in business results are synthetic and must not
+be represented as company-internal or production metrics.
 
 Run one stage while studying it:
 

@@ -1,5 +1,11 @@
-40ce953bf5d64232aee10c8ed98164cad29dc55db9cb5e983211445ea76349c3  reports/launches/2026-08-23-feed-model-ladder.json
-dc64b649b0f15a43b6f30a18f3a8b2c1baa625bf06839115f60db0625a7deb95  reports/launches/2026-08-23-feed-online-learning.json
-d0bda0f7a8d23f92b28a8694a44a0a1c6dc57dcb5c3de5a4ed34bde8a1e63bb1  reports/launches/2026-08-23-main-feed-launch-suite.json
-16ed364aa89721eabb925a5acfdb2ac384c029581a893b10c639b408d83e9913  reports/launches/2026-08-23-main-feed-system-launches.json
-e7b910902979c33a3d089110695425eea352394c950f889f43805707531f0e41  reports/launches/2026-08-23-local-service-supply-launch.json
+94c94ad36fa3d80fcec562a9fd4302ad34f66ebaf7b82d5db1b99082a39ea416  reports/launches/2026-08-23-feed-model-ladder.json
+2ff6f752d63a63dcbe26d7d7814ffac7c356ce69672efefbec982abcd3767f2e  reports/launches/2026-08-23-feed-online-learning.json
+1c8445a267513b660743b241a87b7fcfecf6fd8e610277c07a65986228dc69d0  reports/launches/2026-08-23-main-feed-launch-suite.json
+ad30209bdcce0edbc85f8294489086aa905fe475ffb905216278a065884eb476  reports/launches/2026-08-23-main-feed-system-launches.json
+9a53ebbe63f8641b764321f844c7364c715c511743546e7477ba034f70ae76cb  reports/launches/2026-08-23-local-service-supply-launch.json
+401e93ac63ea7f10f532b3ea6013c6f13133cc73e6e39c960b43ed07e2cccaea  reports/launches/2026-08-23-local-platform-lt-ladder.json
+ebd264da242356f4946ea074b8b15b47daa9d5018dbeb7880eccc573abf7d17b  reports/launches/2026-08-23-multi-queue-platform-lt-ladder.json
+a45062df65db18419bf5eee59a52ca36c1252ba259c5c8fb0049fe5bd8205e60  reports/launches/2026-08-23-local-supply-switchback-platform-lt.json
+084759acaee34bef1766540257f7990d899747d14f9c190827342ab27034ccb5  reports/launches/2026-08-23-local-intent-ranker-scale-10m.json
+b1b62f9986ef2a7403d167f12385c3b3a79bfd3317acf699a91bb3dc717f1698  reports/launches/2026-08-23-local-reverse-holdout.json
+3e2e8c31d0b9f65dde229cbfaf4ed20a81f03a382f84140aa9de185138dd5a3b  reports/launches/2026-08-23-coarse-cascade-ladder.json

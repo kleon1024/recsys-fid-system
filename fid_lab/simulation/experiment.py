@@ -107,8 +107,8 @@ def _behavior_distribution(rows) -> dict[str, object]:
             "play_rate": "play",
             "play_3s_rate": "play_3s",
             "slide_rate": "slide",
-            "lt_rate": "long_view",
-            "hlt_rate": "high_quality_long_view",
+            "long_view_rate": "long_view",
+            "quality_long_view_rate": "high_quality_long_view",
             "like_rate": "like",
             "favorite_rate": "favorite",
             "comment_rate": "comment",
@@ -139,7 +139,7 @@ def _behavior_distribution(rows) -> dict[str, object]:
         "payment_per_poi_detail": payments / details if details else None,
         "long_view_probability_calibration_gap": float(
             np.mean([response.probabilities["long_view"] for response in responses])
-            - rates["lt_rate"]
+            - rates["long_view_rate"]
         ),
     }
 
@@ -224,7 +224,7 @@ def _row_events(row, catalog, timestamp: int, observable: bool):
         for name, happened, delay, value in action_specs
         if happened
     )
-    open_loop = item_id % 4 == 0
+    open_loop = int(catalog.fulfillment[item_id]) == 2
     if response.order and not open_loop:
         commerce_specs = (("order", response.order, 300), ("payment", response.payment, 360))
         commerce.extend(
@@ -498,17 +498,26 @@ def _simulator_acceptance(report: dict[str, object]) -> dict[str, object]:
         "behavior_rates_plausible": (
             0.85 <= distribution["play_rate"] <= 0.99
             and 0.05 <= distribution["slide_rate"] <= 0.35
-            and 0.10 <= distribution["lt_rate"] <= 0.50
-            and 0.02 <= distribution["hlt_rate"] <= 0.20
+            and 0.10 <= distribution["long_view_rate"] <= 0.50
+            and 0.02 <= distribution["quality_long_view_rate"] <= 0.20
         ),
         "long_view_probability_calibrated": abs(
             distribution["long_view_probability_calibration_gap"]
         )
         <= 0.03,
-        "all_six_recall_routes_reach_coarse": set(
+        "all_recall_routes_reach_coarse": set(
             cascade["route_candidate_coverage"]
         )
-        == {"ann", "graph", "geo", "fresh", "long_tail", "popular"},
+        == {
+            "ann",
+            "graph",
+            "geo",
+            "fresh",
+            "long_tail",
+            "popular",
+            "post_search",
+            "retarget",
+        },
         "cascade_budget_enforced": (
             cascade["mean_recalled_after_merge"] > cascade["mean_after_coarse"]
             and cascade["mean_after_coarse"] == report["config"]["candidates"]

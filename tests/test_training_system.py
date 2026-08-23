@@ -4,6 +4,7 @@ import unittest
 
 import numpy as np
 
+from fid_lab.feed_loop.streaming.online_learning import ParameterServerFeedPolicy
 from fid_lab.training.consistency import ChainConsistencyAuditor
 from fid_lab.training.contracts import (
     ActionEvent,
@@ -55,6 +56,19 @@ class JoinerTest(unittest.TestCase):
 
 
 class ParameterServerTest(unittest.TestCase):
+    def test_vectorized_online_features_match_scalar_hash_contract(self) -> None:
+        server = VersionedParameterServer(feature_dim=128, tasks=TEST_TASKS)
+        trainer = OnlineMultiTaskTrainer(server)
+        policy = ParameterServerFeedPolicy(trainer)
+        features = np.asarray([[0.0, 0.5, -0.5], [1.0, -1.0, 0.2]])
+        vectors = policy._vectors(features)
+        expected = np.zeros_like(vectors)
+        buckets = np.clip(np.rint((features + 1.0) * 7.5), 0, 15).astype(int)
+        for row in range(len(features)):
+            for field, bucket in enumerate(buckets[row]):
+                expected[row, (field * 131 + bucket) % expected.shape[1]] += 1.0
+        np.testing.assert_array_equal(vectors, expected)
+
     def test_updates_are_idempotent_and_stale_gradients_fail_closed(self) -> None:
         server = VersionedParameterServer(feature_dim=8, max_staleness=0)
         weight_gradient = np.ones((len(TEST_TASKS), 8))

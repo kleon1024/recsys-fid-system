@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import numpy as np
 import torch
@@ -17,6 +19,7 @@ from fid_lab.evolution.models.generative import (
     SessionGenerator,
 )
 from fid_lab.evolution.evaluation.retrieval_benchmark import run_retrieval_benchmark
+from fid_lab.evolution.models.retrieval import RetrievalSnapshot, TwoTowerRetriever
 from fid_lab.generative.semantic_ids import SemanticIdIndex
 
 
@@ -41,6 +44,29 @@ class MatureModelAdapterTest(unittest.TestCase):
         self.assertEqual(report["top_k"], 10)
         self.assertIn("exact_content", report["models"])
         self.assertIn("two_tower", report["models"])
+        self.assertTrue(report["split_contract"]["query_disjoint"])
+        self.assertTrue(report["split_contract"]["frozen_item_corpus"])
+        self.assertEqual(
+            report["negative_sampling"]["source_fractions"],
+            {"in_batch": 0.6, "hard": 0.25, "random": 0.15},
+        )
+
+    def test_retrieval_snapshot_round_trip_matches_model(self) -> None:
+        torch.manual_seed(11)
+        model = TwoTowerRetriever(6, 6, representation_dim=4)
+        items = torch.randn(20, 6)
+        query = torch.randn(6)
+        snapshot = model.export_snapshot(items, "retrieval-test-v1")
+        expected = (
+            model.encode_item(items) @ model.encode_query(query[None]).squeeze(0)
+        ).detach().numpy()
+        np.testing.assert_allclose(snapshot.scores(query.numpy()), expected, atol=1e-6)
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "snapshot.npz"
+            snapshot.save(path)
+            loaded = RetrievalSnapshot.load(path)
+        self.assertEqual(loaded.version, snapshot.version)
+        np.testing.assert_allclose(loaded.scores(query.numpy()), expected, atol=1e-6)
 
 
 class GenerativeModelTest(unittest.TestCase):

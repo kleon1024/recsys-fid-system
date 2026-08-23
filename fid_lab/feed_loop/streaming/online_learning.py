@@ -64,12 +64,16 @@ class ParameterServerFeedPolicy:
         self.value_weights = np.asarray(value_weights)
 
     def _vectors(self, features: np.ndarray) -> np.ndarray:
+        buckets = np.clip(np.rint((features + 1.0) * 7.5), 0, 15).astype(
+            np.int64
+        )
         vectors = np.zeros(
             (len(features), self.trainer.server.feature_dim), dtype=np.float64
         )
-        for row_index, buckets in enumerate(map(_buckets, features)):
-            for field, bucket in enumerate(buckets):
-                vectors[row_index, (field * 131 + bucket) % vectors.shape[1]] += 1.0
+        rows = np.repeat(np.arange(len(features)), buckets.shape[1])
+        fields = np.tile(np.arange(buckets.shape[1]), len(features))
+        columns = (fields * 131 + buckets.reshape(-1)) % vectors.shape[1]
+        np.add.at(vectors, (rows, columns), 1.0)
         return vectors
 
     def predict_tasks(self, features: np.ndarray) -> np.ndarray:
@@ -119,7 +123,7 @@ def _offline_task_metrics(trainer, examples):
     }
 
 
-def _evaluate_candidates(config, catalog, control_policy, candidates):
+def evaluate_candidates(config, catalog, control_policy, candidates):
     fresh_users = np.arange(config.users) + 70_000_000
     control = run_population(config, catalog, control_policy, fresh_users)
     launches = {}
@@ -190,7 +194,7 @@ def run_online_learning_launch(
     )
     evaluation_config = SimulationConfig(users=ab_users, items=items, joiner_users=0)
     evaluation_catalog = build_catalog(evaluation_config)
-    launches = _evaluate_candidates(
+    launches = evaluate_candidates(
         evaluation_config,
         evaluation_catalog,
         logging_policy,

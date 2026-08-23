@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+from hashlib import sha256
 import json
 from pathlib import Path
 import re
@@ -14,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIRS = (ROOT / "fid_lab", ROOT / "tests")
 PUBLIC_DOCS = (
     "README.md",
+    "CONTRIBUTING.md",
+    "LICENSE",
     "REQUEST_FOR_PROPOSAL.md",
     "docs/procurement/bidder-response-template.md",
     "docs/architecture/visual-atlas.md",
@@ -67,6 +70,8 @@ def check_public_docs() -> None:
             failures.append(f"missing public document: {name}")
             continue
         texts[name] = path.read_text()
+    for path in sorted((ROOT / "docs").rglob("*.md")):
+        texts[str(path.relative_to(ROOT))] = path.read_text()
     combined = "\n".join(texts.values())
     for banned in ("/Users/", "gho_", "BEGIN PRIVATE KEY", "TODO"):
         if banned in combined:
@@ -83,6 +88,32 @@ def check_public_docs() -> None:
         raise SystemExit("\n".join(failures))
 
 
+def check_report_manifests() -> None:
+    for manifest_name in (
+        "reports/launches/MANIFEST.sha256",
+        "reports/benchmarks/MANIFEST.sha256",
+    ):
+        manifest = ROOT / manifest_name
+        failures = []
+        declared = set()
+        for line in manifest.read_text().splitlines():
+            expected, relative = line.split(maxsplit=1)
+            path = ROOT / relative
+            declared.add(path.resolve())
+            if not path.exists():
+                failures.append(f"missing report: {relative}")
+                continue
+            actual = sha256(path.read_bytes()).hexdigest()
+            if actual != expected:
+                failures.append(f"report hash mismatch: {relative}")
+        report_dir = manifest.parent
+        present = {path.resolve() for path in report_dir.glob("*.json")}
+        for path in sorted(present - declared):
+            failures.append(f"report missing from manifest: {path.relative_to(ROOT)}")
+        if failures:
+            raise SystemExit("\n".join(failures))
+
+
 def run(command: list[str], capture: bool = False) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, cwd=ROOT, check=True, text=True, capture_output=capture)
 
@@ -90,6 +121,7 @@ def run(command: list[str], capture: bool = False) -> subprocess.CompletedProces
 def main() -> None:
     check_structure()
     check_public_docs()
+    check_report_manifests()
     run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
     run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
     benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)
