@@ -285,17 +285,23 @@ def tensor_migration() -> None:
 
 
 def feature_lr_launches() -> None:
-    training = _load("2026-08-23-feature-lr-training-gpu.json")
-    launches = _load("2026-08-23-feature-lr-1m-gpu.json")
+    training = _load("2026-08-23-feature-lr-training-gpu-v2.json")
+    launches = _load("2026-08-23-feature-lr-sequential-1m-gpu.json")
     stateful = _load("2026-08-23-feature-lr-stateful-500.json")
-    groups = ("basic", "sequence", "realtime", "local_context", "full")
-    labels = ("Basic", "+Sequence", "+Realtime", "+Local", "Full")
+    groups = (
+        "basic",
+        "basic__sequence",
+        "basic__realtime",
+        "basic__realtime__local_context",
+        "basic__realtime__local_context__hash_content",
+    )
+    labels = ("Basic", "Sequence", "Realtime", "+Local", "+Hash")
     figure, axes = plt.subplots(1, 3, figsize=(13.2, 3.8))
     auc = [training["offline"][name]["auc"] for name in groups]
     axes[0].bar(labels, auc, color=COLORS[:5])
     axes[0].set_ylim(0.58, 0.79)
     axes[0].set_ylabel("Test AUC")
-    axes[0].set_title("Same samples, cumulative features")
+    axes[0].set_title("Same samples, legal release states")
     launch_labels = ("Sequence", "Realtime", "Local", "Hash IDs")
     lt_lifts = [
         launch["ab"]["lt_value_per_user"]["relative_lift"] * 100
@@ -311,7 +317,7 @@ def feature_lr_launches() -> None:
     axes[1].bar(launch_labels, lt_lifts, color=colors)
     axes[1].axhline(0, color="#475569", linewidth=1)
     axes[1].set_ylabel("Unified LT relative lift (%)")
-    axes[1].set_title("Adjacent million-user Launch Reviews")
+    axes[1].set_title("Last-accepted-control Launch Reviews")
     attribution = stateful["joiner"]["request_candidate_dataset"][
         "stage_attribution"
     ]

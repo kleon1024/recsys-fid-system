@@ -150,11 +150,34 @@ def _model_manifest_failures(relative_manifest: str) -> list[str]:
 def check_model_artifacts() -> None:
     manifests = (
         "artifacts/models/stateful-v2/MANIFEST.sha256",
-        "artifacts/models/feature-lr-v1/MANIFEST.sha256",
+        "artifacts/models/feature-lr-v2/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
         failures.extend(_model_manifest_failures(relative_manifest))
+    if failures:
+        raise SystemExit("\n".join(failures))
+
+
+def check_simulated_release() -> None:
+    release = json.loads(
+        (ROOT / "artifacts/releases/simulated-feed-control.json").read_text()
+    )
+    report_path = (
+        ROOT / "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json"
+    )
+    report = json.loads(report_path.read_text())
+    failures = []
+    if sha256(report_path.read_bytes()).hexdigest() != release["source_report"]["sha256"]:
+        failures.append("simulated release does not bind the launch report")
+    if release["active_control_artifact"] != report["release_state"]["active_artifact"]:
+        failures.append("simulated release active artifact differs from launch state")
+    artifact = ROOT / "artifacts/models/feature-lr-v2" / release[
+        "active_control_artifact"
+    ]["artifact_file"]
+    artifact_id = f"sha256:{sha256(artifact.read_bytes()).hexdigest()}"
+    if artifact_id != release["active_control_artifact"]["artifact_id"]:
+        failures.append("simulated release active artifact hash mismatch")
     if failures:
         raise SystemExit("\n".join(failures))
 
@@ -169,6 +192,7 @@ def main() -> None:
     check_report_manifests()
     check_visual_manifest()
     check_model_artifacts()
+    check_simulated_release()
     run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
     run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
     benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)
@@ -197,7 +221,10 @@ def main() -> None:
         (ROOT / "reports/launches/2026-08-23-tensor-artifact-v2-1m-gpu.json").read_text()
     )
     feature_launch = json.loads(
-        (ROOT / "reports/launches/2026-08-23-feature-lr-1m-gpu.json").read_text()
+        (
+            ROOT
+            / "reports/launches/2026-08-23-feature-lr-sequential-1m-gpu.json"
+        ).read_text()
     )
     stateful_feature = json.loads(
         (ROOT / "reports/launches/2026-08-23-feature-lr-stateful-500.json").read_text()
@@ -243,10 +270,16 @@ def main() -> None:
         "feature_lr_isolated_decisions": feature_decisions
         == {
             "F-LR-001": "hold_unified_lt_uncertain",
-            "F-LR-002": "hold_unified_lt_uncertain",
+            "F-LR-002": "pass_unified_lt_nonnegative",
             "F-LR-003": "pass_unified_lt_nonnegative",
             "F-LR-004": "reject_unified_lt_negative",
         },
+        "feature_lr_last_accepted_control": all(
+            launch["control"] == launch["promotion"]["prior_active_key"]
+            for launch in feature_launch["launches"]
+        )
+        and feature_launch["release_state"]["active_key"]
+        == "basic__realtime__local_context",
         "feature_lr_tensor_throughput": min(
             value["requests_per_second"]
             for value in feature_launch["world_performance"].values()

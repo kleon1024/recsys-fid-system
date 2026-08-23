@@ -20,4 +20,9 @@ artifacts/models/*
 !artifacts/models/feature-lr-v1/
 !artifacts/models/feature-lr-v1/MANIFEST.sha256
 !artifacts/models/feature-lr-v1/*.joblib
+!artifacts/models/feature-lr-v2/
+!artifacts/models/feature-lr-v2/MANIFEST.sha256
+!artifacts/models/feature-lr-v2/*.joblib
+!artifacts/releases/
+!artifacts/releases/simulated-feed-control.json
 checkpoints/

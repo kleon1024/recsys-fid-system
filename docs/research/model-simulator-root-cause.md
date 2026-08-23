@@ -47,7 +47,7 @@ A/B 环境。
 | Feature system | Stateful policy uses 24 dense features | Sparse identity, crosses, counters, and sequences demonstrated elsewhere do not affect the actual policy | Connect the shared FID manifest and sequence tensors to the same inference path |
 | Model/training | Neural loss falls while test AUC, calibration, or oracle regret worsens | Loss convergence is only optimizer health, not launch evidence | Select with temporal validation, ECE, oracle regret, slices, latency, and A/B |
 | Cascade | Quality-only coarse rank preserved only 65.3% of oracle Top-K; LR repair reaches 99.9% | Fine-rank improvements can be destroyed before fine rank sees the item | Freeze candidate sets and report stage pass-through for every launch |
-| Experiment | Multiple unexchanged proxy metrics used to override platform LT | The gate had no single objective authority and could reject a positive LT result | Gate on exchanged LT confidence intervals; keep only safety, legal, privacy, and integrity as independent hard constraints |
+| Experiment | The old feature ladder compared adjacent candidates after a prior candidate was held | A candidate could appear launchable relative to a control that never shipped | Compare with the last accepted control; pass promotes atomically; hold/reject preserve active and rollback state |
 | Serving consistency | Tensor-scale simulator is not yet the same code path as actual model inference and Joiner replay | A fast GPU run cannot prove offline-online parity | Execute the published artifact inside replay and the stateful A/B loop |
 
 The checked feature scale must be described honestly. The stateful Feed ranker
@@ -59,6 +59,20 @@ production system with hundreds of fields or billions of ID values.
 当前特征规模必须如实表述：有状态 Feed 排序器使用 24 个 dense 输入；吞吐 fixture
 包含 6 个 sparse ID、10 个 dense 特征、24×8 序列张量和 2 个诊断特征。仓库验证了
 FID 哈希与稀疏发布，但没有冒充已经模拟了数百字段或数十亿 ID 的生产规模。
+
+The request-level dataset is the most important attribution repair because it
+preserves the full candidate pool and every stage decision. It can answer
+whether an item was absent at recall, dropped by coarse rank, misordered by
+fine rank, displaced by mixing, or harmed by an incorrect LT exchange. It does
+not by itself make the simulator realistic. The tensor feature launches still
+select from a dense synthetic candidate batch with oracle coarse pass-through
+and no independent mixer. The next simulator iteration must replay the
+materialized candidate graph instead of bypassing it.
+
+请求级候选数据集是当前最重要的归因修复，因为它保留召回全集和每一层决策，能区分
+召回没找到、粗排丢失、精排排错、混排挤掉和 LT 兑换错误。但它本身不能让模拟器自动
+变真实。当前 tensor feature A/B 仍从 dense 合成候选中直接选 item，粗排通过率为 oracle，
+也没有独立 mixer。下一步必须让 GPU simulator 重放这份候选图，而不是继续绕过级联。
 
 ## Why lower loss did not launch / 为什么 loss 降了仍不能上线
 

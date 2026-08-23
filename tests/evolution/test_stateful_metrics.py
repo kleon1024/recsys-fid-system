@@ -26,7 +26,7 @@ from fid_lab.feed_loop.scale.artifact.feature_lr_cli import run_feature_lr_launc
 
 
 class GroupedAUCTest(unittest.TestCase):
-    def test_feature_lr_artifacts_run_adjacent_tensor_launches(self):
+    def test_feature_lr_launches_always_use_last_accepted_control(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)
             report = train_feature_lr_suite(80, 300, root / "artifacts", seed=31)
@@ -51,6 +51,16 @@ class GroupedAUCTest(unittest.TestCase):
         )
         self.assertTrue(
             all("unified_lt_exchange" in launch for launch in launches["launches"])
+        )
+        expected_control = "basic"
+        for launch in launches["launches"]:
+            self.assertEqual(launch["control"], expected_control)
+            self.assertEqual(
+                launch["promotion"]["prior_active_key"], expected_control
+            )
+            expected_control = launch["promotion"]["resulting_active_key"]
+        self.assertEqual(
+            launches["release_state"]["active_key"], expected_control
         )
 
     def test_tensor_v2_features_are_finite_and_match_stateful_width(self):

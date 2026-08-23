@@ -47,6 +47,7 @@ entry_points = [
   "fid_lab/feed_loop/models/feature_lr.py",
   "fid_lab/feed_loop/models/feature_lr_cli.py",
   "fid_lab/feed_loop/scale/artifact/feature_lr_cli.py",
+  "fid_lab/feed_loop/release.py",
   "fid_lab/feed_loop/scale/queue_value_cli.py",
   "fid_lab/value/tree.py",
   "fid_lab/simulation/local/switchback.py",

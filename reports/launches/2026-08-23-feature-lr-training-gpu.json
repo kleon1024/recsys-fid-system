@@ -1,4 +1,5 @@
 {
+  "status": "superseded_by_feature-lr-v2",
   "suite": "feature-lr-v1",
   "config": {
     "users": 3000,

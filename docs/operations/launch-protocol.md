@@ -70,6 +70,12 @@ Valid decisions are pass, staged ramp, hold, reject, and rollback. An offline
 AUC improvement, lower training loss, or significant p-value alone is never a
 pass condition.
 
+The control is always the last accepted release artifact. A pass atomically
+updates the active artifact and records the former active artifact as rollback.
+Hold and reject are no-ops. Therefore a held candidate can never become the
+control of the next Launch Review. The simulator enforces the same state
+transition in `artifacts/releases/simulated-feed-control.json`.
+
 ## Evidence authority
 
 - Immutable JSON under `reports/launches/` is the numeric authority.

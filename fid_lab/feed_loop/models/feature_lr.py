@@ -10,7 +10,7 @@ import numpy as np
 from ...evolution.evaluation.metrics import binary_metrics, grouped_auc
 from ...simulation.contracts import SimulationConfig
 from ...simulation.environment import build_catalog
-from ...simulation.features import FEATURE_GROUP_COLUMNS, feature_group_manifest
+from ...simulation.features import feature_candidate_sets, feature_group_manifest
 from ...simulation.policies import fit_logistic_policy
 from .artifact import publish_policy
 from .benchmark import candidate_quality, logging_examples
@@ -38,7 +38,7 @@ def train_feature_lr_suite(
     test = sessions >= 2
     weights = np.minimum(1.0 / np.maximum(propensities[train], 1e-4), 20.0)
     report = {}
-    for offset, (group, columns) in enumerate(FEATURE_GROUP_COLUMNS.items()):
+    for offset, (group, columns) in enumerate(feature_candidate_sets().items()):
         policy = fit_logistic_policy(
             f"lr_feature_{group}",
             features[train],

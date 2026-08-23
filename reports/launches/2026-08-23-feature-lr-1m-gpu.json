@@ -1,4 +1,6 @@
 {
+  "status": "superseded_invalid_control_chain",
+  "superseded_by": "2026-08-23-feature-lr-sequential-1m-gpu.json",
   "suite": "feature-lr-tensor-launches-v1",
   "config": {
     "users": 1000000,

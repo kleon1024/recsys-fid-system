@@ -1,4 +1,4 @@
-"""Run adjacent published feature-group LR launches on the GPU tensor engine."""
+"""Run sequential feature proposals against the last accepted LR control."""
 
 from __future__ import annotations
 
@@ -7,8 +7,12 @@ from dataclasses import asdict
 import json
 from pathlib import Path
 
-from ....simulation.features import FEATURE_GROUP_COLUMNS
+from ....simulation.features import (
+    FEATURE_PROPOSAL_COLUMNS,
+    feature_set_key,
+)
 from ....value import unified_lt_exchange_report, unified_lt_launch_decision
+from ...release import apply_launch_decision, initial_release_state, write_release_manifest
 from ..tensor_engine import TensorFeedConfig, combine_tensor_ab, run_tensor_feed
 from .policy import TensorColumnLogisticPolicy
 
@@ -18,29 +22,46 @@ def run_feature_lr_launches(
     artifact_dir: Path,
     config: TensorFeedConfig,
 ) -> dict[str, object]:
-    policies = tuple(
-        TensorColumnLogisticPolicy(
-            report_path, artifact_dir, group, config.device
-        )
-        for group in FEATURE_GROUP_COLUMNS
+    active_proposals: tuple[str, ...] = ()
+    active_key = feature_set_key(active_proposals)
+    active_policy = TensorColumnLogisticPolicy(
+        report_path, artifact_dir, active_key, config.device
     )
-    worlds = {policy.group: run_tensor_feed(config, policy) for policy in policies}
+    worlds = {active_key: run_tensor_feed(config, active_policy)}
+    state = initial_release_state(active_key, active_policy.manifest)
     launches = []
-    for control, treatment in zip(policies, policies[1:]):
-        metrics = combine_tensor_ab(worlds[control.group], worlds[treatment.group])
+    for proposal in FEATURE_PROPOSAL_COLUMNS:
+        candidate_proposals = active_proposals + (proposal,)
+        candidate_key = feature_set_key(candidate_proposals)
+        candidate_policy = TensorColumnLogisticPolicy(
+            report_path, artifact_dir, candidate_key, config.device
+        )
+        worlds[candidate_key] = run_tensor_feed(config, candidate_policy)
+        metrics = combine_tensor_ab(worlds[active_key], worlds[candidate_key])
+        decision = unified_lt_launch_decision(metrics["lt_value_per_user"])
+        launch_id = f"F-LR-{len(launches) + 1:03d}"
+        state, promotion = apply_launch_decision(
+            state,
+            candidate_key,
+            candidate_policy.manifest,
+            decision,
+            launch_id,
+        )
         launches.append({
-            "launch_id": f"F-LR-{len(launches) + 1:03d}",
-            "control": control.group,
-            "treatment": treatment.group,
+            "launch_id": launch_id,
+            "proposal": proposal,
+            "control": active_key,
+            "treatment": candidate_key,
             "added_features": sorted(
-                set(treatment.manifest["feature_names"])
-                - set(control.manifest["feature_names"])
+                set(candidate_policy.manifest["feature_names"])
+                - set(promotion["prior_active_artifact"]["feature_names"])
             ),
-            "control_artifact": control.manifest,
-            "treatment_artifact": treatment.manifest,
+            "control_artifact": promotion["prior_active_artifact"],
+            "treatment_artifact": candidate_policy.manifest,
             "ab": metrics,
             "unified_lt_exchange": unified_lt_exchange_report(metrics),
-            "decision": unified_lt_launch_decision(metrics["lt_value_per_user"]),
+            "decision": decision,
+            "promotion": promotion,
             "diagnostics": {
                 "quality_long_view_rate": metrics["quality_long_view_rate"],
                 "negative_rate": metrics["negative_rate"],
@@ -49,11 +70,19 @@ def run_feature_lr_launches(
                 ],
             },
         })
+        if promotion["promoted"]:
+            active_proposals = candidate_proposals
+            active_key = candidate_key
     return {
-        "suite": "feature-lr-tensor-launches-v1",
+        "suite": "feature-lr-sequential-launches-v2",
         "config": asdict(config),
         "common_random_numbers": True,
+        "control_rule": "every proposal is compared with the last accepted control",
         "launches": launches,
+        "release_state": state,
+        "production_readiness": launches[-1]["unified_lt_exchange"][
+            "production_readiness"
+        ],
         "world_performance": {
             group: world["performance"] for group, world in worlds.items()
         },
@@ -73,6 +102,7 @@ def main() -> None:
     parser.add_argument("--batch-users", type=int, default=25_000)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--release-manifest", type=Path, required=True)
     args = parser.parse_args()
     report = run_feature_lr_launches(
         args.report,
@@ -87,6 +117,7 @@ def main() -> None:
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
+    release = write_release_manifest(args.output, report, args.release_manifest)
     print(json.dumps({
         "launches": [
             {
@@ -98,7 +129,8 @@ def main() -> None:
                 ],
             }
             for launch in report["launches"]
-        ]
+        ],
+        "active_control": release["active_control_key"],
     }, indent=2))
 
 

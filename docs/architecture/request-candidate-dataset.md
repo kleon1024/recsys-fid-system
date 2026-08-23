@@ -47,6 +47,23 @@ the next request while item/features/scores belonged to the current request.
 The dataset now fails closed unless every coarse candidate belongs to the same
 request's recalled pool.
 
+This dataset is necessary but not sufficient for launch attribution. The
+release controller must also compare every proposal with the last accepted
+control. A held or rejected proposal cannot become the control of the next A/B.
+The checked sequence is now:
+
+```text
+Basic --Sequence/Hold--> Basic
+Basic --Realtime/Pass--> Basic + Realtime
+Basic + Realtime --Local/Pass--> Basic + Realtime + Local
+Basic + Realtime + Local --Hash/Reject--> Basic + Realtime + Local
+```
+
+`artifacts/releases/simulated-feed-control.json` binds the final active model,
+rollback model, exact Launch Review hash, feature schema, and model artifact
+hash. It records simulator state only; synthetic LT exchange rates still block
+a production-readiness claim.
+
 ```bash
 python3 -m fid_lab.evolution.data.request_dataset_cli \
   --users 100 --items 2000 --candidates 20 \

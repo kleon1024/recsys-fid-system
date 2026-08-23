@@ -28,11 +28,12 @@ pass the stateful replay and A/B loop.
 
 ![Small feature Launch Reviews](docs/assets/feature-lr-launches.svg)
 
-The first isolated Feature LR ladder now uses five published logistic-regression
-artifacts over the same samples: 7 basic, 9 sequence, 12 realtime, 19 Local
-context, and 24 full features. Only the Local-context step clears the simulated
-unified-LT gate; the final hash/category/duration bundle improves offline AUC but
-is rejected online. See the
+The Feature LR release ladder now trains every legal combination of four atomic
+feature proposals on one immutable sample snapshot. Each A/B compares a proposal
+with the last accepted control. Sequence is held; realtime promotes over Basic;
+Local context then promotes over Basic + Realtime; the final hash/content bundle
+is rejected. The active simulated control and its rollback artifact are
+content-bound in `artifacts/releases/simulated-feed-control.json`. See the
 [request-level candidate authority](docs/architecture/request-candidate-dataset.md)
 and individual F-LR Launch Reviews.
 
