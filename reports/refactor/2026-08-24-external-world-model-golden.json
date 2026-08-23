@@ -1,0 +1,27 @@
+{
+  "schema": "external-world-model-refactor-golden-v1",
+  "source_commit": "0c413ffe5f320afbb14c46c89ed14568eab76dce",
+  "invariant": "Refactoring may change module ownership but not published evidence bytes or promote V4.",
+  "files": {
+    "reports/world-model/2026-08-24-kuairand-external-capacity-4090.json": {
+      "sha256": "fa4fae6220ceea3af60cc356295842bed1c7ce6c7f3c9a3064f5636505326e8d",
+      "decision": "external_sequence_capacity_pass"
+    },
+    "reports/world-model/2026-08-24-kuairand-external-capacity-seed26-4090.json": {
+      "sha256": "b0b74a02b6d14c05f04ac31bb1f2df8cd34c04f1bae80672a0d5b80eaec2ef16",
+      "decision": "external_sequence_capacity_pass"
+    },
+    "reports/world-model/2026-08-24-kuairand-shadow-ab-200k.json": {
+      "sha256": "ecb618dee1e345312b9fb6ab112a0741999dca8edee42bf03a20c8eb3fc3eb99",
+      "decision": "shadow_ab_hold"
+    },
+    "reports/datasets/2026-08-24-kuairand-external-sequence-manifest.json": {
+      "sha256": "8076c294369a5bc3cb417c9bcf21243ea68a868309334f930ba1fe31a871a00b"
+    },
+    "reports/calibration/2026-08-23-kuairand-standard-calibration.json": {
+      "sha256": "b9ef8b1096b4da4f66404ccccb0c92a5be50b7784bc505b0af1ffe4fcf0040db"
+    }
+  },
+  "authority_after_refactor": "V3",
+  "v4_decision_after_refactor": "hold"
+}

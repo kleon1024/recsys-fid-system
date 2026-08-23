@@ -7,7 +7,7 @@ from pathlib import Path
 
 import torch
 
-from .models import KuaiSequenceTransformer, KuaiWideDeep
+from .modeling.architectures import KuaiSequenceMMoE, KuaiSequenceTransformer, KuaiWideDeep
 
 
 @dataclass(frozen=True)
@@ -31,6 +31,10 @@ class KuaiBehaviorKernel:
             model = KuaiSequenceTransformer(
                 vocabularies, dense_dim, manifest["sequence_length"]
             )
+        elif payload["model_name"] == "sequence_mmoe":
+            model = KuaiSequenceMMoE(
+                vocabularies, dense_dim, manifest["sequence_length"]
+            )
         elif payload["model_name"] == "wide_deep":
             model = KuaiWideDeep(vocabularies, dense_dim)
         else:
@@ -47,16 +51,16 @@ class KuaiBehaviorKernel:
         dense = candidate_dense.clone()
         dense[:, :, 1:3] = request_dense[:, None, 1:3]
         dense[:, :, 4:] = request_dense[:, None, 4:]
-        logits = self.model(
-            sparse.reshape(-1, fields).to(self.device),
-            dense.reshape(-1, dense.shape[-1]).to(self.device),
-            history_items[:, None].expand(-1, candidates, -1).reshape(
-                -1, history_items.shape[1]
-            ).to(self.device),
-            history_feedback[:, None].expand(-1, candidates, -1, -1).reshape(
-                -1, history_feedback.shape[1], history_feedback.shape[2]
-            ).to(self.device),
-        ).reshape(batch, candidates, -1)
+        sparse, dense = sparse.to(self.device), dense.to(self.device)
+        if isinstance(self.model, KuaiSequenceTransformer):
+            logits = self.model.score_slate(
+                sparse, dense, history_items.to(self.device),
+                history_feedback.to(self.device),
+            )
+        else:
+            logits = self.model(
+                sparse.reshape(-1, fields), dense.reshape(-1, dense.shape[-1])
+            ).reshape(batch, candidates, -1)
         return SlateResponse(
             probabilities=torch.sigmoid(logits[:, :, :7]),
             stay_norm=torch.sigmoid(logits[:, :, 7]),

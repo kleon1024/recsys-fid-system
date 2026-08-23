@@ -54,6 +54,18 @@ def base_v3_components(root: Path) -> dict[str, object]:
     ]
     behavior_sources = [
         _component(root, "fid_lab/feed_loop/scale/tensor_engine.py"),
+        _component(
+            root,
+            "fid_lab/feed_loop/scale/tensor_runtime/contracts.py",
+        ),
+        _component(
+            root,
+            "fid_lab/feed_loop/scale/tensor_runtime/response.py",
+        ),
+        _component(
+            root,
+            "fid_lab/feed_loop/scale/tensor_runtime/state.py",
+        ),
         _component(root, "fid_lab/feed_loop/scale/calibration/behavior.py"),
         _component(root, "fid_lab/feed_loop/scale/calibration/nonlinear.py"),
         _component(root, "fid_lab/value/contracts.py"),

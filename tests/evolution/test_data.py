@@ -20,7 +20,11 @@ from fid_lab.evolution.data.request_dataset import (
     dataset_tables,
     materialize_dataset,
 )
-from fid_lab.evolution.data.sampling import mixed_negative_sample
+from fid_lab.evolution.data.sampling import (
+    expected_sampling_counts,
+    mixed_negative_sample,
+    negative_source_counts,
+)
 from fid_lab.scale import FeedTensorDataset, ScaleConfig, build_scale_dataset
 from fid_lab.scale.dataset import tensorflow_generator
 from fid_lab.scale.diagnostics import diagnose_auc_without_lift
@@ -31,16 +35,17 @@ from fid_lab.simulation.policies import HeuristicPolicy
 from fid_lab.simulation.population import run_population
 
 
-def decision(request: str, video: int, event_time: int = 100) -> StageDecision:
+def decision(request: str, video: int, event_time: int = 100, *, viewer: int = 1,
+             exposed: bool = True, category: int = 3, city: int = 2) -> StageDecision:
     return StageDecision(
         request,
-        1,
+        viewer,
         video + 100,
         video,
         9,
         event_time,
-        3,
-        2,
+        category,
+        city,
         tuple(range(6)),
         (0.0,) * 10,
         tuple((0.0,) * 8 for _ in range(24)),
@@ -48,7 +53,7 @@ def decision(request: str, video: int, event_time: int = 100) -> StageDecision:
         0.2,
         0.7,
         1,
-        True,
+        exposed,
         True,
         {"recall": 0.4, "coarse": 0.5, "fine": 0.7, "value": 0.6},
         {"features": "v1", "model": "v1", "index": "v1"},
@@ -103,6 +108,21 @@ class ScaleDataTest(unittest.TestCase):
 
 
 class SamplingAndJoinerTest(unittest.TestCase):
+    def test_sampling_correction_uses_source_expected_counts(self) -> None:
+        counts = negative_source_counts(20)
+        probabilities = np.concatenate(
+            (
+                np.full(counts["in_batch"], 0.1),
+                np.full(counts["hard"], 0.2),
+                np.full(counts["random"], 0.05),
+            )
+        )[None]
+        corrected = expected_sampling_counts(probabilities, 20)
+        np.testing.assert_allclose(
+            corrected[0, : counts["in_batch"]], counts["in_batch"] * 0.1
+        )
+        np.testing.assert_allclose(corrected[0, -counts["random"] :], 0.15)
+
     def test_request_candidate_dataset_closes_every_stage_and_label(self) -> None:
         config = SimulationConfig(
             users=4,
@@ -184,6 +204,38 @@ class SamplingAndJoinerTest(unittest.TestCase):
             "random": 3,
         })
         self.assertTrue(all(0.0 < value.sampling_probability <= 1.0 for value in samples))
+        probability = {
+            source: {value.sampling_probability for value in samples if value.source == source}
+            for source in ("in_batch", "hard", "random")
+        }
+        self.assertEqual(probability, {
+            "in_batch": {0.01}, "hard": {0.02}, "random": {0.01},
+        })
+
+    def test_recall_negatives_preserve_source_semantics(self) -> None:
+        decisions = [
+            decision("r1", 10, viewer=1),
+            decision("r1", 11, viewer=1, exposed=False),
+            decision("r1", 12, viewer=1, exposed=False, category=4, city=5),
+            decision("r2", 20, viewer=2),
+            decision("r2", 21, viewer=2, exposed=False),
+        ]
+        actions = [
+            ActionEvent("a1", "r1", 10, 9, "long_view", 120, 121),
+            ActionEvent("a2", "r2", 20, 9, "long_view", 120, 121),
+        ]
+        report = EvolutionJoiner().build(
+            decisions, actions, [], [], [], watermark=700_000
+        )
+        self.assertEqual(len(report.recall), 2)
+        first = report.recall[0]
+        by_source = {
+            source: {value.item_id for value in first.negatives if value.source == source}
+            for source in ("in_batch", "hard", "random")
+        }
+        self.assertEqual(by_source["in_batch"], {20})
+        self.assertEqual(by_source["hard"], {11})
+        self.assertNotIn(10, by_source["random"])
 
     def test_joiner_closes_commerce_and_fractional_pixel_labels(self) -> None:
         decisions = [decision("r1", 10), decision("r2", 11, 200)]

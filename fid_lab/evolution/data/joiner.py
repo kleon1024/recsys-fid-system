@@ -29,6 +29,45 @@ def _positive_tasks(labels: dict[str, float], masks: dict[str, bool]) -> list[st
     ]
 
 
+def _recall_examples(positive_rows, decisions):
+    by_request = defaultdict(list)
+    viewer_positives = defaultdict(set)
+    for candidate in decisions:
+        by_request[candidate.request_id].append(candidate)
+    for decision, _ in positive_rows:
+        viewer_positives[decision.viewer_id].add(decision.video_id)
+    all_items = tuple(dict.fromkeys(value.video_id for value in decisions))
+    examples = []
+    for index, (decision, strength) in enumerate(positive_rows):
+        known_positive = viewer_positives[decision.viewer_id]
+        in_batch = tuple(dict.fromkeys(
+            value.video_id
+            for value, _ in positive_rows
+            if value.request_id != decision.request_id
+            and value.video_id not in known_positive
+        ))
+        request_candidates = tuple(
+            value for value in by_request[decision.request_id]
+            if value.video_id != decision.video_id and not value.exposed
+        )
+        hard = tuple(
+            value.video_id for value in request_candidates
+            if value.category_id == decision.category_id
+            or value.city_id == decision.city_id
+        ) or tuple(value.video_id for value in request_candidates)
+        random = tuple(item for item in all_items if item not in known_positive)
+        if not in_batch or not hard or not random:
+            continue
+        negatives = mixed_negative_sample(
+            in_batch, hard, random, 20, index + 71
+        )
+        examples.append(RecallExample(
+            decision.request_id, decision.viewer_id, decision.video_id,
+            strength, negatives, decision.manifest,
+        ))
+    return examples
+
+
 @dataclass(frozen=True)
 class AttributionReport:
     matched_conversions: int
@@ -197,10 +236,9 @@ class EvolutionJoiner:
             )
         coarse: list[CoarseRankExample] = []
         fine: list[FineRankExample] = []
-        recall: list[RecallExample] = []
+        positive_rows: list[tuple[StageDecision, float]] = []
         immature = 0
-        all_item_ids = tuple(decision.video_id for decision in decisions)
-        for index, decision in enumerate(decisions):
+        for decision in decisions:
             labels, masks, immature_count = self._labels(
                 decision,
                 by_key[decision.key],
@@ -242,24 +280,12 @@ class EvolutionJoiner:
             )
             positive_tasks = _positive_tasks(labels, masks)
             if positive_tasks:
-                positive = max(BEHAVIOR_STRENGTH[task] for task in positive_tasks)
-                hard = tuple(
-                    candidate.video_id
-                    for candidate in decisions
-                    if candidate.category_id == decision.category_id
-                    and candidate.video_id != decision.video_id
+                positive_rows.append(
+                    (decision, max(
+                        BEHAVIOR_STRENGTH[task] for task in positive_tasks
+                    ))
                 )
-                random = tuple(item for item in all_item_ids if item != decision.video_id)
-                recall.append(
-                    RecallExample(
-                        decision.request_id,
-                        decision.viewer_id,
-                        decision.video_id,
-                        positive,
-                        mixed_negative_sample(random, hard or random, random, 20, index + 71),
-                        decision.manifest,
-                    )
-                )
+        recall = _recall_examples(positive_rows, decisions)
         return JoinerReport(
             tuple(recall),
             tuple(coarse),

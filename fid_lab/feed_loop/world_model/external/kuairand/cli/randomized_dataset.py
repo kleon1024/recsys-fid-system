@@ -1,4 +1,4 @@
-"""Build the external KuaiRand sequence artifact."""
+"""Build the checksum-bound KuaiRand-1K randomized evidence dataset."""
 
 from __future__ import annotations
 
@@ -6,23 +6,25 @@ import argparse
 import json
 from pathlib import Path
 
-from .dataset import build_sequence_dataset
+from ..data.randomized import build_randomized_dataset
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--source-commit", required=True)
+    parser.add_argument("--source-record", required=True)
     parser.add_argument("--sequence-length", type=int, default=64)
+    parser.add_argument("--seed", type=int, default=20260824)
     args = parser.parse_args()
-    manifest = build_sequence_dataset(
-        args.data_dir, args.output_dir, args.source_commit, args.sequence_length
+    manifest = build_randomized_dataset(
+        args.data_dir, args.output_dir, args.source_record,
+        args.sequence_length, args.seed,
     )
     print(json.dumps({
         "schema": manifest["schema"],
         "splits": manifest["splits"],
-        "sequence_length": manifest["sequence_length"],
+        "random_logging_propensity": manifest["random_logging_propensity"],
     }, indent=2))
 
 

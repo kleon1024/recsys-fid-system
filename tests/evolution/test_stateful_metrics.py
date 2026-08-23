@@ -14,8 +14,8 @@ from fid_lab.feed_loop.scale.tensor_engine import (
     LOCAL_INTENT_RANKER,
     PERSONALIZED,
     TensorFeedConfig,
-    _candidate_batch,
-    _new_user_state,
+    candidate_batch,
+    new_user_state,
     combine_tensor_trigger_ab,
     run_tensor_feed,
 )
@@ -244,10 +244,10 @@ class GroupedAUCTest(unittest.TestCase):
         generator = torch.Generator().manual_seed(config.seed)
         catalog = build_tensor_catalog(config, generator, torch.device("cpu"))
         user_ids = torch.arange(config.users)
-        state = _new_user_state(
+        state = new_user_state(
             config, PERSONALIZED, generator, torch.device("cpu"), user_ids
         )
-        candidates = _candidate_batch(
+        candidates = candidate_batch(
             config, generator, torch.device("cpu"), state, catalog, step=0
         )
         features = build_tensor_features(config, user_ids, state, candidates, 0)
@@ -337,13 +337,13 @@ class GroupedAUCTest(unittest.TestCase):
         generator = torch.Generator().manual_seed(config.seed)
         catalog = build_tensor_catalog(config, generator, torch.device("cpu"))
         user_ids = torch.arange(config.users)
-        state = _new_user_state(
+        state = new_user_state(
             config, LOCAL_STATIC, generator, torch.device("cpu"), user_ids
         )
         state["retarget_item"] = torch.tensor([7, 11, 19, 23])
         state["search_ttl"] = torch.tensor([2, 0, 2, 0])
         state["search_strength"] = torch.ones(config.users)
-        candidates = _candidate_batch(
+        candidates = candidate_batch(
             config, generator, torch.device("cpu"), state, catalog, step=0
         )
         self.assertEqual(candidates["item_ids"].shape, (4, 5))

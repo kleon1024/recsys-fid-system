@@ -1,0 +1,44 @@
+{
+  "schema": "tensor-runtime-refactor-scale-v1",
+  "device": "RTX 4090",
+  "policy": "PERSONALIZED",
+  "steps": 24,
+  "candidates": 20,
+  "batch_users": 200000,
+  "runs": [
+    {
+      "users": 1000000,
+      "seconds": 4.843210188002558,
+      "requests_per_second": 4544838.061029527,
+      "peak_gpu_memory_bytes": 2677245952,
+      "metrics": {
+        "stay_per_exposure": 7.902705895244536,
+        "long_view_rate": 0.2784223013986349,
+        "lt_value_per_user": 5.431847640625,
+        "coarse_pass_fraction": 0.41666664750064125,
+        "fine_oracle_regret_per_exposure": 0.04465128230960294
+      }
+    },
+    {
+      "users": 10000000,
+      "seconds": 43.980240304998006,
+      "requests_per_second": 5007093.309923878,
+      "peak_gpu_memory_bytes": 2678407680,
+      "metrics": {
+        "stay_per_exposure": 7.905389416950713,
+        "long_view_rate": 0.2786288841665857,
+        "lt_value_per_user": 5.43420954921875,
+        "coarse_pass_fraction": 0.4166666498150971,
+        "fine_oracle_regret_per_exposure": 0.044644761958754435
+      }
+    }
+  ],
+  "code_closure": {
+    "fid_lab/feed_loop/scale/tensor_engine.py": "e6f54cd92ef52176d1e1bf4f9ef1f5f4be2a87ee05be5d1cf494e7d079977b9f",
+    "fid_lab/feed_loop/scale/tensor_runtime/contracts.py": "6c36f23f9f475412774a44a7fcaf3770aea27d707c4682b69bfe37873ed03fbe",
+    "fid_lab/feed_loop/scale/tensor_runtime/response.py": "f832441f934ee1ac6761c8f689cf60ab2e82d15fa8e3ec2ea929c549f68e22ef",
+    "fid_lab/feed_loop/scale/tensor_runtime/state.py": "96b50f222da3448e9a11078dfee34f26ac3a05f48c6dea66252544cf2d13681e"
+  },
+  "release_authority_sha256": "d7530e8174347e641f6fc64a9abd09ea15376429c1da54193124e5a922188b56",
+  "evidence_boundary": "Single-GPU synthetic throughput; not production QPS or business lift. The prior batch-scale report used a different experiment context and is not a direct speedup baseline."
+}

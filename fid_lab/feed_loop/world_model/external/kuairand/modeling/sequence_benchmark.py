@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from hashlib import sha256
 import json
 from pathlib import Path
 from time import perf_counter
@@ -16,20 +15,21 @@ from sklearn.preprocessing import StandardScaler
 import torch
 from xgboost import XGBClassifier
 
-from .dataset import load_sequence_split
-from .models import KuaiSequenceTransformer, KuaiWideDeep
+from ..data.sequence import load_sequence_split
+from ..launch.contracts import stream_sha256
+from .architectures import KuaiSequenceTransformer, KuaiWideDeep
 from .training import behavior_metrics, fit_behavior_model, predict_behavior
 
 
-def _tabular_matrix(split, vocabularies):
+def tabular_matrix(split, vocabularies):
     sparse = split.sparse.numpy().astype(np.float32)
     sparse /= np.asarray(vocabularies, dtype=np.float32)[None]
     return np.concatenate((sparse, split.dense.numpy()), axis=1)
 
 
-def _fit_tabular(train, validation, vocabularies, device, seed):
-    train_x = _tabular_matrix(train, vocabularies)
-    validation_x = _tabular_matrix(validation, vocabularies)
+def fit_tabular(train, validation, vocabularies, device, seed):
+    train_x = tabular_matrix(train, vocabularies)
+    validation_x = tabular_matrix(validation, vocabularies)
     train_y = train.labels[:, 1].numpy()
     validation_y = validation.labels[:, 1].numpy()
     models = {
@@ -57,8 +57,8 @@ def _fit_tabular(train, validation, vocabularies, device, seed):
     return models, timing
 
 
-def _tabular_metrics(models, timing, test, vocabularies):
-    features = _tabular_matrix(test, vocabularies)
+def tabular_metrics(models, timing, test, vocabularies):
+    features = tabular_matrix(test, vocabularies)
     labels = test.labels[:, 1].numpy()
     return {
         name: {
@@ -72,7 +72,7 @@ def _tabular_metrics(models, timing, test, vocabularies):
 
 def _save_model(model, path, metadata):
     torch.save({"state_dict": model.state_dict(), **metadata}, path)
-    return sha256(path.read_bytes()).hexdigest()
+    return stream_sha256(path)
 
 
 def main():
@@ -94,10 +94,11 @@ def main():
     test = load_sequence_split(args.dataset_dir, "test", args.max_eval_rows)
     device = torch.device(args.device)
     vocabularies = tuple(manifest["sparse_vocabularies"])
-    tabular, timing = _fit_tabular(
+    tabular, timing = fit_tabular(
         train, validation, vocabularies, device, args.seed
     )
-    results = _tabular_metrics(tabular, timing, test, vocabularies)
+    results = tabular_metrics(tabular, timing, test, vocabularies)
+    torch.manual_seed(args.seed)
     models = {
         "wide_deep": KuaiWideDeep(vocabularies, train.dense.shape[1]),
         "sequence_transformer": KuaiSequenceTransformer(

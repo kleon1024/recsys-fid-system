@@ -13,7 +13,11 @@ from time import perf_counter
 import numpy as np
 import torch
 
-from ...evolution.data.sampling import SOURCE_FRACTIONS
+from ...evolution.data.sampling import (
+    SOURCE_FRACTIONS,
+    expected_sampling_counts,
+    negative_source_counts,
+)
 from ...evolution.models.retrieval import RetrievalSnapshot, TwoTowerRetriever
 from ...simulation.ab import experiment_metrics, launch_decision, randomization_audit
 from ...simulation.contracts import SimulationConfig
@@ -24,6 +28,7 @@ from ...simulation.population import run_population
 
 
 NEGATIVES_PER_QUERY = 20
+NEGATIVE_SOURCE_COUNTS = negative_source_counts(NEGATIVES_PER_QUERY)
 
 
 def _positive_rows(trajectories, limit: int) -> list:
@@ -43,10 +48,7 @@ def _sample_negatives(rows, catalog, seed: int) -> tuple[np.ndarray, np.ndarray]
     target = np.asarray([row.item_id for row in rows], dtype=np.int64)
     negatives = np.empty((len(rows), NEGATIVES_PER_QUERY), dtype=np.int64)
     probabilities = np.empty_like(negatives, dtype=np.float32)
-    counts = {
-        source: int(NEGATIVES_PER_QUERY * fraction)
-        for source, fraction in SOURCE_FRACTIONS.items()
-    }
+    counts = NEGATIVE_SOURCE_COUNTS
     for index, row in enumerate(rows):
         positive = row.item_id
         peers = target[target != positive]
@@ -75,20 +77,9 @@ def _sample_negatives(rows, catalog, seed: int) -> tuple[np.ndarray, np.ndarray]
         negatives[index] = np.concatenate((in_batch, hard, random))
         probabilities[index] = np.concatenate(
             (
-                np.full(
-                    counts["in_batch"],
-                    SOURCE_FRACTIONS["in_batch"] * counts["in_batch"] / len(peers),
-                ),
-                np.full(
-                    counts["hard"],
-                    SOURCE_FRACTIONS["hard"] * counts["hard"] / len(hard_pool),
-                ),
-                np.full(
-                    counts["random"],
-                    SOURCE_FRACTIONS["random"]
-                    * counts["random"]
-                    / (len(catalog.topics) - 1),
-                ),
+                np.full(counts["in_batch"], 1.0 / len(peers)),
+                np.full(counts["hard"], 1.0 / len(hard_pool)),
+                np.full(counts["random"], 1.0 / (len(catalog.topics) - 1)),
             )
         )
     return negatives, np.clip(probabilities, 1e-8, 1.0)
@@ -117,7 +108,10 @@ def _fit_model(rows, catalog, epochs: int, device: torch.device, seed: int):
                 negative.reshape(-1, catalog.topics.shape[1])
             ).reshape(len(index), NEGATIVES_PER_QUERY, -1)
             negative_score = torch.einsum("bd,bnd->bn", query_state, negative_state)
-            correction = torch.from_numpy(np.log(probabilities[index])).to(device)
+            expected_count = expected_sampling_counts(
+                probabilities[index], NEGATIVES_PER_QUERY
+            )
+            correction = torch.from_numpy(np.log(expected_count)).to(device)
             logits = torch.cat(
                 (positive_score[:, None] / 0.08, negative_score / 0.08 - correction),
                 dim=1,
@@ -135,7 +129,8 @@ def _fit_model(rows, catalog, epochs: int, device: torch.device, seed: int):
         "loss": losses,
         "examples": len(rows),
         "negative_source_fractions": SOURCE_FRACTIONS,
-        "sampling_probability_correction": "subtract_log_q",
+        "sampling_probability_semantics": "per_draw_conditional_on_source",
+        "sampling_probability_correction": "subtract_log_expected_count",
         "logging_policy_selection_bias": "not corrected beyond logged exploration",
     }
 

@@ -69,11 +69,13 @@ class KuaiSequenceTransformer(nn.Module):
             nn.Linear(128, TASK_COUNT),
         )
 
-    def forward(self, sparse, dense, history_items, history_feedback):
-        current = self.current(torch.cat((self.sparse(sparse), dense), dim=1))
+    def encode_current(self, sparse, dense):
+        return self.current(torch.cat((self.sparse(sparse), dense), dim=1))
+
+    def encode_history(self, history_items, history_feedback):
         item_embedding = self.sparse.embeddings[1](history_items)
         positions = self.position(
-            torch.arange(self.sequence_length, device=sparse.device)
+            torch.arange(self.sequence_length, device=history_items.device)
         )[None]
         history = self.item_projection(item_embedding)
         history += self.feedback_projection(history_feedback.float()) + positions
@@ -82,9 +84,63 @@ class KuaiSequenceTransformer(nn.Module):
         padding = padding.clone()
         padding[all_empty, 0] = False
         encoded = self.history_encoder(history, src_key_padding_mask=padding)
+        return encoded, padding
+
+    def score_encoded(self, current, encoded, padding):
         interest, _ = self.interest_attention(
-            current[:, None], encoded, encoded, key_padding_mask=padding,
+            current, encoded, encoded, key_padding_mask=padding,
             need_weights=False,
         )
-        interest = interest[:, 0]
-        return self.head(torch.cat((current, interest, current * interest), dim=1))
+        return self.head(torch.cat((current, interest, current * interest), dim=-1))
+
+    def score_slate(self, sparse, dense, history_items, history_feedback):
+        batch, candidates, fields = sparse.shape
+        current = self.encode_current(
+            sparse.reshape(-1, fields), dense.reshape(-1, dense.shape[-1])
+        ).reshape(batch, candidates, -1)
+        encoded, padding = self.encode_history(history_items, history_feedback)
+        return self.score_encoded(current, encoded, padding)
+
+    def forward(self, sparse, dense, history_items, history_feedback):
+        current = self.encode_current(sparse, dense)
+        encoded, padding = self.encode_history(history_items, history_feedback)
+        return self.score_encoded(current[:, None], encoded, padding)[:, 0]
+
+
+class KuaiSequenceMMoE(KuaiSequenceTransformer):
+    def __init__(self, vocabularies, dense_dim, sequence_length, width=64,
+                 experts=4) -> None:
+        super().__init__(vocabularies, dense_dim, sequence_length, width)
+        representation = width * 3
+        self.head = nn.Identity()
+        self.experts = nn.ModuleList(
+            nn.Sequential(
+                nn.Linear(representation, 128), nn.SiLU(),
+                nn.Linear(128, width), nn.SiLU(),
+            )
+            for _ in range(experts)
+        )
+        self.gates = nn.ModuleList(
+            nn.Linear(representation, experts) for _ in range(TASK_COUNT)
+        )
+        self.towers = nn.ModuleList(
+            nn.Linear(width, 1) for _ in range(TASK_COUNT)
+        )
+
+    def score_encoded(self, current, encoded, padding):
+        interest, _ = self.interest_attention(
+            current, encoded, encoded, key_padding_mask=padding,
+            need_weights=False,
+        )
+        representation = torch.cat(
+            (current, interest, current * interest), dim=-1
+        )
+        expert = torch.stack(
+            tuple(module(representation) for module in self.experts), dim=-2
+        )
+        outputs = []
+        for gate, tower in zip(self.gates, self.towers):
+            weight = torch.softmax(gate(representation), dim=-1)
+            mixture = (expert * weight[..., None]).sum(dim=-2)
+            outputs.append(tower(mixture))
+        return torch.cat(outputs, dim=-1)

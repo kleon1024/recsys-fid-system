@@ -1,0 +1,63 @@
+# Simulation Scale and Orchestration
+
+## Decision
+
+Do not add Dagster to the request-level simulation hot path. The hot path is a
+stateful tensor program; adding an asset orchestrator inside it would add process
+and serialization overhead without accelerating candidate generation, ranking,
+behavior sampling, or state transition.
+
+Dagster becomes useful only as an optional control plane when the repository has
+scheduled, independently materialized assets that need retries and lineage:
+
+```mermaid
+flowchart LR
+    SOURCE["source snapshot"] --> DATASET["request candidate dataset"]
+    DATASET --> TRAIN["train model artifact"]
+    TRAIN --> REPLAY["shadow / replay"]
+    REPLAY --> AB["simulated A/B"]
+    AB --> REVIEW["Launch Review"]
+    REVIEW --> AUTH["authority transition"]
+```
+
+Each box may later be a Dagster asset. The GPU kernel inside `REPLAY` and `AB`
+remains ordinary PyTorch. Until scheduling, partial retries, or multi-machine
+materialization becomes a measured operational problem, adding Dagster would be
+an unused dependency and a second execution authority.
+
+## Runtime boundary
+
+```text
+tensor_runtime/contracts.py  immutable scale and signal contract
+tensor_runtime/response.py   vectorized Feed and Local behavior sampling
+tensor_runtime/state.py      user state initialization and transition
+tensor_engine.py             candidate selection, batching, aggregation, report
+```
+
+Counter-based RNG is keyed by user, step, event stream, and seed. Therefore
+changing `batch_users` does not change user outcomes, which permits deterministic
+single-GPU partitioning and future multi-GPU data parallelism.
+
+The 2026-08-24 RTX 4090 run processed 10 million users over 24 steps in 43.98
+seconds at 5.01 million simulated requests per second. Peak allocated memory was
+2.49 GiB, essentially the same as the one-million-user run because memory is
+bounded by the 200k-user batch. This proves the current engine can run large
+synthetic experiments on one GPU; it does not prove production serving QPS or
+business lift.
+
+## Next performance work
+
+Performance changes are accepted only when stage counts are identical and
+metric deltas remain within the existing batch-invariance tolerance.
+
+1. Profile candidate graph, feature construction, ranking, response, and report
+   aggregation separately with CUDA events.
+2. Remove repeated per-step tensor allocation and cache static catalog views.
+3. Benchmark `torch.compile` on the stable response and state kernels; keep eager
+   mode if graph breaks or compilation amortization is negative.
+4. Add an orthogonal-experiment dimension only after memory and common-random
+   semantics are proven; do not run one Python process per A/B arm.
+5. Scale beyond one GPU by disjoint user-id ranges and reduce sufficient
+   statistics. Persist request-level rows only for a deterministic audit sample.
+6. Use ClickHouse or Parquet for event/Joiner analysis. Rust or C++ is justified
+   only for a measured non-tensor bottleneck, not as a rewrite target.

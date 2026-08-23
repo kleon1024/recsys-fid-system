@@ -10,7 +10,7 @@ from sklearn.metrics import log_loss, mean_absolute_error, roc_auc_score
 import torch
 from torch import nn
 
-from .contracts import FEEDBACK_NAMES
+from ..contracts import FEEDBACK_NAMES
 
 
 TASK_WEIGHTS = torch.tensor((0.45, 1.0, 0.25, 0.10, 0.10, 0.10, 0.15, 1.0))
@@ -62,12 +62,17 @@ def validation_loss(model, split, device, positive_weight, batch_size=4_096):
 
 
 def fit_behavior_model(model, train, validation, device, epochs, seed,
-                       batch_size=2_048):
+                       batch_size=2_048, learning_rate=8e-4):
+    torch.manual_seed(seed)
+    if device.type == "cuda":
+        torch.cuda.manual_seed_all(seed)
     model.to(device)
     positives = train.labels[:, :7].sum(dim=0).clamp_min(1.0)
     positive_weight = ((len(train) - positives) / positives).clamp_max(100.0).to(device)
     task_weights = TASK_WEIGHTS.to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=8e-4, weight_decay=1e-4)
+    optimizer = torch.optim.AdamW(
+        model.parameters(), lr=learning_rate, weight_decay=1e-4
+    )
     generator = torch.Generator().manual_seed(seed)
     best = float("inf")
     best_state = None

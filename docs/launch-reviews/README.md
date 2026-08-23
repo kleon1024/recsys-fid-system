@@ -15,6 +15,7 @@ boundary that prevents it from being presented as company production evidence.
 | [L-FEATURE-001](2026-08-23-main-feed-suite/l-feature-001.md) | Feature | Hold |
 | [L-STRATEGY-001](2026-08-23-main-feed-suite/l-strategy-001.md) | Strategy | Hold |
 | [L-ARCH-001](2026-08-23-main-feed-suite/l-arch-001.md) | Architecture | Pass parity and performance |
+| [L-ARCH-002](2026-08-23-main-feed-suite/l-arch-002.md) | Tensor runtime responsibility split | Pass semantic parity; source closure refreshed |
 | [L-REALTIME-001](2026-08-23-main-feed-suite/l-realtime-001.md) | Realtime | Hold |
 | [L-ONLINE-001](2026-08-23-main-feed-suite/l-online-001.md) | Streaming training / PS | Reject serving rollout |
 | [L-BUG-001](2026-08-23-main-feed-suite/l-bug-001.md) | Bug fix | Pass metric correction |

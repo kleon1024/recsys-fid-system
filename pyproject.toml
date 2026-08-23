@@ -31,7 +31,7 @@ include = ["fid_lab*"]
 
 [tool.maestro_dataeng.architecture]
 source_roots = ["."]
-oracle_paths = ["tests/test_*.py"]
+oracle_paths = ["tests/**/test_*.py"]
 entry_points = [
   "fid_lab/evolution/data/joiner.py",
   "fid_lab/evolution/data/request_dataset.py",
@@ -46,10 +46,15 @@ entry_points = [
   "fid_lab/feed_loop/world_model/cli.py",
   "fid_lab/feed_loop/world_model/validation/evaluation.py",
   "fid_lab/feed_loop/world_model/benchmark/cli.py",
-  "fid_lab/feed_loop/world_model/external/kuairand/dataset_cli.py",
-  "fid_lab/feed_loop/world_model/external/kuairand/benchmark_cli.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/cli/sequence_dataset.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/cli/randomized_dataset.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/cli/randomized_benchmark.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/cli/randomized_adapter.py",
+  "fid_lab/feed_loop/world_model/external/ope_cli.py",
+  "fid_lab/feed_loop/world_model/external/kuairand/cli/sequence_benchmark.py",
   "fid_lab/feed_loop/world_model/external/kuairand/kernel.py",
   "fid_lab/feed_loop/world_model/external/replay.py",
+  "fid_lab/evolution/models/esmm.py",
   "fid_lab/simulation/features/groups.py",
   "fid_lab/feed_loop/models/feature_lr.py",
   "fid_lab/feed_loop/models/feature_lr_cli.py",

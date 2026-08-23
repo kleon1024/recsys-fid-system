@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from time import perf_counter
 
 import torch
 
-from ...simulation.contracts import DEFAULT_SEARCH_EVENT_RATE
 from ...value import BUSINESS_TREE_WEIGHTS, DEFAULT_LT_CONFIG
 from .artifact.features import build_tensor_features
 from .calibration.nonlinear import nonlinear_stay_adjustment
-from .calibration.behavior import response_parameters
 from .lt_exchange import (
     accumulate_lt_exchange_components,
 )
@@ -19,7 +16,7 @@ from .tensor_catalog import build_tensor_catalog
 from .graph.candidate import ROUTE_NAMES, build_candidate_graph
 from .graph.reporting import render_report
 from .graph.trace import append_trace
-from .graph.random import normal, uniform, uniform_for_items
+from .graph.random import uniform_for_items
 from .experiment.trigger import (
     combine_tensor_ab,
     combine_tensor_trigger_ab,
@@ -38,205 +35,39 @@ from ..tensor_policies import (
     TensorPolicy,
 )
 from ..tensor_cascade import select_candidate
+from .tensor_runtime.contracts import DEFAULT_GPU_BATCH_USERS, TensorFeedConfig
+from .tensor_runtime.response import (
+    business_and_lt_values,
+    sample_local_response,
+    sample_response,
+)
+from .tensor_runtime.state import advance_state, new_user_state
 
 
-DEFAULT_GPU_BATCH_USERS = 200_000
-
-
-@dataclass(frozen=True)
-class TensorFeedConfig:
-    users: int = 1_000_000
-    steps: int = 24
-    candidates: int = 20
-    route_candidates: int = 8
-    route_oversample: int = 3
-    merged_candidates: int = 48
-    audit_candidates: int = 24
-    candidate_graph_version: str = "multiroute-rrf-coarse-v2"
-    trace_users: int = 0
-    trace_requests_per_user: int = 2
-    topics: int = 12
-    catalog_items: int = 200_000
-    batch_users: int = DEFAULT_GPU_BATCH_USERS
-    seed: int = 20260823
-    device: str = "cuda:0"
-    count_inactive_play_bug: bool = False
-    signal_version: str = "industrial-cross-sequence-v1"
-    max_sessions: int = 4
-    requests_per_session: int = 8
-    search_event_rate: float = DEFAULT_SEARCH_EVENT_RATE
-    search_ttl_requests: int = 3
-
-    def __post_init__(self) -> None:
-        if self.signal_version not in {
-            "industrial-cross-sequence-v1",
-            "heterogeneous-nonlinear-v2",
-            "kuairand-calibrated-v3",
-        }:
-            raise ValueError(f"unsupported signal version: {self.signal_version}")
-        if not 0.0 <= self.search_event_rate <= 1.0:
-            raise ValueError("search event rate must be in [0, 1]")
-        if self.search_ttl_requests < 1:
-            raise ValueError("search TTL must be positive")
-        if self.route_candidates < 1 or self.route_oversample < 1:
-            raise ValueError("route candidate budgets must be positive")
-        if self.merged_candidates < self.candidates:
-            raise ValueError("merged candidates must cover the coarse output")
-        if self.audit_candidates < 1:
-            raise ValueError("audit candidate count must be positive")
-        if self.candidate_graph_version != "multiroute-rrf-coarse-v2":
-            raise ValueError("unsupported candidate graph version")
-        if self.trace_users < 0 or self.trace_requests_per_user < 1:
-            raise ValueError("trace sampling limits are invalid")
+__all__ = [
+    "DEFAULT_GPU_BATCH_USERS",
+    "LOCAL_EXPANSION",
+    "LOCAL_INTENT_RANKER",
+    "LOCAL_RETARGET",
+    "LOCAL_SEARCH",
+    "LOCAL_STATIC",
+    "PERSONALIZED",
+    "PERSONALIZED_1PCT",
+    "POPULAR",
+    "TensorFeedConfig",
+    "TensorPolicy",
+    "combine_tensor_ab",
+    "combine_tensor_trigger_ab",
+    "candidate_batch",
+    "new_user_state",
+    "run_tensor_feed",
+]
 
 
 def _sync(device: torch.device) -> None:
     if device.type == "cuda":
         torch.cuda.synchronize(device)
 
-
-def _sample_response(
-    user_ids, step, seed, signal_version, active, fatigue, satisfaction, affinity, quality,
-    duration=None, stay_adjustment=None,
-):
-    parameters = response_parameters(signal_version)
-    users = len(active)
-    if duration is None:
-        duration = 3.0 + 177.0 * uniform(user_ids, step, 30, seed)
-    play_draw = (
-        uniform(user_ids, step, 31, seed)
-        < torch.sigmoid(
-            parameters.play_intercept + 0.4 * affinity - 0.6 * fatigue
-        )
-    )
-    played = play_draw & active
-    stay_log_mean = (
-        parameters.stay_intercept
-        + 1.7 * affinity + 0.55 * quality + 0.20 * satisfaction - fatigue
-    )
-    if stay_adjustment is not None:
-        stay_log_mean += stay_adjustment
-    stay = torch.minimum(
-        duration,
-        torch.exp(
-            stay_log_mean
-            + parameters.stay_noise * normal(user_ids, step, 32, seed)
-        ),
-    ) * played
-    long_threshold = 18.0 if signal_version == "kuairand-calibrated-v3" else 10.0
-    long_view = (
-        stay >= torch.minimum(torch.full_like(stay, long_threshold), duration)
-    ) & active
-    hlt = (stay >= torch.minimum(torch.full_like(stay, 30.0), duration)) & active
-    like = (
-        uniform(user_ids, step, 34, seed)
-        < torch.sigmoid(parameters.like_intercept + 1.8 * affinity + 0.8 * quality)
-    ) & played
-    negative = (
-        uniform(user_ids, step, 35, seed)
-        < torch.sigmoid(
-            parameters.negative_intercept
-            - 1.7 * affinity - 0.8 * quality + 2.0 * fatigue
-        )
-    ) & active
-    return stay, long_view, hlt, like, negative, played, play_draw
-
-
-def _sample_local_response(
-    user_ids,
-    step,
-    seed,
-    active,
-    affinity,
-    is_poi,
-    commerce,
-    poi_quality,
-    inventory,
-    same_city,
-    search_match,
-    retarget_match,
-    fulfillment,
-):
-    anchor = (
-        uniform(user_ids, step, 40, seed)
-        < torch.sigmoid(
-            -5.0
-            + 1.7 * affinity
-            + 0.7 * same_city
-            + 0.5 * commerce
-            + 1.4 * search_match
-            + 1.1 * retarget_match
-        )
-    ) & active & is_poi.bool()
-    detail = (
-        uniform(user_ids, step, 41, seed)
-        < torch.sigmoid(-1.3 + affinity + 0.8 * poi_quality + 0.7 * search_match)
-    ) & anchor
-    favorite = (
-        uniform(user_ids, step, 42, seed)
-        < torch.sigmoid(-3.2 + 0.8 * affinity + poi_quality)
-    ) & detail
-    order = (
-        uniform(user_ids, step, 43, seed)
-        < torch.sigmoid(
-            -4.5
-            + 1.2 * commerce
-            + 0.9 * poi_quality
-            + 0.9 * retarget_match
-            + 1.2 * inventory
-        )
-    ) & detail
-    paid = order & (fulfillment == 1) & (
-        uniform(user_ids, step, 44, seed) < 0.92
-    )
-    pixel = order & (fulfillment == 2) & (
-        uniform(user_ids, step, 45, seed) < 0.35
-    )
-    return anchor, detail, favorite, paid, pixel
-
-
-def _business_and_lt_values(
-    stay,
-    hlt,
-    like,
-    negative,
-    anchor,
-    detail,
-    favorite,
-    paid,
-    pixel,
-    commerce,
-):
-    tree = BUSINESS_TREE_WEIGHTS
-    lt_rates = DEFAULT_LT_CONFIG.rates
-    feed_tree = (
-        hlt.float() * tree["quality_view"]
-        + like.float() * tree["meaningful_engagement"]
-        + negative.float() * tree["negative_feedback"]
-    )
-    converted = paid | pixel
-    terminal_intent = torch.where(
-        converted,
-        torch.zeros_like(stay),
-        torch.where(
-            favorite,
-            torch.full_like(stay, tree["poi_favorite"]),
-            torch.where(
-                detail,
-                torch.full_like(stay, tree["poi_detail"]),
-                anchor.float() * tree["anchor_click"],
-            ),
-        ),
-    )
-    transaction = (
-        paid.float() * tree["closed_loop_payment"]
-        + pixel.float() * tree["open_loop_conversion"]
-        + converted.float() * commerce * 8.0 * tree["contribution_margin"]
-    )
-    local_tree = terminal_intent + transaction
-    commercialization = converted.float() * commerce * 8.0
-    lt_value = stay / 60.0 * lt_rates["stay_minute"].unit_value
-    return lt_value, feed_tree, local_tree, commercialization
 
 
 def _accumulate_cells(cell_stats, user_ids, user_metrics, cohort=None):
@@ -255,113 +86,11 @@ def _accumulate_cells(cell_stats, user_ids, user_metrics, cohort=None):
         cell_stats[cell, :, 2] += values.square().sum(dim=0)
 
 
-def _new_user_state(config, policy, generator, device, user_ids):
-    del generator
-    users = len(user_ids)
-    if config.signal_version == "heterogeneous-nonlinear-v2":
-        interest = (
-            -torch.log(uniform(
-                user_ids, 0, 1, config.seed, config.topics
-            ).clamp_min(1e-7))
-        ).pow(1.0 / 0.8)
-        interest = torch.nn.functional.normalize(interest, dim=1)
-        observed_interest = torch.clamp(
-            interest
-            + policy.observation_noise
-            * normal(user_ids, 0, 3, config.seed, config.topics),
-            min=0.0,
-        )
-        observed_interest = torch.nn.functional.normalize(observed_interest, dim=1)
-    else:
-        interest = torch.nn.functional.normalize(
-            normal(user_ids, 0, 5, config.seed, config.topics), dim=1
-        )
-        observed_interest = torch.nn.functional.normalize(
-            interest
-            + policy.observation_noise
-            * normal(user_ids, 0, 7, config.seed, config.topics),
-            dim=1,
-        )
-    trigger = torch.remainder(user_ids * 1_103_515_245 + 12_345, 2**31)
-    age_draw = uniform(user_ids, 0, 16, config.seed)
-    account_age_days = torch.floor(age_draw.square() * 3_650.0)
-    historical_activity = torch.floor(
-        (0.15 + 0.85 * uniform(user_ids, 0, 17, config.seed))
-        * torch.sqrt(account_age_days + 1.0)
-        * 3.2
-    ).clamp_max(200.0)
-    lifecycle_bucket = torch.where(
-        account_age_days < 7,
-        torch.zeros_like(account_age_days),
-        torch.where(
-            account_age_days < 30,
-            torch.ones_like(account_age_days),
-            torch.where(
-                account_age_days < 365,
-                torch.full_like(account_age_days, 2),
-                torch.full_like(account_age_days, 3),
-            ),
-        ),
-    ).long()
-    region_bucket = torch.floor(uniform(user_ids, 0, 18, config.seed) * 10).long()
-    history_profile = torch.softmax(interest.abs() * 2.0, dim=1)
-    historical_topic_counts = history_profile * historical_activity[:, None]
-    return {
-        "user_ids": user_ids,
-        "eligible": (trigger.float() / float(2**31) < policy.eligible_fraction).float()[:, None],
-        "interest": interest,
-        "observed_interest": observed_interest,
-        "local_observed_interest": torch.nn.functional.normalize(
-            torch.clamp(
-                interest
-                + policy.local_observation_noise
-                * normal(user_ids, 0, 9, config.seed, config.topics),
-                min=0.0,
-            )
-            if config.signal_version == "heterogeneous-nonlinear-v2"
-            else interest
-            + policy.local_observation_noise
-            * normal(user_ids, 0, 11, config.seed, config.topics),
-            dim=1,
-        ),
-        "satisfaction": torch.zeros(users, device=device),
-        "fatigue": torch.zeros(users, device=device),
-        "active": torch.ones(users, dtype=torch.bool, device=device),
-        "sessions": torch.ones(users, device=device),
-        "requests_in_session": torch.zeros(users, device=device),
-        "returns": torch.zeros(users, device=device),
-        "search_topic": torch.floor(
-            uniform(user_ids, 0, 13, config.seed) * config.topics
-        ).long(),
-        "search_strength": (
-            torch.zeros(users, device=device)
-            if config.search_event_rate > 0.0
-            else uniform(user_ids, 0, 14, config.seed)
-        ),
-        "search_ttl": torch.zeros(users, device=device, dtype=torch.long),
-        "retarget_item": torch.full((users,), -1, device=device, dtype=torch.long),
-        "city": torch.floor(uniform(user_ids, 0, 15, config.seed) * 100).long(),
-        "trust": torch.remainder(user_ids * 48_271 + 17, 10_007).float() / 10_007,
-        "commerce_propensity": (
-            torch.remainder(user_ids * 69_697 + 29, 10_009).float() / 10_009
-        ),
-        "last_topic": torch.full((users,), -1, device=device, dtype=torch.long),
-        "topic_counts": historical_topic_counts,
-        "account_age_days": account_age_days,
-        "historical_activity": historical_activity,
-        "lifecycle_bucket": lifecycle_bucket,
-        "region_bucket": region_bucket,
-        "ads_served": torch.zeros(users, device=device, dtype=torch.long),
-        "live_served": torch.zeros(users, device=device, dtype=torch.long),
-        "last_ad_step": torch.full((users,), -10_000, device=device, dtype=torch.long),
-    }
 
-
-def _candidate_batch(config, generator, device, state, catalog, step):
+def candidate_batch(config, generator, device, state, catalog, step):
     del generator, device
     graph = build_candidate_graph(config, state, catalog, step)
     item_ids = graph["item_ids"]
-    shape = item_ids.shape
     has_search = state["search_ttl"] > 0
     candidate_topic = catalog.category[item_ids]
     dynamic_inventory = catalog.inventory[item_ids] * (
@@ -407,7 +136,7 @@ def _sample_step(config, policy, generator, device, state, selected, step):
     is_live = selected["content_type"] == 1 if policy.multi_queue else torch.zeros_like(affinity).bool()
     is_ad = selected["content_type"] == 2 if policy.multi_queue else torch.zeros_like(affinity).bool()
     response_affinity = affinity + 0.03 * is_live.float() - 0.10 * is_ad.float()
-    feed = _sample_response(
+    feed = sample_response(
         state["user_ids"],
         step,
         config.seed,
@@ -421,7 +150,7 @@ def _sample_step(config, policy, generator, device, state, selected, step):
         selected.get("stay_nonlinear"),
     )
     stay, long_view, quality_view, like, negative, played, play_draw = feed
-    local = _sample_local_response(
+    local = sample_local_response(
         state["user_ids"],
         step,
         config.seed,
@@ -433,7 +162,7 @@ def _sample_step(config, policy, generator, device, state, selected, step):
         )),
     )
     anchor, detail, favorite, paid, pixel = local
-    lt_value, feed_tree, local_tree, commercialization = _business_and_lt_values(
+    lt_value, feed_tree, local_tree, commercialization = business_and_lt_values(
         stay, quality_view, like, negative, anchor, detail, favorite, paid,
         pixel, selected["commerce"],
     )
@@ -482,93 +211,6 @@ def _sample_step(config, policy, generator, device, state, selected, step):
     }
     return values
 
-
-def _advance_state(config, policy, generator, state, selected, values, step):
-    del generator
-    engagement = values["long_view"].float() + values["like"].float()
-    state["satisfaction"] = torch.clamp(
-        0.82 * state["satisfaction"] + 0.10 * engagement - 0.24 * values["negative"].float(),
-        -1.0,
-        1.0,
-    )
-    state["fatigue"] = torch.clamp(
-        0.72 * state["fatigue"] + 0.08 * values["long_view"].float(), 0.0, 1.0
-    )
-    update = values["long_view"].float()[:, None]
-    state["interest"] = torch.nn.functional.normalize(
-        state["interest"] * (1.0 - 0.10 * update) + selected["topics"] * 0.10 * update,
-        dim=1,
-    )
-    state["observed_interest"] = torch.nn.functional.normalize(
-        state["observed_interest"] * (1.0 - policy.realtime_interest_rate * update)
-        + selected["topics"] * policy.realtime_interest_rate * update,
-        dim=1,
-    )
-    state["local_observed_interest"] = torch.nn.functional.normalize(
-        state["local_observed_interest"]
-        * (1.0 - policy.realtime_interest_rate * update)
-        + selected["topics"] * policy.realtime_interest_rate * update,
-        dim=1,
-    )
-    state["retarget_item"] = torch.where(
-        values["anchor"], selected["item_ids"], state["retarget_item"]
-    )
-    active_weight = state["active"].float()
-    state["topic_counts"].scatter_add_(
-        1, selected["candidate_topic"][:, None], active_weight[:, None]
-    )
-    state["last_topic"] = torch.where(
-        state["active"], selected["candidate_topic"], state["last_topic"]
-    )
-    state["ads_served"] += values["ad_selected"] & state["active"]
-    state["live_served"] += values["live_selected"] & state["active"]
-    state["last_ad_step"] = torch.where(
-        values["ad_selected"] & state["active"],
-        torch.full_like(state["last_ad_step"], step),
-        state["last_ad_step"],
-    )
-    state["search_strength"] *= 0.78
-    if config.search_event_rate > 0.0:
-        state["search_ttl"] = torch.clamp(state["search_ttl"] - 1, min=0)
-        state["search_strength"] *= (state["search_ttl"] > 0).float()
-    state["requests_in_session"] += state["active"]
-    leave = (
-        uniform(state["user_ids"], step, 50, config.seed)
-        < torch.sigmoid(-3.4 - 1.2 * state["satisfaction"] + 1.7 * state["fatigue"])
-    ) & state["active"]
-    if config.signal_version == "heterogeneous-nonlinear-v2":
-        leave |= (
-            state["requests_in_session"] >= config.requests_per_session
-        ) & state["active"]
-    can_return = state["sessions"] < config.max_sessions
-    returned = leave & (
-        uniform(state["user_ids"], step, 51, config.seed)
-        < torch.sigmoid(1.0 + 1.6 * state["satisfaction"] - 1.1 * state["fatigue"])
-    ) & can_return
-    return_value = (
-        returned.float()
-        * DEFAULT_LT_CONFIG.rates["active_day"].unit_value
-    )
-    state["returns"] += returned
-    state["sessions"] += returned
-    state["requests_in_session"] = torch.where(
-        returned,
-        torch.zeros_like(state["requests_in_session"]),
-        state["requests_in_session"],
-    )
-    state["ads_served"] = torch.where(
-        returned, torch.zeros_like(state["ads_served"]), state["ads_served"]
-    )
-    state["live_served"] = torch.where(
-        returned, torch.zeros_like(state["live_served"]), state["live_served"]
-    )
-    state["last_ad_step"] = torch.where(
-        returned,
-        torch.full_like(state["last_ad_step"], -10_000),
-        state["last_ad_step"],
-    )
-    state["active"] &= ~leave | returned
-    return return_value, returned
 
 
 def _step_totals(config, state, values):
@@ -625,7 +267,7 @@ def _simulate_batches(
         users = min(config.batch_users, config.users - offset)
         user_ids = torch.arange(offset, offset + users, device=device, dtype=torch.int64)
         initial_policy = policy_schedule[0] if policy_schedule else policy
-        state = _new_user_state(
+        state = new_user_state(
             config, initial_policy, generator, device, user_ids
         )
         user_metrics = torch.zeros(users, 27, device=device)
@@ -638,7 +280,7 @@ def _simulate_batches(
             if trigger_kind and step == measurement_start_step:
                 trigger_cohort = trigger_mask(state, trigger_kind)
                 trigger_users += trigger_cohort.sum()
-            candidates = _candidate_batch(config, generator, device, state, catalog, step)
+            candidates = candidate_batch(config, generator, device, state, catalog, step)
             selected = select_candidate(
                 active_policy, user_ids, state, candidates, device, step, config
             )
@@ -690,7 +332,7 @@ def _simulate_batches(
                     torch.zeros_like(values["stay"]),
                     values["selected_duration"],
                 ), dim=1).float()
-            return_value, returned = _advance_state(
+            return_value, returned = advance_state(
                 config, active_policy, generator, state, selected, values, step
             )
             if measured:

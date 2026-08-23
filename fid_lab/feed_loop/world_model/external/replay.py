@@ -3,43 +3,32 @@
 from __future__ import annotations
 
 import argparse
-from hashlib import sha256
 import json
 from pathlib import Path
 
 import numpy as np
 import torch
 
-from .kuairand.dataset import load_sequence_split
+from .kuairand.data.sequence import load_sequence_split
+from .kuairand.evaluation.policy import RAW_SELECTION_WEIGHTS, policy_utility
 from .kuairand.kernel import KuaiBehaviorKernel
+from .kuairand.launch.contracts import assert_artifact_compatible, stream_sha256
 
 
 METRIC_NAMES = ("click", "long_view", "like", "hate", "stay_norm")
-SELECTION_WEIGHTS = {
-    "click": 0.10,
-    "long_view": 0.27,
-    "like": 0.30,
-    "hate": -0.10,
-    "stay_norm": 0.28,
-}
+SELECTION_WEIGHTS = RAW_SELECTION_WEIGHTS
 MAX_INTERACTION_REGRESSION = 0.005
 GUARD_TOLERANCES = {
     "click": 0.02,
     "long_view": 0.02,
     "like": 0.02,
-    "hate": -0.005,
-    "stay_norm": -0.005,
+    "hate": 0.0005,
+    "stay_norm": 0.005,
 }
 
 
 def _selection_value(response):
-    return (
-        SELECTION_WEIGHTS["click"] * response.probabilities[:, :, 0]
-        + SELECTION_WEIGHTS["long_view"] * response.probabilities[:, :, 1]
-        + SELECTION_WEIGHTS["like"] * response.probabilities[:, :, 2]
-        + SELECTION_WEIGHTS["hate"] * response.probabilities[:, :, 6]
-        + SELECTION_WEIGHTS["stay_norm"] * response.stay_norm
-    )
+    return policy_utility(response, "raw_probability")
 
 
 def _selected_metrics(response, choice):
@@ -51,7 +40,7 @@ def _selected_metrics(response, choice):
     ), dim=1)
 
 
-def _guard_mask(base, candidate, choice):
+def treatment_guard_mask(base, candidate, choice):
     rows = torch.arange(len(choice), device=choice.device)
     selected = base.probabilities[rows, choice]
     selected_stay = base.stay_norm[rows, choice]
@@ -87,7 +76,7 @@ def _arm_step(policy, world, request_sparse, request_dense, candidate_sparse,
         )
         base_choice = _selection_value(base).argmax(dim=1)
         policy_value = policy_value.masked_fill(
-            ~_guard_mask(base, policy_response, base_choice), -1e9
+            ~treatment_guard_mask(base, policy_response, base_choice), -1e9
         )
     choice = policy_value.argmax(dim=1)
     world_response = world.score_slate(
@@ -116,6 +105,9 @@ def _candidate_slate(split, start, stop, candidates, step, seed):
 def run_paired_replay(dataset_dir, control_artifact, treatment_artifact,
                       world_artifact, device_name="cuda:0", users=5_000,
                       candidates=20, steps=8, batch_size=256, seed=20260824):
+    dataset_manifest = assert_artifact_compatible(
+        dataset_dir, (control_artifact, treatment_artifact, world_artifact)
+    )
     split = load_sequence_split(dataset_dir, "test", users)
     control = KuaiBehaviorKernel.load(control_artifact, device_name)
     treatment = KuaiBehaviorKernel.load(treatment_artifact, device_name)
@@ -148,9 +140,10 @@ def run_paired_replay(dataset_dir, control_artifact, treatment_artifact,
                 items[start:stop], feedback[start:stop] = updated
     report = _replay_report(totals, steps, candidates)
     report["artifacts"] = {
-        "control_sha256": sha256(control_artifact.read_bytes()).hexdigest(),
-        "treatment_sha256": sha256(treatment_artifact.read_bytes()).hexdigest(),
-        "world_sha256": sha256(world_artifact.read_bytes()).hexdigest(),
+        "dataset_manifest": dataset_manifest,
+        "control_sha256": stream_sha256(control_artifact),
+        "treatment_sha256": stream_sha256(treatment_artifact),
+        "world_sha256": stream_sha256(world_artifact),
     }
     report["candidate_seed"] = seed
     return report

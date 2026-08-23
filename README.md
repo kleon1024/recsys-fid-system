@@ -6,6 +6,15 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
+The external world-model lane follows explicit
+[data, modeling, evaluation, and launch boundaries](docs/architecture/external-world-model-boundaries.md).
+Artifact and dataset identities fail closed before scoring, and V3 remains the
+active simulator authority while V4 is held.
+
+The [scale and orchestration decision](docs/architecture/simulation-scale-and-orchestration.md)
+keeps a future asset DAG outside the GPU request hot path. The refactored tensor
+runtime has a measured ten-million-user RTX 4090 scale report.
+
 ## What the checked evidence says
 
 `LR` is ambiguous in recommendation work. This repository writes **logistic
@@ -338,6 +347,7 @@ See the [system design](docs/architecture/system-design.md) for contracts and ev
 Production engineering and interview references:
 
 - [Practical engineering](docs/interview/practical-engineering.md): Joiner, training examples, online PS, consistency, offline/online AUC, Feed growth, multi-objective learning, public industry references, Euclidean distance, Lagrangian constraints, and generative recommendation.
+- [Recommendation data contracts](docs/interview/recommendation-data-contracts.md): retrieval/coarse/fine sample spaces, negative proposals, ESMM funnel labels, request-level attribution, and interview-ready English answers.
 - [Common interview Q&A](docs/interview/common-qa.md): compact production and fundamentals questions with answer boundaries.
 
 This lab reproduces the **public FID bit contract**, not a proprietary internal framework. The name "SEO" and its predefined feature-combination functions could not be identified from public evidence, so their semantics are not guessed here.
@@ -358,7 +368,7 @@ FID V2 = (slot << 48) | (signature & (2^48 - 1))
 
 The slot identifies the feature field. The signature identifies a value inside that field. A signature can come from a raw numeric ID or a stable hash; FID packing itself does not define the hash function.
 
-V1 to V2 conversion preserves the slot but truncates the upper six signature bits. It is therefore not generally reversible. The implementation and tests are in `fid_lab/fid.py` and `tests/test_fid_lab.py`.
+V1 to V2 conversion preserves the slot but truncates the upper six signature bits. It is therefore not generally reversible. The implementation and tests are in `fid_lab/fid.py` and `tests/core/test_fid_lab.py`.
 
 ## Durable boundaries
 

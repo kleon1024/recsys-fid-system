@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from hashlib import sha256
 import json
 from pathlib import Path
 
@@ -11,7 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-from .contracts import (
+from ..contracts import (
     DEFAULT_SEQUENCE_LENGTH,
     DENSE_NAMES,
     FEEDBACK_NAMES,
@@ -20,6 +19,7 @@ from .contracts import (
     TRAIN_END_DATE,
     VALIDATION_END_DATE,
 )
+from ..launch.contracts import stream_sha256
 
 
 @dataclass(frozen=True)
@@ -34,10 +34,6 @@ class SequenceSplit:
 
     def __len__(self) -> int:
         return len(self.labels)
-
-
-def _hash(path: Path) -> str:
-    return sha256(path.read_bytes()).hexdigest()
 
 
 def _factorize(values: pd.Series) -> tuple[np.ndarray, int]:
@@ -100,7 +96,7 @@ def _attach_metadata(logs: pd.DataFrame, data_dir: Path):
     return np.stack(sparse_values, axis=1), dense, tuple(vocabularies)
 
 
-def _history(logs, item_ids, feedback, length):
+def build_history(logs, item_ids, feedback, length):
     rows = len(logs)
     items = np.zeros((rows, length), dtype=np.int32)
     actions = np.zeros((rows, length, len(FEEDBACK_NAMES)), dtype=np.uint8)
@@ -133,7 +129,7 @@ def build_sequence_dataset(data_dir: Path, output_dir: Path, source_commit: str,
     logs = _load_logs(data_dir)
     sparse, dense, vocabularies = _attach_metadata(logs, data_dir)
     feedback = logs.loc[:, FEEDBACK_NAMES].to_numpy(np.uint8)
-    history_items, history_feedback = _history(
+    history_items, history_feedback = build_history(
         logs, sparse[:, 1], feedback, sequence_length
     )
     duration = logs.duration_ms.clip(1).to_numpy(float)
@@ -167,7 +163,7 @@ def build_sequence_dataset(data_dir: Path, output_dir: Path, source_commit: str,
             "rows": int(mask.sum()),
             "date_min": split["date_min"],
             "date_max": split["date_max"],
-            "sha256": _hash(path),
+            "sha256": stream_sha256(path),
         }
     manifest = {
         "schema": "kuairand-external-sequence-v1",
@@ -175,7 +171,7 @@ def build_sequence_dataset(data_dir: Path, output_dir: Path, source_commit: str,
         "source_commit": source_commit,
         "license": "CC-BY-SA-4.0",
         "source_files": {
-            name: _hash(data_dir / name) for name in SOURCE_FILES
+            name: stream_sha256(data_dir / name) for name in SOURCE_FILES
         },
         "sequence_length": sequence_length,
         "feedback_names": FEEDBACK_NAMES,
