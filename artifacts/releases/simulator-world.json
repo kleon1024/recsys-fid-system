@@ -18,7 +18,7 @@
     }
   },
   "rollback_epoch": "v3",
-  "source_review_sha256": "ede7f2caa6f67ff1978830291030ca9621d80bec5a58e26f2dfa4b5dd97f9ff1",
+  "source_review_sha256": "70c471acf06ae4ca3763c2dd5821abdaf7ec68127c8558bcb57d5c33a6517971",
   "production_readiness": "simulator_only",
   "evidence_boundary": "This promotes an external-data-calibrated Feed kernel and a causally tested synthetic neural Local kernel inside the simulator. It is not a production deployment, live A/B, or production LT estimate."
 }

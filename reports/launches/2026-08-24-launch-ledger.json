@@ -402,7 +402,7 @@
       "decision": "hold_world_authority",
       "evidence": {
         "report": "reports/world-model/v4/composite-launch-review.json",
-        "report_sha256": "ede7f2caa6f67ff1978830291030ca9621d80bec5a58e26f2dfa4b5dd97f9ff1"
+        "report_sha256": "70c471acf06ae4ca3763c2dd5821abdaf7ec68127c8558bcb57d5c33a6517971"
       },
       "evidence_boundary": "This promotes an external-data-calibrated Feed kernel and a causally tested synthetic neural Local kernel inside the simulator. It is not a production deployment, live A/B, or production LT estimate. Feed status: eligible_simulator_authority"
     },
@@ -972,7 +972,7 @@
       "decision": "pass_pooled_three_seeds",
       "evidence": {
         "report": "reports/launches/2026-08-24-poi-distribution-v4-coarse-1m.json",
-        "report_sha256": "f42782bd353b6a3265e90713e9b7d202603f4f58b23212d86ba5af20fbc806e0"
+        "report_sha256": "b6b73ab8f9f06d487c1b2f3e826edb7aa042e472931e2089390e523dc48568cb"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     },
@@ -987,7 +987,7 @@
       "decision": "reject_mean_regression",
       "evidence": {
         "report": "reports/launches/2026-08-24-poi-distribution-v4-coarse-1m.json",
-        "report_sha256": "f42782bd353b6a3265e90713e9b7d202603f4f58b23212d86ba5af20fbc806e0"
+        "report_sha256": "b6b73ab8f9f06d487c1b2f3e826edb7aa042e472931e2089390e523dc48568cb"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     },
@@ -1002,7 +1002,7 @@
       "decision": "pass_pooled_three_seeds",
       "evidence": {
         "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
-        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+        "report_sha256": "6b3e9b0c7f9d70abf437e071dcc167799738aac94e17a71ddba385d89fb95d4f"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     },
@@ -1017,7 +1017,7 @@
       "decision": "reject_mean_regression",
       "evidence": {
         "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
-        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+        "report_sha256": "6b3e9b0c7f9d70abf437e071dcc167799738aac94e17a71ddba385d89fb95d4f"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     },
@@ -1032,7 +1032,7 @@
       "decision": "reject_mean_regression",
       "evidence": {
         "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
-        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+        "report_sha256": "6b3e9b0c7f9d70abf437e071dcc167799738aac94e17a71ddba385d89fb95d4f"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     },
@@ -1047,7 +1047,7 @@
       "decision": "reject_mean_regression",
       "evidence": {
         "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
-        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+        "report_sha256": "6b3e9b0c7f9d70abf437e071dcc167799738aac94e17a71ddba385d89fb95d4f"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     },
@@ -1062,7 +1062,7 @@
       "decision": "reject_mean_regression",
       "evidence": {
         "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
-        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+        "report_sha256": "6b3e9b0c7f9d70abf437e071dcc167799738aac94e17a71ddba385d89fb95d4f"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     },
@@ -1077,7 +1077,7 @@
       "decision": "reject_mean_regression",
       "evidence": {
         "report": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
-        "report_sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+        "report_sha256": "6b3e9b0c7f9d70abf437e071dcc167799738aac94e17a71ddba385d89fb95d4f"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     },
@@ -1092,7 +1092,7 @@
       "decision": "pass_pooled_three_seeds",
       "evidence": {
         "report": "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json",
-        "report_sha256": "a12cfef36f86fc7ff709f52a48fe0dbfec6deae2d021a300dd1cb7e11843d4b4"
+        "report_sha256": "f1d56362b388f035114480e2c557a8250e64cbfb5a38ca8ef55f76105a7bddd8"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
     }

@@ -97,5 +97,20 @@ def aggregate(stage, index, reports):
         "seed_passes": sum(row["decision"] == "pass" for row in rows),
         "pooled_gates": pooled_gates,
         "metrics": metrics,
-        "seed_reports": rows,
+        "online_disjoint_by_seed": [
+            {
+                metric: row["online_disjoint_metrics"][metric]
+                for metric in (primary, "lt_value_per_user")
+            }
+            for row in rows
+        ],
+        "seed_diagnostics": [
+            {
+                "decision": row["decision"],
+                "gates": row["gates"],
+                "candidate_graph": row["candidate_graph"],
+                "performance": row["performance"],
+            }
+            for row in rows
+        ],
     }

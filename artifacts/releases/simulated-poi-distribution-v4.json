@@ -1,7 +1,7 @@
 {
   "schema": "simulated-poi-distribution-v4-authority-v1",
   "active_key": "eight_route_linear_coarse_linear_fine_feed_guarded_mix",
-  "active_bundle_id": "sha256:b482ab509178eff6773bc3ed309a78093633aaa66bb432226c415fb98e9e5937",
+  "active_bundle_id": "sha256:395d243f252367c8873325a244a6d36a1df90e7bbd07f36d630e3041e8b1608c",
   "active_bundle": {
     "retrieval_policy": "ann_graph_geo_fresh_long_tail_popular_search_retarget",
     "coarse_model": "linear",
@@ -23,15 +23,15 @@
       },
       {
         "path": "reports/launches/2026-08-24-poi-distribution-v4-coarse-1m.json",
-        "sha256": "f42782bd353b6a3265e90713e9b7d202603f4f58b23212d86ba5af20fbc806e0"
+        "sha256": "b6b73ab8f9f06d487c1b2f3e826edb7aa042e472931e2089390e523dc48568cb"
       },
       {
         "path": "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
-        "sha256": "cd6577180ff7c6313f87c598a682a5e588b3c2690a53fbe7db28431f097119fa"
+        "sha256": "6b3e9b0c7f9d70abf437e071dcc167799738aac94e17a71ddba385d89fb95d4f"
       },
       {
         "path": "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json",
-        "sha256": "a12cfef36f86fc7ff709f52a48fe0dbfec6deae2d021a300dd1cb7e11843d4b4"
+        "sha256": "f1d56362b388f035114480e2c557a8250e64cbfb5a38ca8ef55f76105a7bddd8"
       }
     ],
     "sources": [
@@ -65,11 +65,11 @@
       },
       {
         "path": "fid_lab/poi_distribution/launch.py",
-        "sha256": "743357538ebdd9c124a6afef6bd4514e24abec9e938eb13e60cc8e984882c920"
+        "sha256": "4973d02327e5351857bad4715ad2bffd929f153a1eb627d5fdcd1a17e487c3cc"
       },
       {
         "path": "fid_lab/poi_distribution/launch_analysis.py",
-        "sha256": "40470abaae7e16f0de3468b2e085f238417e03b53a232d4c9b4525c83168dda1"
+        "sha256": "ec0175b317cc617655ee689c529df1f3c7c2c76bc11976512e6855928dafe5f0"
       },
       {
         "path": "fid_lab/poi_distribution/launch_cli.py",
@@ -116,7 +116,7 @@
   "rollback_key": "eight_route_quality_coarse_rule_fine",
   "source_report": {
     "path": "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json",
-    "sha256": "a12cfef36f86fc7ff709f52a48fe0dbfec6deae2d021a300dd1cb7e11843d4b4"
+    "sha256": "f1d56362b388f035114480e2c557a8250e64cbfb5a38ca8ef55f76105a7bddd8"
   },
   "production_readiness": "simulator_only_external_local_validation_required",
   "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."

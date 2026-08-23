@@ -78,10 +78,14 @@ def _seed_run(users, steps, seed, device, bundles, selected_stages):
         trace_users=16, trace_requests_per_user=steps,
     )
     stages = {}
+    world_cache = {}
     for stage, policies in _arms(bundles).items():
         if stage not in selected_stages:
             continue
-        worlds = {policy.name: run_tensor_feed(config, policy) for policy in policies}
+        for policy in policies:
+            if policy.name not in world_cache:
+                world_cache[policy.name] = run_tensor_feed(config, policy)
+        worlds = {policy.name: world_cache[policy.name] for policy in policies}
         stages[stage] = []
         for control_index, treatment_index in COMPARISONS[stage]:
             control = policies[control_index]
@@ -125,7 +129,7 @@ def run_poi_distribution_launch(
         "schema": "poi-distribution-trained-launch-review-v1",
         "seeds": list(seeds), "users_per_seed": users, "steps": steps,
         "launches": launches,
-        "seed_reports": seed_reports,
+        "seed_configs": [report["config"] for report in seed_reports],
         "stages": list(stages),
         "evaluation_protocol": {
             "shadow_replay": "same hashed users in common-random worlds",
