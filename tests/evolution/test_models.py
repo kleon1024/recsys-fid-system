@@ -21,9 +21,34 @@ from fid_lab.evolution.models.generative import (
 from fid_lab.evolution.evaluation.retrieval_benchmark import run_retrieval_benchmark
 from fid_lab.evolution.models.retrieval import RetrievalSnapshot, TwoTowerRetriever
 from fid_lab.generative.semantic_ids import SemanticIdIndex
+from fid_lab.feed_loop.models.artifact import publish_policy
+from fid_lab.simulation.policies import fit_logistic_policy
 
 
 class MatureModelAdapterTest(unittest.TestCase):
+    def test_published_policy_binds_schema_signal_and_exact_replay(self) -> None:
+        rng = np.random.default_rng(71)
+        features = rng.normal(size=(128, 24)).astype(np.float32)
+        labels = (features[:, 0] * features[:, 1] > 0).astype(np.float32)
+        policy = fit_logistic_policy(
+            "artifact_lr",
+            features,
+            labels,
+            tuple(range(features.shape[1])),
+            seed=71,
+        )
+        published, replay_delta = publish_policy(
+            policy, features, "heterogeneous-nonlinear-v2"
+        )
+        self.assertLess(replay_delta, 1e-12)
+        self.assertTrue(published.artifact_manifest["artifact_id"].startswith("sha256:"))
+        self.assertEqual(
+            published.artifact_manifest["signal_version"],
+            "heterogeneous-nonlinear-v2",
+        )
+        self.assertEqual(len(published.artifact_manifest["feature_schema_sha256"]), 64)
+        self.assertEqual(published.artifact_manifest["serving_device"], "cpu")
+
     def test_deepctr_adapter_uses_supported_model_zoo(self) -> None:
         self.assertEqual(
             supported_deepctr_models(),

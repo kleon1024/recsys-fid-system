@@ -1,0 +1,1030 @@
+{
+  "artifact_manifest": {
+    "artifact_id": "sha256:c3286e2b19f1d35b0fc0a85fc466ba58dd51256a36236f599730920383c6f939",
+    "artifact_format": "composite-manifest",
+    "training_device": "cuda+cpu",
+    "serving_device": "cpu",
+    "model_name": "xgboost_stay_guarded_001",
+    "base_artifact_id": "sha256:af4ca7536ddc0080c834f8d9b3cc7262f6d946fb67ebcdf3e3b715c563ab2e5e",
+    "challenger_artifact_id": "sha256:6f3bb23dd1646d6a35d97befc576037903f7064cb52448ea74e13efb208cd4e3",
+    "base_score_tolerance": "0.01",
+    "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+    "signal_version": "heterogeneous-nonlinear-v2"
+  },
+  "common_random_numbers": true,
+  "control": {
+    "config": {
+      "users": 1000000,
+      "steps": 24,
+      "candidates": 20,
+      "topics": 12,
+      "catalog_items": 200000,
+      "batch_users": 25000,
+      "seed": 20260823,
+      "device": "cuda:0",
+      "count_inactive_play_bug": false,
+      "signal_version": "heterogeneous-nonlinear-v2",
+      "max_sessions": 4,
+      "requests_per_session": 8
+    },
+    "policy": {
+      "name": "lr_full_feed_tensor_control",
+      "treatment": false,
+      "artifact_manifest": {
+        "artifact_id": "sha256:c3286e2b19f1d35b0fc0a85fc466ba58dd51256a36236f599730920383c6f939",
+        "artifact_format": "composite-manifest",
+        "training_device": "cuda+cpu",
+        "serving_device": "cpu",
+        "model_name": "xgboost_stay_guarded_001",
+        "base_artifact_id": "sha256:af4ca7536ddc0080c834f8d9b3cc7262f6d946fb67ebcdf3e3b715c563ab2e5e",
+        "challenger_artifact_id": "sha256:6f3bb23dd1646d6a35d97befc576037903f7064cb52448ea74e13efb208cd4e3",
+        "base_score_tolerance": "0.01",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2"
+      }
+    },
+    "policy_schedule": null,
+    "measurement_start_step": 0,
+    "experiment_cells": {
+      "control": {
+        "stay_per_exposure": {
+          "users": 500033,
+          "mean": 10.263305559333084,
+          "variance": 5.102419551805027
+        },
+        "long_view_rate": {
+          "users": 500033,
+          "mean": 0.49474524036882317,
+          "variance": 0.022909102113445892
+        },
+        "quality_long_view_rate": {
+          "users": 500033,
+          "mean": 0.22335777254716813,
+          "variance": 0.016759952236944504
+        },
+        "negative_rate": {
+          "users": 500033,
+          "mean": 0.0014871863267510183,
+          "variance": 0.00012503707290108338
+        },
+        "lt_value_per_exposure": {
+          "users": 500033,
+          "mean": 0.5996829590106428,
+          "variance": 0.07145919370716732
+        },
+        "local_value_tree_score_per_exposure": {
+          "users": 500033,
+          "mean": 0.02328669763606149,
+          "variance": 0.01081308524467671
+        },
+        "anchor_click_rate": {
+          "users": 500033,
+          "mean": 0.013049928926858797,
+          "variance": 0.001686118274270522
+        },
+        "conversion_rate": {
+          "users": 500033,
+          "mean": 0.0006925101739214167,
+          "variance": 5.07776989720196e-05
+        },
+        "ad_load": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "effective_ad_load": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "ad_contribution_per_exposure": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "users": 500033,
+          "mean": 0.32484301788035114,
+          "variance": 0.029586039988076854
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "users": 500033,
+          "mean": 0.0035467038524212287,
+          "variance": 0.0016723453762761118
+        },
+        "active_days_per_user": {
+          "users": 500033,
+          "mean": 1.8717624636773973,
+          "variance": 1.535269791650106
+        },
+        "accepted_platform_commercialization_per_user": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "lt_value_per_user": {
+          "users": 500033,
+          "mean": 12.491755419142336,
+          "variance": 55.18257946231467
+        },
+        "coarse_feed_oracle_recall": {
+          "users": 500033,
+          "mean": 1.0,
+          "variance": 0.0
+        },
+        "coarse_pass_fraction": {
+          "users": 500033,
+          "mean": 1.0,
+          "variance": 0.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "users": 500033,
+          "mean": 0.08757340496972513,
+          "variance": 0.0015222668817089333
+        },
+        "poi_candidate_fraction": {
+          "users": 500033,
+          "mean": 0.2830133953346579,
+          "variance": 0.0008698437169380997
+        },
+        "lt_stay_per_user": {
+          "users": 500033,
+          "mean": 3.132943061695428,
+          "variance": 1.9880370696249843
+        },
+        "lt_active_days_per_user": {
+          "users": 500033,
+          "mean": 9.358812318386986,
+          "variance": 38.38174479125264
+        }
+      },
+      "treatment": {
+        "stay_per_exposure": {
+          "users": 499967,
+          "mean": 10.25985444726852,
+          "variance": 5.053216304049467
+        },
+        "long_view_rate": {
+          "users": 499967,
+          "mean": 0.49474392556002444,
+          "variance": 0.022890897906188576
+        },
+        "quality_long_view_rate": {
+          "users": 499967,
+          "mean": 0.2233589955999596,
+          "variance": 0.016772669122618607
+        },
+        "negative_rate": {
+          "users": 499967,
+          "mean": 0.0015152488177623043,
+          "variance": 0.00013072593413748966
+        },
+        "lt_value_per_exposure": {
+          "users": 499967,
+          "mean": 0.5995454117940534,
+          "variance": 0.07153126721593515
+        },
+        "local_value_tree_score_per_exposure": {
+          "users": 499967,
+          "mean": 0.023297760552587095,
+          "variance": 0.010781017969536472
+        },
+        "anchor_click_rate": {
+          "users": 499967,
+          "mean": 0.013134043055337746,
+          "variance": 0.0017254803366977174
+        },
+        "conversion_rate": {
+          "users": 499967,
+          "mean": 0.0006918695073434783,
+          "variance": 4.99052431239496e-05
+        },
+        "ad_load": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "effective_ad_load": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "ad_contribution_per_exposure": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "users": 499967,
+          "mean": 0.3250376209400133,
+          "variance": 0.02982685758744141
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "users": 499967,
+          "mean": 0.003528123717676597,
+          "variance": 0.0016582753614305125
+        },
+        "active_days_per_user": {
+          "users": 499967,
+          "mean": 1.8725675894609044,
+          "variance": 1.5366185425803618
+        },
+        "accepted_platform_commercialization_per_user": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "lt_value_per_user": {
+          "users": 499967,
+          "mean": 12.496302755981894,
+          "variance": 55.25099139870399
+        },
+        "coarse_feed_oracle_recall": {
+          "users": 499967,
+          "mean": 1.0,
+          "variance": 0.0
+        },
+        "coarse_pass_fraction": {
+          "users": 499967,
+          "mean": 1.0,
+          "variance": 0.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "users": 499967,
+          "mean": 0.08749424971813764,
+          "variance": 0.001520773509539973
+        },
+        "poi_candidate_fraction": {
+          "users": 499967,
+          "mean": 0.2830333320553844,
+          "variance": 0.0008658798235863612
+        },
+        "lt_stay_per_user": {
+          "users": 499967,
+          "mean": 3.133464746173247,
+          "variance": 1.9932684731824266
+        },
+        "lt_active_days_per_user": {
+          "users": 499967,
+          "mean": 9.362837947304522,
+          "variance": 38.41546356450905
+        }
+      }
+    },
+    "lt_exchange_components": {
+      "control": {
+        "users": 500033,
+        "noncommercial_mean": 12.491755360374885,
+        "noncommercial_variance": 55.182578434581615,
+        "accepted_commercialization_mean": 0.0,
+        "accepted_commercialization_variance": 0.0,
+        "covariance": 0.0
+      },
+      "treatment": {
+        "users": 499967,
+        "noncommercial_mean": 12.496302705394374,
+        "noncommercial_variance": 55.25099327855322,
+        "accepted_commercialization_mean": 0.0,
+        "accepted_commercialization_variance": 0.0,
+        "covariance": 0.0
+      }
+    },
+    "metrics": {
+      "exposures": 18180519,
+      "stay_per_exposure": 10.340311112164894,
+      "long_view_rate": 0.5003380816576248,
+      "quality_long_view_rate": 0.22656432415378241,
+      "like_rate": 0.08798989731811287,
+      "negative_rate": 0.0014441831941101352,
+      "play_rate": 0.9609754815030308,
+      "play_3s_rate": 0.9069096982324872,
+      "sessions_per_user": 2.872165,
+      "returned_sessions_per_user": 1.872165,
+      "active_days_per_user": 1.872165,
+      "lt_value_per_exposure": 0.6872206933856517,
+      "lt_value_per_user": 12.494028873291015,
+      "lt_stay_per_user": 3.133203710677083,
+      "lt_active_days_per_user": 9.360825,
+      "local_value_tree_score_per_exposure": 0.02514019060298238,
+      "anchor_click_rate": 0.01396241768455565,
+      "poi_detail_rate": 0.006715594862830924,
+      "closed_loop_payment_rate": 0.00063942068980539,
+      "open_loop_conversion_rate": 0.0001282691654732189,
+      "conversion_rate": 0.0007676898552786089,
+      "ad_load": 0.0,
+      "effective_ad_load": 0.0,
+      "ad_contribution_per_exposure": 0.0,
+      "organic_opportunity_cost_per_exposure": 0.0,
+      "feed_value_tree_score_per_exposure": 0.33077496302498294,
+      "ads_live_value_tree_score_per_exposure": 0.0,
+      "accepted_platform_commercialization_per_exposure": 0.0,
+      "accepted_platform_commercialization_per_user": 0.0,
+      "local_commercialization_value_per_exposure": 0.003925862249305109,
+      "coarse_feed_oracle_recall": 1.0,
+      "coarse_pass_fraction": 1.0,
+      "fine_oracle_regret_per_exposure": 0.08834983980843339,
+      "poi_candidate_fraction": 0.2833965939927839
+    },
+    "performance": {
+      "seconds": 5.731939425000746,
+      "users_per_second": 174461.02023310718,
+      "requests_per_second": 3171791.8931073896,
+      "peak_gpu_memory_bytes": 280015872
+    }
+  },
+  "treatment": {
+    "config": {
+      "users": 1000000,
+      "steps": 24,
+      "candidates": 20,
+      "topics": 12,
+      "catalog_items": 200000,
+      "batch_users": 25000,
+      "seed": 20260823,
+      "device": "cuda:0",
+      "count_inactive_play_bug": false,
+      "signal_version": "heterogeneous-nonlinear-v2",
+      "max_sessions": 4,
+      "requests_per_session": 8
+    },
+    "policy": {
+      "name": "xgboost_stay_guarded_001",
+      "treatment": true,
+      "artifact_manifest": {
+        "artifact_id": "sha256:c3286e2b19f1d35b0fc0a85fc466ba58dd51256a36236f599730920383c6f939",
+        "artifact_format": "composite-manifest",
+        "training_device": "cuda+cpu",
+        "serving_device": "cpu",
+        "model_name": "xgboost_stay_guarded_001",
+        "base_artifact_id": "sha256:af4ca7536ddc0080c834f8d9b3cc7262f6d946fb67ebcdf3e3b715c563ab2e5e",
+        "challenger_artifact_id": "sha256:6f3bb23dd1646d6a35d97befc576037903f7064cb52448ea74e13efb208cd4e3",
+        "base_score_tolerance": "0.01",
+        "feature_schema_sha256": "f9b7f08ad49b7db0317beed4a07d2155ff4bb909369ebb01e17e614f4c42d010",
+        "signal_version": "heterogeneous-nonlinear-v2"
+      }
+    },
+    "policy_schedule": null,
+    "measurement_start_step": 0,
+    "experiment_cells": {
+      "control": {
+        "stay_per_exposure": {
+          "users": 500033,
+          "mean": 10.342001631017354,
+          "variance": 5.1706166827161395
+        },
+        "long_view_rate": {
+          "users": 500033,
+          "mean": 0.49622313013278624,
+          "variance": 0.022927364129197388
+        },
+        "quality_long_view_rate": {
+          "users": 500033,
+          "mean": 0.22008299161239733,
+          "variance": 0.016577702173764194
+        },
+        "negative_rate": {
+          "users": 500033,
+          "mean": 0.0014789994815237214,
+          "variance": 0.00012439289257474344
+        },
+        "lt_value_per_exposure": {
+          "users": 500033,
+          "mean": 0.6010720421358441,
+          "variance": 0.0714978396708804
+        },
+        "local_value_tree_score_per_exposure": {
+          "users": 500033,
+          "mean": 0.023425730818269902,
+          "variance": 0.010873851898098136
+        },
+        "anchor_click_rate": {
+          "users": 500033,
+          "mean": 0.013107709720260026,
+          "variance": 0.0016941683191393246
+        },
+        "conversion_rate": {
+          "users": 500033,
+          "mean": 0.0006998504582767361,
+          "variance": 5.116311299315033e-05
+        },
+        "ad_load": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "effective_ad_load": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "ad_contribution_per_exposure": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "users": 500033,
+          "mean": 0.3217654002023366,
+          "variance": 0.02938936465076171
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "users": 500033,
+          "mean": 0.0035754264821793247,
+          "variance": 0.0016793656832372289
+        },
+        "active_days_per_user": {
+          "users": 500033,
+          "mean": 1.8722064343753313,
+          "variance": 1.5353314655122432
+        },
+        "accepted_platform_commercialization_per_user": {
+          "users": 500033,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "lt_value_per_user": {
+          "users": 500033,
+          "mean": 12.518513153131893,
+          "variance": 55.33310954652953
+        },
+        "coarse_feed_oracle_recall": {
+          "users": 500033,
+          "mean": 1.0,
+          "variance": 0.0
+        },
+        "coarse_pass_fraction": {
+          "users": 500033,
+          "mean": 1.0,
+          "variance": 0.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "users": 500033,
+          "mean": 0.08641701840061368,
+          "variance": 0.0015110111908746855
+        },
+        "poi_candidate_fraction": {
+          "users": 500033,
+          "mean": 0.28302173462801455,
+          "variance": 0.0008698440196434414
+        },
+        "lt_stay_per_user": {
+          "users": 500033,
+          "mean": 3.1574808406395176,
+          "variance": 2.018582646227912
+        },
+        "lt_active_days_per_user": {
+          "users": 500033,
+          "mean": 9.361032171876657,
+          "variance": 38.38328663780608
+        }
+      },
+      "treatment": {
+        "stay_per_exposure": {
+          "users": 499967,
+          "mean": 10.33928306455726,
+          "variance": 5.1181261946437315
+        },
+        "long_view_rate": {
+          "users": 499967,
+          "mean": 0.4963246226594705,
+          "variance": 0.022887668483322136
+        },
+        "quality_long_view_rate": {
+          "users": 499967,
+          "mean": 0.2200203035665979,
+          "variance": 0.016566316961017617
+        },
+        "negative_rate": {
+          "users": 499967,
+          "mean": 0.0015120769508568327,
+          "variance": 0.00013042761458681852
+        },
+        "lt_value_per_exposure": {
+          "users": 499967,
+          "mean": 0.6009868164970763,
+          "variance": 0.07156479711680132
+        },
+        "local_value_tree_score_per_exposure": {
+          "users": 499967,
+          "mean": 0.023438400205897963,
+          "variance": 0.010933320960589953
+        },
+        "anchor_click_rate": {
+          "users": 499967,
+          "mean": 0.013180370820001465,
+          "variance": 0.0017330591620492498
+        },
+        "conversion_rate": {
+          "users": 499967,
+          "mean": 0.0007012205130367706,
+          "variance": 5.0932025667309356e-05
+        },
+        "ad_load": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "effective_ad_load": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "ad_contribution_per_exposure": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "users": 499967,
+          "mean": 0.32189576367509004,
+          "variance": 0.02963866800491437
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "users": 499967,
+          "mean": 0.0035716678055756563,
+          "variance": 0.001692340561228844
+        },
+        "active_days_per_user": {
+          "users": 499967,
+          "mean": 1.873287636984041,
+          "variance": 1.536625527292282
+        },
+        "accepted_platform_commercialization_per_user": {
+          "users": 499967,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "lt_value_per_user": {
+          "users": 499967,
+          "mean": 12.524836326697562,
+          "variance": 55.39965668674252
+        },
+        "coarse_feed_oracle_recall": {
+          "users": 499967,
+          "mean": 1.0,
+          "variance": 0.0
+        },
+        "coarse_pass_fraction": {
+          "users": 499967,
+          "mean": 1.0,
+          "variance": 0.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "users": 499967,
+          "mean": 0.08634856179804742,
+          "variance": 0.0015099775486952186
+        },
+        "poi_candidate_fraction": {
+          "users": 499967,
+          "mean": 0.2830333647723875,
+          "variance": 0.0008658442125375003
+        },
+        "lt_stay_per_user": {
+          "users": 499967,
+          "mean": 3.1583982980376706,
+          "variance": 2.0230478273724053
+        },
+        "lt_active_days_per_user": {
+          "users": 499967,
+          "mean": 9.366438184920204,
+          "variance": 38.41563818230705
+        }
+      }
+    },
+    "lt_exchange_components": {
+      "control": {
+        "users": 500033,
+        "noncommercial_mean": 12.518513039160318,
+        "noncommercial_variance": 55.333113030174246,
+        "accepted_commercialization_mean": 0.0,
+        "accepted_commercialization_variance": 0.0,
+        "covariance": 0.0
+      },
+      "treatment": {
+        "users": 499967,
+        "noncommercial_mean": 12.524836497146024,
+        "noncommercial_variance": 55.399652958072075,
+        "accepted_commercialization_mean": 0.0,
+        "accepted_commercialization_variance": 0.0,
+        "covariance": 0.0
+      }
+    },
+    "metrics": {
+      "exposures": 18183062,
+      "stay_per_exposure": 10.420487098618208,
+      "long_view_rate": 0.5019897088840153,
+      "quality_long_view_rate": 0.22334879570888555,
+      "like_rate": 0.08815368940610772,
+      "negative_rate": 0.0014382066122856536,
+      "play_rate": 0.9609755496626475,
+      "play_3s_rate": 0.9082093543980656,
+      "sessions_per_user": 2.872747,
+      "returned_sessions_per_user": 1.872747,
+      "active_days_per_user": 1.872747,
+      "lt_value_per_exposure": 0.6886449894044291,
+      "lt_value_per_user": 12.521674538330078,
+      "lt_stay_per_user": 3.1579393830729168,
+      "lt_active_days_per_user": 9.363735,
+      "local_value_tree_score_per_exposure": 0.025279524651156113,
+      "anchor_click_rate": 0.014014581262495832,
+      "poi_detail_rate": 0.006750293212441337,
+      "closed_loop_payment_rate": 0.0006447758908813048,
+      "open_loop_conversion_rate": 0.00013094604198126807,
+      "conversion_rate": 0.0007757219328625728,
+      "ad_load": 0.0,
+      "effective_ad_load": 0.0,
+      "ad_contribution_per_exposure": 0.0,
+      "organic_opportunity_cost_per_exposure": 0.0,
+      "feed_value_tree_score_per_exposure": 0.3277880810173776,
+      "ads_live_value_tree_score_per_exposure": 0.0,
+      "accepted_platform_commercialization_per_exposure": 0.0,
+      "accepted_platform_commercialization_per_user": 0.0,
+      "local_commercialization_value_per_exposure": 0.003958184515749942,
+      "coarse_feed_oracle_recall": 1.0,
+      "coarse_pass_fraction": 1.0,
+      "fine_oracle_regret_per_exposure": 0.08711228169617245,
+      "poi_candidate_fraction": 0.28340107753960975
+    },
+    "performance": {
+      "seconds": 7.368653457997425,
+      "users_per_second": 135710.00532189084,
+      "requests_per_second": 2467623.4407882714,
+      "peak_gpu_memory_bytes": 420799488
+    }
+  },
+  "ab": {
+    "stay_per_exposure": {
+      "control_mean": 10.263305559333084,
+      "treatment_mean": 10.33928306455726,
+      "relative_lift": 0.007402829895782055,
+      "standard_error": 0.004521182771710935,
+      "confidence_interval": [
+        0.06711598699162369,
+        0.08483902345673056
+      ],
+      "p_value": 2.2512669672968444e-63
+    },
+    "long_view_rate": {
+      "control_mean": 0.49474524036882317,
+      "treatment_mean": 0.4963246226594705,
+      "relative_lift": 0.00319231426960259,
+      "standard_error": 0.00030264424455667143,
+      "confidence_interval": [
+        0.0009861995713162817,
+        0.0021725650099784334
+      ],
+      "p_value": 1.8027087179899305e-07
+    },
+    "quality_long_view_rate": {
+      "control_mean": 0.22335777254716813,
+      "treatment_mean": 0.2200203035665979,
+      "relative_lift": -0.014942255836946172,
+      "standard_error": 0.0002581714800794351,
+      "confidence_interval": [
+        -0.0038434850815259112,
+        -0.0028314528796145257
+      ],
+      "p_value": 3.1557232522786164e-38
+    },
+    "negative_rate": {
+      "control_mean": 0.0014871863267510183,
+      "treatment_mean": 0.0015120769508568327,
+      "relative_lift": 0.01673672199514617,
+      "standard_error": 2.260376271227686e-05,
+      "confidence_interval": [
+        -1.941275081024824e-05,
+        6.919399902187705e-05
+      ],
+      "p_value": 0.27082193041920116
+    },
+    "lt_value_per_exposure": {
+      "control_mean": 0.5996829590106428,
+      "treatment_mean": 0.6009868164970763,
+      "relative_lift": 0.002174244685199281,
+      "standard_error": 0.0005348345508973896,
+      "confidence_interval": [
+        0.00025558176667458466,
+        0.0023521332061923524
+      ],
+      "p_value": 0.01477405704180243
+    },
+    "local_value_tree_score_per_exposure": {
+      "control_mean": 0.02328669763606149,
+      "treatment_mean": 0.023438400205897963,
+      "relative_lift": 0.0065145591791233,
+      "standard_error": 0.0002085493430128769,
+      "confidence_interval": [
+        -0.0002570541424687655,
+        0.000560459282141712
+      ],
+      "p_value": 0.46696986111714395
+    },
+    "anchor_click_rate": {
+      "control_mean": 0.013049928926858797,
+      "treatment_mean": 0.013180370820001465,
+      "relative_lift": 0.009995601805477872,
+      "standard_error": 8.269438371875462e-05,
+      "confidence_interval": [
+        -3.1639098946091365e-05,
+        0.00029252288523142677
+      ],
+      "p_value": 0.11470414871711423
+    },
+    "conversion_rate": {
+      "control_mean": 0.0006925101739214167,
+      "treatment_mean": 0.0007012205130367706,
+      "relative_lift": 0.012577922236189943,
+      "standard_error": 1.4262519782137968e-05,
+      "confidence_interval": [
+        -1.9244199657636467e-05,
+        3.666487788834437e-05
+      ],
+      "p_value": 0.5413880720950387
+    },
+    "ad_load": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0
+    },
+    "effective_ad_load": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0
+    },
+    "ad_contribution_per_exposure": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0
+    },
+    "organic_opportunity_cost_per_exposure": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0
+    },
+    "feed_value_tree_score_per_exposure": {
+      "control_mean": 0.32484301788035114,
+      "treatment_mean": 0.32189576367509004,
+      "relative_lift": -0.00907285686634845,
+      "standard_error": 0.0003441648201790043,
+      "confidence_interval": [
+        -0.0036218172528119444,
+        -0.002272691157710248
+      ],
+      "p_value": 1.0949527144542491e-17
+    },
+    "ads_live_value_tree_score_per_exposure": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0
+    },
+    "accepted_platform_commercialization_per_exposure": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0
+    },
+    "local_commercialization_value_per_exposure": {
+      "control_mean": 0.0035467038524212287,
+      "treatment_mean": 0.0035716678055756563,
+      "relative_lift": 0.007038634798162086,
+      "standard_error": 8.203276506181833e-05,
+      "confidence_interval": [
+        -0.00013582026636673632,
+        0.0001857481726755915
+      ],
+      "p_value": 0.7608865045197286
+    },
+    "active_days_per_user": {
+      "control_mean": 1.8717624636773973,
+      "treatment_mean": 1.873287636984041,
+      "relative_lift": 0.0008148327238314405,
+      "standard_error": 0.0024786671506283843,
+      "confidence_interval": [
+        -0.0033330143085879317,
+        0.006383360921875334
+      ],
+      "p_value": 0.5383434558300156
+    },
+    "accepted_platform_commercialization_per_user": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0
+    },
+    "lt_value_per_user": {
+      "control_mean": 12.491755419142336,
+      "treatment_mean": 12.524836326697562,
+      "relative_lift": 0.002648219281057371,
+      "standard_error": 0.014871600516275998,
+      "confidence_interval": [
+        0.00393257054332468,
+        0.06222924456712659
+      ],
+      "p_value": 0.026119196368124407
+    },
+    "coarse_feed_oracle_recall": {
+      "control_mean": 1.0,
+      "treatment_mean": 1.0,
+      "relative_lift": 0.0,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0
+    },
+    "coarse_pass_fraction": {
+      "control_mean": 1.0,
+      "treatment_mean": 1.0,
+      "relative_lift": 0.0,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0
+    },
+    "fine_oracle_regret_per_exposure": {
+      "control_mean": 0.08757340496972513,
+      "treatment_mean": 0.08634856179804742,
+      "relative_lift": -0.013986474228119163,
+      "standard_error": 7.787481791332326e-05,
+      "confidence_interval": [
+        -0.0013774778147878166,
+        -0.0010722085285675895
+      ],
+      "p_value": 9.668293812464562e-56
+    },
+    "poi_candidate_fraction": {
+      "control_mean": 0.2830133953346579,
+      "treatment_mean": 0.2830333647723875,
+      "relative_lift": 7.05600443610448e-05,
+      "standard_error": 5.891837867879538e-05,
+      "confidence_interval": [
+        -9.551058448085557e-05,
+        0.00013544945994002232
+      ],
+      "p_value": 0.7346595020245272
+    },
+    "lt_stay_per_user": {
+      "control_mean": 3.132943061695428,
+      "treatment_mean": 3.1583982980376706,
+      "relative_lift": 0.00812502360910041,
+      "standard_error": 0.0028323443382398603,
+      "confidence_interval": [
+        0.019903841439292545,
+        0.031006631245192796
+      ],
+      "p_value": 2.532903554373616e-19
+    },
+    "lt_active_days_per_user": {
+      "control_mean": 9.358812318386986,
+      "treatment_mean": 9.366438184920204,
+      "relative_lift": 0.0008148327238313455,
+      "standard_error": 0.012393335753141922,
+      "confidence_interval": [
+        -0.01666507154294055,
+        0.031916804609375786
+      ],
+      "p_value": 0.5383434558300629
+    }
+  },
+  "semantic_parity": {
+    "distribution": {
+      "stay_per_exposure": {
+        "semantic_control": 10.35364221401845,
+        "tensor_control": 10.340311112164894,
+        "relative_gap": -0.0012875760604810133,
+        "within_10pct": true
+      },
+      "long_view_rate": {
+        "semantic_control": 0.4993288672153662,
+        "tensor_control": 0.5003380816576248,
+        "relative_gap": 0.002021141793557409,
+        "within_10pct": true
+      },
+      "quality_long_view_rate": {
+        "semantic_control": 0.25119441801530273,
+        "tensor_control": 0.22656432415378241,
+        "relative_gap": -0.09805191554861643,
+        "within_10pct": true
+      }
+    },
+    "treatment_effect": {
+      "stay_per_exposure": {
+        "semantic_true_relative_itt": 0.01624157745635268,
+        "tensor_relative_lift": 0.007402829895782055,
+        "absolute_gap": 0.008838747560570626,
+        "within_2pp": true
+      },
+      "quality_long_view_rate": {
+        "semantic_true_relative_itt": -0.016501873679374907,
+        "tensor_relative_lift": -0.014942255836946172,
+        "absolute_gap": 0.0015596178424287354,
+        "within_2pp": true
+      }
+    },
+    "passed": true
+  },
+  "launch_decision": "reject_quality_long_view_guardrail"
+}

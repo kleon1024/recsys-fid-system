@@ -9,15 +9,54 @@ from fid_lab.feed_loop.scale.lt_exchange import combine_lt_exchange_sensitivity
 from fid_lab.feed_loop.scale.tensor_engine import (
     LOCAL_STATIC,
     LOCAL_INTENT_RANKER,
+    PERSONALIZED,
     TensorFeedConfig,
     _candidate_batch,
     _new_user_state,
     run_tensor_feed,
 )
 from fid_lab.feed_loop.scale.tensor_catalog import build_tensor_catalog
+from fid_lab.feed_loop.scale.artifact.cli import _launch_decision
+from fid_lab.feed_loop.scale.artifact.features import build_tensor_features
 
 
 class GroupedAUCTest(unittest.TestCase):
+    def test_tensor_v2_features_are_finite_and_match_stateful_width(self):
+        config = TensorFeedConfig(
+            users=4,
+            steps=2,
+            candidates=5,
+            topics=4,
+            catalog_items=120,
+            device="cpu",
+            signal_version="heterogeneous-nonlinear-v2",
+        )
+        generator = torch.Generator().manual_seed(config.seed)
+        catalog = build_tensor_catalog(config, generator, torch.device("cpu"))
+        user_ids = torch.arange(config.users)
+        state = _new_user_state(
+            config, PERSONALIZED, generator, torch.device("cpu"), user_ids
+        )
+        candidates = _candidate_batch(
+            config, generator, torch.device("cpu"), state, catalog, step=0
+        )
+        features = build_tensor_features(config, user_ids, state, candidates, 0)
+        self.assertEqual(features.shape, (4, 5, 24))
+        self.assertTrue(torch.isfinite(features).all())
+
+    def test_tensor_launch_rejects_significant_quality_guardrail(self):
+        metric = lambda lift, p: {"relative_lift": lift, "p_value": p}
+        decision = _launch_decision(
+            {"passed": True},
+            {
+                "negative_rate": metric(0.0, 1.0),
+                "quality_long_view_rate": metric(-0.015, 0.01),
+                "stay_per_exposure": metric(0.008, 0.001),
+                "lt_value_per_user": metric(0.002, 0.02),
+            },
+        )
+        self.assertEqual(decision, "reject_quality_long_view_guardrail")
+
     def test_reports_single_class_coverage(self):
         report = grouped_auc(
             np.asarray([0, 1, 1, 1]),

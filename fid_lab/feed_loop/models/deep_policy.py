@@ -15,7 +15,7 @@ import torch
 
 
 MODEL_BUILDERS = {"wide_deep": WDL, "deepfm": DeepFM, "dcnv2": DCNMix}
-DENSE_INDICES = tuple(range(14))
+DENSE_INDICES = (*range(14), *range(18, 24))
 SPARSE_SPECS = (
     ("item_id", 15, 4_096),
     ("author_id", 16, 1_024),

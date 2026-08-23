@@ -31,6 +31,22 @@ The full bilingual diagnosis is
 simulator/DGP, sample and label, feature, training, cascade, experiment, and
 serving-consistency failures instead of attributing every miss to the model.
 
+## Published model on the GPU tensor engine
+
+The V2 serving gap is now closed. The checked logistic-regression and XGBoost
+files, their composite constraint manifest, the 24-field feature schema, and
+the nonlinear behavior version are hash-bound. XGBoost uses CUDA
+`inplace_predict` through CuPy and zero-copy DLPack; candidate features, model
+scores, responses, and state transitions stay on the RTX 4090.
+
+![Semantic-to-tensor migration](docs/assets/tensor-migration.svg)
+
+The one-million-user, 24-step run reaches 3.17M requests/s for LR control and
+2.47M requests/s for guarded XGBoost with less than 421MB peak GPU memory.
+Semantic/tensor distribution and effect parity pass. The model still does not
+launch: stay/exposure improves 0.74%, but quality-long-view falls 1.49% with
+high confidence. See [L-TENSOR-003](docs/launch-reviews/2026-08-23-main-feed-suite/l-tensor-003.md).
+
 ## Main Feed first, Local Service inside the same value contract
 
 The current acceptance boundary is the short-video main Feed. Local Service is
@@ -279,6 +295,10 @@ python3 -m fid_lab.evolution.cli.ab_demo
 python3 -m fid_lab.simulation.cli --users 2000 --items 4000
 python3 -m fid_lab.feed_loop.models.cli --users 3000 --items 4000 --ab-users 500 --epochs 10 --device cuda:0
 python3 -m fid_lab.feed_loop.scale.tensor_cli --users 1000000 --steps 24 --device cuda:0
+python3 -m fid_lab.feed_loop.scale.artifact.cli \
+  --report reports/launches/2026-08-23-feed-xgb-guarded-v2-10k-gpu.json \
+  --artifact-dir artifacts/models/stateful-v2 \
+  --users 1000000 --steps 24 --device cuda:0
 python3 -m fid_lab.feed_loop.scale.local_value_cli --users 1000000 --steps 24 --seeds 3 --device cuda:0
 python3 -m fid_lab.feed_loop.scale.local_value_cli --users 10000000 --steps 24 --seeds 3 --intent-only --device cuda:0
 python3 -m fid_lab.feed_loop.scale.queue_value_cli --users 1000000 --steps 24 --seeds 3 --device cuda:0

@@ -172,10 +172,14 @@ A/B、Joiner 重建和 Launch Review，并且没有任何阶段偷换成 oracle 
 门槛包括 feature manifest 与 artifact ID 一致、分数与候选通过率回放一致、至少三个
 seed 与稀疏指标功效、同时改善 regret/校准/Feed 核心/Local 护栏，以及训练和服务成本。
 
-Until that boundary passes, the correct statement is: the simulator can explain
-why model capacity did or did not improve an offline task, and can audit A/B
-mechanics, but it cannot yet claim that the V2 advanced model produced a
-stateful online business increment.
+That boundary now passes for the guarded LR plus expected-stay XGBoost artifact.
+The semantic and million-user tensor engines agree on control distributions and
+treatment-effect direction within declared tolerances. The measured algorithmic
+impact is real inside the synthetic world: stay improves, but quality-long-view
+regresses enough to reject launch. The remaining problem is a multi-objective
+quality constraint, not simulator throughput or artifact consistency.
 
-在这条边界通过前，准确表述是：模拟器已经能解释模型容量为什么在离线任务上有效或
-无效，也能审计 A/B 机制；但还不能声称 V2 复杂模型已经产生有状态线上业务增量。
+这条边界现已由 guarded LR + expected-stay XGBoost artifact 通过。semantic 与百万
+用户 tensor engine 的 control 分布和 treatment effect 在声明门槛内一致。算法在
+合成世界中确实提升 stay，但 quality-long-view 回退导致拒绝上线；剩余问题已经从
+模拟性能和 artifact 一致性，收敛为真实的多目标质量约束问题。

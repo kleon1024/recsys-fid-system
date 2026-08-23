@@ -10,5 +10,11 @@ __pycache__/
 build/
 dist/
 htmlcov/
-artifacts/
+artifacts/*
+!artifacts/models/
+artifacts/models/*
+!artifacts/models/stateful-v2/
+!artifacts/models/stateful-v2/MANIFEST.sha256
+!artifacts/models/stateful-v2/lr_full_feed.joblib
+!artifacts/models/stateful-v2/xgboost_stay.json
 checkpoints/

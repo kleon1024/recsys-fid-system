@@ -16,10 +16,52 @@ def main() -> None:
     parser.add_argument("--ab-users", type=int, default=1_000)
     parser.add_argument("--epochs", type=int, default=12)
     parser.add_argument("--device", default="cpu")
+    parser.add_argument(
+        "--signal-version",
+        default="industrial-cross-sequence-v1",
+        choices=("industrial-cross-sequence-v1", "heterogeneous-nonlinear-v2"),
+    )
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        choices=(
+            "xgboost",
+            "xgboost_quality",
+            "xgboost_stay",
+            "xgboost_feed_value",
+            "xgboost_stay_guarded_001",
+            "xgboost_stay_guarded_002",
+            "xgboost_stay_guarded_004",
+            "xgboost_stay_guarded_008",
+            "wide_deep",
+            "deepfm",
+            "dcnv2",
+            "mmoe_value_tree",
+        ),
+        default=(
+            "xgboost",
+            "xgboost_quality",
+            "xgboost_stay",
+            "xgboost_feed_value",
+            "xgboost_stay_guarded_002",
+            "wide_deep",
+            "deepfm",
+            "dcnv2",
+            "mmoe_value_tree",
+        ),
+    )
     parser.add_argument("--output")
+    parser.add_argument("--artifact-dir")
     args = parser.parse_args()
     report = run_feed_model_ladder(
-        args.users, args.items, args.ab_users, args.epochs, args.device
+        args.users,
+        args.items,
+        args.ab_users,
+        args.epochs,
+        args.device,
+        args.signal_version,
+        tuple(args.models),
+        args.artifact_dir,
     )
     rendered = json.dumps(report, indent=2)
     if args.output:

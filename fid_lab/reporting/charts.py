@@ -227,6 +227,44 @@ def model_scale() -> None:
     _save(figure, "model-scale.svg")
 
 
+def tensor_migration() -> None:
+    report = _load("2026-08-23-tensor-artifact-v2-1m-gpu.json")
+    parity = report["semantic_parity"]
+    figure, axes = plt.subplots(1, 3, figsize=(12.5, 3.8))
+    distribution = parity["distribution"]
+    labels = ("Stay", "Long view", "Quality view")
+    gaps = [value["relative_gap"] * 100 for value in distribution.values()]
+    axes[0].bar(labels, gaps, color=(COLORS[0], COLORS[2], COLORS[1]))
+    axes[0].axhline(10, color=COLORS[3], linestyle="--", linewidth=1)
+    axes[0].axhline(-10, color=COLORS[3], linestyle="--", linewidth=1)
+    axes[0].set_ylabel("Tensor vs semantic gap (%)")
+    axes[0].set_title("Control distribution parity")
+    effects = parity["treatment_effect"]
+    names = ("Stay", "Quality view")
+    semantic = [value["semantic_true_relative_itt"] * 100 for value in effects.values()]
+    tensor = [value["tensor_relative_lift"] * 100 for value in effects.values()]
+    x = np.arange(len(names))
+    axes[1].bar(x - 0.18, semantic, 0.36, label="Semantic", color=COLORS[0])
+    axes[1].bar(x + 0.18, tensor, 0.36, label="Tensor 1M", color=COLORS[2])
+    axes[1].set_xticks(x, names)
+    axes[1].axhline(0, color="#475569", linewidth=1)
+    axes[1].set_ylabel("Relative treatment effect (%)")
+    axes[1].set_title("Effect-direction parity")
+    axes[1].legend(frameon=False)
+    performance = (report["control"]["performance"], report["treatment"]["performance"])
+    throughput = [value["requests_per_second"] / 1_000_000 for value in performance]
+    axes[2].bar((0, 1), throughput, color=(COLORS[0], COLORS[4]))
+    axes[2].set_xticks((0, 1), ("LR control", "Guarded XGB"))
+    axes[2].set_ylabel("Million requests / second")
+    axes[2].set_title("RTX 4090 tensor throughput")
+    for axis in axes:
+        axis.grid(axis="y", color="#e2e8f0", linewidth=0.8)
+        axis.set_axisbelow(True)
+    figure.suptitle("Published artifact: semantic-to-tensor migration", y=1.02)
+    figure.tight_layout()
+    _save(figure, "tensor-migration.svg")
+
+
 def main() -> None:
     _setup()
     model_quality()
@@ -234,6 +272,7 @@ def main() -> None:
     model_ab_impact()
     cascade_and_local()
     model_scale()
+    tensor_migration()
 
 
 if __name__ == "__main__":

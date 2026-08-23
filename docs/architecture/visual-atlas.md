@@ -187,3 +187,22 @@ flowchart LR
     Funnel --> Slice["Permission, city, category, head/tail, new item"]
     Slice --> Cause["Model, feature, sample, policy, or chain root cause"]
 ```
+
+## 11. Semantic authority to tensor scale
+
+```mermaid
+flowchart LR
+    Train["Temporal stateful training"] --> Publish["LR + XGBoost JSON + composite manifest"]
+    Publish --> Hash["Artifact and 24-field schema hash gate"]
+    Hash --> Semantic["Semantic Gymnasium contract oracle"]
+    Hash --> Tensor["Torch state + XGBoost CUDA tensor world"]
+    Semantic --> Dist["Control distribution parity"]
+    Tensor --> Dist
+    Semantic --> Effect["Treatment-effect parity"]
+    Tensor --> Effect
+    Dist --> Scale{"Parity pass?"}
+    Effect --> Scale
+    Scale -- "No" --> Repair["Repair DGP, state, or feature semantics"]
+    Scale -- "Yes" --> Million["Million-user CRN A/B"]
+    Million --> Gate["Feed, quality, negative, LT, and cost gate"]
+```

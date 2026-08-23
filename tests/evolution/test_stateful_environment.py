@@ -10,6 +10,30 @@ from fid_lab.simulation.population import run_population
 
 
 class StatefulEnvironmentTest(unittest.TestCase):
+    def test_nonlinear_signal_version_changes_behavior_not_features(self):
+        baseline_config = SimulationConfig(users=1, items=300, candidates=10)
+        nonlinear_config = SimulationConfig(
+            users=1,
+            items=300,
+            candidates=10,
+            signal_version="heterogeneous-nonlinear-v2",
+        )
+        baseline = StatefulFeedEnv(baseline_config, build_catalog(baseline_config))
+        nonlinear = StatefulFeedEnv(nonlinear_config, build_catalog(nonlinear_config))
+        baseline_features, _ = baseline.reset(options={"user_id": 7})
+        nonlinear_features, _ = nonlinear.reset(options={"user_id": 7})
+        np.testing.assert_allclose(baseline_features, nonlinear_features)
+        item_id = int(baseline.candidates[0])
+        baseline_probability = baseline._behavior_probabilities(
+            baseline_features[0], item_id
+        )["long_view"]
+        nonlinear_probability = nonlinear._behavior_probabilities(
+            nonlinear_features[0], item_id
+        )["long_view"]
+        self.assertNotEqual(baseline_probability, nonlinear_probability)
+        with self.assertRaises(ValueError):
+            SimulationConfig(signal_version="unknown")
+
     def test_latent_preference_is_not_an_online_feature(self):
         config = SimulationConfig(users=2, items=300, candidates=10)
         environment = StatefulFeedEnv(config, build_catalog(config))

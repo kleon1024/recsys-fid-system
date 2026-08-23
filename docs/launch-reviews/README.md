@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-TENSOR-003](2026-08-23-main-feed-suite/l-tensor-003.md) | Published artifact on GPU tensor engine | Engine pass; model rejected by quality guardrail |
 | [L-SIMULATOR-002](2026-08-23-main-feed-suite/l-simulator-002.md) | Nonlinear DGP and sample-scale audit | Accept offline lane; no serving change |
 | [L-MODEL-001](2026-08-23-main-feed-suite/l-model-001.md) | Fine-rank model | Reject advanced candidates; LR remains authority |
 | [L-FEATURE-001](2026-08-23-main-feed-suite/l-feature-001.md) | Feature | Hold |

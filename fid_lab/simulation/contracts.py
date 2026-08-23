@@ -19,6 +19,14 @@ class SimulationConfig:
     exploration_rate: float = 0.08
     joiner_users: int = 100
     seed: int = 20260823
+    signal_version: str = "industrial-cross-sequence-v1"
+
+    def __post_init__(self) -> None:
+        if self.signal_version not in {
+            "industrial-cross-sequence-v1",
+            "heterogeneous-nonlinear-v2",
+        }:
+            raise ValueError(f"unsupported signal version: {self.signal_version}")
 
 
 @dataclass(frozen=True)

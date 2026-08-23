@@ -144,7 +144,15 @@ def _behavior_distribution(rows) -> dict[str, object]:
     }
 
 
-def _row_decisions(row, catalog, model_name: str, history, timestamp: int, observable: bool):
+def _row_decisions(
+    row,
+    catalog,
+    model_name: str,
+    model_manifest,
+    history,
+    timestamp: int,
+    observable: bool,
+):
     order = np.argsort(-np.asarray(row.candidate_scores))
     rank_by_index = np.empty(len(order), dtype=int)
     rank_by_index[order] = np.arange(1, len(order) + 1)
@@ -185,7 +193,7 @@ def _row_decisions(row, catalog, model_name: str, history, timestamp: int, obser
                 candidate_id == row.item_id,
                 observable,
                 {"fine": score, "value_tree": score},
-                {"feature": "stateful-v1", "model": model_name, "code": "simulation-v1"},
+                {"model": model_name, **model_manifest},
             )
         )
     return decisions
@@ -271,12 +279,30 @@ def build_feed_joiner(
     pixels: list[PixelEvent] = []
     for user_index, trajectory in enumerate(observed[: config.joiner_users]):
         policy = policies[int(assigned[user_index])]
+        model_manifest = {
+            "feature": (
+                "stateful-v2"
+                if config.signal_version == "heterogeneous-nonlinear-v2"
+                else "stateful-v1"
+            ),
+            "code": "simulation-v2",
+            "signal_version": config.signal_version,
+            **dict(getattr(policy, "artifact_manifest", {})),
+        }
         history: list[tuple[float, ...]] = []
         for row in trajectory.rows:
             timestamp = 1_800_000_000 + user_index * 100_000 + row.session_id * 1_000 + row.request_index * 10
             observable = user_index % 10 != 0
             decisions.extend(
-                _row_decisions(row, catalog, policy.name, history, timestamp, observable)
+                _row_decisions(
+                    row,
+                    catalog,
+                    policy.name,
+                    model_manifest,
+                    history,
+                    timestamp,
+                    observable,
+                )
             )
             row_actions, row_commerce, row_clicks, row_pixels = _row_events(
                 row, catalog, timestamp, observable

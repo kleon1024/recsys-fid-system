@@ -134,6 +134,20 @@ def check_visual_manifest() -> None:
         raise SystemExit("\n".join(failures))
 
 
+def check_model_artifacts() -> None:
+    manifest = ROOT / "artifacts/models/stateful-v2/MANIFEST.sha256"
+    failures = []
+    for line in manifest.read_text().splitlines():
+        expected, relative = line.split(maxsplit=1)
+        path = ROOT / relative
+        if not path.exists():
+            failures.append(f"missing model artifact: {relative}")
+        elif sha256(path.read_bytes()).hexdigest() != expected:
+            failures.append(f"model artifact hash mismatch: {relative}")
+    if failures:
+        raise SystemExit("\n".join(failures))
+
+
 def run(command: list[str], capture: bool = False) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, cwd=ROOT, check=True, text=True, capture_output=capture)
 
@@ -143,6 +157,7 @@ def main() -> None:
     check_public_docs()
     check_report_manifests()
     check_visual_manifest()
+    check_model_artifacts()
     run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
     run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
     benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)
@@ -167,6 +182,9 @@ def main() -> None:
         capture=True,
     )
     ab = json.loads(ab_demo.stdout)
+    tensor_launch = json.loads(
+        (ROOT / "reports/launches/2026-08-23-tensor-artifact-v2-1m-gpu.json").read_text()
+    )
     required = {
         "full_slate_rate": result["full_slate_rate"] == 1.0,
         "unsafe_items": result["unsafe_items"] == 0,
@@ -192,6 +210,13 @@ def main() -> None:
         "model_evolution_count": len(evolution["ranking"]) == 8,
         "retrieval_evolution_count": len(evolution["retrieval"]["models"]) == 5,
         "ab_recovers_known_truth": ab["all_truth_covered"],
+        "tensor_semantic_parity": tensor_launch["semantic_parity"]["passed"],
+        "tensor_artifact_guardrail": tensor_launch["launch_decision"]
+        == "reject_quality_long_view_guardrail",
+        "tensor_model_throughput": tensor_launch["treatment"]["performance"][
+            "requests_per_second"
+        ]
+        > 2_000_000,
     }
     failed = [name for name, passed in required.items() if not passed]
     if failed:

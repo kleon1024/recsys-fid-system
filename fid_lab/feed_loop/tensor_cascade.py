@@ -89,7 +89,13 @@ def _coarse_mask(policy, observed_affinity, candidates):
     return mask, keep
 
 
-def select_candidate(policy, user_ids, state, candidates, device, step):
+def select_candidate(policy, user_ids, state, candidates, device, step, config=None):
+    if hasattr(policy, "select_candidate"):
+        if config is None:
+            raise ValueError("artifact policy requires the tensor config")
+        return policy.select_candidate(
+            user_ids, state, candidates, device, step, config
+        )
     score, observed_affinity = _fine_score(
         policy, state["eligible"], user_ids, state, candidates
     )

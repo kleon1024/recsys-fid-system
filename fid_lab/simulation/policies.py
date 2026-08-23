@@ -9,7 +9,7 @@ import joblib
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 import torch
-from xgboost import XGBClassifier
+from xgboost import XGBClassifier, XGBRegressor
 
 
 class HeuristicPolicy:
@@ -162,6 +162,41 @@ class LearnedPolicy:
         return self.model.predict_proba(model_features)[:, 1]
 
 
+class LearnedRegressionPolicy(LearnedPolicy):
+    def score(self, features: np.ndarray) -> np.ndarray:
+        model_features = features if self.columns is None else features[:, self.columns]
+        return self.model.predict(model_features)
+
+
+class GuardedBlendPolicy:
+    def __init__(
+        self,
+        name: str,
+        base,
+        challenger,
+        candidates: int,
+        base_score_tolerance: float,
+    ) -> None:
+        self.name = name
+        self.base = base
+        self.challenger = challenger
+        self.candidates = candidates
+        self.base_score_tolerance = base_score_tolerance
+
+    def score(self, features: np.ndarray) -> np.ndarray:
+        base = self.base.score(features)
+        challenger = self.challenger.score(features)
+        if len(features) % self.candidates:
+            return base + 0.05 * challenger
+        base_matrix = base.reshape(-1, self.candidates)
+        challenger_matrix = challenger.reshape(-1, self.candidates)
+        eligible = base_matrix >= (
+            base_matrix.max(axis=1, keepdims=True) - self.base_score_tolerance
+        )
+        constrained = np.where(eligible, challenger_matrix, -1e6)
+        return constrained.reshape(-1)
+
+
 def fit_logistic_policy(
     name: str,
     features: np.ndarray,
@@ -203,6 +238,55 @@ def fit_policies(
         LearnedPolicy("logistic_regression", logistic, "cpu", "cpu"),
         LearnedPolicy("xgboost", xgboost, device, "cpu"),
     )
+
+
+def fit_xgboost_policy(
+    features: np.ndarray,
+    labels: np.ndarray,
+    seed: int,
+    sample_weight: np.ndarray | None = None,
+    name: str = "xgboost",
+) -> LearnedPolicy:
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = XGBClassifier(
+        n_estimators=140,
+        max_depth=4,
+        learning_rate=0.06,
+        subsample=0.9,
+        colsample_bytree=0.9,
+        tree_method="hist",
+        device=device,
+        n_jobs=4,
+        random_state=seed,
+    )
+    model.fit(features, labels, sample_weight=sample_weight)
+    model.set_params(device="cpu", n_jobs=1)
+    return LearnedPolicy(name, model, device, "cpu")
+
+
+def fit_xgboost_regression_policy(
+    features: np.ndarray,
+    targets: np.ndarray,
+    seed: int,
+    sample_weight: np.ndarray | None = None,
+    name: str = "xgboost_stay",
+) -> LearnedRegressionPolicy:
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = XGBRegressor(
+        n_estimators=160,
+        max_depth=4,
+        learning_rate=0.05,
+        subsample=0.9,
+        colsample_bytree=0.9,
+        tree_method="hist",
+        device=device,
+        n_jobs=4,
+        random_state=seed,
+        objective="reg:squarederror",
+    )
+    model.fit(features, targets, sample_weight=sample_weight)
+    model.set_params(device="cpu", n_jobs=1)
+    return LearnedRegressionPolicy(name, model, device, "cpu")
 
 
 def serialized_replay_deltas(policies, features: np.ndarray) -> dict[str, float]:

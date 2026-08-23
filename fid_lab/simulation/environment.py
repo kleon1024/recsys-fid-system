@@ -250,6 +250,9 @@ class StatefulFeedEnv(gym.Env):
         poi_quality = float(features[20])
         inventory = float(features[21])
         distance_score = float(features[22])
+        stay_nonlinear, local_nonlinear, negative_nonlinear = (
+            self._nonlinear_adjustments(features)
+        )
         stay_log_mean = (
             0.45
             + 1.7 * affinity
@@ -258,10 +261,12 @@ class StatefulFeedEnv(gym.Env):
             + 0.20 * novelty
             + 0.20 * satisfaction
             - fatigue
+            + stay_nonlinear
         )
         p_anchor = _sigmoid(
             -5.0 + 1.7 * affinity + 0.7 * same_city + 0.7 * trust + 0.5 * value
             + 1.4 * post_search_match + 1.1 * retarget_match + 0.5 * distance_score
+            + local_nonlinear
         )
         p_detail = _sigmoid(
             -1.3 + 1.0 * affinity + 0.7 * quality + 0.6 * same_city
@@ -271,8 +276,12 @@ class StatefulFeedEnv(gym.Env):
         p_order = _sigmoid(
             -4.5 + 1.2 * value + 1.0 * commerce + 0.6 * trust
             + 0.9 * poi_quality + 0.9 * retarget_match + 1.2 * inventory
+            + 0.35 * local_nonlinear
         )
-        p_negative = _sigmoid(-5.0 - 1.7 * affinity - 0.8 * quality + 2.0 * fatigue - satisfaction)
+        p_negative = _sigmoid(
+            -5.0 - 1.7 * affinity - 0.8 * quality + 2.0 * fatigue
+            - satisfaction + negative_nonlinear
+        )
         p_play = _sigmoid(3.0 + 0.4 * affinity - 0.6 * fatigue)
         duration = float(self.catalog.duration_seconds[item_id])
         long_threshold = min(10.0, duration)
@@ -300,6 +309,38 @@ class StatefulFeedEnv(gym.Env):
             "order": p_order,
             "negative": p_negative,
         }
+
+    def _nonlinear_adjustments(
+        self, features: np.ndarray
+    ) -> tuple[float, float, float]:
+        if self.config.signal_version == "industrial-cross-sequence-v1":
+            return 0.0, 0.0, 0.0
+        estimated_affinity = float(features[0])
+        quality = float(features[1])
+        short_match = float(features[4])
+        long_match = float(features[11])
+        user_segment = int(round(float(features[14]) * 1023.0)) % 7
+        item_segment = int(round(float(features[15]) * 4095.0)) % 7
+        segment_match = 1.0 - abs(user_segment - item_segment) / 6.0
+        threshold_cross = float(estimated_affinity > 0.28 and quality > 0.62)
+        sequence_novelty = short_match * (1.0 - long_match)
+        periodic = float(np.sin(np.pi * features[17] * (1.0 + features[10])))
+        stay = (
+            0.75 * np.tanh(2.4 * estimated_affinity * quality)
+            + 0.50 * threshold_cross
+            + 0.35 * segment_match
+            + 0.45 * sequence_novelty
+            + 0.25 * periodic
+            - 1.45
+        )
+        local = (
+            0.75 * features[13] * features[23]
+            + 0.55 * features[18] * features[20]
+            + 0.40 * features[19] * features[21]
+            - 0.20
+        )
+        negative = 0.45 * float(features[7] > 0.45 and estimated_affinity < 0.15)
+        return float(stay), float(local), negative
 
     def _response(self, features: np.ndarray, item_id: int) -> Response:
         probability = self._behavior_probabilities(features, item_id)

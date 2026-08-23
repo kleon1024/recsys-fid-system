@@ -44,6 +44,16 @@ class TensorFeedConfig:
     seed: int = 20260823
     device: str = "cuda:0"
     count_inactive_play_bug: bool = False
+    signal_version: str = "industrial-cross-sequence-v1"
+    max_sessions: int = 4
+    requests_per_session: int = 8
+
+    def __post_init__(self) -> None:
+        if self.signal_version not in {
+            "industrial-cross-sequence-v1",
+            "heterogeneous-nonlinear-v2",
+        }:
+            raise ValueError(f"unsupported signal version: {self.signal_version}")
 
 
 def _sync(device: torch.device) -> None:
@@ -51,9 +61,13 @@ def _sync(device: torch.device) -> None:
         torch.cuda.synchronize(device)
 
 
-def _sample_response(generator, active, fatigue, satisfaction, affinity, quality, device):
+def _sample_response(
+    generator, active, fatigue, satisfaction, affinity, quality, device,
+    duration=None, stay_adjustment=None,
+):
     users = len(active)
-    duration = 3.0 + 177.0 * torch.rand(users, generator=generator, device=device)
+    if duration is None:
+        duration = 3.0 + 177.0 * torch.rand(users, generator=generator, device=device)
     play_draw = (
         torch.rand(users, generator=generator, device=device)
         < torch.sigmoid(3.0 + 0.4 * affinity - 0.6 * fatigue)
@@ -62,6 +76,8 @@ def _sample_response(generator, active, fatigue, satisfaction, affinity, quality
     stay_log_mean = (
         0.45 + 1.7 * affinity + 0.55 * quality + 0.20 * satisfaction - fatigue
     )
+    if stay_adjustment is not None:
+        stay_log_mean += stay_adjustment
     stay = torch.minimum(
         duration,
         torch.exp(
@@ -265,21 +281,46 @@ def combine_tensor_ab(control_report, treatment_report):
 
 def _new_user_state(config, policy, generator, device, user_ids):
     users = len(user_ids)
-    interest = torch.nn.functional.normalize(
-        torch.randn(users, config.topics, generator=generator, device=device), dim=1
-    )
-    trigger = torch.remainder(user_ids * 1_103_515_245 + 12_345, 2**31)
-    return {
-        "eligible": (trigger.float() / float(2**31) < policy.eligible_fraction).float()[:, None],
-        "interest": interest,
-        "observed_interest": torch.nn.functional.normalize(
+    if config.signal_version == "heterogeneous-nonlinear-v2":
+        interest = (
+            -torch.log(
+                torch.rand(
+                    users, config.topics, generator=generator, device=device
+                ).clamp_min(1e-7)
+            )
+        ).pow(1.0 / 0.8)
+        interest = torch.nn.functional.normalize(interest, dim=1)
+        observed_interest = torch.clamp(
+            interest
+            + policy.observation_noise
+            * torch.randn(interest.shape, generator=generator, device=device),
+            min=0.0,
+        )
+        observed_interest = torch.nn.functional.normalize(observed_interest, dim=1)
+    else:
+        interest = torch.nn.functional.normalize(
+            torch.randn(users, config.topics, generator=generator, device=device), dim=1
+        )
+        observed_interest = torch.nn.functional.normalize(
             interest
             + policy.observation_noise
             * torch.randn(interest.shape, generator=generator, device=device),
             dim=1,
-        ),
+        )
+    trigger = torch.remainder(user_ids * 1_103_515_245 + 12_345, 2**31)
+    return {
+        "eligible": (trigger.float() / float(2**31) < policy.eligible_fraction).float()[:, None],
+        "interest": interest,
+        "observed_interest": observed_interest,
         "local_observed_interest": torch.nn.functional.normalize(
-            interest
+            torch.clamp(
+                interest
+                + policy.local_observation_noise
+                * torch.randn(interest.shape, generator=generator, device=device),
+                min=0.0,
+            )
+            if config.signal_version == "heterogeneous-nonlinear-v2"
+            else interest
             + policy.local_observation_noise
             * torch.randn(interest.shape, generator=generator, device=device),
             dim=1,
@@ -288,6 +329,7 @@ def _new_user_state(config, policy, generator, device, user_ids):
         "fatigue": torch.zeros(users, device=device),
         "active": torch.ones(users, dtype=torch.bool, device=device),
         "sessions": torch.ones(users, device=device),
+        "requests_in_session": torch.zeros(users, device=device),
         "returns": torch.zeros(users, device=device),
         "search_topic": torch.randint(
             config.topics, (users,), generator=generator, device=device
@@ -295,6 +337,12 @@ def _new_user_state(config, policy, generator, device, user_ids):
         "search_strength": torch.rand(users, generator=generator, device=device),
         "retarget_item": torch.full((users,), -1, device=device, dtype=torch.long),
         "city": torch.randint(100, (users,), generator=generator, device=device),
+        "trust": torch.remainder(user_ids * 48_271 + 17, 10_007).float() / 10_007,
+        "commerce_propensity": (
+            torch.remainder(user_ids * 69_697 + 29, 10_009).float() / 10_009
+        ),
+        "last_topic": torch.full((users,), -1, device=device, dtype=torch.long),
+        "topic_counts": torch.zeros(users, config.topics, device=device),
         "ads_served": torch.zeros(users, device=device, dtype=torch.long),
         "live_served": torch.zeros(users, device=device, dtype=torch.long),
         "last_ad_step": torch.full((users,), -10_000, device=device, dtype=torch.long),
@@ -337,6 +385,9 @@ def _candidate_batch(config, generator, device, state, catalog, step):
         "content_type": catalog.content_type[item_ids],
         "ad_value": catalog.ad_value[item_ids],
         "live_value": catalog.live_value[item_ids],
+        "popularity": catalog.popularity[item_ids],
+        "duration": catalog.duration_seconds[item_ids],
+        "author": catalog.author[item_ids],
     }
 
 
@@ -353,6 +404,8 @@ def _sample_step(config, policy, generator, device, state, selected, step):
         response_affinity,
         selected["quality"],
         device,
+        selected.get("duration"),
+        selected.get("stay_nonlinear"),
     )
     stay, long_view, quality_view, like, negative, played, play_draw = feed
     local = _sample_local_response(
@@ -411,7 +464,7 @@ def _sample_step(config, policy, generator, device, state, selected, step):
     return values
 
 
-def _advance_state(policy, generator, state, selected, values, step):
+def _advance_state(config, policy, generator, state, selected, values, step):
     engagement = values["long_view"].float() + values["like"].float()
     state["satisfaction"] = torch.clamp(
         0.82 * state["satisfaction"] + 0.10 * engagement - 0.24 * values["negative"].float(),
@@ -440,6 +493,13 @@ def _advance_state(policy, generator, state, selected, values, step):
     state["retarget_item"] = torch.where(
         values["anchor"], selected["item_ids"], state["retarget_item"]
     )
+    active_weight = state["active"].float()
+    state["topic_counts"].scatter_add_(
+        1, selected["candidate_topic"][:, None], active_weight[:, None]
+    )
+    state["last_topic"] = torch.where(
+        state["active"], selected["candidate_topic"], state["last_topic"]
+    )
     state["ads_served"] += values["ad_selected"] & state["active"]
     state["live_served"] += values["live_selected"] & state["active"]
     state["last_ad_step"] = torch.where(
@@ -448,20 +508,31 @@ def _advance_state(policy, generator, state, selected, values, step):
         state["last_ad_step"],
     )
     state["search_strength"] *= 0.78
+    state["requests_in_session"] += state["active"]
     leave = (
         torch.rand(len(state["active"]), generator=generator, device=state["active"].device)
         < torch.sigmoid(-3.4 - 1.2 * state["satisfaction"] + 1.7 * state["fatigue"])
     ) & state["active"]
+    if config.signal_version == "heterogeneous-nonlinear-v2":
+        leave |= (
+            state["requests_in_session"] >= config.requests_per_session
+        ) & state["active"]
+    can_return = state["sessions"] < config.max_sessions
     returned = leave & (
         torch.rand(len(leave), generator=generator, device=leave.device)
         < torch.sigmoid(1.0 + 1.6 * state["satisfaction"] - 1.1 * state["fatigue"])
-    )
+    ) & can_return
     return_value = (
         returned.float()
         * DEFAULT_LT_CONFIG.rates["active_day"].unit_value
     )
     state["returns"] += returned
     state["sessions"] += returned
+    state["requests_in_session"] = torch.where(
+        returned,
+        torch.zeros_like(state["requests_in_session"]),
+        state["requests_in_session"],
+    )
     state["ads_served"] = torch.where(
         returned, torch.zeros_like(state["ads_served"]), state["ads_served"]
     )
@@ -520,7 +591,7 @@ def _simulate_batches(
             )
             candidates = _candidate_batch(config, generator, device, state, catalog, step)
             selected = select_candidate(
-                active_policy, user_ids, state, candidates, device, step
+                active_policy, user_ids, state, candidates, device, step, config
             )
             active_before = state["active"].clone()
             values = _sample_step(
@@ -553,7 +624,7 @@ def _simulate_batches(
                     torch.zeros_like(values["stay"]),
                 ), dim=1).float()
             return_value, returned = _advance_state(
-                active_policy, generator, state, selected, values, step
+                config, active_policy, generator, state, selected, values, step
             )
             if measured:
                 totals[8] += active_before.sum() * int(
@@ -613,7 +684,7 @@ def run_tensor_feed(
     exposures = max(values[0], 1.0)
     report = {
         "config": asdict(config),
-        "policy": asdict(policy),
+        "policy": policy.describe() if hasattr(policy, "describe") else asdict(policy),
         "policy_schedule": (
             None
             if policy_schedule is None
