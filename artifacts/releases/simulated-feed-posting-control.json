@@ -1,0 +1,52 @@
+{
+  "schema": "simulated-feed-posting-authority-v1",
+  "active_key": "trending_i2i_plus_linear",
+  "active_bundle_id": "sha256:fc5dc82cd8cf7478e8d77867e20871930cbc14d96d3391e8e9a558df2dfe0227",
+  "active_bundle": {
+    "candidate_policy": "trending_i2i",
+    "fine_model": "linear",
+    "model_artifact": {
+      "path": "artifacts/models/feed-posting-request-v1/seed-20260824-linear.pt",
+      "sha256": "978cd460b501b57b804493d4e656bd862d6f9ed8841e4755760e75ad1382b7a1"
+    },
+    "model_seed": 20260824,
+    "world_version": "teacher-hidden-feed-posting-v1",
+    "sources": [
+      {
+        "path": "fid_lab/feed_posting/contracts.py",
+        "sha256": "f8cf72039db20690ed49dcd1839fa2fb79c38ecebfad4fc8ea4e553c6483b198"
+      },
+      {
+        "path": "fid_lab/feed_posting/simulation/world.py",
+        "sha256": "22b05c1ee27c5fdd0686644dcad0cd43a4138a7c5d4a2dea6d42bbfe8fcd603d"
+      },
+      {
+        "path": "fid_lab/feed_posting/simulation/retrieval.py",
+        "sha256": "d73a49dd8dec461fea139b6f3334d9808fd1a2838bbdf5840ca7a992eb62556a"
+      },
+      {
+        "path": "fid_lab/feed_posting/simulation/features.py",
+        "sha256": "49f0966dd6d4a81518f723e3461548248c3f3dcab85c61097c44eccb0e9c06f8"
+      },
+      {
+        "path": "fid_lab/feed_posting/simulation/response.py",
+        "sha256": "9cdc1fd0cd65fd1e513847169ece1bc0aa52b7343644d8e2db8d372f71ca8337"
+      },
+      {
+        "path": "fid_lab/feed_posting/models.py",
+        "sha256": "407a0c52b40720e298e30bebad13a336ddb2688157e94608e0b9d16909bdd227"
+      },
+      {
+        "path": "fid_lab/feed_posting/launch.py",
+        "sha256": "848af072c2f42b7b45ed65d494516ee4d136e5ee22829c0dab381e79f3b5af95"
+      }
+    ]
+  },
+  "rollback_key": "trending_i2i_plus_rule",
+  "source_report": {
+    "path": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
+    "sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
+  },
+  "production_readiness": "hold_external_creator_and_supply_validation",
+  "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
+}

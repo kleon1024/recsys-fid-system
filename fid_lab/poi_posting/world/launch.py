@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import asdict, replace
-from math import erfc, sqrt
 from pathlib import Path
 from time import perf_counter
 
-import numpy as np
 import torch
 
+from ...launches.statistics import aggregate_launch_rows, paired_metric
 from ...value import DEFAULT_LT_CONFIG
 from .contracts import PostingWorldConfig
 from .generator import (
@@ -54,31 +53,9 @@ def _outcome_values(response):
     }
 
 
-def _paired_metric(control, treatment):
-    delta = (treatment - control).double().cpu().numpy()
-    mean = float(delta.mean())
-    standard_error = float(delta.std(ddof=1) / sqrt(len(delta)))
-    control_mean = float(control.double().mean())
-    treatment_mean = float(treatment.double().mean())
-    return {
-        "control_mean": control_mean,
-        "treatment_mean": treatment_mean,
-        "absolute_effect": mean,
-        "relative_effect": (
-            None if abs(control_mean) < 1e-12 else mean / abs(control_mean)
-        ),
-        "standard_error": standard_error,
-        "confidence_interval": [
-            mean - 1.96 * standard_error,
-            mean + 1.96 * standard_error,
-        ],
-        "p_value": erfc(abs(mean / max(standard_error, 1e-12)) / sqrt(2.0)),
-    }
-
-
 def _compare(control, treatment, extra=None):
     metrics = {
-        name: _paired_metric(control[name], treatment[name])
+        name: paired_metric(control[name], treatment[name])
         for name in control
     }
     if extra:
@@ -119,7 +96,7 @@ def _launch_campaign(
         extra = None
         if recall is not None:
             extra = {
-                "audit_oracle_recall": _paired_metric(
+                "audit_oracle_recall": paired_metric(
                     recall[control][start:].float(),
                     recall[treatment][start:].float(),
                 )
@@ -302,47 +279,6 @@ def run_posting_launch_ladder(
     }
 
 
-def _aggregate_rows(rows):
-    controls = {row["control"] for row in rows}
-    treatments = {row["treatment"] for row in rows}
-    if len(controls) != 1 or len(treatments) != 1:
-        return {
-            "stage": rows[0]["stage"],
-            "control": sorted(controls),
-            "treatment": sorted(treatments),
-            "decision": "hold_control_divergence",
-            "seed_decisions": [row["decision"] for row in rows],
-        }
-    metric_summary = {}
-    for name in rows[0]["metrics"]:
-        effects = np.asarray([
-            row["metrics"][name]["absolute_effect"] for row in rows
-        ])
-        metric_summary[name] = {
-            "mean_effect": float(effects.mean()),
-            "seed_std": float(effects.std(ddof=1 if len(effects) > 1 else 0)),
-            "per_seed": effects.tolist(),
-        }
-    passed = [row["decision"] == "pass" for row in rows]
-    primary = metric_summary["publish_rate"]["mean_effect"]
-    platform_lt = metric_summary["platform_lt_per_request"]["mean_effect"]
-    if all(passed):
-        decision = "pass_all_seeds"
-    elif primary < 0 or platform_lt < 0:
-        decision = "reject_mean_regression"
-    else:
-        decision = "hold_seed_instability"
-    return {
-        "stage": rows[0]["stage"],
-        "control": rows[0]["control"],
-        "treatment": rows[0]["treatment"],
-        "decision": decision,
-        "seed_passes": sum(passed),
-        "seed_decisions": [row["decision"] for row in rows],
-        "metrics": metric_summary,
-    }
-
-
 def run_repeated_posting_launch_ladder(
     config=PostingWorldConfig(),
     seeds=(20260824, 20260825, 20260826),
@@ -355,9 +291,10 @@ def run_repeated_posting_launch_ladder(
     ]
     stage_rows = []
     for index in range(len(reports[0]["launches"]) - 1):
-        stage_rows.append(_aggregate_rows([
-            report["launches"][index] for report in reports
-        ]))
+        stage_rows.append(aggregate_launch_rows(
+            [report["launches"][index] for report in reports],
+            "publish_rate", "platform_lt_per_request",
+        ))
     candidate_active = "popular_geo"
     for row in stage_rows:
         if row["stage"] == "candidate" and row["decision"] == "pass_all_seeds":
@@ -377,7 +314,9 @@ def run_repeated_posting_launch_ladder(
             row for row in report["end_to_end_candidates"]
             if row["treatment"] == end_name
         ))
-    end_to_end = _aggregate_rows(end_rows)
+    end_to_end = aggregate_launch_rows(
+        end_rows, "publish_rate", "platform_lt_per_request"
+    )
     launches = [*stage_rows, end_to_end]
     return {
         "schema": "poi-posting-request-launch-review-v2",

@@ -13,6 +13,7 @@ from torch import nn
 from torch.nn import functional as functional
 
 from ...multitask import MultiGateMixtureOfExperts
+from ...training.tensor_ops import gather_candidates
 from .contracts import POSTING_TASKS, PostingWorldConfig
 
 
@@ -84,14 +85,6 @@ class PostingModelBundle:
         return torch.cat(values).reshape(shape)
 
 
-def _gather_exposed(values, top):
-    if values.ndim == 3:
-        return values.gather(
-            1, top[:, :, None].expand(-1, -1, values.shape[2])
-        )
-    return values.gather(1, top)
-
-
 def _request_loss(outputs, labels, positive_weight):
     losses = []
     for index, task in enumerate(POSTING_TASKS):
@@ -137,8 +130,8 @@ def _offline_metrics(model, features, labels, mean, scale):
 def train_posting_models(
     config: PostingWorldConfig, features, top_indices, labels
 ):
-    exposed_features = _gather_exposed(features, top_indices)
-    exposed_labels = _gather_exposed(labels, top_indices)
+    exposed_features = gather_candidates(features, top_indices)
+    exposed_labels = gather_candidates(labels, top_indices)
     first = int(config.requests * 0.70)
     second = int(config.requests * 0.85)
     train_features = exposed_features[:first]

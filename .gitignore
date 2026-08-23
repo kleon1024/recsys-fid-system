@@ -40,6 +40,9 @@ artifacts/models/*
 !artifacts/models/poi-posting-request-v1/
 !artifacts/models/poi-posting-request-v1/MANIFEST.sha256
 !artifacts/models/poi-posting-request-v1/*.pt
+!artifacts/models/feed-posting-request-v1/
+!artifacts/models/feed-posting-request-v1/MANIFEST.sha256
+!artifacts/models/feed-posting-request-v1/*.pt
 !artifacts/releases/
 !artifacts/releases/*.json
 !artifacts/releases/historical/

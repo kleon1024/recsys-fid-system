@@ -274,6 +274,29 @@ def _poi_posting_stage_records(root: Path) -> list[dict]:
     return records
 
 
+def _feed_posting_stage_records(root: Path) -> list[dict]:
+    relative = "reports/launches/2026-08-24-feed-posting-request-launch-review.json"
+    report, evidence = _load(root, relative)
+    counters = {stage: 0 for stage in ("candidate", "fine", "end_to_end")}
+    records = []
+    for row in report["launches"]:
+        stage = row["stage"]
+        counters[stage] += 1
+        records.append(_record(
+            launch_id=f"L-FEED-POST-{stage.upper()}-{counters[stage]:03d}",
+            surface="feed_posting",
+            stage=stage,
+            change_type=f"feed_posting_{stage}_evolution",
+            control=row["control"],
+            treatment=row["treatment"],
+            decision=row["decision"],
+            evidence=evidence,
+            primary_metric="publish_rate_with_platform_lt_and_content_risk",
+            evidence_boundary=report["evidence_boundary"],
+        ))
+    return records
+
+
 def build_launch_ledger(root: Path) -> dict:
     records = [
         *_main_feed_policy_records(root),
@@ -285,6 +308,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_retrieval_records(root),
         *_poi_distribution_stage_records(root),
         *_poi_posting_stage_records(root),
+        *_feed_posting_stage_records(root),
     ]
     identifiers = [record["launch_id"] for record in records]
     if len(identifiers) != len(set(identifiers)):

@@ -33,6 +33,23 @@ This removes duplicate simulation without changing random streams or stage
 outputs. A future orchestrator may schedule these nodes, but it must consume
 the same semantic key and report contract rather than introduce another graph.
 
+The Feed-posting runner makes one additional dependency executable:
+
+```text
+candidate worlds per seed
+  -> repeated-seed candidate decision
+  -> accepted candidate exposure rematerialization
+  -> ranker retraining on the new candidate distribution
+  -> fixed-control fine-rank reviews
+  -> end-to-end review and hash-bound authority
+```
+
+This ordering prevents a ranker trained on old Trending+I2I exposure from being
+evaluated as though it were trained for a new Semantic candidate distribution.
+The 150k × 3-seed run exposed exactly this failure. A future Dagster adapter may
+map these phases to assets and seed/user partitions, but orchestration calls must
+remain outside the GPU request loop.
+
 ## Runtime boundary
 
 ```text

@@ -660,6 +660,111 @@
         "report_sha256": "1a2aa027264760fda8f9fe1415054d4cf0043db7f5d614cf2633d9b79c148bb9"
       },
       "evidence_boundary": "Teacher-hidden multi-agent synthetic posting world. It validates request closure, model training, stage isolation, and effect recovery; supply remains outside external V4 authority until creator logs and randomized supply interventions are available."
+    },
+    {
+      "launch_id": "L-FEED-POST-CANDIDATE-001",
+      "surface": "feed_posting",
+      "stage": "candidate",
+      "change_type": "feed_posting_candidate_evolution",
+      "control": "trending_i2i",
+      "treatment": "creator_history",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
+        "report_sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
+    },
+    {
+      "launch_id": "L-FEED-POST-CANDIDATE-002",
+      "surface": "feed_posting",
+      "stage": "candidate",
+      "change_type": "feed_posting_candidate_evolution",
+      "control": "trending_i2i",
+      "treatment": "semantic_full",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
+        "report_sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
+    },
+    {
+      "launch_id": "L-FEED-POST-FINE-001",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "feed_posting_fine_evolution",
+      "control": "rule",
+      "treatment": "linear",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "pass_all_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
+        "report_sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
+    },
+    {
+      "launch_id": "L-FEED-POST-FINE-002",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "feed_posting_fine_evolution",
+      "control": "rule",
+      "treatment": "wide_deep",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
+        "report_sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
+    },
+    {
+      "launch_id": "L-FEED-POST-FINE-003",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "feed_posting_fine_evolution",
+      "control": "rule",
+      "treatment": "din",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
+        "report_sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
+    },
+    {
+      "launch_id": "L-FEED-POST-FINE-004",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "feed_posting_fine_evolution",
+      "control": "rule",
+      "treatment": "transformer_mmoe",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "hold_seed_instability",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
+        "report_sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
+    },
+    {
+      "launch_id": "L-FEED-POST-END_TO_END-001",
+      "surface": "feed_posting",
+      "stage": "end_to_end",
+      "change_type": "feed_posting_end_to_end_evolution",
+      "control": "trending_i2i_plus_rule",
+      "treatment": "trending_i2i_plus_linear",
+      "primary_metric": "publish_rate_with_platform_lt_and_content_risk",
+      "decision": "pass_all_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
+        "report_sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
+      },
+      "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
     }
   ],
   "coverage": {
@@ -683,9 +788,9 @@
       "end_to_end": "evidenced"
     },
     "feed_posting": {
-      "candidate": "missing",
-      "fine": "missing",
-      "end_to_end": "missing"
+      "candidate": "evidenced",
+      "fine": "evidenced",
+      "end_to_end": "evidenced"
     },
     "local_search": {
       "retrieval": "missing",
@@ -698,11 +803,11 @@
     }
   },
   "summary": {
-    "records": 44,
-    "passed": 14,
-    "held": 16,
+    "records": 51,
+    "passed": 16,
+    "held": 21,
     "rejected": 14,
-    "missing_cells": 8
+    "missing_cells": 5
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."
 }

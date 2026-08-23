@@ -286,6 +286,13 @@ adds a teacher-hidden creator world, non-oracle candidate sets, actual
 LR/W&D/MMoE artifacts, and a supply-to-Feed LT review. History recall and W&D
 pass all three seeds; MMoE is held because its incremental effect is unstable.
 
+The [Feed posting request ladder](docs/launch-reviews/2026-08-24-feed-posting-request-ladder.md)
+separates Feed-to-creation prompts from POI posting and enforces a two-phase
+candidate-then-retrain DAG. It found and fixed candidate-shape, training-candidate
+skew, and weighted-logit calibration failures. Calibrated Linear passes all three
+seeds; W&D, DIN, and Transformer+MMoE have higher offline AUC but remain held
+because incremental publish/LT is not stable.
+
 The [model evolution laboratory](docs/architecture/model-evolution.md) compares
 mature open-source LR, XGBoost, WDL, DeepFM, DCN-Mix, DIN, MMoE, and PLE
 implementations on one synthetic distribution. It also adds trained Semantic-ID
