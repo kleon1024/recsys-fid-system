@@ -1,0 +1,86 @@
+{
+  "config": {
+    "main_impressions": 1000000,
+    "seed": 20260823,
+    "signal_version": "industrial-cross-sequence-v1"
+  },
+  "distribution": {
+    "assumption": {
+      "main_impressions": 1000000,
+      "viewers": 100000,
+      "authors": 20000,
+      "videos": 500000,
+      "pois": 50000,
+      "anchor_rate": 0.02,
+      "long_view_rate": 0.28,
+      "anchor_click_rate": 0.022,
+      "detail_given_click": 0.34,
+      "favorite_given_detail": 0.24,
+      "order_given_detail": 0.08,
+      "negative_feedback_rate": 0.006,
+      "seed": 20260823,
+      "signal_version": "industrial-cross-sequence-v1"
+    },
+    "main_impressions": 1000000,
+    "anchored_examples": 19964,
+    "realized_anchor_rate": 0.019964,
+    "unique": {
+      "viewers": 3086,
+      "authors": 2470,
+      "videos": 3471,
+      "pois": 2819
+    },
+    "concentration": {
+      "viewer_top_1pct_share": 0.6542276096974554,
+      "author_top_1pct_share": 0.6652975355640153,
+      "viewer_gini": 0.8204658859050632,
+      "author_gini": 0.8450659770583001
+    },
+    "labels": {
+      "long_view": {
+        "positives": 5525,
+        "rate": 0.27674814666399516,
+        "standard_error": 0.0031663823613339325
+      },
+      "anchor_click": {
+        "positives": 352,
+        "rate": 0.017631737126828292,
+        "standard_error": 0.0009314529708914478
+      },
+      "detail_view": {
+        "positives": 121,
+        "rate": 0.006060909637347225,
+        "standard_error": 0.000549319491746816
+      },
+      "favorite": {
+        "positives": 23,
+        "rate": 0.001152073732718894,
+        "standard_error": 0.0002400855615817989
+      },
+      "order": {
+        "positives": 14,
+        "rate": 0.0007012622720897616,
+        "standard_error": 0.00018735449885339916
+      },
+      "negative_feedback": {
+        "positives": 126,
+        "rate": 0.006311360448807854,
+        "standard_error": 0.0005604835538801831
+      }
+    }
+  },
+  "signal_diagnosis": {
+    "oracle_auc": 0.6715853065955041,
+    "models": {
+      "linear_dense": 0.6429959762475719,
+      "linear_with_known_cross_and_sequence": 0.6719243773555975,
+      "xgboost_full": 0.6605498639770999
+    },
+    "headroom_from_best_observed": -0.0003390707600934295,
+    "positive_rate": 0.2714524269104004,
+    "cross_signal_correlation": 0.15867803119904933,
+    "sequence_match_lift": 0.06784899532794952,
+    "training_device": "cuda:0",
+    "prediction_device": "cpu"
+  }
+}

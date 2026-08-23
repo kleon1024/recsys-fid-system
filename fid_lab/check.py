@@ -114,6 +114,26 @@ def check_report_manifests() -> None:
             raise SystemExit("\n".join(failures))
 
 
+def check_visual_manifest() -> None:
+    manifest = ROOT / "docs/assets/MANIFEST.sha256"
+    failures = []
+    declared = set()
+    for line in manifest.read_text().splitlines():
+        expected, relative = line.split(maxsplit=1)
+        path = ROOT / relative
+        declared.add(path.resolve())
+        if not path.exists():
+            failures.append(f"missing visual: {relative}")
+            continue
+        if sha256(path.read_bytes()).hexdigest() != expected:
+            failures.append(f"visual hash mismatch: {relative}")
+    present = {path.resolve() for path in manifest.parent.glob("*.svg")}
+    for path in sorted(present - declared):
+        failures.append(f"visual missing from manifest: {path.relative_to(ROOT)}")
+    if failures:
+        raise SystemExit("\n".join(failures))
+
+
 def run(command: list[str], capture: bool = False) -> subprocess.CompletedProcess[str]:
     return subprocess.run(command, cwd=ROOT, check=True, text=True, capture_output=capture)
 
@@ -122,6 +142,7 @@ def main() -> None:
     check_structure()
     check_public_docs()
     check_report_manifests()
+    check_visual_manifest()
     run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
     run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
     benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)

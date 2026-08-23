@@ -69,6 +69,26 @@ class ScaleDataTest(unittest.TestCase):
         self.assertEqual(report.likely_causes[0], "sample_ratio_mismatch")
         self.assertIn("cascade_opportunity_loss", report.likely_causes)
 
+    def test_nonlinear_signal_world_is_versioned_and_deterministic(self) -> None:
+        config = ScaleConfig(
+            main_impressions=20_000,
+            anchor_rate=0.02,
+            seed=9,
+            signal_version="heterogeneous-nonlinear-v2",
+        )
+        first = build_scale_dataset(config)
+        second = build_scale_dataset(config)
+        np.testing.assert_array_equal(first.labels, second.labels)
+        np.testing.assert_allclose(first.label_probabilities, second.label_probabilities)
+        baseline = build_scale_dataset(
+            ScaleConfig(main_impressions=20_000, anchor_rate=0.02, seed=9)
+        )
+        self.assertFalse(
+            np.allclose(first.label_probabilities, baseline.label_probabilities)
+        )
+        with self.assertRaisesRegex(ValueError, "unsupported signal version"):
+            ScaleConfig(signal_version="unknown")
+
 
 class SamplingAndJoinerTest(unittest.TestCase):
     def test_negative_mix_is_exact_and_probability_carrying(self) -> None:

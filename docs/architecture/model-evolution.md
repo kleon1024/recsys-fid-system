@@ -87,6 +87,25 @@ after 4-12 recorded loss points instead of driving training loss downward for
 20 epochs. XGBoost is still the best model at this sample size; model complexity
 is accepted only when the data and validation result justify it.
 
+The synthetic signal is now explicitly versioned. `industrial-cross-sequence-v1`
+is retained as a linear-control DGP: logistic regression with the known cross
+and sequence features nearly reaches the oracle. `heterogeneous-nonlinear-v2`
+adds threshold, periodic, segment-compatibility, recency-weighted sequence, and
+nonlinear intent/quality effects without exposing all of them as direct
+features. On the checked RTX 4090 run, V2 at one million main impressions still
+has only 19,964 anchor samples and W&D improves AUC over logistic regression by
+less than 0.001. At ten million impressions and 199,883 samples, XGBoost,
+XGBoost, PLE, MMoE, and DCNv2 reach 0.6161, 0.6120, 0.6115, and 0.6111 versus logistic
+regression at 0.6048. Raw reports are versioned under `reports/benchmarks/`.
+
+合成信号现已显式版本化。V1 保留为线性对照；加入阈值、周期、分群匹配、带时间衰减的
+序列和非线性意图后，V2 在 100 万主曝光时仍只有 19,964 条 anchor 样本，W&D 相对
+逻辑回归的 AUC 增量不足 0.001。扩大到 1,000 万主曝光、199,883 条样本后，XGBoost、
+MMoE、PLE、DCNv2 均超过逻辑回归。这是容量与样本规模证据，仍不是上线证据；下一步
+必须把同一模型 artifact 接进有状态 candidate-to-A/B 链路。
+
+![Nonlinear DGP scale result](../assets/model-scale.svg)
+
 The earlier ten-million-impression throughput run produced 200,481 anchor
 examples, but predates this regularization change and is retained only as scale
 evidence, not the current model-selection leaderboard. The earlier retrieval

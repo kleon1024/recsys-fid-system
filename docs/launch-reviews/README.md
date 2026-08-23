@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-SIMULATOR-002](2026-08-23-main-feed-suite/l-simulator-002.md) | Nonlinear DGP and sample-scale audit | Accept offline lane; no serving change |
 | [L-MODEL-001](2026-08-23-main-feed-suite/l-model-001.md) | Fine-rank model | Reject advanced candidates; LR remains authority |
 | [L-FEATURE-001](2026-08-23-main-feed-suite/l-feature-001.md) | Feature | Hold |
 | [L-STRATEGY-001](2026-08-23-main-feed-suite/l-strategy-001.md) | Strategy | Hold |

@@ -49,3 +49,8 @@ class ScaleConfig:
         )
         if any(rate < 0.0 or rate > 1.0 for rate in rates):
             raise ValueError("rates must be probabilities")
+        if self.signal_version not in {
+            "industrial-cross-sequence-v1",
+            "heterogeneous-nonlinear-v2",
+        }:
+            raise ValueError(f"unsupported signal version: {self.signal_version}")

@@ -133,3 +133,57 @@ flowchart LR
     G4 -. "owner approval" .-> G5
     G5 -. "measured outcome" .-> G6
 ```
+
+## 8. One launch protocol for every change
+
+```mermaid
+flowchart LR
+    Change["Model, feature, strategy, realtime, product, or bug fix"] --> Train["Temporal train and validation"]
+    Train --> Replay["Shadow and artifact replay"]
+    Replay --> Cascade["Frozen recall, coarse, fine, value, and mixer"]
+    Cascade --> AB["Powered A/B or interference-safe switchback"]
+    AB --> Gate{"Primary, guardrail, parity, and cost pass?"}
+    Gate -- "No" --> Reject["Reject, root cause, rollback"]
+    Gate -- "Yes" --> Publish["Atomic manifest publication"]
+    Reject --> Review["Launch Review"]
+    Publish --> Review
+    Review --> Next["Next hypothesis"]
+```
+
+## 9. Shared Feed loop and business-specific labels
+
+```mermaid
+flowchart TB
+    Feed["Main Feed: play, stay, slide, quality view, negative"] --> POI["POI-anchored video distribution"]
+    POI --> Container["POI detail, map, and YMAL"]
+    Container --> Product["Product, order, payment, or Pixel"]
+    Feed --> Posting["Posting page: shoot, select POI, publish"]
+    Posting --> Supply["Qualified Local content supply"]
+    Supply --> Feed
+    Container --> Review["Review relevance and quality"]
+    Feed --> FeedValue["Feed value"]
+    Container --> Consumption["Local consumption Value Tree"]
+    Product --> Transaction["Local transaction Value Tree"]
+    Supply --> SupplyValue["Local supply Value Tree"]
+    FeedValue --> LT["Accepted platform LT exchange"]
+    Consumption -. "measured exchange only" .-> LT
+    Transaction -. "measured exchange only" .-> LT
+    SupplyValue -. "measured exchange only" .-> LT
+```
+
+## 10. Joiner and score diagnosis
+
+```mermaid
+flowchart LR
+    Log["request + candidate + impression log"] --> Closure{"Identity closure and dedupe"}
+    Events["play, stay, click, publish, order, Pixel"] --> Closure
+    Closure --> Maturity{"Task label mature and observable?"}
+    Maturity -- "No" --> Mask["label_mask = 0"]
+    Maturity -- "Yes" --> PIT["Point-in-time feature join"]
+    PIT --> Sample["Recall, coarse, or fine example"]
+    Sample --> Version["FID, model, index, calibration, policy manifest"]
+    Version --> Replay["Served versus replay score"]
+    Replay --> Funnel["Route mix and stage pass-through"]
+    Funnel --> Slice["Permission, city, category, head/tail, new item"]
+    Slice --> Cause["Model, feature, sample, policy, or chain root cause"]
+```

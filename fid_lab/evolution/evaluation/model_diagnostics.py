@@ -18,10 +18,16 @@ def _fit_auc(
     model,
 ) -> float:
     model.fit(train_x, train_y)
+    parameters = model.get_params()
+    if str(parameters.get("device", "cpu")).startswith("cuda"):
+        model.set_params(device="cpu", n_jobs=1)
     return binary_metrics(test_y, model.predict_proba(test_x)[:, 1])["auc"]
 
 
-def diagnose_signal(dataset: ScaleDataset) -> dict[str, object]:
+def diagnose_signal(
+    dataset: ScaleDataset,
+    device: str = "cpu",
+) -> dict[str, object]:
     train_end = int(dataset.examples * 0.70)
     test_start = int(dataset.examples * 0.85)
     labels = dataset.labels[:, 0]
@@ -49,6 +55,7 @@ def diagnose_signal(dataset: ScaleDataset) -> dict[str, object]:
                 max_depth=4,
                 learning_rate=0.06,
                 tree_method="hist",
+                device=device,
                 n_jobs=4,
                 random_state=17,
             ),
@@ -76,4 +83,6 @@ def diagnose_signal(dataset: ScaleDataset) -> dict[str, object]:
             test_labels[dataset.diagnostic_features[test_start:, 1] == 1].mean()
             - test_labels[dataset.diagnostic_features[test_start:, 1] == 0].mean()
         ),
+        "training_device": device,
+        "prediction_device": "cpu",
     }

@@ -49,6 +49,56 @@ def _scaled_probability(
     return np.clip(base * multiplier, 0.0, ceiling)
 
 
+def _behavior_signals(
+    config: ScaleConfig,
+    dense: np.ndarray,
+    sequences: np.ndarray,
+    sequence_mask: np.ndarray,
+    sequence_match: np.ndarray,
+    viewer_ids: np.ndarray,
+    video_ids: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    cross_signal = dense[:, 2] * dense[:, 5]
+    if config.signal_version == "industrial-cross-sequence-v1":
+        intent = 0.9 * dense[:, 2] + 0.5 * dense[:, 5] + 1.50 * cross_signal
+        quality = 0.8 * dense[:, 0] + 0.6 * dense[:, 4] - 0.4 * dense[:, 9]
+        quality += 1.20 * sequence_match
+        diagnostics = np.stack(
+            [cross_signal, sequence_match.astype(np.float32)], axis=1
+        )
+        return intent, quality, diagnostics.astype(np.float32)
+    recency_weight = np.linspace(0.1, 1.0, sequences.shape[1], dtype=np.float32)
+    denominator = (sequence_mask * recency_weight).sum(axis=1).clip(min=1e-6)
+    sequence_recency = (
+        sequences[:, :, 0] * sequence_mask * recency_weight
+    ).sum(axis=1) / denominator
+    segment_match = 1.0 - np.abs((viewer_ids % 7) - (video_ids % 7)) / 6.0
+    threshold_cross = ((dense[:, 2] > 0.15) & (dense[:, 5] > -0.10)).astype(
+        np.float32
+    )
+    periodic_cross = np.sin(dense[:, 3] * dense[:, 7])
+    intent = (
+        0.35 * dense[:, 2]
+        + 0.25 * dense[:, 5]
+        + 1.10 * np.tanh(1.4 * cross_signal)
+        + 0.70 * threshold_cross
+        + 0.45 * periodic_cross
+        + 0.60 * segment_match
+    )
+    quality = (
+        0.50 * dense[:, 0]
+        + 0.35 * dense[:, 4]
+        - 0.35 * dense[:, 9]
+        + 0.75 * sequence_match
+        + 0.55 * np.tanh(sequence_recency)
+        + 0.40 * segment_match
+    )
+    diagnostics = np.stack(
+        [cross_signal, sequence_match.astype(np.float32)], axis=1
+    )
+    return intent, quality, diagnostics.astype(np.float32)
+
+
 def build_scale_dataset(config: ScaleConfig = ScaleConfig()) -> ScaleDataset:
     rng = np.random.default_rng(config.seed)
     anchored = int(rng.binomial(config.main_impressions, config.anchor_rate))
@@ -66,10 +116,15 @@ def build_scale_dataset(config: ScaleConfig = ScaleConfig()) -> ScaleDataset:
     history_item_ids *= sequence_mask
     sequence_match = rng.random(anchored) < (1.0 / (1.0 + np.exp(-dense[:, 6])))
     history_item_ids[sequence_match, -1] = video_ids[sequence_match] % 4_096
-    cross_signal = dense[:, 2] * dense[:, 5]
-    intent = 0.9 * dense[:, 2] + 0.5 * dense[:, 5] + 1.50 * cross_signal
-    quality = 0.8 * dense[:, 0] + 0.6 * dense[:, 4] - 0.4 * dense[:, 9]
-    quality += 1.20 * sequence_match
+    intent, quality, diagnostic_features = _behavior_signals(
+        config,
+        dense,
+        sequences,
+        sequence_mask,
+        sequence_match,
+        viewer_ids,
+        video_ids,
+    )
     labels = np.zeros((anchored, len(FEED_TASKS)), dtype=np.float32)
     probabilities = np.zeros_like(labels)
     long_view_probability = _scaled_probability(
@@ -117,9 +172,6 @@ def build_scale_dataset(config: ScaleConfig = ScaleConfig()) -> ScaleDataset:
     served_scores = np.stack(
         [dense[:, 0], intent, 0.5 * quality + 0.5 * intent, quality],
         axis=1,
-    ).astype(np.float32)
-    diagnostic_features = np.stack(
-        [cross_signal, sequence_match.astype(np.float32)], axis=1
     ).astype(np.float32)
     return ScaleDataset(
         config,

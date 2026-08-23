@@ -6,6 +6,31 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
+## What the checked evidence says
+
+`LR` is ambiguous in recommendation work. This repository writes **logistic
+regression** for the model and **Launch Review** for the release record.
+
+The current stateful Feed still serves logistic regression. That is a measured
+decision, not a claim that neural ranking cannot work: the original simulator
+was nearly linear, the actual policy consumed only 24 dense features, and the
+training split contained about 20,000 rows. A versioned nonlinear DGP run on an
+RTX 4090 shows the missing capacity effect: at ten million main impressions and
+about 200,000 anchor samples, XGBoost, MMoE, PLE, and DCNv2 all beat logistic
+regression offline. They remain offline candidates until the same artifacts
+pass the stateful replay and A/B loop.
+
+![Offline model quality and candidate regret](docs/assets/model-quality.svg)
+
+![Model scale on the nonlinear DGP](docs/assets/model-scale.svg)
+
+![Observed model A/B impact](docs/assets/model-ab-impact.svg)
+
+The full bilingual diagnosis is
+[Why LR still serves](docs/research/model-simulator-root-cause.md). It separates
+simulator/DGP, sample and label, feature, training, cascade, experiment, and
+serving-consistency failures instead of attributing every miss to the model.
+
 ## Main Feed first, Local Service inside the same value contract
 
 The current acceptance boundary is the short-video main Feed. Local Service is
@@ -60,6 +85,12 @@ generation, closed/open-loop attribution, and stateful request/session A/B simul
 Use the [failure runbook](docs/operations/failure-runbook.md) and
 [senior project deep dive](docs/interview/project-deep-dive.md) for production
 diagnosis and interview practice.
+
+Additional checked visual evidence:
+
+- [Training loss versus launch outcome](docs/assets/training-loss.svg)
+- [Coarse-cascade repair and Local/LT trade-off](docs/assets/cascade-local-tradeoff.svg)
+- [Architecture and launch visual atlas](docs/architecture/visual-atlas.md)
 
 Public procurement package:
 
@@ -242,6 +273,7 @@ python3 -m fid_lab.online.benchmark
 python3 -m fid_lab.training.demo
 python3 -m fid_lab.generative.demo
 python3 -m fid_lab.evolution.evaluation.benchmark --profile ci
+python3 -m fid_lab.evolution.cli.signal_diagnostic --impressions 1000000 --signal-version heterogeneous-nonlinear-v2
 python3 -m fid_lab.evolution.cli.generative_demo
 python3 -m fid_lab.evolution.cli.ab_demo
 python3 -m fid_lab.simulation.cli --users 2000 --items 4000
@@ -258,6 +290,13 @@ python3 -m fid_lab.feed_loop.streaming.online_learning_cli --users 1000 --ab-use
 python3 -m fid_lab.launches.policy.cli --users 1000000 --device cuda:0
 python3 -m fid_lab.launches.system.cli --users 1000000 --device cuda:0
 python3 -m fid_lab.check
+```
+
+Regenerate the deterministic report figures from checked JSON authorities:
+
+```bash
+python -m pip install -r requirements-docs.txt
+python3 -m fid_lab.reporting.charts
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) before changing contracts, reports, or

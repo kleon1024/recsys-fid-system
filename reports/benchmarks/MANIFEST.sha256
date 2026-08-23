@@ -1,1 +1,4 @@
+3a33b68bd012aab150a66caf6215b04a7617ae1b6ac47e79d0981fd074c2273a  reports/benchmarks/2026-08-23-model-v2-10m-gpu.json
+e6d293746fa8edb849d6c15fe8b80db200a2b9a9792bb0016bfc99a039acc9da  reports/benchmarks/2026-08-23-model-v2-1m-gpu.json
 01e9f56bd44e969809157cf419e2e2fcf7ca6edc7668e53af1239a981a34d84e  reports/benchmarks/2026-08-23-retrieval-gpu.json
+bb383c00e44d0325c2aae6be20a6191b4a6ec6b6dc81cdcd923057cdf6f85957  reports/benchmarks/2026-08-23-signal-diagnosis.json

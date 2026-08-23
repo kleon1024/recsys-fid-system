@@ -37,6 +37,8 @@ class ModelResult:
     train_seconds: float
     milliseconds_per_1k_predictions: float
     training_loss: tuple[float, ...]
+    training_device: str
+    prediction_device: str
 
 
 def _matrix(sparse: np.ndarray, dense: np.ndarray) -> np.ndarray:
@@ -53,6 +55,7 @@ def _traditional_models(
     dense: np.ndarray,
     labels: np.ndarray,
     seed: int,
+    device: str,
 ) -> list[ModelResult]:
     train_end = int(len(labels) * 0.70)
     test_start = int(len(labels) * 0.85)
@@ -67,6 +70,7 @@ def _traditional_models(
             subsample=0.9,
             colsample_bytree=0.9,
             tree_method="hist",
+            device=device,
             n_jobs=4,
             random_state=seed,
         ),
@@ -76,6 +80,9 @@ def _traditional_models(
         started = perf_counter()
         model.fit(features[:train_end], target[:train_end])
         train_seconds = perf_counter() - started
+        training_device = "cpu" if name == "logistic_regression" else device
+        if name == "xgboost" and device.startswith("cuda"):
+            model.set_params(device="cpu", n_jobs=1)
         train_scores = model.predict_proba(features[:train_end])[:, 1]
         train_loss = binary_metrics(target[:train_end], train_scores)["log_loss"]
         started = perf_counter()
@@ -91,6 +98,8 @@ def _traditional_models(
                 train_seconds,
                 prediction_ms,
                 (train_loss,),
+                training_device,
+                "cpu",
             )
         )
     return results
@@ -159,6 +168,8 @@ def _deepctr_models(
                 train_seconds,
                 prediction_ms,
                 tuple(model.loss_history),
+                device,
+                device,
             )
         )
     return results
@@ -169,6 +180,7 @@ def run_benchmark(
     seeds: int = 1,
     device: str = "cpu",
     epochs: int = 1,
+    signal_version: str = "industrial-cross-sequence-v1",
 ) -> dict[str, object]:
     if profile not in PROFILE_IMPRESSIONS:
         raise ValueError(f"unknown profile: {profile}")
@@ -178,11 +190,21 @@ def run_benchmark(
     for offset in range(seeds):
         seed = 20260823 + offset
         dataset = build_scale_dataset(
-            ScaleConfig(main_impressions=PROFILE_IMPRESSIONS[profile], seed=seed)
+            ScaleConfig(
+                main_impressions=PROFILE_IMPRESSIONS[profile],
+                seed=seed,
+                signal_version=signal_version,
+            )
         )
         distribution = summarize_distribution(dataset)
         reports.extend(
-            _traditional_models(dataset.sparse_ids, dataset.dense_features, dataset.labels, seed)
+            _traditional_models(
+                dataset.sparse_ids,
+                dataset.dense_features,
+                dataset.labels,
+                seed,
+                device,
+            )
         )
         reports.extend(
             _deepctr_models(
@@ -200,6 +222,7 @@ def run_benchmark(
     return {
         "profile": profile,
         "seeds": seeds,
+        "signal_version": signal_version,
         "distribution": distribution,
         "ranking": [asdict(report) for report in reports],
         "retrieval": run_retrieval_benchmark(
@@ -234,9 +257,20 @@ def main() -> None:
     parser.add_argument("--seeds", type=int, default=1)
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--epochs", type=int, default=1)
+    parser.add_argument(
+        "--signal-version",
+        default="industrial-cross-sequence-v1",
+        choices=("industrial-cross-sequence-v1", "heterogeneous-nonlinear-v2"),
+    )
     parser.add_argument("--format", choices=("json", "markdown"), default="json")
     args = parser.parse_args()
-    report = run_benchmark(args.profile, args.seeds, args.device, args.epochs)
+    report = run_benchmark(
+        args.profile,
+        args.seeds,
+        args.device,
+        args.epochs,
+        args.signal_version,
+    )
     print(to_markdown(report) if args.format == "markdown" else json.dumps(report, indent=2))
 
 
