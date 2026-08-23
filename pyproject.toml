@@ -45,6 +45,7 @@ entry_points = [
   "fid_lab/feed_loop/scale/tensor_catalog.py",
   "fid_lab/feed_loop/world_model/cli.py",
   "fid_lab/feed_loop/world_model/validation/evaluation.py",
+  "fid_lab/feed_loop/world_model/benchmark/cli.py",
   "fid_lab/simulation/features/groups.py",
   "fid_lab/feed_loop/models/feature_lr.py",
   "fid_lab/feed_loop/models/feature_lr_cli.py",
@@ -72,4 +73,5 @@ authority_modules = [
   "fid_lab.value.gate",
   "fid_lab.value.tree",
   "fid_lab.feed_loop.world_model.contracts",
+  "fid_lab.feed_loop.world_model.benchmark.contracts",
 ]

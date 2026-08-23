@@ -25,6 +25,14 @@ from .feed_multitask import TASK_SPECS, FeedMultiTaskPolicy
 from .multitask_policy import FeedMMoEPolicy
 
 
+LEGACY_V3_DEEP_DENSE_INDICES = (*range(14), *range(18, 28))
+LEGACY_V3_DEEP_SPARSE_SPECS = (
+    ("item_id", 15, 4_096),
+    ("author_id", 16, 1_024),
+    ("category_id", 17, 12),
+)
+
+
 @dataclass(frozen=True)
 class PublishedPolicy:
     policy: object
@@ -39,13 +47,44 @@ class PublishedPolicy:
 
 
 def feature_schema_hash() -> str:
+    """Immutable V3 release hash retained for active/rollback verification."""
     contract = {
         "feature_names": FEATURE_NAMES,
-        "deep_dense_indices": DENSE_INDICES,
-        "deep_sparse_specs": SPARSE_SPECS,
+        "deep_dense_indices": LEGACY_V3_DEEP_DENSE_INDICES,
+        "deep_sparse_specs": LEGACY_V3_DEEP_SPARSE_SPECS,
     }
+    return _contract_hash(contract)
+
+
+def _contract_hash(contract: object) -> str:
     encoded = json.dumps(contract, sort_keys=True, separators=(",", ":")).encode()
     return sha256(encoded).hexdigest()
+
+
+def canonical_feature_schema_hash() -> str:
+    """Hash only the online feature vector, independent of model consumers."""
+    return _contract_hash({"feature_names": FEATURE_NAMES})
+
+
+def model_input_schema_hash(policy) -> str:
+    if isinstance(policy, LearnedPolicy):
+        columns = policy.columns or tuple(range(len(FEATURE_NAMES)))
+        contract = {
+            "kind": "selected_columns",
+            "columns": columns,
+            "feature_names": tuple(FEATURE_NAMES[index] for index in columns),
+        }
+    elif isinstance(policy, FeedDeepPolicy):
+        contract = {
+            "kind": "deep_sparse_dense",
+            "dense_indices": DENSE_INDICES,
+            "sparse_specs": SPARSE_SPECS,
+        }
+    elif isinstance(policy, (FeedMMoEPolicy, FeedMultiTaskPolicy)):
+        contract = {"kind": "dense_vector", "inputs": policy.inputs}
+    else:
+        raise TypeError(f"unsupported model input schema: {type(policy).__name__}")
+    return _contract_hash(contract)
 
 
 def _device(policy, serving: bool = False) -> str:
@@ -135,7 +174,14 @@ def publish_policy(
             "base_artifact_id": base.artifact_manifest["artifact_id"],
             "challenger_artifact_id": challenger.artifact_manifest["artifact_id"],
             "base_score_tolerance": str(policy.base_score_tolerance),
-            "feature_schema_sha256": feature_schema_hash(),
+            "feature_schema_sha256": canonical_feature_schema_hash(),
+            "model_input_schema_sha256": _contract_hash({
+                "kind": "guarded_blend",
+                "base": base.artifact_manifest["model_input_schema_sha256"],
+                "challenger": challenger.artifact_manifest[
+                    "model_input_schema_sha256"
+                ],
+            }),
             "signal_version": signal_version,
         }
         artifact_hash = sha256(
@@ -168,7 +214,8 @@ def publish_policy(
     manifest = {
         "artifact_id": f"sha256:{artifact_hash}",
         "model_name": policy.name,
-        "feature_schema_sha256": feature_schema_hash(),
+        "feature_schema_sha256": canonical_feature_schema_hash(),
+        "model_input_schema_sha256": model_input_schema_hash(policy),
         "signal_version": signal_version,
         "artifact_format": artifact_format,
         "artifact_file": path.name,

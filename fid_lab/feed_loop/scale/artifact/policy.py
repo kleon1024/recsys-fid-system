@@ -10,13 +10,20 @@ import joblib
 import torch
 from xgboost import Booster
 
-from ...models.artifact import feature_schema_hash
+from ...models.artifact import canonical_feature_schema_hash, feature_schema_hash
 from ...tensor_cascade import stage_diagnostics
 from ..calibration.nonlinear import nonlinear_stay_adjustment
 from .features import build_tensor_features
 
 
 V2_STAY_LOG_INTERCEPT_CALIBRATION = 0.25
+
+
+def _known_feature_schema(schema_hash: str) -> bool:
+    return schema_hash in {
+        feature_schema_hash(),
+        canonical_feature_schema_hash(),
+    }
 
 
 def _selected_candidate(
@@ -83,7 +90,7 @@ class TensorArtifactPolicy:
         self.name = candidate_name if treatment else "lr_full_feed_tensor_control"
         self.treatment = treatment
         self.manifest = manifest
-        if manifest["feature_schema_sha256"] != feature_schema_hash():
+        if not _known_feature_schema(manifest["feature_schema_sha256"]):
             raise ValueError("tensor and published feature schemas do not match")
         if manifest["signal_version"] != "heterogeneous-nonlinear-v2":
             raise ValueError("tensor artifact runner requires nonlinear V2")
@@ -160,7 +167,7 @@ class TensorColumnLogisticPolicy:
         report = json.loads(report_path.read_text())
         evidence = report["offline"][group]
         manifest = evidence["artifact_manifest"]
-        if manifest["feature_schema_sha256"] != feature_schema_hash():
+        if not _known_feature_schema(manifest["feature_schema_sha256"]):
             raise ValueError("feature-group artifact schema does not match tensor features")
         path = artifact_dir / manifest["artifact_file"]
         TensorArtifactPolicy._verify(path, manifest["artifact_id"])

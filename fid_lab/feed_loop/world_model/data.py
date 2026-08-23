@@ -37,36 +37,46 @@ class WorldModelSplit:
             "weights": self.weights[indices].to(device, non_blocking=True),
             "lifecycle": self.lifecycle[indices].to(device, non_blocking=True),
             "region": self.region[indices].to(device, non_blocking=True),
+            "exposed_index": self.exposed_index[indices].to(
+                device, non_blocking=True
+            ),
         }
 
 
-def load_world_split(dataset_dir: Path, split: str, max_rows: int | None = None) -> WorldModelSplit:
+def load_world_split(dataset_dir: Path, split: str, max_rows: int | None = None,
+                     row_selection: str = "head") -> WorldModelSplit:
     payload = torch.load(
         dataset_dir / f"{split}.pt", map_location="cpu", weights_only=False
     )["tensors"]
-    rows = len(payload["exposed_index"])
-    if max_rows is not None:
-        rows = min(rows, max_rows)
-    row_index = torch.arange(rows)
-    choice = payload["exposed_index"][:rows].long()
-    propensity = payload["exposure_propensity"][:rows].float().clamp_min(1e-4)
+    total_rows = len(payload["exposed_index"])
+    rows = total_rows if max_rows is None else min(total_rows, max_rows)
+    if row_selection == "head":
+        row_index = torch.arange(rows)
+    elif row_selection == "uniform":
+        row_index = torch.arange(rows) * total_rows // rows
+    else:
+        raise ValueError(f"unsupported row selection: {row_selection}")
+    choice = payload["exposed_index"][row_index].long()
+    propensity = payload["exposure_propensity"][row_index].float().clamp_min(1e-4)
     weights = (1.0 / propensity).clamp_max(20.0)
     weights /= weights.mean()
-    labels, label_masks = _with_session_exit(payload, rows)
+    labels, label_masks = _with_session_exit(payload, total_rows)
+    labels = labels[row_index]
+    label_masks = label_masks[row_index]
     return WorldModelSplit(
-        selected_features=payload["candidate_features"][:rows][row_index, choice].float(),
-        slate_features=payload["candidate_features"][:rows].float(),
-        sequence=payload["behavior_sequence"][:rows].float(),
+        selected_features=payload["candidate_features"][row_index, choice].float(),
+        slate_features=payload["candidate_features"][row_index].float(),
+        sequence=payload["behavior_sequence"][row_index].float(),
         labels=labels,
         label_masks=label_masks,
         weights=weights,
-        lifecycle=payload["lifecycle_bucket"][:rows].long(),
-        region=payload["region_bucket"][:rows].long(),
-        user_ids=payload["user_id"][:rows].long(),
-        request_steps=payload["request_step"][:rows].long(),
+        lifecycle=payload["lifecycle_bucket"][row_index].long(),
+        region=payload["region_bucket"][row_index].long(),
+        user_ids=payload["user_id"][row_index].long(),
+        request_steps=payload["request_step"][row_index].long(),
         exposed_index=choice,
-        candidate_fine_scores=payload["candidate_fine_scores"][:rows].float(),
-        candidate_audit_utility=payload["candidate_audit_utility"][:rows].float(),
+        candidate_fine_scores=payload["candidate_fine_scores"][row_index].float(),
+        candidate_audit_utility=payload["candidate_audit_utility"][row_index].float(),
     )
 
 

@@ -6,7 +6,11 @@ from tempfile import TemporaryDirectory
 import torch
 
 from fid_lab.feed_loop.world_model.contracts import WorldModelConfig
-from fid_lab.feed_loop.world_model.data import WorldModelSplit, _with_session_exit
+from fid_lab.feed_loop.world_model.data import (
+    WorldModelSplit,
+    _with_session_exit,
+    load_world_split,
+)
 from fid_lab.feed_loop.world_model.ensemble import StructuralNoise, WorldModelEnsemble
 from fid_lab.feed_loop.world_model.loss import world_model_loss
 from fid_lab.feed_loop.world_model.training import (
@@ -14,6 +18,10 @@ from fid_lab.feed_loop.world_model.training import (
     save_world_ensemble,
 )
 from fid_lab.feed_loop.world_model.validation import evaluate_world_model
+from fid_lab.feed_loop.world_model.benchmark.neural import (
+    DINRequestRanker,
+    SlateTransformerRanker,
+)
 
 
 def _config() -> WorldModelConfig:
@@ -132,3 +140,35 @@ def test_session_exit_is_point_in_time_and_last_request_is_masked():
     labels, masks = _with_session_exit(payload, 4)
     assert labels[:, 15].tolist() == [1.0, 0.0, 0.0, 0.0]
     assert masks[:, 15].tolist() == [1.0, 1.0, 0.0, 0.0]
+
+
+def test_request_rankers_score_every_candidate_from_the_same_request():
+    split = _split()
+    batch = split.batch(torch.arange(len(split)), torch.device("cpu"))
+    assert torch.equal(batch["exposed_index"], split.exposed_index)
+    for model in (DINRequestRanker(width=16), SlateTransformerRanker(width=16)):
+        scores = model(batch["slate_features"], batch["sequence"])
+        assert scores.shape == split.slate_features.shape[:2]
+        assert torch.isfinite(scores).all()
+
+
+def test_uniform_row_selection_preserves_full_split_support():
+    payload = {
+        "exposed_index": torch.zeros(10, dtype=torch.long),
+        "exposure_propensity": torch.ones(10),
+        "candidate_features": torch.rand(10, 2, 28),
+        "behavior_sequence": torch.rand(10, 3, 8),
+        "labels": torch.zeros(10, 15),
+        "label_masks": torch.ones(10, 15),
+        "lifecycle_bucket": torch.zeros(10),
+        "region_bucket": torch.zeros(10),
+        "user_id": torch.arange(10),
+        "request_step": torch.arange(10),
+        "session_id": torch.zeros(10),
+        "candidate_fine_scores": torch.zeros(10, 2),
+        "candidate_audit_utility": torch.zeros(10, 2),
+    }
+    with TemporaryDirectory() as directory:
+        torch.save({"tensors": payload}, Path(directory) / "train.pt")
+        split = load_world_split(Path(directory), "train", 3, "uniform")
+    assert split.request_steps.tolist() == [0, 3, 6]

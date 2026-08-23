@@ -13,13 +13,23 @@ from deepctr_torch.models import DCNMix, DeepFM, WDL
 import numpy as np
 import torch
 
+from ...simulation.environment import FEATURE_NAMES
+
 
 MODEL_BUILDERS = {"wide_deep": WDL, "deepfm": DeepFM, "dcnv2": DCNMix}
-DENSE_INDICES = (*range(14), *range(18, 28))
-SPARSE_SPECS = (
-    ("item_id", 15, 4_096),
-    ("author_id", 16, 1_024),
-    ("category_id", 17, 12),
+SPARSE_FIELDS = (
+    ("user_id", "user_bucket_norm", 1_024),
+    ("item_id", "item_bucket_norm", 4_096),
+    ("author_id", "author_bucket_norm", 1_024),
+    ("category_id", "category_norm", 12),
+)
+SPARSE_SPECS = tuple(
+    (field, FEATURE_NAMES.index(feature_name), vocabulary)
+    for field, feature_name, vocabulary in SPARSE_FIELDS
+)
+SPARSE_INDICES = frozenset(index for _, index, _ in SPARSE_SPECS)
+DENSE_INDICES = tuple(
+    index for index in range(len(FEATURE_NAMES)) if index not in SPARSE_INDICES
 )
 
 

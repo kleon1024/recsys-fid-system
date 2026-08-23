@@ -38,16 +38,21 @@ def build_feature_bundle(
     sparse: np.ndarray,
     dense: np.ndarray,
     bucket_size: int = 1_024,
+    bucket_sizes: tuple[int, ...] | None = None,
 ) -> DeepCTRFeatureBundle:
+    if bucket_sizes is None:
+        bucket_sizes = (bucket_size,) * sparse.shape[1]
+    if len(bucket_sizes) != sparse.shape[1]:
+        raise ValueError("one bucket size is required for every sparse field")
     sparse_columns = tuple(
-        SparseFeat(f"fid_{index}", vocabulary_size=bucket_size, embedding_dim=8)
-        for index in range(sparse.shape[1])
+        SparseFeat(f"fid_{index}", vocabulary_size=vocabulary, embedding_dim=8)
+        for index, vocabulary in enumerate(bucket_sizes)
     )
     dense_columns = tuple(DenseFeat(f"dense_{index}", 1) for index in range(dense.shape[1]))
     inputs = {
         **{
             f"fid_{index}": sparse[:, index].astype(np.int64) % bucket_size
-            for index in range(sparse.shape[1])
+            for index, bucket_size in enumerate(bucket_sizes)
         },
         **{
             f"dense_{index}": dense[:, index].astype(np.float32)

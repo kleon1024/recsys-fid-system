@@ -66,9 +66,7 @@ A subsequent 64-paper architecture review finds that V1--V3 remain variants of
 one feature-derived formula world. V3 calibrates selected marginals but does not
 validate joint actions, free-running sequences, interventions, or policy-order
 agreement. XGBoost's V3 pointwise AUC edge over logistic regression is only
-0.0019, while its request-level audit regret is 0.0922 versus 0.0393. No V4
-implementation is authorized until a learned world-model prototype passes the
-declared falsification gates. See the
+0.0019, while its request-level audit regret is 0.0922 versus 0.0393. See the
 [DGP architecture decision](docs/research/dgp-literature-review/architecture-decision.md)
 and [literature survey PDF](docs/research/dgp-literature-review/lit_review_report.pdf).
 
@@ -80,6 +78,16 @@ frozen-V3 intervention-recovery, and synthetic policy-order gates. It remains a
 research challenger because artifact-bound external randomized interventions and
 real frozen-policy outcomes are not yet available. See
 [L-SIMULATOR-005](docs/launch-reviews/2026-08-23-main-feed-suite/l-simulator-005.md).
+
+The follow-up equal-request capacity audit prevents that architectural success
+from being mistaken for a useful behavioral world. After fixing time-support
+sampling, a missing W&D user field, and global/model schema coupling, XGBoost
+still reaches AUC 0.58575 while W&D, DIN, and the slate Transformer reach
+0.58006, 0.58119, and 0.58080. Permuting the entire behavior sequence changes
+V4 probability by only 0.00121 on average. V4 therefore learned V3's tabular
+response surface and effectively ignores sequence; all sequence-capacity gates
+fail and V4 remains held. See
+[L-SIMULATOR-006](docs/launch-reviews/2026-08-23-main-feed-suite/l-simulator-006.md).
 
 The Feature LR release ladder now trains every legal combination of four atomic
 feature proposals on one immutable sample snapshot. Each A/B compares a proposal
