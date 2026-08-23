@@ -14,25 +14,15 @@ from torch import nn
 from torch.nn import functional as functional
 
 from ..multitask import MultiGateMixtureOfExperts
-from ..training.tensor_ops import gather_candidates
+from ..training.common.request_rankers import RequestLinearRanker
+from ..training.common.tensor_ops import gather_candidates
 from .contracts import FEED_POSTING_TASKS, FeedPostingConfig
 
 
-class LinearRanker(nn.Module):
+class LinearRanker(RequestLinearRanker):
     def __init__(self, width, semantic_dim):
-        super().__init__()
         del semantic_dim
-        self.heads = nn.ModuleDict({
-            task: nn.Linear(width, 1) for task in FEED_POSTING_TASKS
-        })
-
-    def forward(self, features, candidate_semantic, history):
-        del candidate_semantic, history
-        shape = features.shape[:2]
-        flat = features.flatten(0, 1)
-        return {
-            task: head(flat).reshape(shape) for task, head in self.heads.items()
-        }
+        super().__init__(width, FEED_POSTING_TASKS)
 
 
 class WideDeepRanker(nn.Module):

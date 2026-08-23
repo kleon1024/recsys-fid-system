@@ -13,7 +13,7 @@ from torch import nn
 from torch.nn import functional as functional
 
 from ...multitask import MultiGateMixtureOfExperts
-from ...training.tensor_ops import gather_candidates
+from ...training.common.tensor_ops import gather_candidates
 from .contracts import POSTING_TASKS, PostingWorldConfig
 
 

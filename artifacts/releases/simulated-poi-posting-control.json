@@ -1,7 +1,7 @@
 {
   "schema": "simulated-poi-posting-authority-v1",
   "active_key": "history_recall_plus_wide_deep",
-  "active_bundle_id": "sha256:85d83f9766682d7bb8b270a1dcd3ed5d676a28b9c6f752b9fc334584de25aacb",
+  "active_bundle_id": "sha256:739adc4ac56c7ec0893a9e59f03bcaa9fa9a48bf4e8e0ca426da3c63c3d74211",
   "active_bundle": {
     "candidate_policy": "history_recall",
     "fine_model": "wide_deep",
@@ -22,7 +22,7 @@
       },
       {
         "path": "fid_lab/poi_posting/world/models.py",
-        "sha256": "880b6ebe5710f0c86f51e751f2d19f2913c5672eb6694fa321ba78e05b365467"
+        "sha256": "ef9d4d4e3feffba56da727b94b6d6f85af9d19cdbaaa3aa2c3010c9d331ac06e"
       },
       {
         "path": "fid_lab/poi_posting/world/launch.py",
