@@ -75,6 +75,14 @@ def _sync(device: torch.device) -> None:
 
 
 
+def _user_rates(user_metrics):
+    rates = user_metrics[:, 1:].clone()
+    rates[:, :16] /= user_metrics[:, :1].clamp_min(1.0)
+    rates[:, 19:23] /= user_metrics[:, :1].clamp_min(1.0)
+    rates[:, -1] /= user_metrics[:, 0].clamp_min(1.0)
+    return rates
+
+
 def _accumulate_cells(
     cell_stats, user_ids, user_metrics, cohort=None, assignment_version="legacy",
 ):
@@ -85,10 +93,7 @@ def _accumulate_cells(
             user_ids * 1_664_525 + 1_013_904_223, 2**31
         )
         assigned = bucket < 2**30
-    rates = user_metrics[:, 1:].clone()
-    rates[:, :16] /= user_metrics[:, :1].clamp_min(1.0)
-    rates[:, 19:23] /= user_metrics[:, :1].clamp_min(1.0)
-    rates[:, -1] /= user_metrics[:, 0].clamp_min(1.0)
+    rates = _user_rates(user_metrics)
     for cell, mask in enumerate((~assigned, assigned)):
         if cohort is not None:
             mask &= cohort
@@ -119,6 +124,7 @@ def candidate_batch(config, generator, device, state, catalog, step, policy=None
     graph = build_candidate_graph(
         config, state, catalog, step,
         None if policy is None else getattr(policy, "enabled_routes", None),
+        None if policy is None else getattr(policy, "score_ann_pool", None),
     )
     item_ids = graph["item_ids"]
     has_search = state["search_ttl"] > 0
@@ -274,6 +280,21 @@ def _maybe_append_trace(
         append_trace(rows, config, state, candidates, selected, values, step)
 
 
+def _finalize_batch_metrics(
+    config, cells, trigger_cells, lt_exchange, paired, user_ids,
+    user_metrics, trigger_cohort, trigger_kind,
+):
+    _accumulate_batch_cells(
+        config, cells, trigger_cells, user_ids, user_metrics,
+        trigger_cohort, trigger_kind,
+    )
+    if config.retain_paired_user_metrics:
+        paired.append(
+            _user_rates(user_metrics)[assign_binary_torch(user_ids)].cpu()
+        )
+    accumulate_lt_exchange_components(lt_exchange, user_ids, user_metrics)
+
+
 @torch.inference_mode()
 def _simulate_batches(
     config,
@@ -294,6 +315,7 @@ def _simulate_batches(
         5 + len(ROUTE_NAMES) + 2, dtype=torch.float64, device=device
     )
     trace_rows = []
+    paired_user_metrics = []
     for offset in range(0, config.users, config.batch_users):
         users = min(config.batch_users, config.users - offset)
         user_ids = torch.arange(offset, offset + users, device=device, dtype=torch.int64)
@@ -378,12 +400,10 @@ def _simulate_batches(
                 user_metrics[:, 17] += returned
                 user_metrics[:, 19] += return_value
                 user_metrics[:, 25] += return_value
-        _accumulate_batch_cells(
-            config, cell_stats, trigger_cell_stats, user_ids, user_metrics,
-            trigger_cohort, trigger_kind,
-        )
-        accumulate_lt_exchange_components(
-            lt_exchange_stats, user_ids, user_metrics
+        _finalize_batch_metrics(
+            config, cell_stats, trigger_cell_stats, lt_exchange_stats,
+            paired_user_metrics, user_ids, user_metrics, trigger_cohort,
+            trigger_kind,
         )
     return (
         totals,
@@ -393,6 +413,7 @@ def _simulate_batches(
         trigger_users,
         candidate_diagnostics,
         trace_rows,
+        paired_user_metrics,
     )
 
 
@@ -410,7 +431,9 @@ def prepare_run(config, policy_schedule, measurement_start_step, trigger_kind):
         torch.cuda.set_device(device.index or 0)
         torch.cuda.current_device()
     generator = torch.Generator(device=device).manual_seed(config.seed)
-    catalog = build_tensor_catalog(config, generator, device)
+    catalog_seed = config.seed if config.catalog_seed is None else config.catalog_seed
+    catalog_generator = torch.Generator(device=device).manual_seed(catalog_seed)
+    catalog = build_tensor_catalog(config, catalog_generator, device)
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device.index or 0)
     return device, generator, catalog
@@ -447,10 +470,11 @@ def run_tensor_feed(
         trigger_users,
         candidate_diagnostics,
         trace_rows,
+        paired_user_metrics,
     ) = simulation
     _sync(device)
     seconds = perf_counter() - started
-    return render_report(
+    report = render_report(
         config,
         policy,
         policy_schedule,
@@ -466,3 +490,6 @@ def run_tensor_feed(
         seconds,
         device,
     )
+    if paired_user_metrics:
+        report["_paired_user_metrics"] = torch.cat(paired_user_metrics)
+    return report

@@ -31,7 +31,9 @@ def _sampled_top(items, score, limit):
     return items.gather(1, positions)
 
 
-def _route_candidates(config, state, catalog, step, enabled_routes=None):
+def _route_candidates(
+    config, state, catalog, step, enabled_routes=None, ann_scorer=None,
+):
     users = len(state["active"])
     route_k = config.route_candidates
     pool_k = route_k * config.route_oversample
@@ -43,8 +45,15 @@ def _route_candidates(config, state, catalog, step, enabled_routes=None):
     routes = []
 
     ann_pool = _hashed_items(user_ids, step, pool_k, 1, catalog.size, config.seed)
-    ann_topics = catalog.topics[ann_pool]
-    ann_score = torch.einsum("bkd,bd->bk", ann_topics, state["observed_interest"])
+    if ann_scorer is None:
+        ann_topics = catalog.topics[ann_pool]
+        ann_score = torch.einsum(
+            "bkd,bd->bk", ann_topics, state["observed_interest"]
+        )
+    else:
+        ann_score = ann_scorer(config, state, catalog, ann_pool, step)
+        if ann_score.shape != ann_pool.shape or not torch.isfinite(ann_score).all():
+            raise ValueError("ANN scorer must return one finite score per pool item")
     routes.append(_sampled_top(ann_pool, ann_score, route_k))
 
     graph_seed = _hashed_items(user_ids, step, route_k, 2, catalog.size, config.seed)
@@ -178,10 +187,12 @@ def _audit_oracle(config, state, catalog, step, route_items, route_valid):
     return items[batch, position], utility[batch, position]
 
 
-def build_candidate_graph(config, state, catalog, step, enabled_routes=None):
+def build_candidate_graph(
+    config, state, catalog, step, enabled_routes=None, ann_scorer=None,
+):
     """Return the merged recall pool; coarse ranking is a separate owner."""
     route_items, route_valid = _route_candidates(
-        config, state, catalog, step, enabled_routes
+        config, state, catalog, step, enabled_routes, ann_scorer
     )
     merged, rrf_score, route_bits, unique_count, _ = _rrf_merge(
         config, route_items, route_valid

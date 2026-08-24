@@ -27,6 +27,8 @@ class TensorFeedConfig:
     catalog_items: int = 200_000
     batch_users: int = DEFAULT_GPU_BATCH_USERS
     seed: int = 20260823
+    catalog_seed: int | None = None
+    retain_paired_user_metrics: bool = False
     device: str = "cuda:0"
     count_inactive_play_bug: bool = False
     signal_version: str = "industrial-cross-sequence-v1"

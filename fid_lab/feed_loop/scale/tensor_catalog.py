@@ -32,12 +32,13 @@ class TensorCatalog:
 
 
 def build_tensor_catalog(config, generator, device: torch.device) -> TensorCatalog:
+    catalog_seed = config.seed if config.catalog_seed is None else config.catalog_seed
     item_ids = torch.arange(config.catalog_items, device=device)
     hashed = torch.remainder(item_ids * 1_103_515_245 + 12_345, 2**31).float()
     hashed /= float(2**31)
     category = torch.remainder(item_ids, config.topics)
     if config.signal_version == "heterogeneous-nonlinear-v2":
-        v2 = torch.Generator(device=device).manual_seed(config.seed + 707)
+        v2 = torch.Generator(device=device).manual_seed(catalog_seed + 707)
         raw_topics = -torch.log(
             torch.rand(
                 config.catalog_items, config.topics, generator=v2, device=device
@@ -69,7 +70,7 @@ def build_tensor_catalog(config, generator, device: torch.device) -> TensorCatal
         torch.full((config.catalog_items,), 2, device=device, dtype=torch.long),
     ) * is_poi.long()
     if config.signal_version == "heterogeneous-nonlinear-v2":
-        quality_generator = torch.Generator(device=device).manual_seed(config.seed + 708)
+        quality_generator = torch.Generator(device=device).manual_seed(catalog_seed + 708)
         numerator = -torch.log(
             torch.rand(
                 config.catalog_items, 3, generator=quality_generator, device=device
@@ -90,7 +91,7 @@ def build_tensor_catalog(config, generator, device: torch.device) -> TensorCatal
         torch.rand(config.catalog_items, generator=generator, device=device) < 0.92
     ).float()
     city = torch.randint(100, (config.catalog_items,), generator=generator, device=device)
-    stream_generator = torch.Generator(device=device).manual_seed(config.seed + 909)
+    stream_generator = torch.Generator(device=device).manual_seed(catalog_seed + 909)
     stream_draw = torch.rand(
         config.catalog_items, generator=stream_generator, device=device
     )
@@ -123,7 +124,7 @@ def build_tensor_catalog(config, generator, device: torch.device) -> TensorCatal
                     + 0.65
                     * torch.randn(
                         config.catalog_items,
-                        generator=torch.Generator(device=device).manual_seed(config.seed + 709),
+                        generator=torch.Generator(device=device).manual_seed(catalog_seed + 709),
                         device=device,
                     )
                 ),

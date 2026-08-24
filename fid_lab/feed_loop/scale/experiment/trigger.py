@@ -6,6 +6,8 @@ from math import erfc, sqrt
 
 import torch
 
+from ..graph.reporting import CELL_METRICS
+
 
 def refresh_search_state(config, state, step):
     if config.search_event_rate <= 0.0:
@@ -83,10 +85,42 @@ def combine_tensor_ab(control_report, treatment_report):
 
 def combine_tensor_counterfactual_ab(control_report, treatment_report):
     """Compare the same hashed users across common-random policy worlds."""
+    if "_paired_user_metrics" in control_report:
+        return _combine_paired_users(control_report, treatment_report)
     return _combine_experiment_cells(
         control_report["experiment_cells"]["treatment"],
         treatment_report["experiment_cells"]["treatment"],
     )
+
+
+def _combine_paired_users(control_report, treatment_report):
+    control = control_report["_paired_user_metrics"].double()
+    treatment = treatment_report["_paired_user_metrics"].double()
+    if control.shape != treatment.shape:
+        raise ValueError("paired counterfactual worlds must contain the same users")
+    difference = treatment - control
+    report = {}
+    for index, name in enumerate(CELL_METRICS):
+        control_mean = float(control[:, index].mean())
+        treatment_mean = float(treatment[:, index].mean())
+        effect = float(difference[:, index].mean())
+        standard_error = float(
+            difference[:, index].std(unbiased=True) / sqrt(len(difference))
+        )
+        z_score = effect / max(standard_error, 1e-12)
+        report[name] = {
+            "control_mean": control_mean,
+            "treatment_mean": treatment_mean,
+            "relative_lift": effect / control_mean if abs(control_mean) > 1e-12 else None,
+            "standard_error": standard_error,
+            "confidence_interval": (
+                effect - 1.96 * standard_error,
+                effect + 1.96 * standard_error,
+            ),
+            "p_value": erfc(abs(z_score) / sqrt(2.0)),
+            "estimator": "same_user_paired_difference",
+        }
+    return report
 
 
 def combine_tensor_trigger_ab(control_report, treatment_report):

@@ -3,7 +3,7 @@
   "environment": "externally_calibrated_synthetic_simulator",
   "epoch": "v3",
   "active_control_key": "mmoe_multitask_guarded_a015_t008",
-  "active_bundle_id": "sha256:be2e0465f2782943e8bd1e2d1ea0042335f7b801029ef9e39ed54530cbc7517e",
+  "active_bundle_id": "sha256:d30f91725ae3fe6e2b5651486d3764ecbbf26bc356c83b59a28418f4bfc30db8",
   "active_bundle": {
     "model": {
       "kind": "guarded_learned_residual_rerank",
@@ -217,7 +217,7 @@
     },
     "index": {
       "version": "multiroute-rrf-cascade-v3",
-      "artifact_id": "sha256:0b352059de96806746f4d87f7b0cdaa303decb9f72c783279b5cf4fa4c1865e6",
+      "artifact_id": "sha256:f2d1335288c31cbf645370befe358fe4f03dee3fe8730d56017ba1d18046ec1f",
       "sources": [
         {
           "path": "fid_lab/feed_loop/cascade/contracts.py",
@@ -225,11 +225,11 @@
         },
         {
           "path": "fid_lab/feed_loop/scale/graph/candidate.py",
-          "sha256": "2a9fdf306dfcea8e27a8fc29fe54d26316f859618e42562556e240205173cb67"
+          "sha256": "e2e8771c37425fdf0a94073583fde87aaa222a4b2e1b39553f2828a7a74945e3"
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_catalog.py",
-          "sha256": "92a529558727a846247abf2fc1351f29d080e7a256d11f15fea580c94d0235b4"
+          "sha256": "1471d09594b619b7b27fd7c29843ddacc838e78a72c6b3f0960d39d5a320f59d"
         }
       ],
       "catalog_items": 200000
@@ -245,15 +245,15 @@
     },
     "behavior": {
       "signal_version": "kuairand-calibrated-v3",
-      "artifact_id": "sha256:33e8c72dca37a0ef26d8c549774d247dd5a31a1b0eb2dea473a0c419dbf4aa35",
+      "artifact_id": "sha256:a1b17e9f523542d3483ec97e3f45c80bfd1b7923d25a3b32df03424da7456009",
       "sources": [
         {
           "path": "fid_lab/feed_loop/scale/tensor_engine.py",
-          "sha256": "dce310c2dc3514eadfa0c2a34bc75527415183d10435eecffb6c38501aedb691"
+          "sha256": "8b9fd8146cf5bacc0ff4e0e54cfd70f526961048a99fc38e7561ff9ef7c38313"
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_runtime/contracts.py",
-          "sha256": "00e5d8c74933a239bbba5e11ac5dbb0d96157110e64e81b3a6d538b831f6032e"
+          "sha256": "8b8d6dda3b48dda1a0c0bee0d6a74800295ba71e1c0c58617f3e7a9c8f42d19e"
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_runtime/response.py",
@@ -261,7 +261,7 @@
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_runtime/state.py",
-          "sha256": "96b50f222da3448e9a11078dfee34f26ac3a05f48c6dea66252544cf2d13681e"
+          "sha256": "e3d513f3361b8b183805c0578081088cf387f1a075967132c8a2e064bf308368"
         },
         {
           "path": "fid_lab/feed_loop/scale/calibration/behavior.py",
@@ -304,7 +304,7 @@
     },
     "index": {
       "version": "multiroute-rrf-cascade-v3",
-      "artifact_id": "sha256:0b352059de96806746f4d87f7b0cdaa303decb9f72c783279b5cf4fa4c1865e6",
+      "artifact_id": "sha256:f2d1335288c31cbf645370befe358fe4f03dee3fe8730d56017ba1d18046ec1f",
       "sources": [
         {
           "path": "fid_lab/feed_loop/cascade/contracts.py",
@@ -312,11 +312,11 @@
         },
         {
           "path": "fid_lab/feed_loop/scale/graph/candidate.py",
-          "sha256": "2a9fdf306dfcea8e27a8fc29fe54d26316f859618e42562556e240205173cb67"
+          "sha256": "e2e8771c37425fdf0a94073583fde87aaa222a4b2e1b39553f2828a7a74945e3"
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_catalog.py",
-          "sha256": "92a529558727a846247abf2fc1351f29d080e7a256d11f15fea580c94d0235b4"
+          "sha256": "1471d09594b619b7b27fd7c29843ddacc838e78a72c6b3f0960d39d5a320f59d"
         }
       ],
       "catalog_items": 200000
@@ -332,15 +332,15 @@
     },
     "behavior": {
       "signal_version": "kuairand-calibrated-v3",
-      "artifact_id": "sha256:33e8c72dca37a0ef26d8c549774d247dd5a31a1b0eb2dea473a0c419dbf4aa35",
+      "artifact_id": "sha256:a1b17e9f523542d3483ec97e3f45c80bfd1b7923d25a3b32df03424da7456009",
       "sources": [
         {
           "path": "fid_lab/feed_loop/scale/tensor_engine.py",
-          "sha256": "dce310c2dc3514eadfa0c2a34bc75527415183d10435eecffb6c38501aedb691"
+          "sha256": "8b9fd8146cf5bacc0ff4e0e54cfd70f526961048a99fc38e7561ff9ef7c38313"
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_runtime/contracts.py",
-          "sha256": "00e5d8c74933a239bbba5e11ac5dbb0d96157110e64e81b3a6d538b831f6032e"
+          "sha256": "8b8d6dda3b48dda1a0c0bee0d6a74800295ba71e1c0c58617f3e7a9c8f42d19e"
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_runtime/response.py",
@@ -348,7 +348,7 @@
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_runtime/state.py",
-          "sha256": "96b50f222da3448e9a11078dfee34f26ac3a05f48c6dea66252544cf2d13681e"
+          "sha256": "e3d513f3361b8b183805c0578081088cf387f1a075967132c8a2e064bf308368"
         },
         {
           "path": "fid_lab/feed_loop/scale/calibration/behavior.py",
@@ -520,5 +520,5 @@
   "production_readiness": "synthetic_research_only",
   "evidence_boundary": "V3 is the current simulator authority; it is not a production deployment.",
   "rollback_key": "rule_personalized_v1",
-  "rollback_bundle_id": "sha256:d6829655110838211b901a957625dad638f89207fc3b99688d8e7021347677fd"
+  "rollback_bundle_id": "sha256:a23f0f47d2a18aededf0d3d230473ee10e6dcdbc43088698f053d5136f8cb756"
 }
