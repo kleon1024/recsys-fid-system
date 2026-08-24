@@ -192,6 +192,20 @@ python -m fid_lab.simulation.digital_twin.observability.cli \
   --output reports/datasets/v4-full-flow-fixture
 ```
 
+Continuous runs append verified event-time partitions instead of building one
+monolithic snapshot:
+
+```bash
+python -m fid_lab.simulation.digital_twin.observability.cli \
+  --output reports/datasets/v4-full-flow \
+  --partition-key event_time=0 \
+  --logical-time 0
+```
+
+An identical partition resumes; the same key with different bytes, schemas or
+event time fails closed. `open_full_flow_dataset` exposes lazy Arrow datasets
+for replay and training without loading all partitions into memory.
+
 DuckDB executes the local case/stage diagnostics in
 [`sql/duckdb/v4_full_flow_diagnostics.sql`](sql/duckdb/v4_full_flow_diagnostics.sql);
 the ClickHouse query surface is

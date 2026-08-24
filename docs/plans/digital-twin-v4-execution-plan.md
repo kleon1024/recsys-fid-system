@@ -46,7 +46,7 @@ The audit below is the starting point. `Draft` means code exists in the working
 tree but has not passed the repository acceptance path.
 
 Latest local verification on 2026-08-25: the raw-route contract migration is
-complete and the focused v4/SQL suite has 38 passing tests. One CLI invocation
+complete and the focused v4/SQL suite has 42 passing tests. One CLI invocation
 materialized a 32-request fixture with all seven Parquet tables, table hashes,
 932 raw-route rows, 612 merged candidate decisions, 525 events, 1,632 task-label
 rows, 625 training examples and one checkpoint. This proves table closure and
@@ -396,7 +396,7 @@ duplicate implementations.
 
 ### P0 — Authority and observability
 
-Status: in progress.
+Status: completed on 2026-08-25.
 
 - [Done] Materialize all seven v4 log tables to versioned Parquet.
 - [Done] Add logical asset keys, content hashes, a deterministic CLI fixture,
@@ -411,14 +411,16 @@ Status: in progress.
 - [Done] Execute all diagnostic SQL against ClickHouse 25.8.32.4. This found and
   closed aggregate-alias shadowing, false inventory/bid orphans and exposure
   position base drift that the DuckDB-equivalent fixture did not expose.
-- Remove v4 dependence on legacy table names and generic score fields after
-  consumer parity is measured.
-- Verify the trace tensor/memory budget before keeping route-level raw outputs
+- [Done] Remove v4 dependence on legacy table names and generic score fields;
+  scoped source search and the v4/SQL suite confirm only typed v4 authorities.
+- [Done] Verify the trace tensor/memory budget before keeping route-level raw outputs
   in the GPU hot path. The 100K standard run passes by streaming one analytical
   table at a time; future multi-tick runs must also partition by event time.
-- Standardize one repository test entrypoint. On this macOS environment the
-  global `pytest` omits the package root and `python` is absent; acceptance must
-  use an environment-owned interpreter rather than relying on shell aliases.
+- [Done] Add event-time partitioning, cross-partition schema and content gates,
+  atomic locked manifests, exact resume/conflict semantics, corruption checks
+  and lazy Arrow replay. A partition key cannot claim a different event time.
+- [Done] Preserve `python -m fid_lab.check` as the single environment-owned
+  repository acceptance entrypoint; direct global `pytest` is not supported.
 - [Done] Split the dense digital-twin test directory by sample and
   observability boundary. The remaining `asset-body-io` warning is explicit:
   this repository uses a declarative `AssetGraph`, not Dagster decorators, so

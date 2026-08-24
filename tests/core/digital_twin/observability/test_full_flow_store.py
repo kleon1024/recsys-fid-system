@@ -1,18 +1,24 @@
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 from pathlib import Path
 
 import duckdb
 import pyarrow.parquet as pq
+import pytest
 
 from fid_lab.simulation.digital_twin.observability import (
     FullFlowSnapshot,
+    FullFlowFixtureConfig,
     TABLE_NAMES,
+    append_full_flow_partition,
     build_full_flow_fixture,
     build_full_flow_tables,
     materialize_full_flow,
+    open_full_flow_dataset,
     seed_diagnostic_failures,
+    verify_full_flow_dataset,
 )
 from fid_lab.simulation.digital_twin.observability.diagnostics import (
     install_diagnostics,
@@ -97,3 +103,57 @@ def test_seeded_failures_are_independently_diagnosed():
     assert connection.execute(
         "SELECT count(*) FROM v4_checkpoint_health WHERE unhealthy"
     ).fetchone()[0] == 1
+
+
+def test_partition_bus_resumes_exact_content_and_rejects_key_drift(tmp_path):
+    snapshot = _snapshot()
+    first = append_full_flow_partition(snapshot, tmp_path, "event_time=0")
+    assert first["status"] == "written"
+    resumed = append_full_flow_partition(snapshot, tmp_path, "event_time=0")
+    assert resumed["status"] == "resumed"
+    assert resumed["partition_content_sha256"] == first[
+        "partition_content_sha256"
+    ]
+    second_snapshot = build_full_flow_fixture(FullFlowFixtureConfig(
+        logical_time=1,
+    ))
+    second = append_full_flow_partition(
+        second_snapshot, tmp_path, "event_time=1",
+    )
+    assert second["status"] == "written"
+    dataset = verify_full_flow_dataset(tmp_path)
+    assert list(dataset["partitions"]) == ["event_time=0", "event_time=1"]
+    assert dataset["table_rows"]["v4_request_log"] == (
+        len(snapshot.trace.request_id)
+        + len(second_snapshot.trace.request_id)
+    )
+    lazy = open_full_flow_dataset(tmp_path)
+    assert lazy["v4_request_log"].count_rows() == dataset[
+        "table_rows"
+    ]["v4_request_log"]
+    event_times = lazy["v4_request_log"].to_table(
+        columns=["event_time"],
+    )["event_time"].to_pylist()
+    assert set(event_times) == {0, 1}
+    with pytest.raises(ValueError, match="does not match data"):
+        append_full_flow_partition(snapshot, tmp_path, "event_time=2")
+    altered_trace = replace(
+        snapshot.trace,
+        recall_score=snapshot.trace.recall_score + 0.01,
+    )
+    altered = replace(snapshot, trace=altered_trace)
+    with pytest.raises(ValueError, match="different content"):
+        append_full_flow_partition(altered, tmp_path, "event_time=0")
+
+
+def test_partition_verifier_rejects_corrupted_parquet(tmp_path):
+    append_full_flow_partition(_snapshot(), tmp_path, "event_time=0")
+    path = (
+        tmp_path
+        / "partitions"
+        / "event_time=0"
+        / "v4_candidate_decision_log.parquet"
+    )
+    path.write_bytes(path.read_bytes() + b"corrupt")
+    with pytest.raises(ValueError, match="table hash mismatch"):
+        verify_full_flow_dataset(tmp_path)

@@ -141,6 +141,19 @@ DIGITAL_TWIN_ASSETS = AssetGraph((
         "observability",
     ),
     AssetSpec(
+        "observability.v4_dataset_manifest",
+        (
+            "observability.v4_request_log",
+            "observability.v4_route_candidate_log",
+            "observability.v4_candidate_decision_log",
+            "observability.v4_event_log",
+            "observability.v4_mature_label_log",
+            "observability.v4_training_example_log",
+            "observability.v4_checkpoint_log",
+        ),
+        "observability",
+    ),
+    AssetSpec(
         "evaluation.shadow",
         ("models.candidate", "platform.rendered_slates"),
         "experiments",

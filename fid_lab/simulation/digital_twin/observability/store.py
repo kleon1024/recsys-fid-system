@@ -53,6 +53,16 @@ def materialize_full_flow(
         "schema": FULL_FLOW_SCHEMA_VERSION,
         "diagnostic_failure_injection": seed_failures,
         "event_watermark": snapshot.samples.event_watermark,
+        "event_time_min": int(snapshot.trace.event_time.min()),
+        "event_time_max": int(snapshot.trace.event_time.max()),
+        "ingest_time_min": (
+            int(snapshot.events.ingest_time.min())
+            if len(snapshot.events.ingest_time) else -1
+        ),
+        "ingest_time_max": (
+            int(snapshot.events.ingest_time.max())
+            if len(snapshot.events.ingest_time) else -1
+        ),
         "trace_manifest": {
             "schema_version": snapshot.trace.manifest.schema_version,
             "feature_version": snapshot.trace.manifest.feature_version,

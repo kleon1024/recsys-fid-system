@@ -35,6 +35,7 @@ class FullFlowFixtureConfig:
     expose_k: int = 3
     history_length: int = 8
     recall_negatives: int = 4
+    logical_time: int = 0
 
     def __post_init__(self):
         dimensions = (
@@ -50,6 +51,8 @@ class FullFlowFixtureConfig:
         )
         if any(value <= 0 for value in dimensions):
             raise ValueError("fixture dimensions must be positive")
+        if self.logical_time < 0:
+            raise ValueError("fixture logical time cannot be negative")
         if not self.merged_k >= self.coarse_k >= self.fine_k >= self.expose_k:
             raise ValueError("fixture cascade budgets are inconsistent")
 
@@ -96,16 +99,19 @@ def build_full_flow_fixture(
         ),
     )
     event_log = ObservableEventLog(allowed_lateness=world.max_reporting_lag)
-    result = AtomicSimulationKernel(world, platform, event_log).step(
-        0,
-        ExperimentPlan.ramped_user_ab(
-            active_policy=CascadePolicy("active", 1, 1, 1),
-            treatment_policy=CascadePolicy("candidate", 2, 2, 2),
-            experiment_seed=config.experiment_seed,
-            control_fraction=0.2,
-            treatment_fraction=0.2,
-        ),
+    experiment = ExperimentPlan.ramped_user_ab(
+        active_policy=CascadePolicy("active", 1, 1, 1),
+        treatment_policy=CascadePolicy("candidate", 2, 2, 2),
+        experiment_seed=config.experiment_seed,
+        control_fraction=0.2,
+        treatment_fraction=0.2,
     )
+    kernel = AtomicSimulationKernel(world, platform, event_log)
+    result = None
+    for logical_time in range(config.logical_time + 1):
+        result = kernel.step(logical_time, experiment)
+    if result is None:
+        raise AssertionError("fixture loop did not execute")
     if result.candidate_trace is None or result.request_context is None:
         raise RuntimeError("fixture cascade did not emit full-flow traces")
     events = AppEventBatch.concatenate((
@@ -121,7 +127,7 @@ def build_full_flow_fixture(
         result.candidate_trace,
         result.request_context,
         events,
-        event_watermark=0,
+        event_watermark=config.logical_time,
     )
     return FullFlowSnapshot(
         catalog=catalog,
@@ -130,11 +136,11 @@ def build_full_flow_fixture(
         events=events,
         samples=samples,
         checkpoints=(CheckpointRecord(
-            created_time=0,
+            created_time=config.logical_time,
             lane="active",
             model_name="reference-cascade",
             checkpoint_version="checkpoint-v1",
-            data_watermark=0,
+            data_watermark=config.logical_time,
             sample_manifest="fixture-samples-v1",
             feature_version=result.candidate_trace.manifest.feature_version,
             fid_version=result.candidate_trace.manifest.fid_version,

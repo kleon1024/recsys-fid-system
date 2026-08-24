@@ -10,6 +10,7 @@ import time
 import torch
 
 from .fixture import FullFlowFixtureConfig, build_full_flow_fixture
+from .dataset import append_full_flow_partition
 from .store import materialize_full_flow
 
 
@@ -27,6 +28,8 @@ def main() -> None:
     parser.add_argument("--history-length", type=int, default=8)
     parser.add_argument("--recall-negatives", type=int, default=4)
     parser.add_argument("--seed-failures", action="store_true")
+    parser.add_argument("--partition-key")
+    parser.add_argument("--logical-time", type=int, default=0)
     args = parser.parse_args()
     device = torch.device(args.device)
     if device.type == "cuda":
@@ -43,15 +46,24 @@ def main() -> None:
         expose_k=args.expose_k,
         history_length=args.history_length,
         recall_negatives=args.recall_negatives,
+        logical_time=args.logical_time,
     ))
     if device.type == "cuda":
         torch.cuda.synchronize(device)
     built = time.perf_counter()
-    manifest = materialize_full_flow(
-        snapshot,
-        args.output,
-        seed_failures=args.seed_failures,
-    )
+    if args.partition_key:
+        manifest = append_full_flow_partition(
+            snapshot,
+            args.output,
+            args.partition_key,
+            seed_failures=args.seed_failures,
+        )
+    else:
+        manifest = materialize_full_flow(
+            snapshot,
+            args.output,
+            seed_failures=args.seed_failures,
+        )
     if device.type == "cuda":
         torch.cuda.synchronize(device)
     completed = time.perf_counter()

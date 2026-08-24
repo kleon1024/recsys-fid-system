@@ -48,6 +48,7 @@ entry_points = [
   "fid_lab/simulation/digital_twin/platform_benchmark.py",
   "fid_lab/simulation/digital_twin/observability/cli.py",
   "fid_lab/simulation/digital_twin/observability/diagnostics.py",
+  "fid_lab/simulation/digital_twin/observability/dataset.py",
   "fid_lab/simulation/digital_twin/samples/joiner.py",
   "fid_lab/simulation/local/launch_suite.py",
   "fid_lab/value/container.py",
