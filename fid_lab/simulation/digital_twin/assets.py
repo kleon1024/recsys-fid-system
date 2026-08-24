@@ -74,6 +74,26 @@ DIGITAL_TWIN_ASSETS = AssetGraph((
         "projection.online_state", ("events.observable",), "platform"
     ),
     AssetSpec(
+        "observability.v4_request_log",
+        ("platform.requests", "projection.online_state"),
+        "observability",
+    ),
+    AssetSpec(
+        "observability.v4_route_candidate_log",
+        ("platform.rendered_slates",),
+        "observability",
+    ),
+    AssetSpec(
+        "observability.v4_candidate_decision_log",
+        ("platform.rendered_slates",),
+        "observability",
+    ),
+    AssetSpec(
+        "observability.v4_event_log",
+        ("events.observable",),
+        "observability",
+    ),
+    AssetSpec(
         "samples.recall",
         (
             "events.observable",
@@ -101,9 +121,24 @@ DIGITAL_TWIN_ASSETS = AssetGraph((
         "samples",
     ),
     AssetSpec(
+        "observability.v4_mature_label_log",
+        ("samples.fine", "events.observable"),
+        "observability",
+    ),
+    AssetSpec(
+        "observability.v4_training_example_log",
+        ("samples.recall", "samples.coarse", "samples.fine"),
+        "observability",
+    ),
+    AssetSpec(
         "models.candidate",
         ("samples.recall", "samples.coarse", "samples.fine"),
         "learning",
+    ),
+    AssetSpec(
+        "observability.v4_checkpoint_log",
+        ("models.candidate",),
+        "observability",
     ),
     AssetSpec(
         "evaluation.shadow",

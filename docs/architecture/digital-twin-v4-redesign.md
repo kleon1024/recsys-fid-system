@@ -2,6 +2,10 @@
 
 Status: design authority; implementation is not complete.
 
+The ordered implementation status, TODO register and acceptance gates live in
+the [v4 execution plan](../plans/digital-twin-v4-execution-plan.md). This document
+owns architecture invariants; the execution plan owns delivery status.
+
 本文件是后续模拟器重构的唯一架构依据。当前 `simulation/twin` v2/v3 只保留为
 迁移输入和历史工程证据，不再通过局部修补继续扩展。任何新代码必须指向本文定义的
 边界、事件语义、DAG 节点和验收项。

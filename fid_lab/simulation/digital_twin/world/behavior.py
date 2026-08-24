@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import torch
 
-from ...randomness.counter import uniform_for_item_channels
+from ...randomness.counter import uniform, uniform_for_item_channels
 from ..catalog import PublicCatalog
 from ..contracts import (
     AppEventBatch,
@@ -107,6 +107,31 @@ def _latent_utility(
         - 4.0 * users.spending_power[row, None]
     ))
     style = users.response_style[row]
+    event_time = slate.event_time[:, None]
+    age = (event_time - catalog.publish_time[item]).clamp_min(0).float()
+    freshness = torch.exp(-age / (2.0 * snapshot.ticks_per_day))
+    day = torch.div(
+        event_time, snapshot.ticks_per_day, rounding_mode="floor",
+    )
+    trend_key = (
+        catalog.topic_id[item]
+        + users.country[row, None] * 1_009
+    )
+    trend_shock = uniform(
+        trend_key,
+        day,
+        1_181,
+        snapshot.environment_seed,
+    )
+    trend = torch.sigmoid(
+        2.4 * (trend_shock - 0.5)
+        + 0.8 * torch.sin(
+            2.0 * torch.pi * (
+                event_time.float() / (3.0 * snapshot.ticks_per_day)
+                + catalog.topic_id[item].float() / 17.0
+            )
+        )
+    )
     interaction = torch.sin(
         1.7 * affinity + 0.35 * style[:, 2, None]
     ) * torch.tanh(2.2 * truth.quality[item] - 1.0)
@@ -121,9 +146,25 @@ def _latent_utility(
     local = _surface_mask(slate, Surface.LOCAL)
     commerce = _surface_mask(slate, Surface.COMMERCE)
     posting = _surface_mask(slate, Surface.POSTING)
+    feed = _surface_mask(slate, Surface.FEED)
+    live_or_feed = feed | _surface_mask(slate, Surface.LIVE)
+    local_anchor = (catalog.poi_id[item] >= 0).float()
+    fresh_content = (
+        (catalog.content_kind[item] == int(ContentKind.SHORT_VIDEO))
+        | (catalog.content_kind[item] == int(ContentKind.PHOTO))
+        | (catalog.content_kind[item] == int(ContentKind.ARTICLE))
+        | (catalog.content_kind[item] == int(ContentKind.CARD))
+        | (catalog.content_kind[item] == int(ContentKind.LIVE_ROOM))
+    ).float()
     utility += local * 0.34 * local_match
     utility += commerce * 0.30 * affordability
     utility += posting * 0.22 * local_match
+    utility += feed * local_anchor * (
+        0.10 + 0.22 * users.response_style[row, 7, None].sigmoid()
+    ) * local_match
+    utility += live_or_feed * fresh_content * (
+        0.12 + 0.30 * users.novelty[row, None]
+    ) * freshness * trend
     return affinity, utility
 
 
@@ -231,12 +272,8 @@ def _events_for_mask(
         return AppEventBatch.empty(slate.request_id.device)
     item = slate.item_ids[row, position]
     kind = catalog.content_kind[item]
-    product = torch.where(
-        kind == int(ContentKind.PRODUCT), item, torch.full_like(item, -1),
-    )
-    poi = torch.where(
-        kind == int(ContentKind.POI), item, torch.full_like(item, -1),
-    )
+    product = catalog.product_id[item]
+    poi = catalog.poi_id[item]
     order_id = (
         slate.request_id[row] * 10_000 + position
         if event_type in {EventType.ORDER, EventType.PAYMENT}

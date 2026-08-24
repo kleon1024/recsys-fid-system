@@ -52,7 +52,12 @@ class UserEcosystemWorld:
         return 2 * self.config.ticks_per_day
 
     def snapshot(self) -> UserWorldSnapshot:
-        return UserWorldSnapshot(self.users.clone(), self.catalog_truth)
+        return UserWorldSnapshot(
+            self.users.clone(),
+            self.catalog_truth,
+            self.config.ticks_per_day,
+            self.config.environment_seed,
+        )
 
     def _surface(self, user: torch.Tensor, logical_time: int) -> torch.Tensor:
         state = self.users
@@ -218,6 +223,7 @@ class UserEcosystemWorld:
         state.session_depth[start_user] = 0
         state.session_count[start_user] += 1
         state.fatigue[start_user] *= 0.72
+        self._drift_short_interest(start_user, events.event_time[start])
         entry = events.event(EventType.SURFACE_ENTRY)
         state.session_depth[events.user_id[entry]] += 1
         end = events.event(EventType.SESSION_END)
@@ -242,6 +248,30 @@ class UserEcosystemWorld:
             expected_days * self.config.ticks_per_day,
         ).long().clamp_min(1)
         state.next_return_time[end_user] = events.event_time[end] + delay
+
+    def _drift_short_interest(
+        self, user: torch.Tensor, event_time: torch.Tensor,
+    ) -> None:
+        if not len(user):
+            return
+        state = self.users
+        day = torch.div(
+            event_time, self.config.ticks_per_day, rounding_mode="floor",
+        )
+        trend_topic = torch.remainder(
+            state.country[user] * 31 + day * 17 + state.segment[user] * 7,
+            self.config.topics,
+        )
+        strength = (
+            0.025
+            + 0.055 * state.novelty[user]
+            + 0.025 * (1.0 - state.habit[user])
+        )[:, None]
+        state.short_interest[user] = torch.nn.functional.normalize(
+            (1.0 - strength) * state.short_interest[user]
+            + strength * self._topic_prototypes[trend_topic],
+            dim=1,
+        )
 
     def _commit_engagement(self, events: AppEventBatch) -> None:
         state = self.users

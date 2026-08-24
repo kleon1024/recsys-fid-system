@@ -57,6 +57,9 @@ class TraceManifest:
     feature_version: str
     catalog_version: str
     policy_registry_version: str
+    route_names: tuple[str, ...] = ()
+    index_version: str = ""
+    fid_version: str = ""
 
 
 @dataclass(frozen=True)
@@ -65,6 +68,12 @@ class RequestCandidateTrace:
     user_id: torch.Tensor
     surface: torch.Tensor
     event_time: torch.Tensor
+    query_topic: torch.Tensor
+    user_country: torch.Tensor
+    user_region: torch.Tensor
+    route_item_id: torch.Tensor
+    route_score: torch.Tensor
+    route_valid: torch.Tensor
     recall_item_id: torch.Tensor
     recall_route_id: torch.Tensor
     recall_score: torch.Tensor
@@ -91,6 +100,9 @@ class RequestCandidateTrace:
             "user_id",
             "surface",
             "event_time",
+            "query_topic",
+            "user_country",
+            "user_region",
             "experiment_cell",
             "assignment_probability",
             "recall_version_id",
@@ -100,6 +112,19 @@ class RequestCandidateTrace:
         ):
             _aligned(name, getattr(self, name), (requests,))
         recall = self.recall_item_id.shape[1]
+        if self.route_item_id.ndim != 3:
+            raise ValueError("route candidates must be [request, route, rank]")
+        route_shape = self.route_item_id.shape
+        if route_shape[0] != requests:
+            raise ValueError("route candidates do not align with requests")
+        for name in ("route_score", "route_valid"):
+            _aligned(name, getattr(self, name), route_shape)
+        if not torch.equal(self.route_valid, self.route_item_id >= 0):
+            raise ValueError("route validity must match nonnegative route items")
+        if self.manifest.route_names and (
+            len(self.manifest.route_names) != route_shape[1]
+        ):
+            raise ValueError("route manifest does not match route candidates")
         coarse = self.coarse_item_id.shape[1]
         fine = self.fine_item_id.shape[1]
         exposed = self.exposed_item_id.shape[1]
@@ -307,6 +332,13 @@ class FineRankExampleBatch:
     dwell_ms: torch.Tensor
     context: RequestContextBatch
     task_names: tuple[str, ...]
+    task_maturity_ticks: tuple[int, ...]
+
+    def __post_init__(self):
+        if len(self.task_names) != self.labels.shape[2]:
+            raise ValueError("fine task names do not match label width")
+        if len(self.task_maturity_ticks) != len(self.task_names):
+            raise ValueError("fine task maturity does not match task names")
 
 
 @dataclass(frozen=True)

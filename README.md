@@ -157,6 +157,9 @@ The latest full-chain audit found that executable closure was not sufficient
 for credible model comparison. The causal/event-driven replacement, failure
 inventory, migration DAG, deletion boundary, and acceptance matrix are defined
 in [Recommendation Digital Twin v4](docs/architecture/digital-twin-v4-redesign.md).
+The current implementation order, audited TODO register, evidence boundaries and
+phase acceptance gates are maintained in the
+[v4 execution plan](docs/plans/digital-twin-v4-execution-plan.md).
 Until those gates pass, historical twin reports are engineering evidence, not
 model-lift evidence.
 
@@ -179,7 +182,25 @@ separate occurrence and ingestion times, and a point-in-time projection updates
 user counters, sequences, item/creator statistics and supply state only after
 delivery. A watermark-aware request-level Joiner now materializes separate
 Recall, Coarse and Fine authorities and refuses to label unexposed candidates
-as behavioral negatives. The reference cascade now emits real stage traces from
+as behavioral negatives. The v4 full-flow authority now materializes request,
+raw-route, candidate-decision, event, mature-label, training-example and
+checkpoint tables as content-bound Parquet. A deterministic analytical fixture
+is generated with:
+
+```bash
+python -m fid_lab.simulation.digital_twin.observability.cli \
+  --output reports/datasets/v4-full-flow-fixture
+```
+
+DuckDB executes the local case/stage diagnostics in
+[`sql/duckdb/v4_full_flow_diagnostics.sql`](sql/duckdb/v4_full_flow_diagnostics.sql);
+the ClickHouse query surface is
+[`sql/clickhouse/v4_full_flow_diagnostics.sql`](sql/clickhouse/v4_full_flow_diagnostics.sql).
+The [100K-user/2M-item RTX 4090 full-flow benchmark](reports/benchmarks/2026-08-25-digital-twin-v4-full-flow-100k.json)
+materializes 44.66M rows in 74.34 seconds with 4.25 GiB peak CUDA memory and
+5.02 GiB peak process RSS. This is logging/materialization throughput evidence,
+not recommendation-quality evidence.
+The reference cascade now emits real stage traces from
 FAISS HNSW ANN, sparse co-visit Graph, Geo, Fresh, Long-tail, Popular, triggered
 Search and Retarget routes, followed by RRF, coarse, sequence-aware fine rank
 and diversity reranking. See the

@@ -19,6 +19,23 @@ from fid_lab.simulation.digital_twin.platform.projection import USER_COUNTER_EVE
 from fid_lab.simulation.digital_twin.platform.requests import open_platform_requests
 
 
+def test_tiny_public_catalog_has_safe_missing_business_anchors():
+    catalog = build_public_catalog(
+        items=1,
+        creators=1,
+        merchants=1,
+        advertisers=1,
+        topics=1,
+        countries=1,
+        regions_per_country=1,
+        embedding_dim=2,
+        platform_seed=3,
+        device="cpu",
+    )
+    assert catalog.product_id.tolist() == [-1]
+    assert catalog.poi_id.tolist() == [-1]
+
+
 def build_world(users=256, items=720):
     catalog = build_public_catalog(
         items=items,

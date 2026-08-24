@@ -45,6 +45,12 @@ def build_trace():
         user_id=torch.tensor([0, 1]),
         surface=torch.tensor([0, 2]),
         event_time=torch.tensor([0, 0]),
+        query_topic=torch.tensor([-1, -1]),
+        user_country=torch.tensor([0, 1]),
+        user_region=torch.tensor([0, 3]),
+        route_item_id=recall[:, None, :],
+        route_score=torch.linspace(1.0, 0.1, 12).reshape(2, 1, 6),
+        route_valid=torch.ones(2, 1, 6, dtype=torch.bool),
         recall_item_id=recall,
         recall_route_id=torch.tensor([
             [0, 1, 1, 2, 3, 4],
@@ -71,6 +77,7 @@ def build_trace():
             feature_version="feature-v1",
             catalog_version="catalog-v1",
             policy_registry_version="policy-registry-v1",
+            route_names=("fixture",),
         ),
     )
 

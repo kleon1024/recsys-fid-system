@@ -18,6 +18,12 @@ from .engine import (
     TickResult,
 )
 from .event_log import ObservableEventLog
+from .observability import (
+    CheckpointRecord,
+    FullFlowSnapshot,
+    build_full_flow_tables,
+    materialize_full_flow,
+)
 from .experiments.layered import LayeredExperimentPlan, PolicyLayer
 from .platform import (
     CascadePolicy,
@@ -51,11 +57,13 @@ __all__ = (
     "AppEventBatch",
     "AtomicSimulationKernel",
     "CascadePolicy",
+    "CheckpointRecord",
     "ContentKind",
     "DelayedOutcomeQueue",
     "EventType",
     "ExperimentAssignment",
     "ExperimentPlan",
+    "FullFlowSnapshot",
     "LayerAssignmentTrace",
     "LayeredExperimentPlan",
     "HiddenSupplyState",
@@ -82,6 +90,8 @@ __all__ = (
     "UserWorldConfig",
     "UserWorldSnapshot",
     "build_public_catalog",
+    "build_full_flow_tables",
     "capture_request_context",
     "make_app_events",
+    "materialize_full_flow",
 )

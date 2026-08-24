@@ -82,6 +82,8 @@ class HiddenCatalogTruth:
 class UserWorldSnapshot:
     users: HiddenUserState
     catalog_truth: HiddenCatalogTruth
+    ticks_per_day: int
+    environment_seed: int
 
 
 def topic_prototypes(catalog: PublicCatalog, topics: int) -> torch.Tensor:

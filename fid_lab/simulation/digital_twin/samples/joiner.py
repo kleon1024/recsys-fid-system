@@ -304,6 +304,7 @@ class RequestLevelJoiner:
             dwell_ms=dwell,
             context=context,
             task_names=tuple(task.name for task in tasks),
+            task_maturity_ticks=tuple(task.maturity_ticks for task in tasks),
         )
 
     def _coarse(

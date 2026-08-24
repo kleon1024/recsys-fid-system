@@ -19,6 +19,8 @@ class PublicCatalog:
     creator_id: torch.Tensor
     merchant_id: torch.Tensor
     advertiser_id: torch.Tensor
+    product_id: torch.Tensor
+    poi_id: torch.Tensor
     country: torch.Tensor
     region: torch.Tensor
     publish_time: torch.Tensor
@@ -42,6 +44,50 @@ class PublicCatalog:
             torch.arange(items, device=self.item_id.device),
         ):
             raise ValueError("reference catalog item IDs must be contiguous")
+
+
+def _business_anchors(
+    item_id: torch.Tensor,
+    content_kind: torch.Tensor,
+    platform_seed: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    product_items = item_id[content_kind == int(ContentKind.PRODUCT)]
+    poi_items = item_id[content_kind == int(ContentKind.POI)]
+    linkable_product = (
+        (content_kind == int(ContentKind.SHORT_VIDEO))
+        | (content_kind == int(ContentKind.PHOTO))
+        | (content_kind == int(ContentKind.CARD))
+        | (content_kind == int(ContentKind.LIVE_ROOM))
+    )
+    linkable_poi = (
+        (content_kind == int(ContentKind.SHORT_VIDEO))
+        | (content_kind == int(ContentKind.PHOTO))
+        | (content_kind == int(ContentKind.CARD))
+    )
+    product_link = (
+        (content_kind == int(ContentKind.PRODUCT))
+        | (
+            linkable_product
+            & (uniform(item_id, 0, 151, platform_seed) < 0.14)
+        )
+    )
+    poi_link = (
+        (content_kind == int(ContentKind.POI))
+        | (linkable_poi & (uniform(item_id, 0, 157, platform_seed) < 0.18))
+    )
+    product_id = torch.full_like(item_id, -1)
+    poi_id = torch.full_like(item_id, -1)
+    if len(product_items):
+        product_id[product_link] = product_items[
+            torch.remainder(
+                item_id[product_link] * 1_009 + 17, len(product_items),
+            )
+        ]
+    if len(poi_items):
+        poi_id[poi_link] = poi_items[
+            torch.remainder(item_id[poi_link] * 503 + 31, len(poi_items))
+        ]
+    return product_id, poi_id
 
 
 def build_public_catalog(
@@ -100,6 +146,9 @@ def build_public_catalog(
         + 0.35 * normal(item_id, 0, 113, platform_seed)
     )
     active = uniform(item_id, 0, 149, platform_seed) < initial_active_fraction
+    product_id, poi_id = _business_anchors(
+        item_id, content_kind, platform_seed,
+    )
     historical_publish_time = -torch.floor(
         720.0 * uniform(item_id, 0, 127, platform_seed)
     ).long()
@@ -111,6 +160,8 @@ def build_public_catalog(
         creator_id=torch.remainder(item_id * 7_919 + 31, creators),
         merchant_id=torch.remainder(item_id * 1_231 + 17, merchants),
         advertiser_id=torch.remainder(item_id * 2_003 + 23, advertisers),
+        product_id=product_id,
+        poi_id=poi_id,
         country=country,
         region=region,
         publish_time=torch.where(

@@ -1,0 +1,61 @@
+{
+  "schema": "digital-twin-full-flow-benchmark-v1",
+  "date": "2026-08-25",
+  "device": "NVIDIA GeForce RTX 4090",
+  "scope": "one factual request microbatch plus seven-table Parquet materialization",
+  "quality_claim": false,
+  "configuration": {
+    "users": 100000,
+    "catalog_items": 2000000,
+    "routes": 8,
+    "route_k": 24,
+    "merged_k": 96,
+    "coarse_k": 48,
+    "fine_k": 16,
+    "expose_k": 8,
+    "history_length": 64,
+    "recall_negatives": 20
+  },
+  "runtime": {
+    "build_seconds": 58.733992305991706,
+    "materialize_seconds": 15.601984300999902,
+    "total_seconds": 74.33597660699161,
+    "process_wall_seconds": 75.53,
+    "peak_cuda_gib": 4.254106044769287,
+    "peak_cpu_rss_gib": 5.017475128173828,
+    "parquet_mib": 124.67
+  },
+  "tables": {
+    "v4_request_log": {
+      "rows": 100000,
+      "sha256": "92f201aadcc0f0464db0d9e4c16c2e399c5d65b4b321f7ce5e8f15ea8b2125e2"
+    },
+    "v4_route_candidate_log": {
+      "rows": 11811820,
+      "sha256": "691d0ab24c0fedd8f6059147cf74ac1411e618f35110cbd41a81c7e742c6c394"
+    },
+    "v4_candidate_decision_log": {
+      "rows": 9032424,
+      "sha256": "42a87478c3bdb4708e8d9ea422e0ab110232c8787b1a7f94827a0f9a110e2da4"
+    },
+    "v4_event_log": {
+      "rows": 2621974,
+      "sha256": "e59783dba36e633073feae752a39709a9f36fb609f4c183b55629658b1b78e1a"
+    },
+    "v4_mature_label_log": {
+      "rows": 13600000,
+      "sha256": "6bee2e52203830a4fce01da432b698e7e1181346359126263a1a59ddd392dd84"
+    },
+    "v4_training_example_log": {
+      "rows": 7492415,
+      "sha256": "cde043e3885241124b435f61ef8b8b0fd2ea6c145c3bb6393675e3d0e050a6f3"
+    },
+    "v4_checkpoint_log": {
+      "rows": 1,
+      "sha256": "d95328c889b6fd0f8e1a27fd7c9f652363500fdb3aa40fd325cefb0dfd47311f"
+    }
+  },
+  "total_rows": 44658634,
+  "implementation_decision": "construct and write one Arrow table at a time; do not retain all seven CPU copies",
+  "evidence_boundary": "This proves deterministic fixture-scale full-flow closure and 100K/2M throughput on one RTX 4090. It does not prove recommendation lift, ClickHouse production QPS, multi-partition replay, or production TikTok equivalence."
+}

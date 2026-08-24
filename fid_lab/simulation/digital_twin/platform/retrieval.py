@@ -279,6 +279,10 @@ class MultiRouteRetriever:
             catalog.content_embedding.mean(dim=0, keepdim=True), dim=1,
         )
 
+    @property
+    def route_names(self) -> tuple[str, ...]:
+        return ROUTE_NAMES
+
     def ingest(self, events: AppEventBatch) -> None:
         self.graph.update(events)
 
@@ -377,6 +381,14 @@ class MultiRouteRetriever:
             dtype=torch.bool,
         )
         route_valid &= enabled[None, :, None]
+        route_item = torch.where(
+            route_valid, route_item, torch.full_like(route_item, -1),
+        )
+        route_score = torch.where(
+            route_valid,
+            route_score,
+            torch.full_like(route_score, -torch.inf),
+        )
         merged_item, merged_score, route_bits = self._rrf(
             route_item, route_valid,
         )

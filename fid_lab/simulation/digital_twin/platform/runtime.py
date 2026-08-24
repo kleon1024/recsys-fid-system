@@ -32,6 +32,7 @@ class ReferencePlatformConfig:
     feature_version: str = "observable-features-v1"
     catalog_version: str = "public-catalog-v1"
     policy_registry_version: str = "reference-policy-registry-v1"
+    fid_version: str = "fid-v2"
 
     def __post_init__(self):
         if self.users <= 0 or self.history_length <= 0:
@@ -123,6 +124,12 @@ class ReferenceRecommendationPlatform:
             user_id=requests.user_id,
             surface=requests.surface,
             event_time=requests.event_time,
+            query_topic=requests.query_topic,
+            user_country=snapshot.projection.state.user_country[requests.user_id],
+            user_region=snapshot.projection.state.user_region[requests.user_id],
+            route_item_id=retrieval.route_item_id,
+            route_score=retrieval.route_score,
+            route_valid=retrieval.route_valid,
             recall_item_id=retrieval.item_id,
             recall_route_id=retrieval.route_bits,
             recall_score=retrieval.score,
@@ -156,6 +163,9 @@ class ReferenceRecommendationPlatform:
                 feature_version=self.config.feature_version,
                 catalog_version=self.config.catalog_version,
                 policy_registry_version=self.config.policy_registry_version,
+                route_names=self.retriever.route_names,
+                index_version=snapshot.index_version,
+                fid_version=self.config.fid_version,
             ),
         )
         context = capture_request_context(trace, snapshot.projection)

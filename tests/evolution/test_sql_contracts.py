@@ -24,6 +24,11 @@ class ClickHouseContractTest(unittest.TestCase):
             "recommendation_mature_label_log",
             "recall_miss",
             "mix_rank_miss",
+            "v4_request_log",
+            "v4_route_candidate_log",
+            "v4_candidate_decision_log",
+            "v4_mature_label_log",
+            "v4_checkpoint_log",
         ):
             self.assertIn(contract, sql)
 
