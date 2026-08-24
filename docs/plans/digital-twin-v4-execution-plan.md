@@ -48,8 +48,8 @@ focused contract is executable; it does not mean the phase, benchmark or launch
 review is accepted.
 
 The latest published P0 authority is commit
-`48769dd49000da64fcd5d28e24e651f0c724adb5`. P1 has passed its executable
-acceptance on the current working tree and is awaiting the publication commit.
+`48769dd49000da64fcd5d28e24e651f0c724adb5`. The accepted P1 implementation is
+commit `e70334d`; its reports remain independently bound by content hashes.
 The unified remote gate runs 202 historical tests plus 49 focused v4 tests; the
 architecture lint has zero errors. One P0 CLI invocation
 materialized a 32-request fixture with all seven Parquet tables, table hashes,
@@ -560,7 +560,7 @@ queries identify seeded failures. Full lineage exists from request to checkpoint
 
 ### P1 — Feed posting and content lifecycle
 
-Status: completed on 2026-08-25; publication commit pending.
+Status: completed and committed on 2026-08-25.
 
 - [Done] Introduce immutable post creation and replace random reserved-item
   publication. `source_candidate_id` no longer aliases `post_id`.
