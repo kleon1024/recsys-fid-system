@@ -15,7 +15,7 @@ from .failure_fixture import seed_diagnostic_failures
 from .tables import iter_full_flow_tables
 
 
-FULL_FLOW_SCHEMA_VERSION = "digital-twin-full-flow-v2"
+FULL_FLOW_SCHEMA_VERSION = "digital-twin-full-flow-v3"
 
 
 def _replace_json(path: Path, value: dict[str, object]) -> None:

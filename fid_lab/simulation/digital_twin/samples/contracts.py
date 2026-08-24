@@ -242,6 +242,9 @@ class RequestContextBatch:
     user_event_counts: torch.Tensor
     user_surface_counts: torch.Tensor
     history_item_id: torch.Tensor
+    history_event_type: torch.Tensor
+    history_surface: torch.Tensor
+    history_duration_ms: torch.Tensor
     history_event_time: torch.Tensor
     history_ingest_time: torch.Tensor
     feature_as_of_ingest_time: torch.Tensor
@@ -256,6 +259,9 @@ class RequestContextBatch:
         history = self.history_item_id.shape[1]
         for name in (
             "history_item_id",
+            "history_event_type",
+            "history_surface",
+            "history_duration_ms",
             "history_event_time",
             "history_ingest_time",
         ):
@@ -268,13 +274,27 @@ class RequestContextBatch:
         if (self.feature_as_of_ingest_time > self.request_time).any():
             raise ValueError("request context contains future features")
         valid_history = self.history_item_id >= 0
-        if valid_history.any() and (
-            self.history_ingest_time[valid_history]
-            > self.request_time[:, None].expand_as(self.history_item_id)[
-                valid_history
-            ]
+        if valid_history.any():
+            request_time = self.request_time[:, None].expand_as(
+                self.history_item_id
+            )
+            if (
+                (self.history_ingest_time[valid_history]
+                 > request_time[valid_history])
+                | (self.history_event_time[valid_history]
+                   > request_time[valid_history])
+            ).any():
+                raise ValueError("request history contains future events")
+            if (self.history_event_type[valid_history] < 0).any():
+                raise ValueError("valid history requires an event type")
+            if (self.history_duration_ms[valid_history] < 0).any():
+                raise ValueError("history duration must be nonnegative")
+        adjacent = valid_history[:, 1:] & valid_history[:, :-1]
+        if adjacent.any() and (
+            self.history_event_time[:, 1:][adjacent]
+            < self.history_event_time[:, :-1][adjacent]
         ).any():
-            raise ValueError("request history contains future ingestion")
+            raise ValueError("request history is not chronological")
 
     def select(self, selected: torch.Tensor) -> RequestContextBatch:
         return RequestContextBatch(**{
@@ -327,24 +347,77 @@ class FineRankExampleBatch:
     item_id: torch.Tensor
     position: torch.Tensor
     served_score: torch.Tensor
+    recall_route_id: torch.Tensor
+    recall_score: torch.Tensor
+    coarse_score: torch.Tensor
     exposure_probability: torch.Tensor
     assignment_probability: torch.Tensor
+    joint_logging_probability: torch.Tensor
+    ope_supported: torch.Tensor
     recall_version_id: torch.Tensor
     coarse_version_id: torch.Tensor
     fine_version_id: torch.Tensor
     mix_version_id: torch.Tensor
     labels: torch.Tensor
+    label_applicable: torch.Tensor
+    label_mature: torch.Tensor
     label_mask: torch.Tensor
+    label_maturity_time: torch.Tensor
     dwell_ms: torch.Tensor
     context: RequestContextBatch
     task_names: tuple[str, ...]
     task_maturity_ticks: tuple[int, ...]
+    short_sequence_length: int
 
     def __post_init__(self):
+        requests = len(self.request_id)
+        if self.item_id.ndim != 2:
+            raise ValueError("fine items must be [request, item]")
+        item_shape = self.item_id.shape
+        if item_shape[0] != requests:
+            raise ValueError("fine items are not request-aligned")
+        for name in (
+            "position", "served_score", "recall_route_id", "recall_score",
+            "coarse_score", "exposure_probability",
+            "joint_logging_probability", "ope_supported", "dwell_ms",
+        ):
+            _aligned(name, getattr(self, name), item_shape)
+        for name in (
+            "user_id", "surface", "request_time", "assignment_probability",
+            "recall_version_id", "coarse_version_id", "fine_version_id",
+            "mix_version_id",
+        ):
+            _aligned(name, getattr(self, name), (requests,))
+        task_shape = (*item_shape, self.labels.shape[2])
+        for name in (
+            "labels", "label_applicable", "label_mature", "label_mask",
+            "label_maturity_time",
+        ):
+            _aligned(name, getattr(self, name), task_shape)
         if len(self.task_names) != self.labels.shape[2]:
             raise ValueError("fine task names do not match label width")
         if len(self.task_maturity_ticks) != len(self.task_names):
             raise ValueError("fine task maturity does not match task names")
+        if not torch.equal(
+            self.label_mask, self.label_applicable & self.label_mature,
+        ):
+            raise ValueError("fine label mask must be applicable and mature")
+        valid = self.item_id >= 0
+        if not torch.equal(self.ope_supported, valid):
+            raise ValueError("valid impressions must have logging support")
+        expected_probability = (
+            self.exposure_probability
+            * self.assignment_probability[:, None]
+        )
+        if not torch.allclose(
+            self.joint_logging_probability[valid],
+            expected_probability[valid],
+        ):
+            raise ValueError("joint logging probability is inconsistent")
+        if not torch.equal(self.context.request_id, self.request_id):
+            raise ValueError("fine context requests differ")
+        if not 0 < self.short_sequence_length <= self.context.history_item_id.shape[1]:
+            raise ValueError("invalid fine short sequence length")
 
 
 @dataclass(frozen=True)
@@ -352,16 +425,40 @@ class CoarseRankExampleBatch:
     request_id: torch.Tensor
     item_id: torch.Tensor
     route_id: torch.Tensor
+    recall_score: torch.Tensor
     served_score: torch.Tensor
+    coarse_rank: torch.Tensor
     sampling_probability: torch.Tensor
     hard_label: torch.Tensor
     hard_label_mask: torch.Tensor
     teacher_score: torch.Tensor
+    teacher_rank: torch.Tensor
     teacher_mask: torch.Tensor
+    conflict_mask: torch.Tensor
     recall_version_id: torch.Tensor
     coarse_version_id: torch.Tensor
     fine_version_id: torch.Tensor
     context: RequestContextBatch
+
+    def __post_init__(self):
+        requests = len(self.request_id)
+        if self.item_id.ndim != 2 or self.item_id.shape[0] != requests:
+            raise ValueError("coarse items must be request-aligned")
+        shape = self.item_id.shape
+        for name in (
+            "route_id", "recall_score", "served_score", "coarse_rank",
+            "sampling_probability", "hard_label", "hard_label_mask",
+            "teacher_score", "teacher_rank", "teacher_mask", "conflict_mask",
+        ):
+            _aligned(name, getattr(self, name), shape)
+        for name in (
+            "recall_version_id", "coarse_version_id", "fine_version_id",
+        ):
+            _aligned(name, getattr(self, name), (requests,))
+        if (self.conflict_mask & ~self.teacher_mask).any():
+            raise ValueError("coarse conflict requires a teacher")
+        if not torch.equal(self.context.request_id, self.request_id):
+            raise ValueError("coarse context requests differ")
 
 
 @dataclass(frozen=True)
@@ -369,13 +466,71 @@ class RecallExampleBatch:
     request_id: torch.Tensor
     user_id: torch.Tensor
     surface: torch.Tensor
+    query_topic: torch.Tensor
     positive_item_id: torch.Tensor
     positive_strength: torch.Tensor
+    positive_route_id: torch.Tensor
+    positive_proposal_probability: torch.Tensor
     recall_version_id: torch.Tensor
     negative_item_id: torch.Tensor
     negative_source: torch.Tensor
     negative_sampling_probability: torch.Tensor
+    negative_expected_count: torch.Tensor
+    negative_observed: torch.Tensor
+    negative_false_negative_mask: torch.Tensor
     context: RequestContextBatch
+    catalog_version: str
+
+    def __post_init__(self):
+        requests = len(self.request_id)
+        for name in (
+            "user_id", "surface", "query_topic", "positive_item_id",
+            "positive_strength", "positive_route_id",
+            "positive_proposal_probability", "recall_version_id",
+        ):
+            _aligned(name, getattr(self, name), (requests,))
+        if self.negative_item_id.ndim != 2:
+            raise ValueError("recall negatives must be [request, negative]")
+        shape = self.negative_item_id.shape
+        if shape[0] != requests:
+            raise ValueError("recall negatives are not request-aligned")
+        for name in (
+            "negative_source", "negative_sampling_probability",
+            "negative_expected_count", "negative_observed",
+            "negative_false_negative_mask",
+        ):
+            _aligned(name, getattr(self, name), shape)
+        valid = self.negative_item_id >= 0
+        if valid.any() and (
+            (self.negative_sampling_probability[valid] <= 0.0)
+            | (self.negative_sampling_probability[valid] > 1.0)
+            | (self.negative_expected_count[valid] <= 0.0)
+        ).any():
+            raise ValueError("valid recall negatives require positive q/count")
+        if requests and (
+            (self.positive_proposal_probability <= 0.0)
+            | (self.positive_proposal_probability > 1.0)
+        ).any():
+            raise ValueError("positive proposal probability must be in (0, 1]")
+        if not torch.equal(self.context.request_id, self.request_id):
+            raise ValueError("recall context requests differ")
+        if not self.catalog_version:
+            raise ValueError("recall catalog version is required")
+
+    @property
+    def negative_log_q(self) -> torch.Tensor:
+        return torch.where(
+            self.negative_item_id >= 0,
+            self.negative_sampling_probability.clamp_min(1e-12).log(),
+            torch.zeros_like(self.negative_sampling_probability),
+        )
+
+    @property
+    def negative_loss_mask(self) -> torch.Tensor:
+        return (
+            (self.negative_item_id >= 0)
+            & ~self.negative_false_negative_mask
+        )
 
 
 @dataclass(frozen=True)

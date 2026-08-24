@@ -166,9 +166,10 @@ in [Recommendation Digital Twin v4](docs/architecture/digital-twin-v4-redesign.m
 The current implementation order, audited work register, evidence boundaries and
 phase acceptance gates are maintained in the
 [v4 execution plan](docs/plans/digital-twin-v4-execution-plan.md).
-P1 and the Feed scope of P2 now pass; P3 still must rebuild request-level
-Joiners, continuous trainers and model ladders before historical route/ranker
-lifts can become v4 launch evidence.
+P1, the Feed scope of P2, and the P3 request-level Recall/Coarse/Fine sample
+contracts now pass. P3 still must connect continuous trainers, the feature/FID
+manifest and model ladders before historical route/ranker lifts can become v4
+launch evidence.
 
 The v4 event boundary and hidden user world are now executable under
 [`fid_lab/simulation/digital_twin`](fid_lab/simulation/digital_twin/). Online
@@ -189,7 +190,15 @@ separate occurrence and ingestion times, and a point-in-time projection updates
 user counters, sequences, item/creator statistics and supply state only after
 delivery. A watermark-aware request-level Joiner now materializes separate
 Recall, Coarse and Fine authorities and refuses to label unexposed candidates
-as behavioral negatives. The v4 full-flow authority now materializes request,
+as behavioral negatives. Recall retains source q, expected draw count and
+false-negative masks; Coarse retains teacher order/conflicts; Fine separates
+task applicability, maturity and joint logging support over chronological
+heterogeneous sequences. The
+[P3 sample review](docs/launch-reviews/2026-08-25-p3-request-sample-authorities.md)
+records the 100K-user/1M-item/two-tick RTX 4090 run: 191,710 factual requests,
+91.389 seconds cascade time, 0.086 seconds Joiner time and 6.217 GiB peak CUDA.
+This accepts data contracts, not a learned-model launch. The v4 full-flow
+authority now materializes request,
 raw-route, candidate-decision, event, mature-label, training-example and
 checkpoint tables as content-bound Parquet. A deterministic analytical fixture
 is generated with:

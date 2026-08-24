@@ -1,0 +1,84 @@
+{
+  "ann_backend": "faiss",
+  "cascade_seconds": 91.38925346100586,
+  "catalog_items": 1000000,
+  "device": "cuda",
+  "evidence_boundary": "FAISS, sparse co-visit, observable routes, coarse/fine/rerank and Joiner throughput only; no recommendation lift or production QPS claim.",
+  "joiner_seconds": 0.08600924399797805,
+  "peak_cuda_gib": 6.2167205810546875,
+  "quality_claim": false,
+  "requests": 191710,
+  "requests_per_second": 2097.7302334765122,
+  "route_request_coverage": {
+    "cold_start": 64860,
+    "commerce_intent": 8452,
+    "evergreen": 64860,
+    "following": 8761,
+    "hot": 64860,
+    "live_now": 3481,
+    "local_geo": 1089,
+    "posting_context": 286,
+    "recent_ann": 64860,
+    "recent_graph": 58903,
+    "retarget": 86933,
+    "search": 8666
+  },
+  "sample_authorities": {
+    "coarse_conflict_rows": 1008587,
+    "coarse_teacher_rows": 1453952,
+    "expected_count_range": [
+      3.2616603675705846e-06,
+      3.0
+    ],
+    "false_negative_rate": 0.17377531733046447,
+    "fine_applicable_labels": 4916110,
+    "fine_mature_labels": 9450688,
+    "fine_ope_support_rate": 1.0,
+    "fine_training_labels": 4560376,
+    "history_distinct_event_types": 19,
+    "history_valid_events": 1286014,
+    "negative_draw_budget": 20,
+    "negative_rows_by_source": {
+      "catalog": 242295,
+      "exposed": 242259,
+      "in_batch": 969180,
+      "mined": 152478
+    },
+    "negative_source_draws_per_request": {
+      "catalog": 3,
+      "exposed": 3,
+      "in_batch": 12,
+      "mined": 2
+    },
+    "negative_valid_rate": 0.9943738005324089,
+    "observed_negative_rate": 0.15082629192161434,
+    "recall_positive_requests": 80765
+  },
+  "scope": "observable-reference-cascade-screen",
+  "stage_widths": {
+    "coarse": 48,
+    "exposed": 8,
+    "fine": 16,
+    "recall": 96
+  },
+  "steps": 2,
+  "total_seconds": 91.47526270500384,
+  "users": 100000,
+  "version_ids": {
+    "coarse": [
+      1,
+      2
+    ],
+    "fine": [
+      1,
+      2
+    ],
+    "mix": [
+      1,
+      2
+    ],
+    "recall": [
+      1
+    ]
+  }
+}

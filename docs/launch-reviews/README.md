@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-SAMPLES-001](2026-08-25-p3-request-sample-authorities.md) | Recall/Coarse/Fine request authorities and 100K/1M two-tick scale | Accept sample-contract slice; trainer and model launches remain gated |
 | [L-SIMULATOR-010](2026-08-25-p2-neural-world-policy-evidence.md) | Multi-source NeuralSCM, held-out families, OPE and 100K factual shadow | Promote as explicit v4 Feed response authority; all other heads remain gated |
 | [L-GOVERNANCE-001](2026-08-24-content-governance-v5.md) | Observable risk filter, duplicate/author diversity, terminal retention, powered A/B | Continue powered experiment; LT passes, stay NI narrowly misses |
 | [L-FEED-POST-V43](2026-08-24-feed-posting-esmm-v43.md) | Entire-space posting funnel, calibrated W&D serving, powered A/B | Promote in simulator; DIN20% is immediate rollback |

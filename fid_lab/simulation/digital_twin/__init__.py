@@ -48,6 +48,11 @@ from .samples.joiner import (
     RequestLevelJoiner,
     capture_request_context,
 )
+from .samples.negative_sampling import (
+    NegativeSource,
+    corrected_sampled_softmax_loss,
+    negative_source_counts,
+)
 from .world import (
     DelayedOutcomeQueue,
     HiddenSupplyState,
@@ -75,6 +80,7 @@ __all__ = (
     "HiddenSupplyState",
     "JoinerConfig",
     "LifecycleConfig",
+    "NegativeSource",
     "ObservableEventLog",
     "ObservableProjection",
     "PlatformRequestBatch",
@@ -100,6 +106,8 @@ __all__ = (
     "build_public_catalog",
     "build_full_flow_tables",
     "capture_request_context",
+    "corrected_sampled_softmax_loss",
     "make_app_events",
     "materialize_full_flow",
+    "negative_source_counts",
 )

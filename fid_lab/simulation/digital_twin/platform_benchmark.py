@@ -22,6 +22,7 @@ from .platform import (
     RetrievalConfig,
 )
 from .samples.joiner import JoinerConfig, RequestLevelJoiner
+from .samples.negative_sampling import NegativeSource, negative_source_counts
 from .world import UserEcosystemWorld, UserWorldConfig
 
 
@@ -56,6 +57,54 @@ def _benchmark_experiment() -> LayeredExperimentPlan:
             treatment_fraction=0.05,
         ),),
     )
+
+
+def _sample_authority_metrics(joined) -> dict[str, object]:
+    recall = joined.recall
+    negative_valid = recall.negative_item_id >= 0
+    valid_count = int(negative_valid.sum())
+    source_count = {
+        source.name.lower(): int(
+            (recall.negative_source == int(source)).sum()
+        )
+        for source in NegativeSource
+    }
+    expected = recall.negative_expected_count[negative_valid]
+    fine = joined.fine
+    fine_valid = fine.item_id >= 0
+    history_valid = fine.context.history_item_id >= 0
+    event_types = fine.context.history_event_type[history_valid]
+    return {
+        "recall_positive_requests": len(recall.request_id),
+        "negative_draw_budget": recall.negative_item_id.shape[1],
+        "negative_source_draws_per_request": dict(zip(
+            tuple(source.name.lower() for source in NegativeSource),
+            negative_source_counts(recall.negative_item_id.shape[1]),
+        )),
+        "negative_rows_by_source": source_count,
+        "negative_valid_rate": valid_count / max(negative_valid.numel(), 1),
+        "false_negative_rate": (
+            float(recall.negative_false_negative_mask.sum())
+            / max(valid_count, 1)
+        ),
+        "observed_negative_rate": (
+            float(recall.negative_observed.sum()) / max(valid_count, 1)
+        ),
+        "expected_count_range": (
+            [float(expected.min()), float(expected.max())]
+            if len(expected) else [0.0, 0.0]
+        ),
+        "coarse_teacher_rows": int(joined.coarse.teacher_mask.sum()),
+        "coarse_conflict_rows": int(joined.coarse.conflict_mask.sum()),
+        "fine_applicable_labels": int(fine.label_applicable.sum()),
+        "fine_mature_labels": int(fine.label_mature.sum()),
+        "fine_training_labels": int(fine.label_mask.sum()),
+        "fine_ope_support_rate": float(
+            fine.ope_supported[fine_valid].float().mean()
+        ),
+        "history_valid_events": int(history_valid.sum()),
+        "history_distinct_event_types": int(torch.unique(event_types).numel()),
+    }
 
 
 def run_reference_benchmark(
@@ -109,10 +158,11 @@ def run_reference_benchmark(
         last = kernel.step(logical_time, experiment)
         requests += last.rendered_requests
     _sync(device)
-    elapsed = time.perf_counter() - started
+    cascade_elapsed = time.perf_counter() - started
     if last is None or last.candidate_trace is None:
         raise RuntimeError("reference cascade did not emit a serving trace")
     trace = last.candidate_trace
+    joiner_started = time.perf_counter()
     joined = RequestLevelJoiner(
         JoinerConfig(ticks_per_day=96, recall_negatives=20), catalog,
     ).materialize(
@@ -121,6 +171,8 @@ def run_reference_benchmark(
         last.response_events,
         event_watermark=config.steps - 1,
     )
+    _sync(device)
+    joiner_elapsed = time.perf_counter() - joiner_started
     route_coverage = {
         route: int((trace.recall_route_id & (1 << index)).any(dim=1).sum())
         for index, route in enumerate(ROUTE_NAMES)
@@ -134,8 +186,10 @@ def run_reference_benchmark(
         "catalog_items": config.items,
         "steps": config.steps,
         "requests": requests,
-        "elapsed_seconds": elapsed,
-        "requests_per_second": requests / elapsed,
+        "cascade_seconds": cascade_elapsed,
+        "joiner_seconds": joiner_elapsed,
+        "total_seconds": cascade_elapsed + joiner_elapsed,
+        "requests_per_second": requests / cascade_elapsed,
         "peak_cuda_gib": (
             torch.cuda.max_memory_allocated(device) / 2**30
             if device.type == "cuda" else 0.0
@@ -153,11 +207,7 @@ def run_reference_benchmark(
             "fine": sorted(set(trace.fine_version_id.tolist())),
             "mix": sorted(set(trace.mix_version_id.tolist())),
         },
-        "joined_authorities": {
-            "recall_positive_requests": len(joined.recall.request_id),
-            "coarse_requests": len(joined.coarse.request_id),
-            "fine_requests": len(joined.fine.request_id),
-        },
+        "sample_authorities": _sample_authority_metrics(joined),
         "evidence_boundary": (
             "FAISS, sparse co-visit, observable routes, coarse/fine/rerank and "
             "Joiner throughput only; no recommendation lift or production QPS claim."

@@ -551,9 +551,9 @@ in another document is informative only; it cannot override this register.
 | P2-06 | Ensemble uncertainty, support and causal noise | Done; 100K shadow support 98.9835%, attack rejection 100%, replay passes | P2-04/05 | 97%/99% frozen gates pass without threshold movement |
 | P2-07 | External evidence adapters | Done; user-disjoint KuaiRand DR-OPE and manifests pass | P2-04 | overlap, ESS, max-weight and unsupported-task boundaries retained |
 | P2-08 | DGP validity and authority shadow | Done for Feed; 100K/1M/8-tick shadow and full repository gate pass | P2-01..07 | Launch Review accepts explicit Feed-only manual promotion |
-| P3-01 | `samples/recall`: add source-aware negative sampler and learner correction | Partial: factual positive, exposed/unexposed negatives and per-draw q exist | P1/P2 | frozen corpus/version and route; in-batch, exposed, mined and catalog sources retain q/log-q, observed status and false-negative mask; a toy full-softmax oracle falsifies an incorrect correction |
-| P3-02 | `samples/coarse`: add teacher/order/conflict authority | Partial: factual recalled candidates, route and fine score exist | P1/P2 | every row retains coarse/teacher rank and score, route score and sampling reason; conflict sampling replays exactly; fine Top-200 pass-through in coarse Top-600 is >=97% and mature high-value positives >=99% on the declared synthetic profile |
-| P3-03 | `samples/fine`: complete PIT cascade/sequence authority | Partial: 17 labels, maturity and exposure/assignment probability exist | P1/P2 | applicability and maturity are separate; short/long heterogeneous sequences are PIT; conditional/entire-space labels are consistent; joint logging probability/support is explicit and unsupported DR is masked |
+| P3-01 | `samples/recall`: source-aware negatives and correction contract | Done for sample authority; P3-04 must consume the stored expected count | P1/P2 | four sources retain q/log-q, expected count, observed status and false-negative mask; exhaustive-softmax and peer-frequency tests pass; 100K scale uses O(requests × draws) memory |
+| P3-02 | `samples/coarse`: teacher/order/conflict authority | Done for lineage contract; Top-K model pass-through remains P3-07 | P1/P2 | every factual candidate retains recall/coarse score/rank, fine teacher score/rank and conflict mask; hard-label observation boundary and exact replay tests pass |
+| P3-03 | `samples/fine`: PIT cascade/sequence authority | Done for sample contract; identified DR remains P3-09 | P1/P2 | applicability/maturity/time are separate; heterogeneous long history and declared short suffix are PIT; joint logging probability and support persist in full-flow schema v3 |
 | P3-04 | `learning`: port legacy active/candidate trainer and registry | Reusable legacy implementation only; v4 partitions/checkpoint rows exist | P3-01..03 | both lanes idempotently consume one event-time stream with watermark/resume; request logs bind served checkpoint; incompatible manifest/index rejects before scoring; snapshot reject, fallback and restart preserve lineage |
 | P3-05 | `platform/features`: compile one feature/FID manifest to train and serve | Split authority: NeuralSCM semantic contract is v4; general FID path is legacy | P3-03/04 | user/item/creator/context/route/counter/sequence/content fields declare PIT source, transform, namespace, hash/bucket/vocabulary, default and TTL; collision/drift reports exist; fixture online-vs-replay tensors are byte-identical |
 | P3-06 | `platform/retrieval` + `learning/retrieval`: migrate retrieval ladder | Historical Two-Tower/Multi-interest code; no v4-trained artifact | P3-01/04/05 | one frozen corpus/query set/Top-K/quota/latency budget compares lifecycle rules, Graph, Two-Tower and Multi-interest; report marginal unique recall, downstream fixed-ranker delta and cost; Semantic-ID waits for an accepted dense baseline |
@@ -603,12 +603,13 @@ P1 Feed supply-consumption closure
           → P6 scale, failures and legacy deletion
 ```
 
-P1 and the declared Feed scope of P2 are accepted. The next slice is P3-01
-through P3-09. It must consume the accepted request/event/world authorities rather
-than revive the legacy twin path. Its execution order is:
+P1, the declared Feed scope of P2 and the P3-01..03 sample-contract slice are
+accepted. The next slice is P3-04/05, followed by P3-06..09. It must consume the
+accepted request/event/world/sample authorities rather than revive the legacy
+twin path. Its execution order is:
 
 ```text
-complete RecallExample, CoarseRankExample and FineRankExample authorities
+accepted RecallExample, CoarseRankExample and FineRankExample authorities
 → port one active/candidate streaming trainer and checkpoint registry
 → freeze feature/FID and online-replay manifests
 → run fixed-budget retrieval, coarse and fine model ladders
@@ -713,10 +714,10 @@ before any authority switch.
 
 ### P3 — Streaming learning and learned cascade
 
-Status: contracts partial; trainers and v4 model ladders pending.
+Status: sample contracts accepted; trainers and v4 model ladders pending.
 
-- Complete the three v4 Joiners, then port the existing active/candidate trainer
-  and registry to consume them; do not create a parallel learning framework.
+- Port the existing active/candidate trainer and registry to consume the three
+  accepted v4 sample authorities; do not create a parallel learning framework.
 - Run retrieval, coarse and fine ladders in dependency order.
 - Add FID collision/version and offline-online replay checks.
 

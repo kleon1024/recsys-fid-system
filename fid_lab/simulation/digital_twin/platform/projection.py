@@ -40,6 +40,31 @@ ITEM_COUNTER_EVENTS = (
     EventType.REFUND,
 )
 
+HISTORY_EVENTS = (
+    EventType.EXAMINE,
+    EventType.PLAY,
+    EventType.PLAY_3S,
+    EventType.LONG_VIEW,
+    EventType.COMPLETE,
+    EventType.SLIDE,
+    EventType.CLICK,
+    EventType.LIKE,
+    EventType.COMMENT,
+    EventType.SHARE,
+    EventType.FOLLOW,
+    EventType.NEGATIVE,
+    EventType.DETAIL,
+    EventType.FAVORITE,
+    EventType.ADD_CART,
+    EventType.ORDER,
+    EventType.PAYMENT,
+    EventType.REFUND,
+    EventType.PIXEL_CONVERSION,
+    EventType.DWELL,
+    EventType.CREATE,
+    EventType.PUBLISH,
+)
+
 
 @dataclass
 class PlatformProjectionState:
@@ -52,6 +77,9 @@ class PlatformProjectionState:
     user_event_counts: torch.Tensor
     user_surface_counts: torch.Tensor
     user_history_item: torch.Tensor
+    user_history_event_type: torch.Tensor
+    user_history_surface: torch.Tensor
+    user_history_duration_ms: torch.Tensor
     user_history_event_time: torch.Tensor
     user_history_ingest_time: torch.Tensor
     user_history_cursor: torch.Tensor
@@ -124,6 +152,15 @@ def build_projection_state(
         user_surface_counts=torch.zeros(users, len(Surface), device=device),
         user_history_item=torch.full(
             (users, history_length), -1, device=device, dtype=torch.long,
+        ),
+        user_history_event_type=torch.full(
+            (users, history_length), -1, device=device, dtype=torch.long,
+        ),
+        user_history_surface=torch.full(
+            (users, history_length), -1, device=device, dtype=torch.long,
+        ),
+        user_history_duration_ms=torch.zeros(
+            (users, history_length), device=device,
         ),
         user_history_event_time=torch.full(
             (users, history_length), -1, device=device, dtype=torch.long,
@@ -346,19 +383,25 @@ class ObservableProjection:
         self.state.item_active[events.item_id[removed]] = False
 
     def _history(self, events: AppEventBatch) -> None:
-        selected = (
-            events.event(EventType.DWELL)
-            & (events.user_id >= 0)
-            & (events.item_id >= 0)
-        )
+        selected = torch.zeros_like(events.event_type, dtype=torch.bool)
+        for event_type in HISTORY_EVENTS:
+            selected |= events.event(event_type)
+        selected &= (events.user_id >= 0) & (events.item_id >= 0)
         if not selected.any():
             return
         user = events.user_id[selected]
         item = events.item_id[selected]
+        event_type = events.event_type[selected]
+        surface = events.surface[selected]
+        duration_ms = events.duration_ms[selected].float().clamp_min(0.0)
         event_time = events.event_time[selected]
         ingest_time = events.ingest_time[selected]
-        order = torch.argsort(user, stable=True)
+        time_order = torch.argsort(event_time, stable=True)
+        user_order = torch.argsort(user[time_order], stable=True)
+        order = time_order[user_order]
         user, item = user[order], item[order]
+        event_type, surface = event_type[order], surface[order]
+        duration_ms = duration_ms[order]
         event_time, ingest_time = event_time[order], ingest_time[order]
         new_user = torch.ones_like(user, dtype=torch.bool)
         new_user[1:] = user[1:] != user[:-1]
@@ -376,6 +419,13 @@ class ObservableProjection:
             history_length,
         )
         self.state.user_history_item[user[keep], slot[keep]] = item[keep]
+        self.state.user_history_event_type[user[keep], slot[keep]] = event_type[
+            keep
+        ]
+        self.state.user_history_surface[user[keep], slot[keep]] = surface[keep]
+        self.state.user_history_duration_ms[user[keep], slot[keep]] = duration_ms[
+            keep
+        ]
         self.state.user_history_event_time[user[keep], slot[keep]] = event_time[
             keep
         ]

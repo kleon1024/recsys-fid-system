@@ -6,7 +6,6 @@ from dataclasses import dataclass
 
 import torch
 
-from ...randomness.counter import uniform_for_items
 from ..catalog import PublicCatalog
 from ..contracts import AppEventBatch, ContentKind, EventType, Surface
 from ..contracts import deterministic_event_id
@@ -19,6 +18,7 @@ from .contracts import (
     RequestCandidateTrace,
     RequestContextBatch,
 )
+from .negative_sampling import build_recall_negatives
 
 
 @dataclass(frozen=True)
@@ -33,10 +33,15 @@ class LabelTask:
 class JoinerConfig:
     ticks_per_day: int
     recall_negatives: int = 20
+    short_sequence_length: int = 16
     sampling_seed: int = 1_607
 
     def __post_init__(self):
-        if self.ticks_per_day <= 0 or self.recall_negatives <= 0:
+        if (
+            self.ticks_per_day <= 0
+            or self.recall_negatives <= 0
+            or self.short_sequence_length <= 0
+        ):
             raise ValueError("joiner dimensions must be positive")
 
     @property
@@ -77,14 +82,32 @@ def capture_request_context(
     user = trace.user_id
     state = projection.state
     as_of = torch.full_like(trace.event_time, projection.as_of_ingest_time)
+    history_length = state.user_history_item.shape[1]
+    event_number = (
+        state.user_history_cursor[user, None]
+        - history_length
+        + torch.arange(history_length, device=user.device)[None, :]
+    )
+    history_valid = event_number >= 0
+    history_slot = torch.remainder(event_number.clamp_min(0), history_length)
+
+    def history(field: str, missing: float | int) -> torch.Tensor:
+        values = torch.gather(getattr(state, field)[user], 1, history_slot)
+        return torch.where(
+            history_valid, values, torch.full_like(values, missing),
+        ).clone()
+
     return RequestContextBatch(
         request_id=trace.request_id,
         request_time=trace.event_time,
         user_event_counts=state.user_event_counts[user].clone(),
         user_surface_counts=state.user_surface_counts[user].clone(),
-        history_item_id=state.user_history_item[user].clone(),
-        history_event_time=state.user_history_event_time[user].clone(),
-        history_ingest_time=state.user_history_ingest_time[user].clone(),
+        history_item_id=history("user_history_item", -1),
+        history_event_type=history("user_history_event_type", -1),
+        history_surface=history("user_history_surface", -1),
+        history_duration_ms=history("user_history_duration_ms", 0.0),
+        history_event_time=history("user_history_event_time", -1),
+        history_ingest_time=history("user_history_ingest_time", -1),
         feature_as_of_ingest_time=as_of,
     )
 
@@ -219,16 +242,7 @@ def _map_stage(
 def _select_context(
     context: RequestContextBatch, selected: torch.Tensor,
 ) -> RequestContextBatch:
-    return RequestContextBatch(
-        request_id=context.request_id[selected],
-        request_time=context.request_time[selected],
-        user_event_counts=context.user_event_counts[selected],
-        user_surface_counts=context.user_surface_counts[selected],
-        history_item_id=context.history_item_id[selected],
-        history_event_time=context.history_event_time[selected],
-        history_ingest_time=context.history_ingest_time[selected],
-        feature_as_of_ingest_time=context.feature_as_of_ingest_time[selected],
-    )
+    return context.select(selected)
 
 
 class RequestLevelJoiner:
@@ -271,15 +285,24 @@ class RequestLevelJoiner:
         content_kind = self.catalog.content_kind[item]
         surface = trace.surface[:, None].expand_as(trace.exposed_item_id)
         valid = trace.exposed_item_id >= 0
-        masks = []
+        applicability = []
+        maturity = []
+        maturity_time = []
         for task in tasks:
-            mature = watermark >= trace.event_time + task.maturity_ticks
-            masks.append(
-                valid
-                & mature[:, None]
-                & _task_applicability(task, surface, content_kind)
+            task_maturity_time = trace.event_time + task.maturity_ticks
+            applicability.append(
+                valid & _task_applicability(task, surface, content_kind)
             )
-        label_mask = torch.stack(masks, dim=2)
+            maturity.append(
+                valid & (watermark >= task_maturity_time)[:, None]
+            )
+            maturity_time.append(
+                task_maturity_time[:, None].expand_as(valid)
+            )
+        label_applicable = torch.stack(applicability, dim=2)
+        label_mature = torch.stack(maturity, dim=2)
+        label_mask = label_applicable & label_mature
+        label_maturity_time = torch.stack(maturity_time, dim=2)
         dwell = _event_values(
             events,
             EventType.DWELL,
@@ -292,6 +315,28 @@ class RequestLevelJoiner:
             trace.fine_score,
             0.0,
         )
+        recall_route, _ = _map_stage(
+            trace.exposed_item_id,
+            trace.recall_item_id,
+            trace.recall_route_id,
+            -1,
+        )
+        recall_score, _ = _map_stage(
+            trace.exposed_item_id,
+            trace.recall_item_id,
+            trace.recall_score,
+            0.0,
+        )
+        coarse_score, _ = _map_stage(
+            trace.exposed_item_id,
+            trace.coarse_item_id,
+            trace.coarse_score,
+            0.0,
+        )
+        joint_probability = (
+            trace.exposure_probability
+            * trace.assignment_probability[:, None]
+        )
         return FineRankExampleBatch(
             request_id=trace.request_id,
             user_id=trace.user_id,
@@ -300,18 +345,30 @@ class RequestLevelJoiner:
             item_id=trace.exposed_item_id,
             position=trace.exposed_position,
             served_score=served_score,
+            recall_route_id=recall_route,
+            recall_score=recall_score,
+            coarse_score=coarse_score,
             exposure_probability=trace.exposure_probability,
             assignment_probability=trace.assignment_probability,
+            joint_logging_probability=joint_probability,
+            ope_supported=valid & (joint_probability > 0.0),
             recall_version_id=trace.recall_version_id,
             coarse_version_id=trace.coarse_version_id,
             fine_version_id=trace.fine_version_id,
             mix_version_id=trace.mix_version_id,
             labels=labels,
+            label_applicable=label_applicable,
+            label_mature=label_mature,
             label_mask=label_mask,
+            label_maturity_time=label_maturity_time,
             dwell_ms=dwell,
             context=context,
             task_names=tuple(task.name for task in tasks),
             task_maturity_ticks=tuple(task.maturity_ticks for task in tasks),
+            short_sequence_length=min(
+                self.config.short_sequence_length,
+                context.history_item_id.shape[1],
+            ),
         )
 
     def _coarse(
@@ -326,12 +383,41 @@ class RequestLevelJoiner:
             trace.recall_route_id,
             -1,
         )
+        recall_score, _ = _map_stage(
+            trace.coarse_item_id,
+            trace.recall_item_id,
+            trace.recall_score,
+            0.0,
+        )
         teacher_score, teacher_mask = _map_stage(
             trace.coarse_item_id,
             trace.fine_item_id,
             trace.fine_score,
             0.0,
         )
+        fine_rank = torch.arange(
+            1,
+            trace.fine_item_id.shape[1] + 1,
+            device=trace.fine_item_id.device,
+        )[None].expand_as(trace.fine_item_id)
+        teacher_rank, _ = _map_stage(
+            trace.coarse_item_id,
+            trace.fine_item_id,
+            fine_rank,
+            -1,
+        )
+        coarse_rank = torch.arange(
+            1,
+            trace.coarse_item_id.shape[1] + 1,
+            device=trace.coarse_item_id.device,
+        )[None].expand_as(trace.coarse_item_id)
+        coarse_rank = torch.where(
+            trace.coarse_item_id >= 0,
+            coarse_rank,
+            torch.full_like(coarse_rank, -1),
+        )
+        teacher_order_in_coarse = teacher_mask.long().cumsum(dim=1)
+        conflict = teacher_mask & (teacher_rank != teacher_order_in_coarse)
         weights = torch.tensor(
             [task.weight for task in self.config.tasks],
             device=fine.labels.device,
@@ -355,12 +441,16 @@ class RequestLevelJoiner:
             request_id=trace.request_id,
             item_id=trace.coarse_item_id,
             route_id=route,
+            recall_score=recall_score,
             served_score=trace.coarse_score,
+            coarse_rank=coarse_rank,
             sampling_probability=trace.coarse_sampling_probability,
             hard_label=hard_label,
             hard_label_mask=exposed & observed,
             teacher_score=teacher_score,
+            teacher_rank=teacher_rank,
             teacher_mask=teacher_mask,
+            conflict_mask=conflict,
             recall_version_id=trace.recall_version_id,
             coarse_version_id=trace.coarse_version_id,
             fine_version_id=trace.fine_version_id,
@@ -390,58 +480,54 @@ class RequestLevelJoiner:
             & (strength == 0.0)
             & fine.label_mask.any(dim=2)
         )
-        exposed_pool = torch.where(
-            exposed_negative, fine.item_id, torch.full_like(fine.item_id, -1),
-        )
         recalled_is_exposed = (
             trace.recall_item_id[:, :, None] == fine.item_id[:, None, :]
         ).any(dim=2)
-        recalled_pool = torch.where(
-            (trace.recall_item_id >= 0) & ~recalled_is_exposed,
-            trace.recall_item_id,
-            torch.full_like(trace.recall_item_id, -1),
+        selected_context = _select_context(context, selected)
+        negatives = build_recall_negatives(
+            request_id=trace.request_id[selected],
+            positive_item_id=positive_item[selected],
+            exposed_item_id=fine.item_id[selected],
+            exposed_negative=exposed_negative[selected],
+            recall_item_id=trace.recall_item_id[selected],
+            recalled_unexposed=(
+                (trace.recall_item_id >= 0) & ~recalled_is_exposed
+            )[selected],
+            history_item_id=selected_context.history_item_id,
+            catalog=self.catalog,
+            total=self.config.recall_negatives,
+            seed=self.config.sampling_seed,
         )
-        pool = torch.cat((exposed_pool, recalled_pool), dim=1)
-        source = torch.cat((
-            torch.zeros_like(exposed_pool),
-            torch.ones_like(recalled_pool),
-        ), dim=1)
-        random = uniform_for_items(
-            trace.request_id,
-            pool.clamp_min(0),
-            0,
-            1_613,
-            self.config.sampling_seed,
-        ).masked_fill(pool < 0, float("inf"))
-        order = torch.argsort(random, dim=1)
-        width = min(self.config.recall_negatives, pool.shape[1])
-        chosen = order[:, :width]
-        negative = torch.gather(pool, 1, chosen)
-        negative_source = torch.gather(source, 1, chosen)
-        if width < self.config.recall_negatives:
-            padding = self.config.recall_negatives - width
-            negative = torch.nn.functional.pad(negative, (0, padding), value=-1)
-            negative_source = torch.nn.functional.pad(
-                negative_source, (0, padding), value=-1,
-            )
-        available = (pool >= 0).sum(dim=1)
-        probability = (
-            self.config.recall_negatives / available.clamp_min(1).float()
-        ).clamp_max(1.0)
-        negative_probability = torch.where(
-            negative >= 0,
-            probability[:, None].expand_as(negative),
-            torch.zeros_like(negative, dtype=torch.float),
+        positive_route, _ = _map_stage(
+            positive_item[:, None],
+            trace.recall_item_id,
+            trace.recall_route_id,
+            -1,
+        )
+        positive_probability, _ = _map_stage(
+            positive_item[:, None],
+            trace.recall_item_id,
+            trace.recall_sampling_probability,
+            0.0,
         )
         return RecallExampleBatch(
             request_id=trace.request_id[selected],
             user_id=trace.user_id[selected],
             surface=trace.surface[selected],
+            query_topic=trace.query_topic[selected],
             positive_item_id=positive_item[selected],
             positive_strength=positive_strength[selected],
+            positive_route_id=positive_route.squeeze(1)[selected],
+            positive_proposal_probability=(
+                positive_probability.squeeze(1)[selected]
+            ),
             recall_version_id=trace.recall_version_id[selected],
-            negative_item_id=negative[selected],
-            negative_source=negative_source[selected],
-            negative_sampling_probability=negative_probability[selected],
-            context=_select_context(context, selected),
+            negative_item_id=negatives.item_id,
+            negative_source=negatives.source,
+            negative_sampling_probability=negatives.sampling_probability,
+            negative_expected_count=negatives.expected_count,
+            negative_observed=negatives.observed,
+            negative_false_negative_mask=negatives.false_negative_mask,
+            context=selected_context,
+            catalog_version=trace.manifest.catalog_version,
         )

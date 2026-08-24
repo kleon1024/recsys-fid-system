@@ -7,13 +7,19 @@ from fid_lab.simulation.digital_twin import (
     AppEventBatch,
     EventType,
     JoinerConfig,
+    NegativeSource,
     ObservableProjection,
     RequestCandidateTrace,
     RequestLevelJoiner,
     TraceManifest,
     build_public_catalog,
     capture_request_context,
+    corrected_sampled_softmax_loss,
     make_app_events,
+    negative_source_counts,
+)
+from fid_lab.simulation.digital_twin.samples.negative_sampling import (
+    build_recall_negatives,
 )
 
 
@@ -34,8 +40,8 @@ def build_catalog():
 
 def build_trace():
     recall = torch.tensor([
-        [1, 2, 3, 4, 5, 6],
-        [11, 12, 13, 14, 15, 16],
+        [1, 2, 9, 4, 5, 6],
+        [11, 12, 19, 14, 15, 16],
     ])
     coarse = recall[:, :5]
     fine = coarse[:, :4]
@@ -160,8 +166,12 @@ def test_joiner_masks_delayed_labels_until_watermark_maturity():
     assert float(early.fine.labels[0, 0, long_view]) == 1.0
     assert bool(early.fine.label_mask[0, 0, long_view])
     assert float(early.fine.labels[1, 0, order]) == 1.0
+    assert bool(early.fine.label_applicable[1, 0, order])
+    assert not bool(early.fine.label_mature[1, 0, order])
     assert not bool(early.fine.label_mask[1, 0, order])
+    assert not bool(early.fine.label_applicable[0, 0, order])
     mature = joiner.materialize(trace, context, events, event_watermark=20)
+    assert bool(mature.fine.label_mature[1, 0, order])
     assert bool(mature.fine.label_mask[1, 0, order])
 
 
@@ -179,13 +189,154 @@ def test_three_authorities_preserve_observability_and_teacher_boundaries():
     )
     assert joined.recall.positive_item_id.tolist() == [1, 11]
     assert (joined.recall.negative_sampling_probability > 0).all()
-    assert set(joined.recall.negative_source.flatten().tolist()) <= {0, 1}
+    assert set(joined.recall.negative_source.flatten().tolist()) <= {0, 1, 2, 3}
     assert joined.coarse.hard_label_mask[:, :2].all()
     assert not joined.coarse.hard_label_mask[:, 2:].any()
     assert joined.coarse.teacher_mask[:, :4].all()
     assert not joined.coarse.teacher_mask[:, 4:].any()
     assert torch.equal(joined.fine.context.request_id, trace.request_id)
+    assert torch.equal(
+        joined.fine.label_mask,
+        joined.fine.label_applicable & joined.fine.label_mature,
+    )
+    assert torch.allclose(
+        joined.fine.joint_logging_probability,
+        joined.fine.exposure_probability
+        * joined.fine.assignment_probability[:, None],
+    )
     assert joined.manifest == trace.manifest
+
+
+def test_recall_sources_carry_q_expected_count_and_false_negative_mask():
+    catalog, trace = build_catalog(), build_trace()
+    context = capture_request_context(
+        trace, ObservableProjection(2, catalog, history_length=4).snapshot(),
+    )
+    joined = RequestLevelJoiner(
+        JoinerConfig(ticks_per_day=96, recall_negatives=20), catalog,
+    ).materialize(trace, context, build_events(trace, catalog), 20)
+    recall = joined.recall
+    counts = negative_source_counts(20)
+    for source, count in enumerate(counts):
+        assert (recall.negative_source == source).sum(dim=1).tolist() == [
+            count, count,
+        ]
+    expected = recall.negative_sampling_probability.clone()
+    for source, count in enumerate(counts):
+        expected[recall.negative_source == source] *= count
+    assert torch.allclose(recall.negative_expected_count, expected)
+    assert recall.negative_observed[
+        recall.negative_source == int(NegativeSource.EXPOSED)
+    ].all()
+    assert torch.allclose(
+        recall.negative_log_q[recall.negative_item_id >= 0],
+        recall.negative_sampling_probability[
+            recall.negative_item_id >= 0
+        ].log(),
+    )
+
+    all_history = catalog.item_id[None, :]
+    direct = build_recall_negatives(
+        request_id=torch.tensor([99]),
+        positive_item_id=torch.tensor([1]),
+        exposed_item_id=torch.tensor([[2, 3]]),
+        exposed_negative=torch.tensor([[True, True]]),
+        recall_item_id=torch.tensor([[9, 4, 5]]),
+        recalled_unexposed=torch.tensor([[True, True, True]]),
+        history_item_id=all_history,
+        catalog=catalog,
+        total=20,
+        seed=31,
+    )
+    assert direct.false_negative_mask[direct.item_id >= 0].all()
+
+
+def test_sampled_softmax_correction_matches_exhaustive_oracle():
+    positive = torch.tensor([0.7, -0.2])
+    negative = torch.tensor([[0.2, -0.1], [0.4, 0.3]])
+    exhaustive = torch.nn.functional.cross_entropy(
+        torch.cat((positive[:, None], negative), dim=1),
+        torch.zeros(2, dtype=torch.long),
+    )
+    corrected = corrected_sampled_softmax_loss(
+        positive,
+        negative,
+        torch.ones_like(negative),
+        torch.ones_like(negative, dtype=torch.bool),
+    )
+    assert torch.allclose(corrected, exhaustive)
+    masked = corrected_sampled_softmax_loss(
+        positive,
+        negative,
+        torch.ones_like(negative),
+        torch.tensor([[True, False], [True, True]]),
+    )
+    assert not torch.allclose(masked, exhaustive)
+
+
+def test_in_batch_sampling_uses_peer_frequency_without_quadratic_pool():
+    positives = torch.tensor([1, 1, 2, 3])
+    catalog = build_catalog()
+    samples = build_recall_negatives(
+        request_id=torch.tensor([10, 20, 30, 40]),
+        positive_item_id=positives,
+        exposed_item_id=torch.full((4, 1), -1),
+        exposed_negative=torch.zeros(4, 1, dtype=torch.bool),
+        recall_item_id=torch.full((4, 1), -1),
+        recalled_unexposed=torch.zeros(4, 1, dtype=torch.bool),
+        history_item_id=torch.full((4, 1), -1),
+        catalog=catalog,
+        total=20,
+        seed=7,
+    )
+    in_batch = samples.source == int(NegativeSource.IN_BATCH)
+    for row in range(len(positives)):
+        peers = torch.cat((positives[:row], positives[row + 1:]))
+        expected = torch.stack(tuple(
+            (peers == item).float().mean()
+            for item in samples.item_id[row, in_batch[row]]
+        ))
+        assert torch.allclose(
+            samples.sampling_probability[row, in_batch[row]], expected,
+        )
+
+
+def test_coarse_teacher_rank_detects_real_order_conflicts():
+    catalog, trace = build_catalog(), build_trace()
+    values = trace.__dict__.copy()
+    values["fine_item_id"] = trace.fine_item_id.clone()
+    values["fine_item_id"][0] = torch.tensor([9, 1, 2, 4])
+    reordered = RequestCandidateTrace(**values)
+    context = capture_request_context(
+        reordered, ObservableProjection(2, catalog, history_length=4).snapshot(),
+    )
+    joined = RequestLevelJoiner(
+        JoinerConfig(ticks_per_day=96, recall_negatives=3), catalog,
+    ).materialize(reordered, context, build_events(reordered, catalog), 20)
+    assert joined.coarse.teacher_rank[0, :4].tolist() == [2, 3, 1, 4]
+    assert joined.coarse.conflict_mask[0, :3].all()
+    assert not bool(joined.coarse.conflict_mask[0, 3])
+
+
+def test_context_is_chronological_heterogeneous_and_point_in_time():
+    catalog, trace = build_catalog(), build_trace()
+    values = trace.__dict__.copy()
+    values["event_time"] = torch.tensor([10, 10])
+    later_trace = RequestCandidateTrace(**values)
+    projection = ObservableProjection(2, catalog, history_length=4)
+    history = AppEventBatch.concatenate((
+        observed_event(trace, catalog, 0, 0, EventType.PLAY, time=2),
+        observed_event(trace, catalog, 0, 0, EventType.LIKE, time=4),
+        observed_event(trace, catalog, 0, 1, EventType.DWELL, time=6),
+    ))
+    projection.ingest(history)
+    context = capture_request_context(later_trace, projection.snapshot())
+    valid = context.history_item_id[0] >= 0
+    assert context.history_event_time[0, valid].tolist() == [2, 4, 6]
+    assert context.history_event_type[0, valid].tolist() == [
+        int(EventType.PLAY), int(EventType.LIKE), int(EventType.DWELL),
+    ]
+    assert (context.history_event_time[0, valid] <= 10).all()
 
 
 def test_context_capture_rejects_projection_from_the_future():

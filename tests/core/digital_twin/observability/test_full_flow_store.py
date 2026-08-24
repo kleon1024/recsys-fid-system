@@ -12,6 +12,7 @@ import pytest
 from fid_lab.simulation.digital_twin.observability import (
     FullFlowSnapshot,
     FullFlowFixtureConfig,
+    FULL_FLOW_SCHEMA_VERSION,
     TABLE_NAMES,
     append_full_flow_partition,
     build_full_flow_fixture,
@@ -49,6 +50,9 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
     assert request.index_version.eq("observable-index-t0").all()
     assert request.fid_version.eq("fid-v2").all()
     assert request.lifecycle_version.eq("content-lifecycle-v1").all()
+    assert {
+        "history_event_type", "history_surface", "history_duration_ms",
+    } <= set(request.columns)
     routes = tables["v4_route_candidate_log"].to_pandas()
     assert routes.lifecycle_name.notna().all()
     assert routes.route_admission_reason.isin({
@@ -59,8 +63,21 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
     ]).all()
     labels = tables["v4_mature_label_log"].to_pandas()
     assert labels.loc[~labels.label_mask, "label_value"].isna().all()
+    assert (labels.label_mask == (
+        labels.label_applicable & labels.label_mature
+    )).all()
     examples = tables["v4_training_example_log"].to_pandas()
     assert set(examples.authority) == {"recall", "coarse", "fine"}
+    negatives = examples[
+        (examples.authority == "recall") & (examples.role == "negative")
+    ]
+    assert negatives.sampling_expected_count.notna().all()
+    assert (negatives.sampling_expected_count > 0).all()
+    coarse = examples[examples.authority == "coarse"]
+    assert (coarse.loc[coarse.teacher_mask, "teacher_rank"] > 0).all()
+    fine = examples[examples.authority == "fine"]
+    assert fine.joint_logging_probability.notna().all()
+    assert fine.ope_supported.all()
 
 
 def test_route_lifecycle_is_request_time_not_post_response_projection():
@@ -78,7 +95,7 @@ def test_parquet_manifest_is_content_bound_and_replayable(tmp_path):
     snapshot = _snapshot()
     manifest = materialize_full_flow(snapshot, tmp_path)
     persisted = json.loads((tmp_path / "manifest.json").read_text())
-    assert persisted["schema"] == "digital-twin-full-flow-v2"
+    assert persisted["schema"] == FULL_FLOW_SCHEMA_VERSION
     assert set(persisted["tables"]) == set(TABLE_NAMES)
     for name in TABLE_NAMES:
         evidence = manifest["tables"][name]

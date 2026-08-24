@@ -96,6 +96,9 @@ def _request_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "user_event_counts": _fixed_list(context.user_event_counts),
         "user_surface_counts": _fixed_list(context.user_surface_counts),
         "history_item_id": _fixed_list(context.history_item_id),
+        "history_event_type": _fixed_list(context.history_event_type),
+        "history_surface": _fixed_list(context.history_surface),
+        "history_duration_ms": _fixed_list(context.history_duration_ms),
         "history_event_time": _fixed_list(context.history_event_time),
         "history_ingest_time": _fixed_list(context.history_ingest_time),
     }
@@ -254,19 +257,18 @@ def _label_table(snapshot: FullFlowSnapshot) -> pa.Table:
     item = fine.item_id[:, :, None].expand(requests, items, tasks)
     task = torch.arange(tasks, device=fine.labels.device)[None, None, :]
     task = task.expand(requests, items, tasks)
-    maturity_ticks = torch.tensor(
-        fine.task_maturity_ticks, device=fine.labels.device,
-    )[None, None, :].expand(requests, items, tasks)
-    maturity_time = fine.request_time[:, None, None] + maturity_ticks
+    maturity_time = fine.label_maturity_time
     valid = item >= 0
-    mature = fine.label_mask
+    applicable = fine.label_applicable
+    mature = fine.label_mature
+    observed = fine.label_mask
     value = torch.where(
-        mature, fine.labels, torch.full_like(fine.labels, torch.nan),
+        observed, fine.labels, torch.full_like(fine.labels, torch.nan),
     )
     watermark = torch.full_like(request, snapshot.samples.event_watermark)
     censor = np.full(fine.labels.shape, "observed", dtype=object)
-    censor[_numpy(~mature & (watermark < maturity_time))] = "label_not_mature"
-    censor[_numpy(~mature & (watermark >= maturity_time))] = "not_applicable"
+    censor[_numpy(applicable & ~mature)] = "label_not_mature"
+    censor[_numpy(~applicable)] = "not_applicable"
     task_id = _numpy(task[valid])
     names = np.asarray(fine.task_names, dtype=object)[task_id]
     return pa.table({
@@ -275,37 +277,58 @@ def _label_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "task_id": task_id,
         "task_name": names,
         "label_value": _numpy(value[valid]),
-        "label_mask": _numpy(mature[valid]),
+        "label_applicable": _numpy(applicable[valid]),
+        "label_mature": _numpy(mature[valid]),
+        "label_mask": _numpy(observed[valid]),
         "maturity_time": _numpy(maturity_time[valid]),
         "event_watermark": _numpy(watermark[valid]),
         "censor_reason": censor[_numpy(valid)],
     })
 
 
-def _example_table(snapshot: FullFlowSnapshot) -> pa.Table:
-    samples = snapshot.samples
-    tables = []
-    recall = samples.recall
+def _sample_lineage_defaults(rows: int) -> dict[str, np.ndarray]:
+    return {
+        "sampling_source": np.full(rows, -1, dtype=np.int64),
+        "sampling_expected_count": np.full(rows, np.nan, dtype=np.float32),
+        "false_negative_mask": np.zeros(rows, dtype=np.bool_),
+        "negative_observed": np.zeros(rows, dtype=np.bool_),
+        "route_id": np.full(rows, -1, dtype=np.int64),
+        "recall_score": np.full(rows, np.nan, dtype=np.float32),
+        "coarse_rank": np.full(rows, -1, dtype=np.int64),
+        "teacher_rank": np.full(rows, -1, dtype=np.int64),
+        "conflict_mask": np.zeros(rows, dtype=np.bool_),
+        "joint_logging_probability": np.full(
+            rows, np.nan, dtype=np.float32,
+        ),
+        "ope_supported": np.zeros(rows, dtype=np.bool_),
+    }
+
+
+def _recall_example_tables(recall) -> tuple[pa.Table, pa.Table]:
     positive_rows = len(recall.request_id)
-    tables.append(pa.table({
+    positive = {
         "request_id": _numpy(recall.request_id),
         "item_id": _numpy(recall.positive_item_id),
         "authority": ["recall"] * positive_rows,
         "role": ["positive"] * positive_rows,
         "ordinal": np.zeros(positive_rows, dtype=np.int64),
-        "sampling_probability": np.ones(positive_rows, dtype=np.float32),
+        "sampling_probability": _numpy(
+            recall.positive_proposal_probability
+        ),
         "label_value": _numpy(recall.positive_strength),
         "label_mask": np.ones(positive_rows, dtype=np.bool_),
         "teacher_score": np.full(positive_rows, np.nan, dtype=np.float32),
         "teacher_mask": np.zeros(positive_rows, dtype=np.bool_),
-    }))
+        **_sample_lineage_defaults(positive_rows),
+    }
+    positive["route_id"] = _numpy(recall.positive_route_id)
     neg_valid = recall.negative_item_id >= 0
     neg_rank = torch.arange(
         recall.negative_item_id.shape[1], device=recall.request_id.device,
     )[None].expand_as(recall.negative_item_id)
     neg_request = recall.request_id[:, None].expand_as(recall.negative_item_id)
     negative_rows = int(neg_valid.sum())
-    tables.append(pa.table({
+    negative = {
         "request_id": _numpy(neg_request[neg_valid]),
         "item_id": _numpy(recall.negative_item_id[neg_valid]),
         "authority": ["recall"] * negative_rows,
@@ -318,15 +341,31 @@ def _example_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "label_mask": np.ones(negative_rows, dtype=np.bool_),
         "teacher_score": np.full(negative_rows, np.nan, dtype=np.float32),
         "teacher_mask": np.zeros(negative_rows, dtype=np.bool_),
-    }))
-    coarse = samples.coarse
+        **_sample_lineage_defaults(negative_rows),
+    }
+    negative["sampling_source"] = _numpy(
+        recall.negative_source[neg_valid]
+    )
+    negative["sampling_expected_count"] = _numpy(
+        recall.negative_expected_count[neg_valid]
+    )
+    negative["false_negative_mask"] = _numpy(
+        recall.negative_false_negative_mask[neg_valid]
+    )
+    negative["negative_observed"] = _numpy(
+        recall.negative_observed[neg_valid]
+    )
+    return pa.table(positive), pa.table(negative)
+
+
+def _coarse_example_table(coarse) -> pa.Table:
     coarse_valid = coarse.item_id >= 0
     coarse_rank = torch.arange(
         coarse.item_id.shape[1], device=coarse.item_id.device,
     )[None].expand_as(coarse.item_id)
     coarse_request = coarse.request_id[:, None].expand_as(coarse.item_id)
     coarse_rows = int(coarse_valid.sum())
-    tables.append(pa.table({
+    coarse_data = {
         "request_id": _numpy(coarse_request[coarse_valid]),
         "item_id": _numpy(coarse.item_id[coarse_valid]),
         "authority": ["coarse"] * coarse_rows,
@@ -339,8 +378,21 @@ def _example_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "label_mask": _numpy(coarse.hard_label_mask[coarse_valid]),
         "teacher_score": _numpy(coarse.teacher_score[coarse_valid]),
         "teacher_mask": _numpy(coarse.teacher_mask[coarse_valid]),
-    }))
-    fine = samples.fine
+        **_sample_lineage_defaults(coarse_rows),
+    }
+    coarse_data["route_id"] = _numpy(coarse.route_id[coarse_valid])
+    coarse_data["recall_score"] = _numpy(
+        coarse.recall_score[coarse_valid]
+    )
+    coarse_data["coarse_rank"] = _numpy(coarse.coarse_rank[coarse_valid])
+    coarse_data["teacher_rank"] = _numpy(coarse.teacher_rank[coarse_valid])
+    coarse_data["conflict_mask"] = _numpy(
+        coarse.conflict_mask[coarse_valid]
+    )
+    return pa.table(coarse_data)
+
+
+def _fine_example_table(fine) -> pa.Table:
     fine_valid = fine.item_id >= 0
     fine_rank = torch.arange(
         fine.item_id.shape[1], device=fine.item_id.device,
@@ -350,7 +402,7 @@ def _example_table(snapshot: FullFlowSnapshot) -> pa.Table:
     fine_value = torch.where(
         fine.label_mask, fine.labels, torch.zeros_like(fine.labels),
     ).sum(dim=2)
-    tables.append(pa.table({
+    fine_data = {
         "request_id": _numpy(fine_request[fine_valid]),
         "item_id": _numpy(fine.item_id[fine_valid]),
         "authority": ["fine"] * fine_rows,
@@ -363,12 +415,31 @@ def _example_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "label_mask": _numpy(fine.label_mask.any(dim=2)[fine_valid]),
         "teacher_score": _numpy(fine.served_score[fine_valid]),
         "teacher_mask": np.ones(fine_rows, dtype=np.bool_),
-    }))
-    result = pa.concat_tables(tables)
+        **_sample_lineage_defaults(fine_rows),
+    }
+    fine_data["route_id"] = _numpy(fine.recall_route_id[fine_valid])
+    fine_data["recall_score"] = _numpy(fine.recall_score[fine_valid])
+    fine_data["joint_logging_probability"] = _numpy(
+        fine.joint_logging_probability[fine_valid]
+    )
+    fine_data["ope_supported"] = _numpy(fine.ope_supported[fine_valid])
+    return pa.table(fine_data)
+
+
+def _example_table(snapshot: FullFlowSnapshot) -> pa.Table:
+    samples = snapshot.samples
+    result = pa.concat_tables((
+        *_recall_example_tables(samples.recall),
+        _coarse_example_table(samples.coarse),
+        _fine_example_table(samples.fine),
+    ))
     rows = len(result)
     return result.append_column(
         "feature_version",
         pa.array([snapshot.trace.manifest.feature_version] * rows),
+    ).append_column(
+        "catalog_version",
+        pa.array([snapshot.trace.manifest.catalog_version] * rows),
     ).append_column(
         "example_watermark",
         pa.array(np.full(rows, samples.event_watermark, dtype=np.int64)),
