@@ -1,0 +1,42 @@
+{
+  "schema": "digital-twin-clickhouse-fixture-v1",
+  "date": "2026-08-25",
+  "status": "pass",
+  "clickhouse_version": "25.8.32.4",
+  "image": "clickhouse/clickhouse-server:25.8",
+  "image_digest": "sha256:7c39abeb161d627fa3ca6a1e5f6241ecdc24501e8463486e61b80be3ab4471b0",
+  "fixture": {
+    "requests": 64,
+    "catalog_items": 600,
+    "diagnostic_output_rows": 375,
+    "request_bound_orphan_events": 0,
+    "checkpoint_rows": 1,
+    "failed_checkpoints": 0
+  },
+  "seeded_failure_fixture": {
+    "recall_misses_detected": 1,
+    "request_bound_orphans_detected": 1,
+    "rejected_checkpoints_detected": 1,
+    "training_authority": false
+  },
+  "queries": {
+    "fixture_views_sha256": "4188700546bcefb920cafb12698420728f887dcc02eed0a821fba7f6acf9446d",
+    "diagnostics_sha256": "07992b9c1fa28e19f38dd35d579a9f6d87c64dc5bf07ac9ce9364431eaa09bf4",
+    "request_case": "pass",
+    "route_distribution": "pass",
+    "route_overlap": "pass",
+    "marginal_coverage": "pass",
+    "stage_distribution": "pass",
+    "candidate_slices": "pass",
+    "label_maturity": "pass",
+    "recall_miss": "pass",
+    "orphan_events": "pass",
+    "checkpoint_health": "pass"
+  },
+  "bugs_detected_before_pass": [
+    "checkpoint alias shadowing caused an illegal nested aggregate",
+    "supply inventory and bid events were falsely classified as request orphans",
+    "candidate exposed_position was one-based while factual event position was zero-based"
+  ],
+  "evidence_boundary": "This proves SQL syntax and fixture semantics on an official ClickHouse 25.8 LTS server. It does not prove production ClickHouse throughput, retention policy, replication, or cluster sizing."
+}

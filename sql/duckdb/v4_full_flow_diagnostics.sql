@@ -110,7 +110,9 @@ CREATE OR REPLACE TEMP VIEW v4_orphan_events AS
 SELECT event.*
 FROM v4_event_log AS event
 LEFT JOIN v4_request_log AS request USING (request_id)
-WHERE event.request_id >= 0 AND request.request_id IS NULL;
+WHERE event.request_id >= 0
+  AND event.user_id >= 0
+  AND request.request_id IS NULL;
 
 CREATE OR REPLACE TEMP VIEW v4_checkpoint_health AS
 SELECT

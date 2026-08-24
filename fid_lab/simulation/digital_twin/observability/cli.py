@@ -26,6 +26,7 @@ def main() -> None:
     parser.add_argument("--expose-k", type=int, default=3)
     parser.add_argument("--history-length", type=int, default=8)
     parser.add_argument("--recall-negatives", type=int, default=4)
+    parser.add_argument("--seed-failures", action="store_true")
     args = parser.parse_args()
     device = torch.device(args.device)
     if device.type == "cuda":
@@ -46,7 +47,11 @@ def main() -> None:
     if device.type == "cuda":
         torch.cuda.synchronize(device)
     built = time.perf_counter()
-    manifest = materialize_full_flow(snapshot, args.output)
+    manifest = materialize_full_flow(
+        snapshot,
+        args.output,
+        seed_failures=args.seed_failures,
+    )
     if device.type == "cuda":
         torch.cuda.synchronize(device)
     completed = time.perf_counter()

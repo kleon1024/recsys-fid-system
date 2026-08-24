@@ -12,6 +12,7 @@ from fid_lab.simulation.digital_twin.observability import (
     build_full_flow_fixture,
     build_full_flow_tables,
     materialize_full_flow,
+    seed_diagnostic_failures,
 )
 from fid_lab.simulation.digital_twin.observability.diagnostics import (
     install_diagnostics,
@@ -72,6 +73,8 @@ def test_duckdb_case_and_stage_queries_execute_on_arrow_authority():
     assert case["recall_rank"].to_pylist() == sorted(
         case["recall_rank"].to_pylist()
     )
+    exposed = case.filter(case["exposed"])
+    assert min(exposed["exposed_position"].to_pylist()) == 0
     stages = {
         row[0]
         for row in connection.execute(
@@ -79,3 +82,18 @@ def test_duckdb_case_and_stage_queries_execute_on_arrow_authority():
         ).fetchall()
     }
     assert {"coarse_filter", "fine_filter", "mixer_drop", "exposed"} <= stages
+
+
+def test_seeded_failures_are_independently_diagnosed():
+    tables = seed_diagnostic_failures(build_full_flow_tables(_snapshot()))
+    connection = duckdb.connect()
+    register_full_flow(connection, tables)
+    install_diagnostics(
+        connection,
+        ROOT / "sql" / "duckdb" / "v4_full_flow_diagnostics.sql",
+    )
+    assert connection.execute("SELECT count(*) FROM v4_recall_miss").fetchone()[0] == 1
+    assert connection.execute("SELECT count(*) FROM v4_orphan_events").fetchone()[0] == 1
+    assert connection.execute(
+        "SELECT count(*) FROM v4_checkpoint_health WHERE unhealthy"
+    ).fetchone()[0] == 1

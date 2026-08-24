@@ -96,7 +96,7 @@ SELECT
     candidate.content_kind,
     candidate.country AS item_country,
     candidate.region AS item_region,
-    candidate.content_age,
+    intDiv(candidate.content_age, 96) AS content_age_days,
     candidate.drop_stage,
     count() AS candidates
 FROM v4_candidate_decision_log AS candidate
@@ -129,15 +129,17 @@ WHERE example.authority = 'recall'
 SELECT event.*
 FROM v4_event_log AS event
 LEFT JOIN v4_request_log AS request USING (request_id)
-WHERE event.request_id >= 0 AND request.request_id IS NULL;
+WHERE event.request_id >= 0
+  AND event.user_id >= 0
+  AND request.request_id IS NULL;
 
 -- Checkpoint age and failed/fallback snapshots.
 SELECT
     lane,
     model_name,
     checkpoint_version,
-    max(data_watermark) AS data_watermark,
-    max(created_time - data_watermark) AS checkpoint_age,
+    max(data_watermark) AS latest_data_watermark,
+    max(created_time - v4_checkpoint_log.data_watermark) AS checkpoint_age,
     any(validation_status) AS validation_status,
     any(publish_state) AS publish_state,
     any(fallback_version) AS fallback_version

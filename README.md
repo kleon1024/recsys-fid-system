@@ -200,6 +200,10 @@ The [100K-user/2M-item RTX 4090 full-flow benchmark](reports/benchmarks/2026-08-
 materializes 44.66M rows in 74.34 seconds with 4.25 GiB peak CUDA memory and
 5.02 GiB peak process RSS. This is logging/materialization throughput evidence,
 not recommendation-quality evidence.
+The [ClickHouse 25.8 fixture review](reports/benchmarks/2026-08-25-digital-twin-v4-clickhouse-fixture.json)
+executes the same Parquet authority and diagnostic SQL on an official server
+image. It caught and closed checkpoint aliasing, false supply-event orphans and
+zero/one-based exposure-position drift that DuckDB-only validation missed.
 The reference cascade now emits real stage traces from
 FAISS HNSW ANN, sparse co-visit Graph, Geo, Fresh, Long-tail, Popular, triggered
 Search and Retarget routes, followed by RRF, coarse, sequence-aware fine rank

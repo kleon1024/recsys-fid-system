@@ -51,7 +51,7 @@ materialized a 32-request fixture with all seven Parquet tables, table hashes,
 932 raw-route rows, 612 merged candidate decisions, 525 events, 1,632 task-label
 rows, 625 training examples and one checkpoint. This proves table closure and
 query execution at fixture scale; it does not yet prove GPU-scale logging cost,
-ClickHouse-server execution or all seeded failure classes.
+all seeded failure classes.
 
 The RTX 4090 P0 standard run now covers 100K users, 2M catalog items and
 44,658,634 persisted rows. It completed in 74.34 seconds with 4.25 GiB peak
@@ -404,10 +404,13 @@ Status: in progress.
 - [Done] Migrate raw route outputs atomically through `RetrievalResult`,
   `RequestCandidateTrace`, Joiner, materializer and fixture tests while keeping
   scores out of the user-world `RenderedSlateBatch` boundary.
-- Add seeded recall miss, checkpoint/index mismatch, immature label and orphan
-  event cases to the fixture and prove every diagnostic independently.
-- Execute ClickHouse SQL against a real local/server fixture, not only string
-  contracts and DuckDB-equivalent semantics.
+- [Done] Add an explicitly non-training failure fixture with one recall miss,
+  request-bound orphan and rejected/index-mismatched checkpoint; DuckDB and
+  ClickHouse independently detect exactly one of each. The normal fixture also
+  proves immature labels remain censored rather than zero-filled.
+- [Done] Execute all diagnostic SQL against ClickHouse 25.8.32.4. This found and
+  closed aggregate-alias shadowing, false inventory/bid orphans and exposure
+  position base drift that the DuckDB-equivalent fixture did not expose.
 - Remove v4 dependence on legacy table names and generic score fields after
   consumer parity is measured.
 - Verify the trace tensor/memory budget before keeping route-level raw outputs

@@ -163,6 +163,11 @@ def _candidate_table(snapshot: FullFlowSnapshot) -> pa.Table:
     request_time = trace.event_time[:, None].expand_as(
         trace.recall_item_id
     )[valid]
+    exposed_position = torch.where(
+        exposed,
+        exposed_rank - 1,
+        torch.full_like(exposed_rank, -1),
+    )
     return pa.table({
         "request_id": _numpy(request[valid]),
         "item_id": _numpy(item),
@@ -187,7 +192,7 @@ def _candidate_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "fine_rank": _numpy(fine_rank[valid]),
         "fine_score": _numpy(fine_score[valid]),
         "exposed": _numpy(exposed[valid]),
-        "exposed_position": _numpy(exposed_rank[valid]),
+        "exposed_position": _numpy(exposed_position[valid]),
         "drop_stage": drop[_numpy(valid)],
     })
 

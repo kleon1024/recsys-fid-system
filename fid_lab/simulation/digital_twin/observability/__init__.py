@@ -2,6 +2,7 @@
 
 from .contracts import CheckpointRecord, FullFlowSnapshot
 from .fixture import FullFlowFixtureConfig, build_full_flow_fixture
+from .failure_fixture import seed_diagnostic_failures
 from .store import FULL_FLOW_SCHEMA_VERSION, materialize_full_flow
 from .tables import TABLE_NAMES, build_full_flow_tables, iter_full_flow_tables
 
@@ -15,4 +16,5 @@ __all__ = (
     "build_full_flow_fixture",
     "iter_full_flow_tables",
     "materialize_full_flow",
+    "seed_diagnostic_failures",
 )

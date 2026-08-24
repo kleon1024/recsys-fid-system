@@ -11,6 +11,7 @@ from tempfile import NamedTemporaryFile
 import pyarrow.parquet as pq
 
 from .contracts import FullFlowSnapshot
+from .failure_fixture import seed_diagnostic_failures
 from .tables import iter_full_flow_tables
 
 
@@ -37,13 +38,20 @@ def materialize_full_flow(
     output_dir: Path,
     *,
     row_group_size: int = 131_072,
+    seed_failures: bool = False,
 ) -> dict[str, object]:
     """Write one immutable full-flow partition and its content manifest."""
     if row_group_size <= 0:
         raise ValueError("row_group_size must be positive")
     output_dir.mkdir(parents=True, exist_ok=True)
+    if seed_failures and len(snapshot.trace.request_id) > 10_000:
+        raise ValueError("diagnostic failure fixture is limited to 10K requests")
+    table_items = iter_full_flow_tables(snapshot)
+    if seed_failures:
+        table_items = iter(seed_diagnostic_failures(dict(table_items)).items())
     manifest: dict[str, object] = {
         "schema": FULL_FLOW_SCHEMA_VERSION,
+        "diagnostic_failure_injection": seed_failures,
         "event_watermark": snapshot.samples.event_watermark,
         "trace_manifest": {
             "schema_version": snapshot.trace.manifest.schema_version,
@@ -58,7 +66,7 @@ def materialize_full_flow(
         },
         "tables": {},
     }
-    for name, table in iter_full_flow_tables(snapshot):
+    for name, table in table_items:
         path = output_dir / f"{name}.parquet"
         with NamedTemporaryFile(
             dir=output_dir,
