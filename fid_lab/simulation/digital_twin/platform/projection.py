@@ -144,6 +144,12 @@ class ObservableProjection:
             self.state.clone(), int(self.state.last_ingest_time),
         )
 
+    def view(self) -> ProjectionSnapshot:
+        """Immutable-by-kernel-lifetime view used during one serving microbatch."""
+        return ProjectionSnapshot(
+            self.state, int(self.state.last_ingest_time),
+        )
+
     def _profiles(self, events: AppEventBatch) -> None:
         valid = events.user_id >= 0
         user = events.user_id[valid]

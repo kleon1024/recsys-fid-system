@@ -62,14 +62,15 @@ def build_trace():
         exposure_probability=torch.ones(2, 2),
         experiment_cell=torch.tensor([0, 1]),
         assignment_probability=torch.tensor([0.05, 0.05]),
+        recall_version_id=torch.tensor([1, 1]),
+        coarse_version_id=torch.tensor([1, 2]),
+        fine_version_id=torch.tensor([1, 2]),
+        mix_version_id=torch.tensor([1, 2]),
         manifest=TraceManifest(
             schema_version="request-candidate-trace-v1",
             feature_version="feature-v1",
             catalog_version="catalog-v1",
-            recall_version="recall-v1",
-            coarse_version="coarse-v1",
-            fine_version="fine-v1",
-            mix_version="mix-v1",
+            policy_registry_version="policy-registry-v1",
         ),
     )
 

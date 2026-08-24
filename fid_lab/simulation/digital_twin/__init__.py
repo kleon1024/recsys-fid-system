@@ -14,15 +14,28 @@ from .engine import (
     AtomicSimulationKernel,
     ExperimentAssignment,
     ExperimentPlan,
+    LayerAssignmentTrace,
     TickResult,
 )
 from .event_log import ObservableEventLog
-from .platform import ObservableProjection, ProjectionSnapshot
-from .samples import (
-    JoinerConfig,
+from .experiments.layered import LayeredExperimentPlan, PolicyLayer
+from .platform import (
+    CascadePolicy,
+    ObservableProjection,
+    ProjectionSnapshot,
+    RankingConfig,
+    ReferencePlatformConfig,
+    ReferenceRecommendationPlatform,
+    RetrievalConfig,
+)
+from .samples.contracts import (
     RequestCandidateTrace,
-    RequestLevelJoiner,
+    ServingOutput,
     TraceManifest,
+)
+from .samples.joiner import (
+    JoinerConfig,
+    RequestLevelJoiner,
     capture_request_context,
 )
 from .world import (
@@ -37,25 +50,34 @@ from .world import (
 __all__ = (
     "AppEventBatch",
     "AtomicSimulationKernel",
+    "CascadePolicy",
     "ContentKind",
     "DelayedOutcomeQueue",
     "EventType",
     "ExperimentAssignment",
     "ExperimentPlan",
+    "LayerAssignmentTrace",
+    "LayeredExperimentPlan",
     "HiddenSupplyState",
     "JoinerConfig",
     "ObservableEventLog",
     "ObservableProjection",
     "PlatformRequestBatch",
+    "PolicyLayer",
     "PublicCatalog",
     "ProjectionSnapshot",
     "RequestCandidateTrace",
     "RequestLevelJoiner",
+    "RankingConfig",
+    "ReferencePlatformConfig",
+    "ReferenceRecommendationPlatform",
     "RenderedSlateBatch",
+    "ServingOutput",
     "Surface",
     "SupplyEcosystem",
     "TickResult",
     "TraceManifest",
+    "RetrievalConfig",
     "UserEcosystemWorld",
     "UserWorldConfig",
     "UserWorldSnapshot",

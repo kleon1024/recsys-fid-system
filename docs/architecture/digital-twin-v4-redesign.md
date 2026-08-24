@@ -28,18 +28,26 @@ Status: design authority; implementation is not complete.
 - RequestCandidateTrace 强制 coarse⊆recall、fine⊆coarse、exposed⊆fine；Recall、Coarse、
   Fine 三套样本由同一 watermark-aware Joiner 生成，但保留不同的观测边界。未曝光候选
   只能携带 route/sampling probability/teacher score，不能伪造行为负标签。
+- Reference serving 已接入 FAISS HNSW ANN、行为 co-visit graph、region Geo、Fresh、
+  Long-tail、Popular、query-triggered Search 和 history-triggered Retarget 八路独立候选，
+  通过 RRF→coarse→sequence-aware fine→diversity rerank 生成完整 stage trace。
+- V4 已支持不同实验层独立分桶、参数所有权校验、请求级 policy 合成和全层 assignment
+  trace；每个请求仍只产生一个事实 slate。逐项 Feed 召回 Launch Review runner 已通过本地
+  smoke，尚未完成 4090 powered run。
 - RTX 4090 已验证 500K 用户、2M item、16M candidate 的单 event-time 微批；报告见
   `reports/benchmarks/2026-08-24-digital-twin-v4-world-kernel-4090.json`。
 
-尚未落地：真实多路召回与新模型 ladder。Request-level trace 和 Joiner contract 已落地，
-但当前 throughput platform 尚未产生真实 recall/coarse/fine trace，因此它还不能作为模型
-训练 authority。当前证据只证明因果边界、用户/供给行为、迟到与样本语义，不证明推荐质量
-或业务增量。
+尚未落地：基于新 authority 的公平模型 ladder、持续更新的 Joiner/trainer/PS 多 lane、
+powered launch review。真实 serving
+trace 已可作为训练输入，但尚未证明 Two-Tower、LR、XGBoost、W&D、DeepFM、DCNv2 或
+MMoE 的相对效果。当前证据证明因果边界、候选链路、用户/供给行为、迟到与样本语义；不证明
+模型或业务增量。
 
 ## 1. 决策
 
-当前系统已经证明 GPU tensor execution、多 surface 状态、request trace、连续训练和
-mixed-world A/B 可以跑通，但尚未证明模型收益可信。问题不是单一 DGP 公式，而是
+历史系统已经分别证明 GPU tensor execution、多 surface 状态、request trace、连续训练和
+mixed-world A/B 的局部机制可以跑通，但 V4 尚未把它们闭合为一条持续更新链路，也未证明
+模型收益可信。问题不是单一 DGP 公式，而是
 hidden world、platform state、样本语义、score composition、共享供给和实验估计之间
 缺少一个可执行的因果边界。
 
@@ -259,6 +267,40 @@ cell 读取同一不可变 snapshot，且任何状态都只能在 Phase B 统一
 `event_time < ingest_time`。Feature projection 按 ingest time 更新，label maturity 按保守
 event watermark 判断，任何未交付事件都不能出现在训练或在线特征里。
 
+### 6.1 持续更新不变量
+
+推荐业务不存在“训练一次后长期冻结”的正常线上状态。真正差异只是 update cadence：
+
+```text
+event-level streaming
+hourly nearline partition
+daily partitioned microbatch
+```
+
+三者都必须由同一持续学习协议表达。每个成熟 sample partition 按不可变 example ID fan-out
+给当前模型和候选模型；各 trainer 拥有独立 optimizer、PS namespace 和 checkpoint，但消费
+相同的 Joiner authority、watermark 和样本闭包。A/B 期间新旧模型均继续更新，线上请求按
+实验层调用各 lane 最新通过 snapshot gate 的 checkpoint。
+
+实验曝光会改变后续公共样本，这是事实闭环，不得通过复制 control/treatment user world
+消除。默认比较的是“共享事实数据流下两套持续学习 policy”的差异。若 treatment 流量足以
+改变全局训练分布、创作者供给或市场状态，需要 reverse holdout、region-time/creator cluster
+或独立 learner pool 估计生态总效应，并报告 interference，而不能继续使用无干扰假设。
+
+每个 served request 必须记录：
+
+```text
+joiner version and sample watermark
+trainer lane and optimizer lineage
+checkpoint/model/embedding/index version
+feature/FID manifest
+all experiment-layer assignments and probabilities
+```
+
+模型 snapshot 只能在 partition/microbatch 边界原子切换。每个 snapshot 在服务前执行数据
+闭包、loss/score 分布、离在线 replay、延迟/fallback 和 guardrail validation；失败 snapshot
+不得阻塞事实事件流，只阻止该 checkpoint 成为该 lane 的 serving authority。
+
 ## 7. Hidden ecosystem / DGP
 
 ### 7.1 Hierarchical population
@@ -439,6 +481,9 @@ hyperparameter search budget, seed set
 - 参数量、实际 touched embeddings、吞吐、P50/P99、峰值显存。
 - calibration 与最终 served ranking delta。
 
+Frozen benchmark 只回答可复现的模型诊断问题，不代表线上模型冻结运行，也不能替代持续
+更新 A/B。
+
 ### 11.2 Continuous learning
 
 与 frozen benchmark 分开。continuous loop 验证：
@@ -447,15 +492,17 @@ hyperparameter search budget, seed set
 factual mixed traffic
 → delayed events mature
 → feature/sample DAG
-→ train candidate artifact
-→ shadow/OPE
-→ powered A/B
+→ immutable sample partition/sample bus
+→ fan-out to active and candidate trainer lanes
+→ synchronized checkpoint validation
+→ shadow/OPE and continuously updated powered A/B
 → pass/hold/reject
 → next factual window
 ```
 
-失败实验产生的真实 treatment traffic 会进入后续样本，但 candidate artifact 不会成为
-active control。
+失败实验产生的真实 treatment traffic 会进入公共事实样本，active/candidate lane 均消费它；
+失败的候选 lane 不能成为 active control，但原 active lane 也不是冻结权重。小时级和天级训练
+使用相同协议，只是 sample partition 和 checkpoint publish cadence 不同。
 
 ### 11.3 Experiment units
 
@@ -532,6 +579,10 @@ samples.coarse
 samples.fine
 models.candidate
 evaluation.shadow
+learning.sample_bus
+learning.active_lane
+learning.candidate_lane
+learning.snapshot_validation
 experiment.mixed_ab
 release.decision
 world.factual_successor
@@ -575,9 +626,11 @@ Acceptance：latent intervention 只改变 future observable events；无 event 
 
 - 落地 append-only events、late queue、watermark、dedup、typed attribution。
 - 重建 online/offline feature parity 和三套 sample authority。
+- 建立不可变 partition/sample bus；相同成熟 example IDs 可幂等 fan-out 给多个 trainer lane。
 
 Acceptance：future leakage、selected-item mask、join explosion、duplicate/late/orphan Pixel
-mutation tests全部失败闭合；ClickHouse fixture 与 tensor materialization 一致。
+mutation tests全部失败闭合；ClickHouse fixture 与 tensor materialization 一致；重放同一
+partition 不产生重复更新，不同 cadence 不改变样本内容。
 
 ### Phase 4 — Real retrieval and stage serving
 
@@ -588,13 +641,16 @@ mutation tests全部失败闭合；ClickHouse fixture 与 tensor materialization
 Acceptance：每条 route 有独立 corpus/query/index；recall miss、coarse drop、fine error、mix drop
 可由同一 request trace 唯一定位。
 
-### Phase 5 — Frozen model ladder
+### Phase 5 — Diagnostic model ladder and continuous trainer lanes
 
 - LR/XGBoost/W&D/DeepFM/DCNv2 使用合理且同预算 tuning。
 - 加 DIN/Transformer/MMoE/PLE 和 point-in-time sequence。
 - 加 Two-Tower/Multi-interest retrieval 与 coarse distillation。
+- 每个 active/candidate architecture 使用独立 trainer/optimizer/PS namespace，消费同一事实
+  sample bus；按小时/天/stream profile 发布经过 snapshot gate 的 checkpoint。
 
-Acceptance：同一 frozen dataset/candidates/weights；request/per-surface metrics、calibration、
+Acceptance：同一 frozen dataset/candidates/weights 的离线诊断完整；持续 lane 的 example ID、
+watermark、step 和 checkpoint lineage 可逐项对账；request/per-surface metrics、calibration、
 latency、memory 完整；至少一个 nonlinear-capacity scenario 能被复杂模型学习，且该收益在
 unseen DGP family 仍存在。
 
@@ -602,6 +658,8 @@ unseen DGP family 仍存在。
 
 - 逐项开 retrieval/coarse/fine/feature/realtime/calibration/VT/mix/product experiments。
 - A/B 影响后续 factual samples、retention 和 supply。
+- 实验跨多个 checkpoint 持续运行；active/candidate 都训练，effect estimator 按 event-time、
+  checkpoint 和实验层分层，并审计 shared-training interference。
 
 Acceptance：至少一条 pass、一条 hold、一条 reject 有明确因果诊断；last accepted control、
 rollback、MDE、guardrail 和 interference 均闭合。
@@ -637,7 +695,7 @@ public scan 全通过；文档与运行 manifest 同版本。
 | RNG | task/channel/batch/shard 独立且 partition invariant |
 | Behavior | request、session、retention marginal/conditional/sequence statistics 通过 calibration |
 | Samples | impression space、conditional funnel、maturity、propensity、late attribution 正确 |
-| Models | frozen fair benchmark；complexity scenario 与 linear scenario 都能区分 |
+| Models | frozen fair diagnostic；共享样本多 lane 持续更新；complexity 与 linear scenario 可区分 |
 | Serving | exact artifact/FID/feature/index replay；score composition affine-invariant |
 | A/B | A/A、SRM、MDE、unit、arm-order、interference、last-control 全闭合 |
 | Ecosystem | user retention、creator supply、inventory、ads market 在 mixed world 连续演进 |
@@ -657,5 +715,14 @@ public scan 全通过；文档与运行 manifest 同版本。
   user/item side information，适合校准 exposure bias、multi-task 与 long sequence。
 - [T-RECS](https://arxiv.org/abs/2107.08959) 将用户、内容生产者与算法视为一个
   sociotechnical multi-stakeholder system，并强调可复现 simulation assumption。
+- [Instagram Explore scaling](https://engineering.fb.com/2023/08/09/ml-applications/scaling-instagram-explore-recommendations-system/)
+  公开描述多阶段 retrieval/ranking，以及新数据到达后小时级 continual online training。
+- [Monolith](https://arxiv.org/abs/2209.07663) 将短视频/广告的实时反馈、在线训练、稀疏
+  embedding 生命周期和容错作为同一个生产系统问题。
+- [Meta prediction robustness](https://engineering.fb.com/2024/07/10/data-infrastructure/machine-learning-ml-prediction-robustness-meta/)
+  说明频繁 model/feature refresh 需要对每个 snapshot 做实时 validation，而不能只验证一次
+  launch artifact。
+- [LinkedIn incremental recommendation](https://arxiv.org/abs/2108.13299)
+  说明工业推荐同时需要复杂大数据训练与频繁模型更新，二者不应被建成两条互斥路径。
 
 本项目复用这些架构原则和公开数据校准协议，不声称重现任何公司内部公式、数据或指标。

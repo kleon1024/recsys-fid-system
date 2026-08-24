@@ -10,7 +10,7 @@ from ...randomness.counter import uniform_for_items
 from ..catalog import PublicCatalog
 from ..contracts import AppEventBatch, ContentKind, EventType, Surface
 from ..contracts import deterministic_event_id
-from ..platform import ProjectionSnapshot
+from ..platform.projection import ProjectionSnapshot
 from .contracts import (
     CoarseRankExampleBatch,
     FineRankExampleBatch,
@@ -295,6 +295,10 @@ class RequestLevelJoiner:
             served_score=served_score,
             exposure_probability=trace.exposure_probability,
             assignment_probability=trace.assignment_probability,
+            recall_version_id=trace.recall_version_id,
+            coarse_version_id=trace.coarse_version_id,
+            fine_version_id=trace.fine_version_id,
+            mix_version_id=trace.mix_version_id,
             labels=labels,
             label_mask=label_mask,
             dwell_ms=dwell,
@@ -349,6 +353,9 @@ class RequestLevelJoiner:
             hard_label_mask=exposed & observed,
             teacher_score=teacher_score,
             teacher_mask=teacher_mask,
+            recall_version_id=trace.recall_version_id,
+            coarse_version_id=trace.coarse_version_id,
+            fine_version_id=trace.fine_version_id,
             context=context,
         )
 
@@ -424,6 +431,7 @@ class RequestLevelJoiner:
             surface=trace.surface[selected],
             positive_item_id=positive_item[selected],
             positive_strength=positive_strength[selected],
+            recall_version_id=trace.recall_version_id[selected],
             negative_item_id=negative[selected],
             negative_source=negative_source[selected],
             negative_sampling_probability=negative_probability[selected],

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 
 import torch
+
+from ..contracts import RenderedSlateBatch
 
 
 def _aligned(name: str, value: torch.Tensor, shape: tuple[int, ...]) -> None:
@@ -54,10 +56,7 @@ class TraceManifest:
     schema_version: str
     feature_version: str
     catalog_version: str
-    recall_version: str
-    coarse_version: str
-    fine_version: str
-    mix_version: str
+    policy_registry_version: str
 
 
 @dataclass(frozen=True)
@@ -80,6 +79,10 @@ class RequestCandidateTrace:
     exposure_probability: torch.Tensor
     experiment_cell: torch.Tensor
     assignment_probability: torch.Tensor
+    recall_version_id: torch.Tensor
+    coarse_version_id: torch.Tensor
+    fine_version_id: torch.Tensor
+    mix_version_id: torch.Tensor
     manifest: TraceManifest
 
     def __post_init__(self):
@@ -90,6 +93,10 @@ class RequestCandidateTrace:
             "event_time",
             "experiment_cell",
             "assignment_probability",
+            "recall_version_id",
+            "coarse_version_id",
+            "fine_version_id",
+            "mix_version_id",
         ):
             _aligned(name, getattr(self, name), (requests,))
         recall = self.recall_item_id.shape[1]
@@ -162,6 +169,40 @@ class RequestCandidateTrace:
         ).any():
             raise ValueError("assignment_probability must be in (0, 1]")
 
+    def select(self, selected: torch.Tensor) -> RequestCandidateTrace:
+        values = {
+            field.name: (
+                self.manifest
+                if field.name == "manifest"
+                else getattr(self, field.name)[selected]
+            )
+            for field in fields(self)
+        }
+        return RequestCandidateTrace(**values)
+
+    @classmethod
+    def concatenate(
+        cls, traces: tuple[RequestCandidateTrace, ...],
+    ) -> RequestCandidateTrace:
+        if not traces:
+            raise ValueError("cannot concatenate an empty trace collection")
+        manifest = traces[0].manifest
+        if any(trace.manifest != manifest for trace in traces[1:]):
+            raise ValueError("candidate trace manifests differ")
+        values = {
+            field.name: (
+                manifest
+                if field.name == "manifest"
+                else torch.cat(tuple(
+                    getattr(trace, field.name) for trace in traces
+                ))
+            )
+            for field in fields(cls)
+        }
+        merged = cls(**values)
+        order = torch.argsort(merged.request_id, stable=True)
+        return merged.select(order)
+
 
 @dataclass(frozen=True)
 class RequestContextBatch:
@@ -204,6 +245,47 @@ class RequestContextBatch:
         ).any():
             raise ValueError("request history contains future ingestion")
 
+    def select(self, selected: torch.Tensor) -> RequestContextBatch:
+        return RequestContextBatch(**{
+            field.name: getattr(self, field.name)[selected]
+            for field in fields(self)
+        })
+
+    @classmethod
+    def concatenate(
+        cls, contexts: tuple[RequestContextBatch, ...],
+    ) -> RequestContextBatch:
+        if not contexts:
+            raise ValueError("cannot concatenate an empty context collection")
+        merged = cls(**{
+            field.name: torch.cat(tuple(
+                getattr(context, field.name) for context in contexts
+            ))
+            for field in fields(cls)
+        })
+        order = torch.argsort(merged.request_id, stable=True)
+        return merged.select(order)
+
+
+@dataclass(frozen=True)
+class ServingOutput:
+    slate: RenderedSlateBatch
+    candidate_trace: RequestCandidateTrace | None = None
+    request_context: RequestContextBatch | None = None
+
+    def __post_init__(self):
+        if (self.candidate_trace is None) != (self.request_context is None):
+            raise ValueError("candidate trace and request context must coexist")
+        if self.candidate_trace is None:
+            return
+        trace = self.candidate_trace
+        if not torch.equal(self.slate.request_id, trace.request_id):
+            raise ValueError("serving slate and candidate trace requests differ")
+        if not torch.equal(self.slate.item_ids, trace.exposed_item_id):
+            raise ValueError("serving slate and trace exposures differ")
+        if not torch.equal(self.slate.positions, trace.exposed_position):
+            raise ValueError("serving slate and trace positions differ")
+
 
 @dataclass(frozen=True)
 class FineRankExampleBatch:
@@ -216,6 +298,10 @@ class FineRankExampleBatch:
     served_score: torch.Tensor
     exposure_probability: torch.Tensor
     assignment_probability: torch.Tensor
+    recall_version_id: torch.Tensor
+    coarse_version_id: torch.Tensor
+    fine_version_id: torch.Tensor
+    mix_version_id: torch.Tensor
     labels: torch.Tensor
     label_mask: torch.Tensor
     dwell_ms: torch.Tensor
@@ -234,6 +320,9 @@ class CoarseRankExampleBatch:
     hard_label_mask: torch.Tensor
     teacher_score: torch.Tensor
     teacher_mask: torch.Tensor
+    recall_version_id: torch.Tensor
+    coarse_version_id: torch.Tensor
+    fine_version_id: torch.Tensor
     context: RequestContextBatch
 
 
@@ -244,6 +333,7 @@ class RecallExampleBatch:
     surface: torch.Tensor
     positive_item_id: torch.Tensor
     positive_strength: torch.Tensor
+    recall_version_id: torch.Tensor
     negative_item_id: torch.Tensor
     negative_source: torch.Tensor
     negative_sampling_probability: torch.Tensor

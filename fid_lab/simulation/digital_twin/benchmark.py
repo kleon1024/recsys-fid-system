@@ -18,7 +18,7 @@ from .contracts import (
 )
 from .engine import AtomicSimulationKernel, ExperimentPlan
 from .event_log import ObservableEventLog
-from .platform import ObservableProjection
+from .platform import ObservableProjection, open_platform_requests
 from .world import UserEcosystemWorld, UserWorldConfig
 
 
@@ -53,13 +53,7 @@ class TransportBenchmarkPlatform:
     def open_requests(
         self, entry_events: AppEventBatch,
     ) -> PlatformRequestBatch:
-        selected = entry_events.event(EventType.SURFACE_ENTRY)
-        return PlatformRequestBatch(
-            request_id=entry_events.request_id[selected],
-            user_id=entry_events.user_id[selected],
-            surface=entry_events.surface[selected],
-            event_time=entry_events.event_time[selected],
-        )
+        return open_platform_requests(entry_events)
 
     def render(
         self,

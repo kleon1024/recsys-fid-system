@@ -10,13 +10,13 @@ from fid_lab.simulation.digital_twin import (
     ExperimentPlan,
     ObservableEventLog,
     ObservableProjection,
-    PlatformRequestBatch,
     RenderedSlateBatch,
     UserEcosystemWorld,
     UserWorldConfig,
     build_public_catalog,
 )
 from fid_lab.simulation.digital_twin.platform.projection import USER_COUNTER_EVENTS
+from fid_lab.simulation.digital_twin.platform.requests import open_platform_requests
 
 
 def build_world(users=256, items=720):
@@ -70,13 +70,7 @@ class CatalogPlatform:
         return self.events
 
     def open_requests(self, entry_events):
-        selected = entry_events.event(EventType.SURFACE_ENTRY)
-        return PlatformRequestBatch(
-            request_id=entry_events.request_id[selected],
-            user_id=entry_events.user_id[selected],
-            surface=entry_events.surface[selected],
-            event_time=entry_events.event_time[selected],
-        )
+        return open_platform_requests(entry_events)
 
     def render(
         self, snapshot, requests, policy, experiment_cell,

@@ -179,9 +179,13 @@ separate occurrence and ingestion times, and a point-in-time projection updates
 user counters, sequences, item/creator statistics and supply state only after
 delivery. A watermark-aware request-level Joiner now materializes separate
 Recall, Coarse and Fine authorities and refuses to label unexposed candidates
-as behavioral negatives. The throughput platform does not yet emit real stage
-traces, so real retrieval and the frozen model ladder remain open migration
-phases.
+as behavioral negatives. The reference cascade now emits real stage traces from
+FAISS HNSW ANN, sparse co-visit Graph, Geo, Fresh, Long-tail, Popular, triggered
+Search and Retarget routes, followed by RRF, coarse, sequence-aware fine rank
+and diversity reranking. See the
+[reference cascade screen](reports/benchmarks/2026-08-24-digital-twin-v4-reference-cascade-4090.json).
+The frozen model ladder and continuous launch reviews remain open; no current
+evidence says LR or a deep model is best on v4.
 
 ```mermaid
 flowchart LR

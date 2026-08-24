@@ -78,10 +78,11 @@ class PlatformRequestBatch:
     user_id: torch.Tensor
     surface: torch.Tensor
     event_time: torch.Tensor
+    query_topic: torch.Tensor
 
     def __post_init__(self):
         requests = len(self.request_id)
-        for name in ("user_id", "surface", "event_time"):
+        for name in ("user_id", "surface", "event_time", "query_topic"):
             _require_shape(name, getattr(self, name), (requests,))
 
     def select(self, selector) -> PlatformRequestBatch:

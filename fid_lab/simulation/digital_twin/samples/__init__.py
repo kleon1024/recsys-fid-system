@@ -7,25 +7,17 @@ from .contracts import (
     RecallExampleBatch,
     RequestCandidateTrace,
     RequestContextBatch,
+    ServingOutput,
     TraceManifest,
-)
-from .joiner import (
-    JoinerConfig,
-    LabelTask,
-    RequestLevelJoiner,
-    capture_request_context,
 )
 
 __all__ = (
     "CoarseRankExampleBatch",
     "FineRankExampleBatch",
     "JoinedSampleAuthorities",
-    "JoinerConfig",
-    "LabelTask",
     "RecallExampleBatch",
     "RequestCandidateTrace",
     "RequestContextBatch",
-    "RequestLevelJoiner",
+    "ServingOutput",
     "TraceManifest",
-    "capture_request_context",
 )

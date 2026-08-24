@@ -10,6 +10,11 @@ import torch
 from ..randomness.counter import uniform
 from .contracts import AppEventBatch, PlatformRequestBatch, RenderedSlateBatch
 from .event_log import ObservableEventLog
+from .samples.contracts import (
+    RequestCandidateTrace,
+    RequestContextBatch,
+    ServingOutput,
+)
 
 
 class EcosystemWorld(Protocol):
@@ -40,7 +45,7 @@ class RecommendationPlatform(Protocol):
         policy: object,
         experiment_cell: int,
         assignment_probability: torch.Tensor,
-    ) -> RenderedSlateBatch: ...
+    ) -> RenderedSlateBatch | ServingOutput: ...
 
 
 @dataclass(frozen=True)
@@ -52,6 +57,9 @@ class ExperimentAssignment:
     policies: Mapping[int, object]
     analysis_cells: tuple[int, ...] = (0, 1)
     default_cell: int | None = None
+    layer_names: tuple[str, ...] = ()
+    layer_cell_by_request: torch.Tensor | None = None
+    layer_probability_by_request: torch.Tensor | None = None
 
     def __post_init__(self):
         if self.probability_by_request.shape != self.cell_by_request.shape:
@@ -72,6 +80,16 @@ class ExperimentAssignment:
                 raise ValueError("default traffic cell must have a policy")
             if self.default_cell in self.analysis_cells:
                 raise ValueError("default traffic cannot enter experiment analysis")
+        if self.layer_names:
+            expected = (len(self.cell_by_request), len(self.layer_names))
+            if self.layer_cell_by_request is None:
+                raise ValueError("layer assignments are missing")
+            if self.layer_probability_by_request is None:
+                raise ValueError("layer probabilities are missing")
+            if self.layer_cell_by_request.shape != expected:
+                raise ValueError("layer assignments do not align with requests")
+            if self.layer_probability_by_request.shape != expected:
+                raise ValueError("layer probabilities do not align with requests")
 
     @property
     def experiment_mask(self) -> torch.Tensor:
@@ -173,6 +191,24 @@ class TickResult:
     experiment_requests: int
     baseline_requests: int
     cell_counts: dict[int, int]
+    candidate_trace: RequestCandidateTrace | None = None
+    request_context: RequestContextBatch | None = None
+    layer_assignment: LayerAssignmentTrace | None = None
+
+
+@dataclass(frozen=True)
+class LayerAssignmentTrace:
+    request_id: torch.Tensor
+    layer_names: tuple[str, ...]
+    cell_by_layer: torch.Tensor
+    probability_by_layer: torch.Tensor
+
+    def __post_init__(self):
+        expected = (len(self.request_id), len(self.layer_names))
+        if self.cell_by_layer.shape != expected:
+            raise ValueError("layer assignment trace has invalid cells")
+        if self.probability_by_layer.shape != expected:
+            raise ValueError("layer assignment trace has invalid probabilities")
 
 
 class AtomicSimulationKernel:
@@ -219,18 +255,32 @@ class AtomicSimulationKernel:
         if set(cells) != set(assignment.policies):
             raise ValueError("cell_order must contain every experiment cell once")
         proposals = []
+        traces = []
+        contexts = []
         cell_counts = {}
         for cell in cells:
             selected = assignment.cell_by_request == cell
             cell_counts[cell] = int(selected.sum())
             if not selected.any():
                 continue
-            slate = self.platform.render(
+            rendered = self.platform.render(
                 platform_snapshot, requests.select(selected),
                 assignment.policies[cell], cell,
                 assignment.probability_by_request[selected],
             )
-            proposals.append(self.world.respond(snapshot, slate))
+            output = (
+                rendered
+                if isinstance(rendered, ServingOutput)
+                else ServingOutput(rendered)
+            )
+            proposals.append(self.world.respond(snapshot, output.slate))
+            if output.candidate_trace is not None:
+                traces.append(output.candidate_trace)
+                contexts.append(output.request_context)
+        if traces and len(traces) != sum(
+            count > 0 for count in cell_counts.values()
+        ):
+            raise ValueError("every served experiment cell must emit a trace")
         response = AppEventBatch.concatenate(proposals)
         if len(response.ingest_time) and not (
             response.ingest_time == logical_time
@@ -244,6 +294,23 @@ class AtomicSimulationKernel:
         self.world.commit(response)
         self.event_log.append(response)
         self.platform.ingest(response)
+        candidate_trace = (
+            RequestCandidateTrace.concatenate(tuple(traces))
+            if traces else None
+        )
+        request_context = (
+            RequestContextBatch.concatenate(tuple(contexts))
+            if contexts else None
+        )
+        layer_trace = None
+        if assignment.layer_names:
+            layer_order = torch.argsort(requests.request_id, stable=True)
+            layer_trace = LayerAssignmentTrace(
+                requests.request_id[layer_order],
+                assignment.layer_names,
+                assignment.layer_cell_by_request[layer_order],
+                assignment.layer_probability_by_request[layer_order],
+            )
         return TickResult(
             logical_time=logical_time,
             entry_events=entry,
@@ -252,4 +319,7 @@ class AtomicSimulationKernel:
             experiment_requests=int(assignment.experiment_mask.sum()),
             baseline_requests=int((~assignment.experiment_mask).sum()),
             cell_counts=cell_counts,
+            candidate_trace=candidate_trace,
+            request_context=request_context,
+            layer_assignment=layer_trace,
         )
