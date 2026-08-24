@@ -1,0 +1,22 @@
+{
+  "schema": "recommendation-experiment-plan-v1",
+  "launch_id": "L-GOVERNANCE-002",
+  "phase": "screen",
+  "hypothesis": "A conservative integrity threshold plus light duplicate and author decay improves mature platform LT without violating Feed guardrails.",
+  "isolated_change": "Enable content-governance-v1 with max risk 0.75, duplicate penalty 0.02, and author penalty 0.01; POI pacing and creator boost remain disabled.",
+  "primary_metric": "lt_value_per_user",
+  "mde_absolute": 0.01,
+  "alpha": 0.05,
+  "power": 0.8,
+  "pilot_total_users": 100000,
+  "pilot_primary_standard_error": 0.018260592737002514,
+  "users_per_salt": 100000,
+  "salts": [610839777, 1082130431, 1640531527],
+  "control_fingerprint": "sha256:e8725f00e40408a844e32e39c7f35799a4a04931c6f82f7c159dbe2ace8df7b4",
+  "treatment_fingerprint": "sha256:ab0d9b96def87359baeb6f65c8acb4945fc959eded607f8b2d3b99d8276ce4b9",
+  "scenario_fingerprint": "sha256:affc1bf849b1ea162a02ab080d06f330fc9a725bfd21d342a0ad30a096d329c9",
+  "predecessor_report": "reports/launches/2026-08-24-L-GOVERNANCE-002-smoke.json",
+  "predecessor_report_sha256": "ae2221c8567390c8d3bf4d2e283da84a2bca15b8afc454cd99519c9b268f7d0b",
+  "registered_before_evidence": true,
+  "protocol_version": "recommendation-experiment-protocol-v1"
+}
