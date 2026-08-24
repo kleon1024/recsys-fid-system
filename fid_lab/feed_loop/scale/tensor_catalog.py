@@ -28,12 +28,50 @@ class TensorCatalog:
     duration_seconds: torch.Tensor
     author: torch.Tensor
     creator_need: torch.Tensor
+    duplicate_cluster: torch.Tensor
+    latent_integrity_risk: torch.Tensor
+    predicted_integrity_risk: torch.Tensor
+    latent_experience_quality: torch.Tensor
     behavior_sparse: torch.Tensor | None = None
     behavior_dense: torch.Tensor | None = None
 
     @property
     def size(self) -> int:
         return len(self.quality)
+
+
+def _governance_fields(item_ids, author, quality, catalog_seed, device):
+    generator = torch.Generator(device=device).manual_seed(catalog_seed + 1_013)
+    duplicate_draw = torch.rand(
+        len(item_ids), generator=generator, device=device
+    )
+    duplicate_parent = torch.div(item_ids, 8, rounding_mode="floor") * 8
+    duplicate_cluster = torch.where(
+        duplicate_draw < 0.14, duplicate_parent, item_ids
+    )
+    hidden_noise = torch.rand(len(item_ids), generator=generator, device=device)
+    creator_risk = torch.remainder(author * 48_271 + 17, 10_007).float() / 10_007
+    latent_risk = torch.sigmoid(
+        -2.2 + 2.0 * hidden_noise + 1.0 * (1.0 - quality)
+        + 0.7 * creator_risk + 0.6 * (duplicate_cluster != item_ids).float()
+    )
+    prediction_noise = 0.20 * torch.randn(
+        len(item_ids), generator=generator, device=device
+    )
+    predicted_risk = torch.sigmoid(
+        torch.logit(latent_risk.clamp(1e-5, 1 - 1e-5)) + prediction_noise
+    )
+    experience_quality = torch.clamp(
+        quality - 0.55 * latent_risk
+        - 0.12 * (duplicate_cluster != item_ids).float(),
+        0.0, 1.0,
+    )
+    return {
+        "duplicate_cluster": duplicate_cluster,
+        "latent_integrity_risk": latent_risk,
+        "predicted_integrity_risk": predicted_risk,
+        "latent_experience_quality": experience_quality,
+    }
 
 
 def build_tensor_catalog(config, generator, device: torch.device) -> TensorCatalog:
@@ -111,6 +149,9 @@ def build_tensor_catalog(config, generator, device: torch.device) -> TensorCatal
         author = torch.floor(
             author_draw.pow(2.4) * config.catalog_creators
         ).long().clamp_max(config.catalog_creators - 1)
+    governance = _governance_fields(
+        item_ids, author, quality, catalog_seed, device
+    )
     return TensorCatalog(
         topics=topics,
         category=category,
@@ -149,4 +190,5 @@ def build_tensor_catalog(config, generator, device: torch.device) -> TensorCatal
         ),
         author=author,
         creator_need=torch.zeros(config.catalog_items, device=device),
+        **governance,
     )

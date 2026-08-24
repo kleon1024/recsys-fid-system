@@ -15,7 +15,7 @@ from .lt_exchange import (
 )
 from .tensor_catalog import build_tensor_catalog
 from .graph.candidate import ROUTE_NAMES, build_candidate_graph
-from .graph.reporting import render_report
+from .graph.reporting import CELL_METRICS, PER_EXPOSURE_METRICS, render_report
 from .graph.trace import append_trace
 from .graph.random import uniform_for_items
 from .experiment.trigger import (
@@ -50,7 +50,16 @@ from .tensor_runtime.response import (
     sample_response,
 )
 from .tensor_runtime.local_response import sample_local_response
-from .tensor_runtime.state import advance_state, new_user_state
+from .tensor_runtime.state import (
+    advance_state,
+    new_user_state,
+    sample_terminal_retention,
+)
+
+
+USER_METRIC_COLUMN = {
+    name: index + 1 for index, name in enumerate(CELL_METRICS)
+}
 
 
 __all__ = [
@@ -85,9 +94,10 @@ def _sync(device: torch.device) -> None:
 
 def _user_rates(user_metrics):
     rates = user_metrics[:, 1:].clone()
-    rates[:, :16] /= user_metrics[:, :1].clamp_min(1.0)
-    rates[:, 19:23] /= user_metrics[:, :1].clamp_min(1.0)
-    rates[:, -1] /= user_metrics[:, 0].clamp_min(1.0)
+    exposure = user_metrics[:, :1].clamp_min(1.0)
+    for index, name in enumerate(CELL_METRICS):
+        if name in PER_EXPOSURE_METRICS:
+            rates[:, index] /= exposure[:, 0]
     return rates
 
 
@@ -172,6 +182,10 @@ def candidate_batch(config, generator, device, state, catalog, step, policy=None
         "duration": catalog.duration_seconds[item_ids],
         "author": catalog.author[item_ids],
         "creator_need": catalog.creator_need[item_ids],
+        "duplicate_cluster": catalog.duplicate_cluster[item_ids],
+        "latent_integrity_risk": catalog.latent_integrity_risk[item_ids],
+        "predicted_integrity_risk": catalog.predicted_integrity_risk[item_ids],
+        "latent_experience_quality": catalog.latent_experience_quality[item_ids],
     }
     if catalog.behavior_sparse is not None:
         batch["behavior_sparse"] = catalog.behavior_sparse[item_ids]
@@ -183,6 +197,34 @@ def candidate_batch(config, generator, device, state, catalog, step, policy=None
         )
         batch["stay_nonlinear"] = nonlinear_stay_adjustment(features)
     return batch
+
+
+def _served_candidate_values(selected, active):
+    return {
+        "selected_duration": selected["duration"] * active,
+        "coarse_oracle_survives": (
+            selected["coarse_oracle_survives"].float() * active
+        ),
+        "coarse_pass_fraction": selected["coarse_pass_fraction"] * active,
+        "oracle_regret": selected["oracle_regret"] * active,
+        "poi_candidate_fraction": selected["poi_candidate_fraction"] * active,
+        "stage_attribution": selected["stage_attribution"],
+        "route_valid_counts": selected["route_valid_counts"],
+        "unique_recall_count": selected["unique_recall_count"],
+        "predicted_integrity_risk": selected.get(
+            "predicted_integrity_risk", torch.zeros_like(selected["quality"])
+        ) * active,
+        "near_duplicate": selected.get(
+            "repeated_cluster", torch.zeros_like(active)
+        ) & active,
+        "repeated_author": selected.get(
+            "repeated_author", torch.zeros_like(active)
+        ) & active,
+        "selected_poi": selected["is_poi"].bool() & active,
+        "governance_eligible_fraction": selected.get(
+            "governance_eligible_fraction", torch.ones_like(selected["quality"])
+        ) * active,
+    }
 
 
 def sample_step(
@@ -204,7 +246,7 @@ def sample_step(
             state["fatigue"],
             state["satisfaction"],
             response_affinity,
-            selected["quality"],
+            selected.get("latent_experience_quality", selected["quality"]),
             selected.get("duration"),
             selected.get("stay_nonlinear"),
         )
@@ -240,16 +282,21 @@ def sample_step(
         stay, quality_view, like, negative, anchor, detail, favorite, paid,
         pixel, selected["commerce"],
     )
+    active = state["active"]
+    selected_ad = is_ad & active
+    selected_live = is_live & active
     effective_ad = is_ad & played
     ad_contribution = effective_ad.float() * selected["ad_value"]
-    opportunity_cost = is_ad.float() * selected["organic_opportunity_cost"]
+    opportunity_cost = (
+        selected_ad.float() * selected["organic_opportunity_cost"]
+    )
     lt_value += (
         ad_contribution
         * DEFAULT_LT_CONFIG.rates["accepted_commercialization_unit"].unit_value
     )
     ads_live_tree = (
         ad_contribution * BUSINESS_TREE_WEIGHTS["ad_value"]
-        + is_live.float()
+        + selected_live.float()
         * selected["live_value"]
         * BUSINESS_TREE_WEIGHTS["live_value"]
     )
@@ -265,24 +312,13 @@ def sample_step(
         "ads_live_value_tree": ads_live_tree,
         "anchor": anchor,
         "detail": detail, "favorite": favorite, "paid": paid, "pixel": pixel,
-        "ad_selected": is_ad,
+        "ad_selected": selected_ad,
         "effective_ad": effective_ad,
         "ad_contribution": ad_contribution,
         "organic_opportunity_cost": opportunity_cost,
-        "live_selected": is_live,
-        "selected_duration": selected["duration"],
-        "coarse_oracle_survives": (
-            selected["coarse_oracle_survives"].float() * state["active"]
-        ),
-        "coarse_pass_fraction": selected["coarse_pass_fraction"] * state["active"],
-        "oracle_regret": selected["oracle_regret"] * state["active"],
-        "poi_candidate_fraction": (
-            selected["poi_candidate_fraction"] * state["active"]
-        ),
-        "stage_attribution": selected["stage_attribution"],
-        "route_valid_counts": selected["route_valid_counts"],
-        "unique_recall_count": selected["unique_recall_count"],
+        "live_selected": selected_live,
     }
+    values.update(_served_candidate_values(selected, active))
     values.update({
         name: feed_events[name] for name in ("comment", "share", "follow")
     })
@@ -311,6 +347,13 @@ def _step_totals(config, state, values):
         values["oracle_regret"].sum(),
         values["poi_candidate_fraction"].sum(),
         values["selected_duration"].sum(),
+        values["predicted_integrity_risk"].sum(),
+        values["near_duplicate"].sum(),
+        values["repeated_author"].sum(), values["selected_poi"].sum(),
+        values["governance_eligible_fraction"].sum(),
+        values["comment"].sum(), values["share"].sum(),
+        values["follow"].sum(),
+        torch.zeros((), device=values["stay"].device),
     )).to(torch.float64)
 
 
@@ -358,6 +401,11 @@ def _measurement_user_values(active, values):
         values["stay"] / 60.0
         * DEFAULT_LT_CONFIG.rates["stay_minute"].unit_value,
         torch.zeros_like(values["stay"]), values["selected_duration"],
+        values["predicted_integrity_risk"], values["near_duplicate"],
+        values["repeated_author"], values["selected_poi"],
+        values["governance_eligible_fraction"],
+        values["played"], (values["stay"] >= 3.0) & active.bool(),
+        values["like"], values["comment"], values["share"], values["follow"],
     ), dim=1).float()
 
 
@@ -382,18 +430,25 @@ def _record_step(
     return _measurement_user_values(active, values)
 
 
-def _record_user_return(user_metrics, returned, return_value):
-    user_metrics[:, 5] += return_value
-    user_metrics[:, 17] += returned
-    user_metrics[:, 19] += return_value
-    user_metrics[:, 25] += return_value
+def _record_terminal_retention(totals, user_metrics, retained):
+    active_day_value = (
+        retained.float() * DEFAULT_LT_CONFIG.rates["active_day"].unit_value
+    )
+    totals[10] += active_day_value.sum()
+    totals[37] += retained.sum()
+    user_metrics[:, USER_METRIC_COLUMN[
+        "lt_value_per_exposure"
+    ]] += active_day_value
+    user_metrics[:, USER_METRIC_COLUMN["active_days_per_user"]] += retained
+    user_metrics[:, USER_METRIC_COLUMN["lt_value_per_user"]] += active_day_value
+    user_metrics[:, USER_METRIC_COLUMN[
+        "lt_active_days_per_user"
+    ]] += active_day_value
 
 
-def _record_return(totals, user_metrics, active, returned, return_value, first):
+def _record_return(totals, active, returned, first):
     totals[8] += active.sum() * int(first) + returned.sum()
     totals[9] += returned.sum()
-    totals[10] += return_value.sum()
-    _record_user_return(user_metrics, returned, return_value)
 
 
 @torch.inference_mode()
@@ -408,10 +463,14 @@ def _simulate_batches(
     trigger_kind,
     behavior_world,
 ):
-    totals = torch.zeros(29, dtype=torch.float64, device=device)
-    cell_stats = torch.zeros(2, 26, 3, dtype=torch.float64, device=device)
+    totals = torch.zeros(38, dtype=torch.float64, device=device)
+    cell_stats = torch.zeros(
+        2, len(CELL_METRICS), 3, dtype=torch.float64, device=device
+    )
     lt_exchange_stats = torch.zeros(2, 6, dtype=torch.float64, device=device)
-    trigger_cell_stats = torch.zeros(2, 26, 3, dtype=torch.float64, device=device)
+    trigger_cell_stats = torch.zeros(
+        2, len(CELL_METRICS), 3, dtype=torch.float64, device=device
+    )
     trigger_users = torch.zeros((), dtype=torch.long, device=device)
     candidate_diagnostics = torch.zeros(
         5 + len(ROUTE_NAMES) + 2, dtype=torch.float64, device=device
@@ -429,8 +488,9 @@ def _simulate_batches(
         )
         if behavior_world is not None:
             behavior_world.initialize_state(state)
-        user_metrics = torch.zeros(users, 27, device=device)
-        preperiod_metrics = torch.zeros(users, 27, device=device)
+        metric_columns = len(CELL_METRICS) + 1
+        user_metrics = torch.zeros(users, metric_columns, device=device)
+        preperiod_metrics = torch.zeros(users, metric_columns, device=device)
         trigger_cohort = torch.zeros(users, dtype=torch.bool, device=device)
         for step in range(config.steps):
             active_policy = (
@@ -461,18 +521,17 @@ def _simulate_batches(
                 preperiod_metrics += _measurement_user_values(
                     active_before, values
                 )
-            return_value, returned = advance_state(
+            _, returned = advance_state(
                 config, active_policy, generator, state, selected, values, step
             )
             if measured:
                 _record_return(
-                    totals, user_metrics, active_before, returned, return_value,
+                    totals, active_before, returned,
                     step == measurement_start_step,
                 )
-            else:
-                _record_user_return(
-                    preperiod_metrics, returned, return_value
-                )
+        _record_terminal_retention(
+            totals, user_metrics, sample_terminal_retention(config, state)
+        )
         _finalize_batch_metrics(
             config, cell_stats, trigger_cell_stats, lt_exchange_stats,
             paired_user_metrics, all_user_metrics, preperiod_user_metrics,

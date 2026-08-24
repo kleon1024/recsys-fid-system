@@ -214,10 +214,30 @@ def refresh_catalog(catalog, population, publishers, day, seed, behavior_world):
     author[slots] = publishers
     content_type = catalog.content_type.clone()
     content_type[slots] = 0
+    duplicate_cluster = catalog.duplicate_cluster.clone()
+    duplicate_cluster[slots] = slots
+    latent_integrity_risk = catalog.latent_integrity_risk.clone()
+    latent_integrity_risk[slots] = torch.sigmoid(
+        -1.8 + 1.4 * (1.0 - quality[slots])
+        + 0.5 * population.fatigue[publishers]
+    )
+    predicted_integrity_risk = catalog.predicted_integrity_risk.clone()
+    predicted_integrity_risk[slots] = torch.sigmoid(
+        torch.logit(latent_integrity_risk[slots].clamp(1e-5, 1 - 1e-5))
+        + 0.18 * normal(slots, day, 433, seed)
+    )
+    latent_experience_quality = catalog.latent_experience_quality.clone()
+    latent_experience_quality[slots] = torch.clamp(
+        quality[slots] - 0.55 * latent_integrity_risk[slots], 0.0, 1.0
+    )
     updated = replace(
         catalog, topics=topics, category=category, quality=quality,
         freshness=freshness, popularity=popularity, author=author,
         content_type=content_type, creator_need=need_by_creator[author],
+        duplicate_cluster=duplicate_cluster,
+        latent_integrity_risk=latent_integrity_risk,
+        predicted_integrity_risk=predicted_integrity_risk,
+        latent_experience_quality=latent_experience_quality,
     )
     return behavior_world.decorate_new_supply(
         updated, slots, category[slots], day

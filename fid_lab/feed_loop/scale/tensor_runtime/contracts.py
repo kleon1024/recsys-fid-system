@@ -9,7 +9,7 @@ from ....simulation.contracts import DEFAULT_SEARCH_EVENT_RATE
 
 DEFAULT_GPU_BATCH_USERS = 200_000
 CANDIDATE_GRAPH_VERSION = "multiroute-rrf-cascade-v3"
-EXTERNAL_MIXTURE_FEED_VERSION = "external-sequence-mixture-v4"
+EXTERNAL_MIXTURE_FEED_VERSION = "external-sequence-mixture-v5"
 LEGACY_LOCAL_SIGNAL_VERSION = "legacy-local-v1"
 LOCAL_NEURAL_SIGNAL_VERSION = "kuairand-local-neural-v4"
 

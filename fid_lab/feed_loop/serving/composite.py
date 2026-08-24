@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import torch
 
+from ..governance.contracts import ContentGovernanceConfig
+from ..governance.policy import govern_scores
 from .contracts import CandidateScoreBundle, CompositeValueTreeConfig
 from .value_tree import CompositeValueTree, request_standardize
 from ..scale.artifact.features import build_tensor_features
@@ -22,11 +24,13 @@ class CompositeTensorPolicy:
 
     def __init__(
         self, feed_policy, local_bundle, config=None, coarse_local_bundle=None,
+        governance_config: ContentGovernanceConfig | None = None,
     ):
         self.feed_policy = feed_policy
         self.local_bundle = local_bundle
         self.coarse_local_bundle = coarse_local_bundle or local_bundle
         self.config = config or CompositeValueTreeConfig()
+        self.governance_config = governance_config
         if feed_policy.blend_weight != self.config.feed_residual_weight:
             raise ValueError("composite tree and Feed release blend differ")
         if feed_policy.base_tolerance != self.config.base_tolerance:
@@ -37,6 +41,8 @@ class CompositeTensorPolicy:
             f"{local_bundle.name}_fine_local_"
             f"{self.config.local_fine_weight:g}"
         )
+        if governance_config is not None:
+            self.name += f"_governed_{governance_config.version}"
 
     def describe(self):
         return {
@@ -45,6 +51,10 @@ class CompositeTensorPolicy:
             "local_coarse_model": self.coarse_local_bundle.name,
             "local_fine_model": self.local_bundle.name,
             "value_tree": self.config.manifest(),
+            "content_governance": (
+                None if self.governance_config is None
+                else self.governance_config.manifest()
+            ),
         }
 
     def _bundle(self, features, sequence, base, candidates):
@@ -108,6 +118,12 @@ class CompositeTensorPolicy:
             - self.config.base_tolerance
         )
         served = score.masked_fill(~eligible, -1e9)
+        if self.governance_config is not None:
+            governed, governance = govern_scores(
+                served, candidates, state, step, self.governance_config,
+                eligible,
+            )
+            served = governed
         choice = served.argmax(dim=1)
         selected = materialize_selected(
             self, user_ids, state, candidates, choice, choice, served, served,
@@ -118,5 +134,10 @@ class CompositeTensorPolicy:
             name: value[batch, choice] for name, value in components.items()
         })
         selected["local_coarse_model_value"] = coarse_local[batch, choice]
+        if self.governance_config is not None:
+            selected["governance_eligible_fraction"] = (
+                governance["governance_eligible"].sum(dim=1)
+                / eligible.sum(dim=1).clamp_min(1)
+            )
         selected["score_bundle_versions"] = bundle.model_versions
         return selected

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from ..governance.review import evaluate_governance_launch
 from ..scale.experiment.trigger import (
     combine_tensor_ab,
     combine_tensor_counterfactual_ab,
@@ -73,11 +74,14 @@ def _decision(shadow_gates, online_gates):
     return "hold_or_reject"
 
 
-def _control_policy(feed_policy, control_local_bundle, value_config):
+def _control_policy(
+    feed_policy, control_local_bundle, value_config, governance_config=None,
+):
     return (
         feed_policy if control_local_bundle is None
         else CompositeTensorPolicy(
-            feed_policy, control_local_bundle, value_config
+            feed_policy, control_local_bundle, value_config,
+            governance_config=governance_config,
         )
     )
 
@@ -85,14 +89,17 @@ def _control_policy(feed_policy, control_local_bundle, value_config):
 def run_composite_serving_launch(
     config, feed_policy, local_bundle, behavior_world, value_config=None,
     control_local_bundle=None, treatment_coarse_local_bundle=None,
-    warmup_steps=0, thresholds=None,
+    warmup_steps=0, thresholds=None, treatment_governance_config=None,
+    control_governance_config=None, governance_thresholds=None,
 ):
     thresholds = thresholds or CompositeLaunchThresholds()
     treatment = CompositeTensorPolicy(
-        feed_policy, local_bundle, value_config, treatment_coarse_local_bundle
+        feed_policy, local_bundle, value_config, treatment_coarse_local_bundle,
+        governance_config=treatment_governance_config,
     )
     control = _control_policy(
-        feed_policy, control_local_bundle, value_config
+        feed_policy, control_local_bundle, value_config,
+        control_governance_config,
     )
     if not 0 <= warmup_steps < config.steps:
         raise ValueError("composite warmup must precede the measurement window")
@@ -114,10 +121,42 @@ def run_composite_serving_launch(
     )
     online = combine_tensor_ab(control_world, treatment_world)
     cuped = combine_tensor_cuped_ab(control_world, treatment_world)
-    shadow_gates = _shadow_gates(paired, thresholds)
-    online_gates = _online_gates(cuped, thresholds)
+    governance_experiment = (
+        treatment_governance_config != control_governance_config
+    )
+    if governance_experiment:
+        review = evaluate_governance_launch(
+            paired, cuped, treatment_governance_config,
+            config.steps - warmup_steps, config.users, governance_thresholds,
+        )
+        schema = "content-governance-launch-v1"
+        online_diagnostics = {
+            "predicted_integrity_risk_per_exposure": cuped[
+                "predicted_integrity_risk_per_exposure"
+            ],
+            "near_duplicate_rate": cuped["near_duplicate_rate"],
+            "governance_eligible_fraction": cuped[
+                "governance_eligible_fraction"
+            ],
+        }
+    else:
+        shadow_gates = _shadow_gates(paired, thresholds)
+        online_gates = _online_gates(cuped, thresholds)
+        review = {
+            "launch_thresholds": thresholds.manifest(),
+            "shadow_gates": shadow_gates,
+            "online_gates": online_gates,
+            "decision": _decision(shadow_gates, online_gates),
+        }
+        schema = "unified-feed-business-serving-launch-v3"
+        online_diagnostics = {
+            "coarse_feed_oracle_recall": cuped["coarse_feed_oracle_recall"],
+            "fine_oracle_regret_per_exposure": cuped[
+                "fine_oracle_regret_per_exposure"
+            ],
+        }
     return {
-        "schema": "unified-feed-business-serving-launch-v3",
+        "schema": schema,
         "config": asdict(config),
         "control": control.describe(),
         "treatment": treatment.describe(),
@@ -125,16 +164,8 @@ def run_composite_serving_launch(
         "online_disjoint_ab": online,
         "online_cuped_ab": cuped,
         "warmup_steps": warmup_steps,
-        "launch_thresholds": thresholds.manifest(),
-        "shadow_gates": shadow_gates,
-        "online_gates": online_gates,
-        "online_diagnostics": {
-            "coarse_feed_oracle_recall": cuped["coarse_feed_oracle_recall"],
-            "fine_oracle_regret_per_exposure": cuped[
-                "fine_oracle_regret_per_exposure"
-            ],
-        },
-        "decision": _decision(shadow_gates, online_gates),
+        **review,
+        "online_diagnostics": online_diagnostics,
         "candidate_graph": treatment_world["candidate_graph"],
         "performance": {
             "control": control_world["performance"],
@@ -142,7 +173,9 @@ def run_composite_serving_launch(
         },
         "behavior_world": treatment_world["behavior_world"],
         "evidence_boundary": (
-            "Unified main-Feed and Local model composition in the external V4 "
-            "simulator. This is synthetic Launch Review evidence only."
+            "Unified main-Feed and Local serving in the external V4 simulator. "
+            "Governance gates use served predictions and mature behavior only; "
+            "hidden DGP quality remains diagnostic-only. This is synthetic "
+            "Launch Review evidence, not production impact."
         ),
     }

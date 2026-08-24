@@ -14,9 +14,18 @@ def _update_response_state(state, selected, values):
     engagement += 0.5 * values.get("comment", torch.zeros_like(engagement)).float()
     engagement += 0.7 * values.get("share", torch.zeros_like(engagement)).float()
     engagement += 0.8 * values.get("follow", torch.zeros_like(engagement)).float()
+    repetition_shock = (
+        0.08 * selected.get(
+            "repeated_cluster", torch.zeros_like(values["long_view"])
+        ).float()
+        + 0.03 * selected.get(
+            "repeated_author", torch.zeros_like(values["long_view"])
+        ).float()
+    ) * state["active"]
     satisfaction = torch.clamp(
         0.84 * state["hidden_satisfaction"] + 0.09 * engagement
-        - 0.28 * values["negative"].float(), -1.0, 1.0,
+        - 0.28 * values["negative"].float() - repetition_shock,
+        -1.0, 1.0,
     )
     repetition = state["topic_counts"].gather(
         1, selected["candidate_topic"][:, None]
@@ -24,7 +33,8 @@ def _update_response_state(state, selected, values):
     fatigue = torch.clamp(
         0.76 * state["hidden_fatigue"]
         + 0.05 * values["long_view"].float() + 0.12 * repetition
-        - 0.05 * values["negative"].float(), 0.0, 1.0,
+        - 0.05 * values["negative"].float() + repetition_shock,
+        0.0, 1.0,
     )
     state["hidden_satisfaction"], state["hidden_fatigue"] = satisfaction, fatigue
     state["satisfaction"] = torch.clamp(
@@ -86,12 +96,20 @@ def _advance_session(config, state, step, satisfaction, fatigue):
         returned, torch.zeros_like(state["requests_in_session"]),
         state["requests_in_session"],
     )
-    for name in ("ads_served", "live_served"):
+    for name in ("ads_served", "live_served", "poi_served"):
         state[name] = torch.where(returned, torch.zeros_like(state[name]), state[name])
     state["last_ad_step"] = torch.where(
         returned, torch.full_like(state["last_ad_step"], -10_000),
         state["last_ad_step"],
     )
+    state["last_poi_step"] = torch.where(
+        returned, torch.full_like(state["last_poi_step"], -10_000),
+        state["last_poi_step"],
+    )
+    for name in ("last_author", "last_duplicate_cluster"):
+        state[name] = torch.where(
+            returned, torch.full_like(state[name], -1), state[name]
+        )
     state["active"] &= ~leave | returned
     return returned
 
@@ -110,6 +128,19 @@ def advance_state(config, policy, generator, state, selected, values, step):
     state["last_topic"] = torch.where(
         state["active"], selected["candidate_topic"], state["last_topic"]
     )
+    state["last_author"] = torch.where(
+        state["active"], selected["author"], state["last_author"]
+    )
+    state["last_duplicate_cluster"] = torch.where(
+        state["active"], selected.get("duplicate_cluster", selected["item_ids"]),
+        state["last_duplicate_cluster"],
+    )
+    selected_poi = selected["is_poi"].bool() & state["active"]
+    state["poi_served"] += selected_poi
+    state["last_poi_step"] = torch.where(
+        selected_poi, torch.full_like(state["last_poi_step"], step),
+        state["last_poi_step"],
+    )
     state["ads_served"] += values["ad_selected"] & state["active"]
     state["live_served"] += values["live_selected"] & state["active"]
     state["last_ad_step"] = torch.where(
@@ -127,3 +158,26 @@ def advance_state(config, policy, generator, state, selected, values, step):
         returned.float() * DEFAULT_LT_CONFIG.rates["active_day"].unit_value,
         returned,
     )
+
+
+def sample_terminal_retention(config, state):
+    """Mature one next-day label per user after the request trajectory.
+
+    Session returns remain a runtime transition. They are not used as active
+    days because policies that lengthen a session would otherwise receive fewer
+    opportunities to generate the label inside a fixed request horizon.
+    """
+    historical = torch.log1p(state["historical_activity"]) / torch.log(
+        torch.tensor(101.0, device=state["user_ids"].device)
+    )
+    probability = torch.sigmoid(
+        -0.45 + 1.25 * state["hidden_satisfaction"]
+        - 1.05 * state["hidden_fatigue"]
+        + 0.25 * historical + 0.20 * state.get(
+            "hidden_patience",
+            torch.full_like(state["hidden_satisfaction"], 0.5),
+        )
+    )
+    return uniform(
+        state["user_ids"], config.steps + 1, 59, config.seed
+    ) < probability

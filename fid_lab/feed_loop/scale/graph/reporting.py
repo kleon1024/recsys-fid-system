@@ -26,7 +26,30 @@ CELL_METRICS = (
     "fine_oracle_regret_per_exposure", "poi_candidate_fraction",
     "lt_stay_per_user", "lt_active_days_per_user",
     "selected_duration_per_exposure",
+    "predicted_integrity_risk_per_exposure", "near_duplicate_rate",
+    "repeated_author_rate", "selected_poi_rate",
+    "governance_eligible_fraction",
+    "play_rate", "play_3s_rate", "like_rate", "comment_rate",
+    "share_rate", "follow_rate",
 )
+PER_EXPOSURE_METRICS = frozenset({
+    "stay_per_exposure", "long_view_rate", "quality_long_view_rate",
+    "negative_rate", "lt_value_per_exposure",
+    "local_value_tree_score_per_exposure", "anchor_click_rate",
+    "conversion_rate", "ad_load", "effective_ad_load",
+    "ad_contribution_per_exposure", "organic_opportunity_cost_per_exposure",
+    "feed_value_tree_score_per_exposure",
+    "ads_live_value_tree_score_per_exposure",
+    "accepted_platform_commercialization_per_exposure",
+    "local_commercialization_value_per_exposure",
+    "coarse_feed_oracle_recall", "coarse_pass_fraction",
+    "fine_oracle_regret_per_exposure", "poi_candidate_fraction",
+    "selected_duration_per_exposure", "predicted_integrity_risk_per_exposure",
+    "near_duplicate_rate", "repeated_author_rate", "selected_poi_rate",
+    "governance_eligible_fraction",
+    "play_rate", "play_3s_rate", "like_rate", "comment_rate",
+    "share_rate", "follow_rate",
+})
 STAGE_NAMES = (
     "recall_miss", "coarse_miss", "fine_rank_miss", "mix_rank_miss",
     "served_audit_oracle",
@@ -97,14 +120,14 @@ def render_metrics(values, config):
         "play_3s_rate": float(values[7] / exposures),
         "sessions_per_user": float(values[8] / config.users),
         "returned_sessions_per_user": float(values[9] / config.users),
-        "active_days_per_user": float(values[9] / config.users),
+        "active_days_per_user": float(values[37] / config.users),
         "lt_value_per_exposure": float(values[10] / exposures),
         "lt_value_per_user": float(values[10] / config.users),
         "lt_stay_per_user": float(
             values[1] / 60.0 * lt_rates["stay_minute"].unit_value / config.users
         ),
         "lt_active_days_per_user": float(
-            values[9] * lt_rates["active_day"].unit_value / config.users
+            values[37] * lt_rates["active_day"].unit_value / config.users
         ),
         "local_value_tree_score_per_exposure": float(values[11] / exposures),
         "anchor_click_rate": float(values[12] / exposures),
@@ -130,6 +153,14 @@ def render_metrics(values, config):
         "fine_oracle_regret_per_exposure": float(values[26] / exposures),
         "poi_candidate_fraction": float(values[27] / exposures),
         "selected_duration_per_exposure": float(values[28] / exposures),
+        "predicted_integrity_risk_per_exposure": float(values[29] / exposures),
+        "near_duplicate_rate": float(values[30] / exposures),
+        "repeated_author_rate": float(values[31] / exposures),
+        "selected_poi_rate": float(values[32] / exposures),
+        "governance_eligible_fraction": float(values[33] / exposures),
+        "comment_rate": float(values[34] / exposures),
+        "share_rate": float(values[35] / exposures),
+        "follow_rate": float(values[36] / exposures),
     }
 
 

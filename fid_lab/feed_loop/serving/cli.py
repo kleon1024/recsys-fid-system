@@ -13,7 +13,11 @@ from ..scale.tensor_runtime.behavior.external import ExternalSequenceMixtureWorl
 from ..scale.tensor_runtime.contracts import EXTERNAL_MIXTURE_FEED_VERSION
 from ..scale.tensor_runtime.contracts import LOCAL_NEURAL_SIGNAL_VERSION
 from .contracts import CompositeValueTreeConfig
+from ..governance.contracts import ContentGovernanceConfig
 from .launch import run_composite_serving_launch
+
+
+DEFAULT_GOVERNANCE = ContentGovernanceConfig()
 
 
 def main():
@@ -36,6 +40,31 @@ def main():
     parser.add_argument("--local-coarse-weight", type=float, default=0.025)
     parser.add_argument("--local-fine-weight", type=float, default=0.025)
     parser.add_argument("--local-coarse-keep", type=int, default=20)
+    parser.add_argument("--content-governance", action="store_true")
+    parser.add_argument(
+        "--governance-max-risk", type=float,
+        default=DEFAULT_GOVERNANCE.max_predicted_integrity_risk,
+    )
+    parser.add_argument(
+        "--governance-cluster-penalty", type=float,
+        default=DEFAULT_GOVERNANCE.repeated_cluster_penalty,
+    )
+    parser.add_argument(
+        "--governance-author-penalty", type=float,
+        default=DEFAULT_GOVERNANCE.repeated_author_penalty,
+    )
+    parser.add_argument(
+        "--governance-creator-boost", type=float,
+        default=DEFAULT_GOVERNANCE.new_creator_boost,
+    )
+    parser.add_argument(
+        "--governance-max-poi", type=int,
+        default=DEFAULT_GOVERNANCE.max_poi_per_session,
+    )
+    parser.add_argument(
+        "--governance-min-poi-gap", type=int,
+        default=DEFAULT_GOVERNANCE.min_poi_gap,
+    )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     config = TensorFeedConfig(
@@ -77,6 +106,16 @@ def main():
         control_local_bundle=control_local,
         treatment_coarse_local_bundle=coarse_local,
         warmup_steps=args.warmup_steps,
+        treatment_governance_config=(
+            ContentGovernanceConfig(
+                max_predicted_integrity_risk=args.governance_max_risk,
+                repeated_cluster_penalty=args.governance_cluster_penalty,
+                repeated_author_penalty=args.governance_author_penalty,
+                new_creator_boost=args.governance_creator_boost,
+                max_poi_per_session=args.governance_max_poi,
+                min_poi_gap=args.governance_min_poi_gap,
+            ) if args.content_governance else None
+        ),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

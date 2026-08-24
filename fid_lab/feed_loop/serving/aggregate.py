@@ -6,6 +6,8 @@ from math import erfc, sqrt
 
 import numpy as np
 
+from ..governance.contracts import ContentGovernanceConfig
+from ..governance.review import evaluate_governance_launch
 from .contracts import CompositeLaunchThresholds
 from .launch import _decision, _online_gates, _shadow_gates
 
@@ -106,5 +108,77 @@ def aggregate_composite_launches(reports, thresholds=None):
         "evidence_boundary": (
             "Independent salted randomized experiments in the synthetic V4 "
             "world. This is not production lift evidence."
+        ),
+    }
+
+
+def aggregate_governance_launches(reports, thresholds=None):
+    """Pool governance experiments while preserving lever attribution."""
+    if len(reports) < 3:
+        raise ValueError("a powered aggregate requires at least three salts")
+    if any(
+        report.get("schema") != "content-governance-launch-v1"
+        for report in reports
+    ):
+        raise ValueError("aggregate accepts only governance launch schema v1")
+    identity = _comparison_identity(reports[0])
+    if any(_comparison_identity(report) != identity for report in reports[1:]):
+        raise ValueError("all salts must compare identical serving policies")
+    salts = [report["config"]["experiment_salt"] for report in reports]
+    if len(set(salts)) != len(salts):
+        raise ValueError("experiment salts must be unique")
+    shadow = _pool_group(reports, "paired_shadow_replay")
+    online = _pool_group(reports, "online_cuped_ab")
+    governance = ContentGovernanceConfig(
+        **reports[0]["treatment"]["content_governance"]
+    )
+    population = sum(report["config"]["users"] for report in reports)
+    trajectory_steps = (
+        reports[0]["config"]["steps"] - reports[0]["warmup_steps"]
+    )
+    review = evaluate_governance_launch(
+        shadow, online, governance, trajectory_steps, population, thresholds
+    )
+    replication = {
+        "lt_direction_replicated": sum(
+            effect >= 0
+            for effect in online["lt_value_per_user"]["per_salt_effects"]
+        ) >= 2,
+    }
+    if review["enabled_levers"]["risk_filter"]:
+        replication["risk_direction_replicated"] = sum(
+            effect < 0 for effect in online[
+                "predicted_integrity_risk_per_exposure"
+            ]["per_salt_effects"]
+        ) >= 2
+    if review["enabled_levers"]["diversity"]:
+        replication["diversity_direction_replicated"] = sum(
+            effect <= 0 for effect in online[
+                "near_duplicate_rate"
+            ]["per_salt_effects"]
+        ) >= 2
+    review["online_gates"].update(replication)
+    if all(review["shadow_gates"].values()) and all(
+        review["online_gates"].values()
+    ):
+        review["decision"] = "pass"
+    elif not all(replication.values()):
+        review["decision"] = "hold_or_reject"
+    return {
+        "schema": "content-governance-aggregate-v1",
+        "salts": salts,
+        "replicates": len(reports),
+        "users_per_replicate": [
+            report["config"]["users"] for report in reports
+        ],
+        "control": reports[0]["control"],
+        "treatment": reports[0]["treatment"],
+        "paired_shadow_replay": shadow,
+        "online_randomized_ab": online,
+        **review,
+        "evidence_boundary": (
+            "Independent salted randomized experiments in the synthetic V5 "
+            "world. Hidden DGP quality is excluded from launch gates; this is "
+            "not production lift evidence."
         ),
     }

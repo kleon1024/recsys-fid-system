@@ -157,6 +157,8 @@ def materialize_selected(
         "popularity", "author", "route_bits", "recall_score",
         "freshness",
         "creator_need",
+        "duplicate_cluster", "latent_integrity_risk",
+        "predicted_integrity_risk", "latent_experience_quality",
     )
     selected = {name: candidates[name][batch_index, choice] for name in names}
     for name in ("behavior_sparse", "behavior_dense"):
@@ -189,6 +191,12 @@ def materialize_selected(
         candidates["merged_oracle_utility"], candidates["audit_oracle_utility"]
     ) - chosen_utility
     selected["poi_candidate_fraction"] = candidates["is_poi"].float().mean(dim=1)
+    selected["repeated_cluster"] = (
+        selected["duplicate_cluster"] == state["last_duplicate_cluster"]
+    ) & (state["last_duplicate_cluster"] >= 0)
+    selected["repeated_author"] = (
+        selected["author"] == state["last_author"]
+    ) & (state["last_author"] >= 0)
     if policy.multi_queue:
         organic = candidates["content_type"] == 0
         best_organic = true_feed_utility.masked_fill(~organic, -1e9).max(dim=1).values

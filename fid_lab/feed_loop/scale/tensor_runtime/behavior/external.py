@@ -98,7 +98,7 @@ class ExternalSequenceMixtureWorld:
 
     def describe(self):
         return {
-            "authority": "external-sequence-mixture-v4",
+            "authority": "external-sequence-mixture-v5",
             "artifact_sha256": self.artifact_sha256,
             "catalog_sha256": self.catalog_sha256,
             "profile_sha256": self.profile_sha256,
@@ -106,6 +106,9 @@ class ExternalSequenceMixtureWorld:
                 self.external_profiles["history_items"].shape[1]
             ),
             "hidden_mixture_experts": 4,
+            "repetition_response": (
+                "latent-trait-conditioned-cluster-and-author-fatigue-v1"
+            ),
             "stay_sampler": {
                 "authority": "randomized-holdout-conditional-residual-bootstrap",
                 "bins": len(self.stay_sampler_quantiles),
@@ -288,7 +291,7 @@ class ExternalSequenceMixtureWorld:
         author_head = (selected["author"] < 128).float()
         return torch.stack((
             affinity,
-            selected["quality"],
+            selected.get("latent_experience_quality", selected["quality"]),
             selected["freshness"],
             selected["popularity"],
             state["hidden_satisfaction"],
@@ -317,7 +320,11 @@ class ExternalSequenceMixtureWorld:
             return value[:, None].expand(users, count)
 
         return torch.stack((
-            affinity, candidates["quality"], candidates["freshness"],
+            affinity,
+            candidates.get(
+                "latent_experience_quality", candidates["quality"]
+            ),
+            candidates["freshness"],
             candidates["popularity"], repeated(state["hidden_satisfaction"]),
             repeated(state["hidden_fatigue"]),
             repeated(state["lifecycle_bucket"].float() / 3.0),
@@ -338,6 +345,50 @@ class ExternalSequenceMixtureWorld:
             torch.logit(stay.clamp(1e-5, 1 - 1e-5)) + residual[..., 7]
         )
         return probability, stay
+
+    @staticmethod
+    def _apply_repetition_response(probability, stay, state, candidates):
+        """Apply a hidden heterogeneous response to repetitive exposure.
+
+        The serving model never receives the latent novelty or patience terms.
+        This structural head fills a behavior absent from the randomized public
+        source while retaining user heterogeneity and nonlinear interaction.
+        """
+        repeated_cluster = (
+            candidates["duplicate_cluster"]
+            == state["last_duplicate_cluster"][..., None]
+        ) & (state["last_duplicate_cluster"][..., None] >= 0)
+        repeated_author = (
+            candidates["author"] == state["last_author"][..., None]
+        ) & (state["last_author"][..., None] >= 0)
+        if probability.ndim == 2:
+            repeated_cluster = repeated_cluster[:, 0]
+            repeated_author = repeated_author[:, 0]
+        novelty = state["hidden_novelty"]
+        patience = state["hidden_patience"]
+        if probability.ndim == 3:
+            novelty = novelty[:, None]
+            patience = patience[:, None]
+        sensitivity = 0.30 + 0.55 * novelty + 0.35 * (1.0 - patience)
+        exposure_shock = sensitivity * (
+            repeated_cluster.float() + 0.30 * repeated_author.float()
+        )
+        positive_weight = probability.new_tensor(
+            (0.10, 0.32, 0.18, 0.16, 0.20, 0.18)
+        )
+        positive = torch.sigmoid(
+            torch.logit(probability[..., :6].clamp(1e-5, 1 - 1e-5))
+            - exposure_shock[..., None] * positive_weight
+        )
+        negative = torch.sigmoid(
+            torch.logit(probability[..., 6].clamp(1e-5, 1 - 1e-5))
+            + 0.40 * exposure_shock
+        )
+        stay = torch.sigmoid(
+            torch.logit(stay.clamp(1e-5, 1 - 1e-5))
+            - 0.35 * exposure_shock
+        )
+        return torch.cat((positive, negative[..., None]), dim=-1), stay
 
     def _predict(self, state, selected, step):
         sparse = self._sparse(state, selected)
@@ -361,6 +412,12 @@ class ExternalSequenceMixtureWorld:
         )
         probability, stay_norm = self._apply_residual(
             probability, stay_norm, residual
+        )
+        probability, stay_norm = self._apply_repetition_response(
+            probability, stay_norm, state,
+            {name: selected[name][:, None] for name in (
+                "duplicate_cluster", "author"
+            )},
         )
         return probability, stay_norm, sparse[:, 1]
 
@@ -396,6 +453,9 @@ class ExternalSequenceMixtureWorld:
             state["hidden_mixture"][:, None].expand(hidden.shape[:2]).reshape(-1),
         ).reshape(*hidden.shape[:2], 8)
         probability, stay = self._apply_residual(probability, stay, residual)
+        probability, stay = self._apply_repetition_response(
+            probability, stay, state, candidates
+        )
         utility = (
             0.20 * probability[:, :, 0]
             + 0.30 * probability[:, :, 1]

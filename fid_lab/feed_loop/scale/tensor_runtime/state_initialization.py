@@ -119,6 +119,14 @@ def new_user_state(config, policy, generator, device, user_ids):
             torch.remainder(user_ids * 69_697 + 29, 10_009).float() / 10_009
         ),
         "last_topic": torch.full((users,), -1, device=device, dtype=torch.long),
+        "last_author": torch.full((users,), -1, device=device, dtype=torch.long),
+        "last_duplicate_cluster": torch.full(
+            (users,), -1, device=device, dtype=torch.long
+        ),
+        "poi_served": torch.zeros(users, device=device, dtype=torch.long),
+        "last_poi_step": torch.full(
+            (users,), -10_000, device=device, dtype=torch.long
+        ),
         "ads_served": torch.zeros(users, device=device, dtype=torch.long),
         "live_served": torch.zeros(users, device=device, dtype=torch.long),
         "last_ad_step": torch.full((users,), -10_000, device=device, dtype=torch.long),

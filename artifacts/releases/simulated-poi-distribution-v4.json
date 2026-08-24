@@ -1,7 +1,7 @@
 {
   "schema": "simulated-poi-distribution-v4-authority-v1",
   "active_key": "two_tower_ann_linear_coarse_linear_fine_feed_guarded_mix",
-  "active_bundle_id": "sha256:56dd459c2a1a1ab05028c21ecbfe7cd7fb3a5fabfe1313b1730134b33506a731",
+  "active_bundle_id": "sha256:af15b3a3c448d3999f49d213fc9d483d998b09091380687089e8e49be087a524",
   "active_bundle": {
     "retrieval_policy": "shared_two_tower_ann_graph_geo_fresh_tail_popular_search_retarget",
     "retrieval_artifact": {
@@ -49,7 +49,7 @@
     "sources": [
       {
         "path": "fid_lab/feed_loop/scale/experiment/trigger.py",
-        "sha256": "e7592e77b0edb0d92dab18ceaa768a77d00d5b20a6b00dcb71c9f3cb9c10a017"
+        "sha256": "1255ba16b54a872a956dda1832f57f0aca9f72898366755a90063ae99cff235e"
       },
       {
         "path": "fid_lab/feed_loop/scale/graph/__init__.py",
@@ -65,7 +65,7 @@
       },
       {
         "path": "fid_lab/feed_loop/scale/graph/reporting.py",
-        "sha256": "19c8cbb88c6042c8deaaa30a01cda4147f9e122a6e8f317470418aa4d4d1eb8f"
+        "sha256": "7a47048810e8364328dcb3a4da155912d10336fe6a2a9fadd03b6ca20e9aff6c"
       },
       {
         "path": "fid_lab/feed_loop/scale/graph/trace.py",
@@ -73,23 +73,23 @@
       },
       {
         "path": "fid_lab/feed_loop/scale/tensor_catalog.py",
-        "sha256": "917c51ae003539c2d7af2fb05c17f9ebffdcd4cfb12d775f84e0a5525ec7bee7"
+        "sha256": "1a6485922c8be51c60ec41f96161485774baf70f7ae12cec24eeff899df08683"
       },
       {
         "path": "fid_lab/feed_loop/scale/tensor_engine.py",
-        "sha256": "7ef6e97b68c3c1c8c356d892aa58c51c36a54431b5514eec9dfe8db103f864e2"
+        "sha256": "65ed22efa0fd8208a94af23238238bd342497526caf224f51294ec06abe99484"
       },
       {
         "path": "fid_lab/feed_loop/scale/tensor_runtime/contracts.py",
-        "sha256": "483e6fad2867a05dac48e249a60e2623f68e6aabf1438f540c5f7328b7a64f97"
+        "sha256": "cd13ab00480f97bbde620143b6481c052c5fb69e97e346cd5e1bdca7f3cd025d"
       },
       {
         "path": "fid_lab/feed_loop/scale/tensor_runtime/local_response.py",
-        "sha256": "d5ab61bc6f840d430253b351b3f4ae26a4924f7eb94942a5c618840ff0dd6f98"
+        "sha256": "6f5da6ffaedb8b9d76bc52e454b3fa9007414c02420852cb16de447c6640b32b"
       },
       {
         "path": "fid_lab/feed_loop/tensor_cascade.py",
-        "sha256": "2368468610863eef4fa87dd7692e06bca17eed8f28abb35c74945496a2fc40c8"
+        "sha256": "ef269ec847d79eb3916d51584a327e8a4798e53a503f442905c3697b7bb9fef3"
       },
       {
         "path": "fid_lab/launches/release_resources.py",

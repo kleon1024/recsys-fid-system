@@ -1,7 +1,7 @@
 {
   "schema": "simulated-feed-posting-authority-v2",
   "active_key": "trending_i2i_plus_wide_deep_standardized_residual_blend_0.20",
-  "active_bundle_id": "sha256:d83b06536dc7474a903ec5973fcf270613bb7b3da7b283a96135fb619802adae",
+  "active_bundle_id": "sha256:7d40e48a967688c3085c01ad317b12d8a6362f811ff10f0e0445d641d3f69370",
   "active_bundle": {
     "candidate_policy": "trending_i2i",
     "fine_model": "wide_deep",
@@ -21,7 +21,7 @@
       },
       {
         "path": "fid_lab/feed_loop/ecosystem/cli.py",
-        "sha256": "8020438f9676f283449e64355029a230f18316affc1db4a5439b0becb522edba"
+        "sha256": "bccf601e5073a89020ce67312ea1910e3f6ce118d4c6055a387d173f47767d06"
       },
       {
         "path": "fid_lab/feed_loop/ecosystem/contracts.py",
@@ -29,7 +29,7 @@
       },
       {
         "path": "fid_lab/feed_loop/ecosystem/creators.py",
-        "sha256": "03006f20301b0f5a7de8359ea282d6c633b4e2013075443df9ec0e8fa35eb26d"
+        "sha256": "116d522399a800ae25e1d9094b65b8bd7ccda711b8c8720c0ad6c114eedefc81"
       },
       {
         "path": "fid_lab/feed_loop/ecosystem/posting.py",

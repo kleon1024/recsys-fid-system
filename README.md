@@ -6,7 +6,7 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
-## Current Feed V4 result
+## Current Feed model V4 and governance world V5
 
 The active Feed simulator is now an external sequence world with a hidden
 four-group user mixture, 64-step online behavior state, conditional watch-time
@@ -46,6 +46,17 @@ flowchart LR
 See the bilingual [Feed V4 Launch Review](docs/launch-reviews/2026-08-24-feed-v4-request-aware-loop.md),
 the [request dataset manifest](reports/datasets/2026-08-24-feed-v4-request-candidate-log-manifest.json),
 and the [model report](reports/training/2026-08-24-feed-v4-request-aware-model-ladder-200k.json).
+
+Feed governance is now a separate serving and experiment authority rather than
+an unnamed ranking rule. The V5 world separates hidden experience quality from
+the observable integrity-risk prediction, preserves upstream candidate masks,
+models heterogeneous repetition fatigue, and matures one terminal next-day
+retention label per user. A 1.5-million-user RTX 4090 A/B estimates platform LT
+at +0.30%, next-day active at +0.38%, and consecutive duplicates at -46%. The
+candidate remains in `continue_powered_online_experiment`: stay's 95% lower
+bound misses its predeclared noninferiority margin by 0.0014 seconds. See the
+[governance architecture](docs/architecture/content-governance.md) and
+[L-GOVERNANCE-001](docs/launch-reviews/2026-08-24-content-governance-v5.md).
 
 The main Feed and POI/Local models now also have one typed serving graph rather
 than exchanging anonymous scalar scores. Eight recall routes feed independent
