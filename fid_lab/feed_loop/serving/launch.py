@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
+from ...launches.experiment_protocol import (
+    ExperimentPlan,
+    phase_decision,
+)
 from ..governance.review import evaluate_governance_launch
 from ..scale.experiment.trigger import (
     combine_tensor_ab,
@@ -74,6 +78,17 @@ def _decision(shadow_gates, online_gates):
     return "hold_or_reject"
 
 
+def _scenario_manifest(config, warmup_steps, behavior_world):
+    runtime = asdict(config)
+    for name in ("users", "batch_users", "device", "experiment_salt"):
+        runtime.pop(name)
+    return {
+        "config": runtime,
+        "measurement_start_step": warmup_steps,
+        "behavior_world": behavior_world.describe(),
+    }
+
+
 def _control_policy(
     feed_policy, control_local_bundle, value_config, governance_config=None,
 ):
@@ -91,7 +106,10 @@ def run_composite_serving_launch(
     control_local_bundle=None, treatment_coarse_local_bundle=None,
     warmup_steps=0, thresholds=None, treatment_governance_config=None,
     control_governance_config=None, governance_thresholds=None,
+    experiment_plan: ExperimentPlan | None = None,
 ):
+    if experiment_plan is None:
+        raise ValueError("a pre-registered experiment plan is required")
     thresholds = thresholds or CompositeLaunchThresholds()
     treatment = CompositeTensorPolicy(
         feed_policy, local_bundle, value_config, treatment_coarse_local_bundle,
@@ -100,6 +118,11 @@ def run_composite_serving_launch(
     control = _control_policy(
         feed_policy, control_local_bundle, value_config,
         control_governance_config,
+    )
+    scenario = _scenario_manifest(config, warmup_steps, behavior_world)
+    experiment_plan.validate_run(
+        control.describe(), treatment.describe(), scenario,
+        config.users, config.experiment_salt,
     )
     if not 0 <= warmup_steps < config.steps:
         raise ValueError("composite warmup must precede the measurement window")
@@ -155,6 +178,11 @@ def run_composite_serving_launch(
                 "fine_oracle_regret_per_exposure"
             ],
         }
+    statistical_decision = review["decision"]
+    review["statistical_decision"] = statistical_decision
+    review["decision"] = phase_decision(
+        experiment_plan, statistical_decision, (config.experiment_salt,)
+    )
     return {
         "schema": schema,
         "config": asdict(config),
@@ -164,6 +192,8 @@ def run_composite_serving_launch(
         "online_disjoint_ab": online,
         "online_cuped_ab": cuped,
         "warmup_steps": warmup_steps,
+        "experiment_plan": experiment_plan.manifest(),
+        "experiment_plan_fingerprint": experiment_plan.plan_fingerprint,
         **review,
         "online_diagnostics": online_diagnostics,
         "candidate_graph": treatment_world["candidate_graph"],
@@ -173,7 +203,7 @@ def run_composite_serving_launch(
         },
         "behavior_world": treatment_world["behavior_world"],
         "evidence_boundary": (
-            "Unified main-Feed and Local serving in the external V4 simulator. "
+            "Unified main-Feed and Local serving in the external V5 simulator. "
             "Governance gates use served predictions and mature behavior only; "
             "hidden DGP quality remains diagnostic-only. This is synthetic "
             "Launch Review evidence, not production impact."

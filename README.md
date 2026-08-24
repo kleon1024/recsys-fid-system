@@ -134,6 +134,14 @@ coverage is much larger, but coverage is not accepted as business impact. See
 `LR` is ambiguous in recommendation work. This repository writes **logistic
 regression** for the model and **Launch Review** for the release record.
 
+All new Launch Reviews now use one machine-enforced scale protocol: 100k/one
+salt smoke, 100k/three-salt screen, and a pre-registered powered A/B sized from
+control variance plus an absolute business MDE. Training examples and scale
+benchmarks are never A/B evidence; observed-effect projections such as 100M are
+never executable sample plans. See the
+[unified launch protocol](docs/operations/launch-protocol.md) and
+[registered experiment plans](experiments/README.md).
+
 The historical stateful Feed control served logistic regression. The active V4
 simulator control is now the guarded MMoE described above. The old LR result did
 not show that neural ranking could not work: the original simulator

@@ -70,6 +70,35 @@ Valid decisions are pass, staged ramp, hold, reject, and rollback. An offline
 AUC improvement, lower training loss, or significant p-value alone is never a
 pass condition.
 
+### One scale standard / 统一规模标准
+
+Experiment size is a pre-registered evidence role, not a number selected after
+seeing treatment results.
+
+| Phase | Fixed scale | What it can prove | Allowed terminal decision |
+|---|---:|---|---|
+| Smoke | 100k users, one salt | Runtime, logging, shape, estimator and guardrail wiring | `smoke_pass` or `smoke_fail` |
+| Screen | 100k users × three salts | Direction replication, manipulation check and candidate rejection | `advance_to_powered` or `reject` |
+| Powered A/B | At least three salts; total N fixed from control variance, pre-registered absolute MDE, alpha and power | Launch decision | `pass`, `hold`, or `reject` |
+| Scale benchmark | One run with at least 1M users | Throughput, memory and determinism only | `benchmark_pass` or `benchmark_fail` |
+
+Ten million training examples describe training data. Ten million benchmark
+users describe performance. Neither is powered A/B evidence unless a registered
+plan explicitly defines it as such. A number such as 100M produced by an
+observed-effect power projection is diagnostic only and may not become the next
+sample size. The next powered N uses control/pilot variance and a business-owned
+MDE fixed before treatment evidence.
+
+Every plan binds the exact control, treatment, behavior scenario, users per
+salt, complete salt set, primary metric, MDE, alpha, power and predecessor
+report. Individual salts return `partial_evidence`; only the aggregate over the
+complete registered salt set can advance or launch. Smoke cannot pass a model,
+screen cannot launch it, and a scale benchmark cannot make a business decision.
+
+The executable authority is
+[`experiment_protocol.py`](../../fid_lab/launches/experiment_protocol.py), and
+registered plans live under [`experiments/plans`](../../experiments/plans/).
+
 The control is always the last accepted release artifact. A pass atomically
 updates the active artifact and records the former active artifact as rollback.
 Hold and reject are no-ops. Therefore a held candidate can never become the

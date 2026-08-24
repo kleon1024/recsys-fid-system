@@ -6,6 +6,10 @@ from math import erfc, sqrt
 
 import numpy as np
 
+from ...launches.experiment_protocol import (
+    experiment_plan_from_manifest,
+    phase_decision,
+)
 from ..governance.contracts import ContentGovernanceConfig
 from ..governance.review import evaluate_governance_launch
 from .contracts import CompositeLaunchThresholds
@@ -57,10 +61,35 @@ def _comparison_identity(report):
     return report["control"], report["treatment"], report["behavior_world"]
 
 
+def _registered_plan(reports):
+    fingerprints = {
+        report.get("experiment_plan_fingerprint") for report in reports
+    }
+    if None in fingerprints or len(fingerprints) != 1:
+        raise ValueError("launches do not share one registered experiment plan")
+    plan = experiment_plan_from_manifest(reports[0]["experiment_plan"])
+    if plan.plan_fingerprint not in fingerprints:
+        raise ValueError("experiment plan fingerprint mismatch")
+    for report in reports:
+        runtime = dict(report["config"])
+        for name in ("users", "batch_users", "device", "experiment_salt"):
+            runtime.pop(name, None)
+        scenario = {
+            "config": runtime,
+            "measurement_start_step": report["warmup_steps"],
+            "behavior_world": report["behavior_world"],
+        }
+        plan.validate_run(
+            report["control"], report["treatment"], scenario,
+            report["config"]["users"], report["config"]["experiment_salt"],
+        )
+    return plan
+
+
 def aggregate_composite_launches(reports, thresholds=None):
     """Pool independent assignment salts without hiding per-salt instability."""
     if len(reports) < 3:
-        raise ValueError("a powered aggregate requires at least three salts")
+        raise ValueError("a decision aggregate requires at least three salts")
     if any(
         report.get("schema") != "unified-feed-business-serving-launch-v3"
         for report in reports
@@ -72,6 +101,7 @@ def aggregate_composite_launches(reports, thresholds=None):
     salts = [report["config"]["experiment_salt"] for report in reports]
     if len(set(salts)) != len(salts):
         raise ValueError("experiment salts must be unique")
+    plan = _registered_plan(reports)
     thresholds = thresholds or CompositeLaunchThresholds()
     shadow = _pool_group(reports, "paired_shadow_replay")
     online = _pool_group(reports, "online_cuped_ab")
@@ -85,6 +115,7 @@ def aggregate_composite_launches(reports, thresholds=None):
         effect >= 0
         for effect in online["lt_value_per_user"]["per_salt_effects"]
     ) >= 2
+    statistical_decision = _decision(shadow_gates, online_gates)
     return {
         "schema": "unified-feed-business-serving-aggregate-v1",
         "salts": salts,
@@ -92,12 +123,15 @@ def aggregate_composite_launches(reports, thresholds=None):
         "users_per_replicate": [report["config"]["users"] for report in reports],
         "control": reports[0]["control"],
         "treatment": reports[0]["treatment"],
+        "experiment_plan": plan.manifest(),
+        "experiment_plan_fingerprint": plan.plan_fingerprint,
         "launch_thresholds": thresholds.manifest(),
         "paired_shadow_replay": shadow,
         "online_randomized_ab": online,
         "shadow_gates": shadow_gates,
         "online_gates": online_gates,
-        "decision": _decision(shadow_gates, online_gates),
+        "statistical_decision": statistical_decision,
+        "decision": phase_decision(plan, statistical_decision, tuple(salts)),
         "oracle_diagnostics": {
             name: online[name]
             for name in (
@@ -106,8 +140,8 @@ def aggregate_composite_launches(reports, thresholds=None):
             )
         },
         "evidence_boundary": (
-            "Independent salted randomized experiments in the synthetic V4 "
-            "world. This is not production lift evidence."
+            "Independent salted randomized experiments in one registered "
+            "synthetic world. This is not production lift evidence."
         ),
     }
 
@@ -115,7 +149,7 @@ def aggregate_composite_launches(reports, thresholds=None):
 def aggregate_governance_launches(reports, thresholds=None):
     """Pool governance experiments while preserving lever attribution."""
     if len(reports) < 3:
-        raise ValueError("a powered aggregate requires at least three salts")
+        raise ValueError("a decision aggregate requires at least three salts")
     if any(
         report.get("schema") != "content-governance-launch-v1"
         for report in reports
@@ -127,6 +161,7 @@ def aggregate_governance_launches(reports, thresholds=None):
     salts = [report["config"]["experiment_salt"] for report in reports]
     if len(set(salts)) != len(salts):
         raise ValueError("experiment salts must be unique")
+    plan = _registered_plan(reports)
     shadow = _pool_group(reports, "paired_shadow_replay")
     online = _pool_group(reports, "online_cuped_ab")
     governance = ContentGovernanceConfig(
@@ -161,9 +196,15 @@ def aggregate_governance_launches(reports, thresholds=None):
     if all(review["shadow_gates"].values()) and all(
         review["online_gates"].values()
     ):
-        review["decision"] = "pass"
+        statistical_decision = "pass"
     elif not all(replication.values()):
-        review["decision"] = "hold_or_reject"
+        statistical_decision = "hold_or_reject"
+    else:
+        statistical_decision = review["decision"]
+    review["statistical_decision"] = statistical_decision
+    review["decision"] = phase_decision(
+        plan, statistical_decision, tuple(salts)
+    )
     return {
         "schema": "content-governance-aggregate-v1",
         "salts": salts,
@@ -173,6 +214,8 @@ def aggregate_governance_launches(reports, thresholds=None):
         ],
         "control": reports[0]["control"],
         "treatment": reports[0]["treatment"],
+        "experiment_plan": plan.manifest(),
+        "experiment_plan_fingerprint": plan.plan_fingerprint,
         "paired_shadow_replay": shadow,
         "online_randomized_ab": online,
         **review,

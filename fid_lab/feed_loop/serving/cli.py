@@ -6,6 +6,7 @@ import argparse
 import json
 from pathlib import Path
 
+from ...launches.experiment_protocol import load_experiment_plan
 from ...poi_distribution.models.training import load_bundle
 from ..scale.model_ladder.v4.serving import TensorV4RequestPolicy
 from ..scale.tensor_engine import TensorFeedConfig
@@ -30,13 +31,13 @@ def main():
     parser.add_argument("--local-artifact", type=Path, required=True)
     parser.add_argument("--control-local-artifact", type=Path)
     parser.add_argument("--coarse-local-artifact", type=Path)
-    parser.add_argument("--users", type=int, default=100_000)
+    parser.add_argument("--experiment-plan", type=Path, required=True)
     parser.add_argument("--steps", type=int, default=8)
     parser.add_argument("--warmup-steps", type=int, default=4)
     parser.add_argument("--batch-users", type=int, default=25_000)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--feed-inference-chunk", type=int, default=2_048)
-    parser.add_argument("--experiment-salt", type=int, default=0x1B873593)
+    parser.add_argument("--experiment-salt", type=int, required=True)
     parser.add_argument("--local-coarse-weight", type=float, default=0.025)
     parser.add_argument("--local-fine-weight", type=float, default=0.025)
     parser.add_argument("--local-coarse-keep", type=int, default=20)
@@ -67,8 +68,10 @@ def main():
     )
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    experiment_plan = load_experiment_plan(args.experiment_plan, Path.cwd())
     config = TensorFeedConfig(
-        users=args.users, steps=args.steps + args.warmup_steps,
+        users=experiment_plan.users_per_salt,
+        steps=args.steps + args.warmup_steps,
         batch_users=args.batch_users,
         candidates=12, route_candidates=16, route_oversample=4,
         merged_candidates=64, audit_candidates=32,
@@ -116,6 +119,7 @@ def main():
                 min_poi_gap=args.governance_min_poi_gap,
             ) if args.content_governance else None
         ),
+        experiment_plan=experiment_plan,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

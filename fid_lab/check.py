@@ -12,6 +12,7 @@ import sys
 
 from .feed_loop.models.artifact import feature_schema_hash
 from .feed_loop.scale.tensor_runtime.contracts import CANDIDATE_GRAPH_VERSION
+from .launches.experiment_protocol import load_experiment_plan
 from .simulation.environment import FEATURE_NAMES
 
 
@@ -140,6 +141,18 @@ def check_visual_manifest() -> None:
         failures.append(f"visual missing from manifest: {path.relative_to(ROOT)}")
     if failures:
         raise SystemExit("\n".join(failures))
+
+
+def check_experiment_plans() -> None:
+    seen = set()
+    for path in sorted((ROOT / "experiments/plans").glob("*.json")):
+        plan = load_experiment_plan(path, ROOT)
+        identity = (plan.launch_id, plan.phase.value)
+        if identity in seen:
+            raise SystemExit(f"duplicate experiment plan phase: {identity}")
+        seen.add(identity)
+    if not seen:
+        raise SystemExit("no registered experiment plans")
 
 
 def _model_manifest_failures(relative_manifest: str) -> list[str]:
@@ -554,6 +567,7 @@ def main() -> None:
     check_public_docs()
     check_report_manifests()
     check_visual_manifest()
+    check_experiment_plans()
     check_model_artifacts()
     check_simulated_release()
     check_simulator_world_release()

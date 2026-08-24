@@ -18,6 +18,11 @@ from fid_lab.feed_loop.scale.tensor_runtime.state_transition import (
 )
 from fid_lab.feed_loop.scale.graph.reporting import CELL_METRICS
 from fid_lab.feed_loop.serving.aggregate import aggregate_governance_launches
+from fid_lab.launches.experiment_protocol import (
+    ExperimentPhase,
+    ExperimentPlan,
+    payload_fingerprint,
+)
 
 
 class ContentGovernanceTest(unittest.TestCase):
@@ -156,18 +161,39 @@ class ContentGovernanceTest(unittest.TestCase):
             }
 
         governance = ContentGovernanceConfig().manifest()
+        control = {"name": "control"}
+        treatment = {"name": "treatment", "content_governance": governance}
+        world = {"authority": "v5"}
+        scenario = {
+            "config": {"steps": 8},
+            "measurement_start_step": 0,
+            "behavior_world": world,
+        }
+        plan = ExperimentPlan(
+            launch_id="L-GOV-TEST", phase=ExperimentPhase.SCREEN,
+            hypothesis="governance improves LT", isolated_change="governance",
+            primary_metric="lt_value_per_user", mde_absolute=0.01,
+            alpha=0.05, power=0.80, pilot_total_users=100_000,
+            pilot_primary_standard_error=0.01, users_per_salt=100_000,
+            salts=(11, 23, 47), control_fingerprint=payload_fingerprint(control),
+            treatment_fingerprint=payload_fingerprint(treatment),
+            scenario_fingerprint=payload_fingerprint(scenario),
+            predecessor_report="reports/launches/smoke.json",
+            predecessor_report_sha256="a" * 64,
+            registered_before_evidence=True,
+        )
         reports = [
             {
                 "schema": "content-governance-launch-v1",
                 "config": {
-                    "experiment_salt": salt, "users": 10_000, "steps": 8,
+                    "experiment_salt": salt, "users": 100_000, "steps": 8,
                 },
                 "warmup_steps": 0,
-                "control": {"name": "control"},
-                "treatment": {
-                    "name": "treatment", "content_governance": governance,
-                },
-                "behavior_world": {"authority": "v5"},
+                "control": control,
+                "treatment": treatment,
+                "behavior_world": world,
+                "experiment_plan": plan.manifest(),
+                "experiment_plan_fingerprint": plan.plan_fingerprint,
                 "paired_shadow_replay": metrics(),
                 "online_cuped_ab": metrics(),
             }
@@ -175,6 +201,7 @@ class ContentGovernanceTest(unittest.TestCase):
         ]
         aggregate = aggregate_governance_launches(reports)
         self.assertEqual(aggregate["schema"], "content-governance-aggregate-v1")
+        self.assertEqual(aggregate["decision"], "advance_to_powered")
         self.assertTrue(aggregate["online_gates"]["lt_direction_replicated"])
 
 

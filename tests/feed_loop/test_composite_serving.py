@@ -14,6 +14,11 @@ from fid_lab.feed_loop.serving.aggregate import aggregate_composite_launches
 from fid_lab.feed_loop.serving.composite import CompositeTensorPolicy
 from fid_lab.feed_loop.serving.launch import _control_policy, _decision
 from fid_lab.feed_loop.serving.value_tree import CompositeValueTree
+from fid_lab.launches.experiment_protocol import (
+    ExperimentPhase,
+    ExperimentPlan,
+    payload_fingerprint,
+)
 
 
 class _FeedPolicy:
@@ -172,18 +177,45 @@ class CompositeServingTest(unittest.TestCase):
             }
 
         reports = []
+        control = {"name": "linear"}
+        treatment = {"name": "mmoe"}
+        world = {"authority": "v4"}
+        scenario = {
+            "config": {"steps": 8},
+            "measurement_start_step": 0,
+            "behavior_world": world,
+        }
+        plan = ExperimentPlan(
+            launch_id="L-COMPOSITE-TEST", phase=ExperimentPhase.SCREEN,
+            hypothesis="composite value improves anchor and LT",
+            isolated_change="local fine model", primary_metric="lt_value_per_user",
+            mde_absolute=0.01, alpha=0.05, power=0.80,
+            pilot_total_users=100_000, pilot_primary_standard_error=0.01,
+            users_per_salt=100_000, salts=(11, 23, 47),
+            control_fingerprint=payload_fingerprint(control),
+            treatment_fingerprint=payload_fingerprint(treatment),
+            scenario_fingerprint=payload_fingerprint(scenario),
+            predecessor_report="reports/launches/smoke.json",
+            predecessor_report_sha256="a" * 64,
+            registered_before_evidence=True,
+        )
         for salt in (11, 23, 47):
             reports.append({
                 "schema": "unified-feed-business-serving-launch-v3",
-                "config": {"experiment_salt": salt, "users": 10_000},
-                "control": {"name": "linear"},
-                "treatment": {"name": "mmoe"},
-                "behavior_world": {"authority": "v4"},
+                "config": {
+                    "experiment_salt": salt, "users": 100_000, "steps": 8,
+                },
+                "warmup_steps": 0,
+                "control": control,
+                "treatment": treatment,
+                "behavior_world": world,
+                "experiment_plan": plan.manifest(),
+                "experiment_plan_fingerprint": plan.plan_fingerprint,
                 "paired_shadow_replay": metrics(0.01, 0.01),
                 "online_cuped_ab": metrics(0.01, -0.5),
             })
         pooled = aggregate_composite_launches(reports)
-        self.assertEqual(pooled["decision"], "pass")
+        self.assertEqual(pooled["decision"], "advance_to_powered")
         self.assertNotIn("coarse_recall_noninferior", pooled["online_gates"])
         self.assertLess(
             pooled["oracle_diagnostics"]["coarse_feed_oracle_recall"][
