@@ -85,7 +85,7 @@ class PostingModelBundle:
         return torch.cat(values).reshape(shape)
 
 
-def _request_loss(outputs, labels, positive_weight):
+def _request_loss(outputs, labels, masks, positive_weight):
     losses = []
     for index, task in enumerate(POSTING_TASKS):
         logit = outputs[task].reshape(labels.shape[:2])
@@ -93,12 +93,17 @@ def _request_loss(outputs, labels, positive_weight):
             logit,
             labels[:, :, index],
             pos_weight=positive_weight[index],
+            reduction="none",
         )
+        point = (point * masks[:, :, index]).sum() / masks[:, :, index].sum().clamp_min(1)
         positive_request = labels[:, :, index].sum(dim=1) > 0
         if positive_request.any():
+            observed_logit = logit[positive_request].masked_fill(
+                masks[positive_request, :, index] == 0, -1e9
+            )
             listwise = -(
                 labels[positive_request, :, index]
-                * functional.log_softmax(logit[positive_request], dim=1)
+                * functional.log_softmax(observed_logit, dim=1)
             ).sum(dim=1).mean()
         else:
             listwise = torch.zeros((), device=labels.device)
@@ -106,7 +111,7 @@ def _request_loss(outputs, labels, positive_weight):
     return 0.45 * losses[0] + 0.35 * losses[1] + 0.20 * losses[2]
 
 
-def _offline_metrics(model, features, labels, mean, scale):
+def _offline_metrics(model, features, labels, masks, mean, scale):
     model.eval()
     flat = features.flatten(0, 1)
     predictions = {task: [] for task in POSTING_TASKS}
@@ -116,33 +121,48 @@ def _offline_metrics(model, features, labels, mean, scale):
             for task in POSTING_TASKS:
                 predictions[task].append(torch.sigmoid(outputs[task]).cpu())
     target = labels.flatten(0, 1).cpu().numpy()
+    observed = masks.flatten(0, 1).cpu().numpy()
     report = {}
     for index, task in enumerate(POSTING_TASKS):
-        score = torch.cat(predictions[task]).numpy()
+        mask = observed[:, index] > 0
+        score = torch.cat(predictions[task]).numpy()[mask]
+        task_target = target[mask, index]
         report[task] = {
-            "auc": float(roc_auc_score(target[:, index], score)),
-            "pr_auc": float(average_precision_score(target[:, index], score)),
-            "positive_rate": float(target[:, index].mean()),
+            "auc": (
+                float(roc_auc_score(task_target, score))
+                if np.unique(task_target).size == 2 else None
+            ),
+            "pr_auc": (
+                float(average_precision_score(task_target, score))
+                if task_target.sum() else None
+            ),
+            "positive_rate": float(task_target.mean()),
+            "observed_rows": int(mask.sum()),
         }
     return report
 
 
 def train_posting_models(
-    config: PostingWorldConfig, features, top_indices, labels
+    config: PostingWorldConfig, features, top_indices, labels, label_masks
 ):
     exposed_features = gather_candidates(features, top_indices)
     exposed_labels = gather_candidates(labels, top_indices)
+    exposed_masks = gather_candidates(label_masks, top_indices)
     first = int(config.requests * 0.70)
     second = int(config.requests * 0.85)
     train_features = exposed_features[:first]
     train_labels = exposed_labels[:first]
+    train_masks = exposed_masks[:first]
     validation_features = exposed_features[first:second]
     validation_labels = exposed_labels[first:second]
+    validation_masks = exposed_masks[first:second]
     mean = train_features.flatten(0, 1).mean(dim=0)
     scale = train_features.flatten(0, 1).std(dim=0).clamp_min(1e-4)
     flat_labels = train_labels.flatten(0, 1)
-    positives = flat_labels.sum(dim=0).clamp_min(1.0)
-    positive_weight = ((len(flat_labels) - positives) / positives).clamp(max=30.0)
+    flat_masks = train_masks.flatten(0, 1)
+    positives = (flat_labels * flat_masks).sum(dim=0).clamp_min(1.0)
+    observed = flat_masks.sum(dim=0)
+    positive_weight = ((observed - positives) / positives).clamp(max=30.0)
     requests_per_batch = max(
         config.train_batch_pairs // config.exposed_candidates, 1
     )
@@ -163,9 +183,12 @@ def train_posting_models(
                 request_index = order[start : start + requests_per_batch]
                 batch_features = train_features[request_index]
                 batch_labels = train_labels[request_index]
+                batch_masks = train_masks[request_index]
                 normalized = (batch_features.flatten(0, 1) - mean) / scale
                 outputs = model(normalized)
-                loss = _request_loss(outputs, batch_labels, positive_weight)
+                loss = _request_loss(
+                    outputs, batch_labels, batch_masks, positive_weight
+                )
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -176,7 +199,8 @@ def train_posting_models(
             "epochs": config.train_epochs,
             "final_loss": float(np.mean(losses[-max(first // requests_per_batch, 1):])),
             "metrics": _offline_metrics(
-                model, validation_features, validation_labels, mean, scale
+                model, validation_features, validation_labels,
+                validation_masks, mean, scale
             ),
         }
         bundles[name] = PostingModelBundle(name, model, mean, scale, offline)

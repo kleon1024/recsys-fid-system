@@ -164,6 +164,7 @@ def check_model_artifacts() -> None:
         "artifacts/models/feature-lr-v5-intent-trigger/MANIFEST.sha256",
         "artifacts/models/v3-model-ladder/MANIFEST.sha256",
         "artifacts/models/poi-posting-request-v1/MANIFEST.sha256",
+        "artifacts/models/poi-posting-v4/MANIFEST.sha256",
         "artifacts/models/feed-posting-request-v1/MANIFEST.sha256",
         "artifacts/models/local-search-request-v1/MANIFEST.sha256",
         "artifacts/models/poi-detail-request-v1/MANIFEST.sha256",
@@ -272,7 +273,7 @@ def check_simulator_world_release() -> None:
         review_path.read_bytes()
     ).hexdigest():
         failures.append("simulator world release is not bound to its review")
-    if review.get("decision") != "promote_feed_and_local_kernels":
+    if review.get("decision") != "promote_feed_local_and_supply_kernels":
         failures.append("simulator world review did not accept task kernels")
     feed = review.get("components", {}).get("feed_behavior", {})
     active_feed = release.get("active_components", {}).get("feed_behavior", {})
@@ -290,6 +291,12 @@ def check_simulator_world_release() -> None:
         "retrieval_artifact_sha256"
     ):
         failures.append("active retrieval kernel differs from the accepted review")
+    supply = review.get("components", {}).get("supply_response", {})
+    active_supply = release.get("active_components", {}).get("supply_response", {})
+    if supply.get("status") != "eligible_simulator_authority":
+        failures.append("Supply kernel is not eligible for simulator authority")
+    if active_supply.get("artifact_sha256") != supply.get("artifact_sha256"):
+        failures.append("active Supply kernel differs from the accepted review")
     if release.get("production_readiness") != "simulator_only":
         failures.append("simulator world release overstates production readiness")
     if failures:
@@ -330,7 +337,7 @@ def _check_simulated_surface_release(
 def check_simulated_surface_releases() -> None:
     _check_simulated_surface_release(
         "artifacts/releases/simulated-poi-posting-control.json",
-        "simulated-poi-posting-authority-v1", "POI posting",
+        "simulated-poi-posting-authority-v2", "POI posting",
         "hold_external_creator_and_supply_validation",
     )
     _check_simulated_surface_release(

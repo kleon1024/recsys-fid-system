@@ -19,10 +19,14 @@ class CompositeWorldAuthorityTest(unittest.TestCase):
             review["schema"], "composite-recommendation-world-review-v1"
         )
         self.assertEqual(
-            review["decision"], "promote_feed_and_local_kernels"
+            review["decision"], "promote_feed_local_and_supply_kernels"
         )
         self.assertEqual(
             review["components"]["feed_behavior"]["status"],
+            "eligible_simulator_authority",
+        )
+        self.assertEqual(
+            review["components"]["supply_response"]["status"],
             "eligible_simulator_authority",
         )
         self.assertEqual(

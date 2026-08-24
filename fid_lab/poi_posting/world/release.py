@@ -21,14 +21,20 @@ SHARED_SOURCES = (
 def build_posting_release(root, report_relative, artifact_relative):
     report_path = root / report_relative
     report = json.loads(report_path.read_text())
-    if report.get("schema") != "poi-posting-request-launch-review-v2":
+    if report.get("schema") not in {
+        "poi-posting-request-launch-review-v2",
+        "poi-posting-request-launch-review-v3",
+    }:
         raise ValueError("POI posting release requires the repeated launch review")
     state = report["release_state"]
     end = next(row for row in report["launches"] if row["stage"] == "end_to_end")
-    if end["decision"] != "pass_all_seeds" or state["fine"] == "rule":
+    if not end["decision"].startswith("pass") or state["fine"] == "rule":
         raise ValueError("POI posting end-to-end proposal did not pass all seeds")
-    seed_report = report["seed_reports"][0]
-    artifact_manifest = seed_report["models"][state["fine"]]["artifact"]
+    models = (
+        report["models_by_seed"][0]
+        if report["schema"].endswith("v3") else report["seed_reports"][0]["models"]
+    )
+    artifact_manifest = models[state["fine"]]["artifact"]
     active = {
         "candidate_policy": state["candidate"],
         "fine_model": state["fine"],
@@ -36,13 +42,15 @@ def build_posting_release(root, report_relative, artifact_relative):
             root, artifact_relative, artifact_manifest, "artifact_sha256"
         ),
         "model_seed": report["seeds"][0],
-        "world_version": "teacher-hidden-posting-v1",
+        "world_version": report["config"].get(
+            "world_version", "teacher-hidden-posting-v1"
+        ),
         "sources": source_resources(
             root, "fid_lab/poi_posting/world", SHARED_SOURCES
         ),
     }
     return {
-        "schema": "simulated-poi-posting-authority-v1",
+        "schema": "simulated-poi-posting-authority-v2",
         "active_key": state["end_to_end"],
         "active_bundle_id": bundle_identifier(active),
         "active_bundle": active,

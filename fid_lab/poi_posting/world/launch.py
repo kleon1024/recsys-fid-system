@@ -8,9 +8,14 @@ from time import perf_counter
 
 import torch
 
-from ...launches.statistics import aggregate_launch_rows, paired_metric
+from ...launches.statistics import (
+    aggregate_launch_rows,
+    cluster_paired_metric,
+    cluster_randomized_metric,
+)
 from ...value import DEFAULT_LT_CONFIG
 from .contracts import PostingWorldConfig
+from .analysis import aggregate_creator_launch
 from .generator import (
     FEATURE_NAMES,
     build_world,
@@ -53,9 +58,11 @@ def _outcome_values(response):
     }
 
 
-def _compare(control, treatment, extra=None):
+def _compare(control, treatment, creator_ids, extra=None):
     metrics = {
-        name: paired_metric(control[name], treatment[name])
+        name: cluster_paired_metric(
+            control[name], treatment[name], creator_ids
+        )
         for name in control
     }
     if extra:
@@ -74,7 +81,17 @@ def _compare(control, treatment, extra=None):
             <= 0.0002
         ),
     }
-    return metrics, gates, "pass" if all(gates.values()) else "hold_or_reject"
+    online = {
+        name: cluster_randomized_metric(
+            control[name], treatment[name], creator_ids
+        )
+        for name in ("publish_rate", "platform_lt_per_request")
+    }
+    return (
+        metrics, gates,
+        "pass" if all(gates.values()) else "hold_or_reject",
+        online,
+    )
 
 
 def _request_slice(values, start):
@@ -87,7 +104,7 @@ def _response_world(world, candidates, score):
 
 
 def _launch_campaign(
-    stage, variants, worlds, start, recall=None, fixed_control=False
+    stage, variants, worlds, start, creator_ids, recall=None, fixed_control=False
 ):
     active = variants[0]
     launches = []
@@ -96,14 +113,15 @@ def _launch_campaign(
         extra = None
         if recall is not None:
             extra = {
-                "audit_oracle_recall": paired_metric(
-                    recall[control][start:].float(),
-                    recall[treatment][start:].float(),
+                "audit_oracle_recall": cluster_paired_metric(
+                    recall[control][start:].float(), recall[treatment][start:].float(),
+                    creator_ids[start:],
                 )
             }
-        metrics, gates, decision = _compare(
+        metrics, gates, decision, online = _compare(
             _request_slice(worlds[control], start),
             _request_slice(worlds[treatment], start),
+            creator_ids[start:],
             extra,
         )
         if recall is not None:
@@ -120,6 +138,7 @@ def _launch_campaign(
             "gates": gates,
             "decision": decision,
             "promoted": promoted,
+            "creator_online_ab": online,
         })
         if promoted:
             active = treatment
@@ -143,9 +162,13 @@ def _model_evidence(bundles, features, config, artifact_dir):
     return report
 
 
-def _end_to_end_reviews(control, fine_worlds, start, candidate, active_model):
+def _end_to_end_reviews(
+    control, fine_worlds, start, creator_ids, candidate, active_model,
+):
     treatment = _request_slice(fine_worlds[active_model], start)
-    metrics, gates, decision = _compare(control, treatment)
+    metrics, gates, decision, online = _compare(
+        control, treatment, creator_ids[start:]
+    )
     selected = {
         "stage": "end_to_end",
         "control": "popular_geo_plus_rule",
@@ -154,11 +177,12 @@ def _end_to_end_reviews(control, fine_worlds, start, candidate, active_model):
         "gates": gates,
         "decision": decision,
         "promoted": decision == "pass",
+        "creator_online_ab": online,
     }
     candidates = []
     for name, values in fine_worlds.items():
-        metrics, gates, decision = _compare(
-            control, _request_slice(values, start)
+        metrics, gates, decision, online = _compare(
+            control, _request_slice(values, start), creator_ids[start:]
         )
         candidates.append({
             "stage": "end_to_end",
@@ -167,8 +191,64 @@ def _end_to_end_reviews(control, fine_worlds, start, candidate, active_model):
             "metrics": metrics,
             "gates": gates,
             "decision": decision,
+            "creator_online_ab": online,
         })
     return selected, candidates
+
+
+def _single_seed_report(
+    config, started, model_evidence, candidate_launches, fine_launches,
+    incremental_launches, end_to_end, end_to_end_candidates,
+    candidate_active, fine_active,
+):
+    elapsed = perf_counter() - started
+    is_supply_v4 = config.world_version == "creator-neural-supply-v4"
+    return {
+        "schema": "poi-posting-request-launch-ladder-v1",
+        "config": asdict(config),
+        "feature_names": FEATURE_NAMES,
+        "logging_policy": "popular_geo_plus_rule",
+        "logging_contract": {
+            "oracle_forced_into_candidates": False,
+            "only_exposed_candidates_are_behavioral_training_rows": True,
+            "publish_is_entire_space_selected_and_published": True,
+            "relevance_is_observed_only_after_publish": True,
+            "unmatured_relevance_uses_label_mask_zero": True,
+            "teacher_uses_hidden_latent_draft": True,
+            "models_use_noisy_observed_draft": True,
+            "experiment_unit": "creator_id",
+            "time_split": [0.70, 0.15, 0.15],
+        },
+        "models": model_evidence,
+        "launches": [
+            *candidate_launches, *fine_launches,
+            *incremental_launches, end_to_end,
+        ],
+        "end_to_end_candidates": end_to_end_candidates,
+        "release_state": {
+            "candidate": candidate_active,
+            "fine": fine_active,
+            "end_to_end": end_to_end["treatment"] if end_to_end["promoted"] else (
+                "popular_geo_plus_rule"
+            ),
+        },
+        "performance": {
+            "seconds": elapsed,
+            "requests_per_second": config.requests / elapsed,
+            "peak_gpu_memory_bytes": (
+                int(torch.cuda.max_memory_allocated())
+                if config.device.startswith("cuda") else 0
+            ),
+        },
+        "evidence_boundary": (
+            "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster "
+            "randomized A/B and mature post-publish labels. It remains simulator-only "
+            "until external creator logs and randomized supply interventions exist."
+            if is_supply_v4 else
+            "Teacher-hidden synthetic posting world for request closure, model "
+            "training, stage isolation, and simulated effect recovery only."
+        ),
+    }
 
 
 def run_posting_launch_ladder(
@@ -197,6 +277,7 @@ def run_posting_launch_ladder(
         features["popular_geo"],
         logging_response["top_indices"],
         logging_response["labels"],
+        logging_response["label_masks"],
     )
     model_evidence = _model_evidence(
         bundles, features, config, artifact_dir
@@ -213,6 +294,7 @@ def run_posting_launch_ladder(
         ("popular_geo", "semantic_recall", "history_recall"),
         candidate_worlds,
         test_start,
+        world.requests.creator_id,
         {name: value.audit_oracle_recalled for name, value in candidate_sets.items()},
         fixed_control=True,
     )
@@ -231,52 +313,31 @@ def run_posting_launch_ladder(
         ("rule", "linear", "wide_deep", "mmoe"),
         fine_worlds,
         test_start,
+        world.requests.creator_id,
+        fixed_control=(config.world_version == "creator-neural-supply-v4"),
     )
+    incremental_launches = []
+    if config.world_version == "creator-neural-supply-v4":
+        incremental_launches, _ = _launch_campaign(
+            "fine_incremental",
+            ("linear", "wide_deep", "mmoe"),
+            fine_worlds,
+            test_start,
+            world.requests.creator_id,
+            fixed_control=True,
+        )
     control = _request_slice(
         _outcome_values(logging_response), test_start
     )
     end_to_end, end_to_end_candidates = _end_to_end_reviews(
-        control, fine_worlds, test_start, candidate_active, fine_active
+        control, fine_worlds, test_start, world.requests.creator_id,
+        candidate_active, fine_active,
     )
-    elapsed = perf_counter() - started
-    return {
-        "schema": "poi-posting-request-launch-ladder-v1",
-        "config": asdict(config),
-        "feature_names": FEATURE_NAMES,
-        "logging_policy": "popular_geo_plus_rule",
-        "logging_contract": {
-            "oracle_forced_into_candidates": False,
-            "only_exposed_candidates_are_behavioral_training_rows": True,
-            "publish_is_entire_space_selected_and_published": True,
-            "teacher_uses_hidden_latent_draft": True,
-            "models_use_noisy_observed_draft": True,
-            "time_split": [0.70, 0.15, 0.15],
-        },
-        "models": model_evidence,
-        "launches": [*candidate_launches, *fine_launches, end_to_end],
-        "end_to_end_candidates": end_to_end_candidates,
-        "release_state": {
-            "candidate": candidate_active,
-            "fine": fine_active,
-            "end_to_end": end_to_end["treatment"] if end_to_end["promoted"] else (
-                "popular_geo_plus_rule"
-            ),
-        },
-        "performance": {
-            "seconds": elapsed,
-            "requests_per_second": config.requests / elapsed,
-            "peak_gpu_memory_bytes": (
-                int(torch.cuda.max_memory_allocated())
-                if config.device.startswith("cuda") else 0
-            ),
-        },
-        "evidence_boundary": (
-            "Teacher-hidden multi-agent synthetic posting world. It validates "
-            "request closure, model training, stage isolation, and effect recovery; "
-            "supply remains outside external V4 authority until creator logs and "
-            "randomized supply interventions are available."
-        ),
-    }
+    return _single_seed_report(
+        config, started, model_evidence, candidate_launches, fine_launches,
+        incremental_launches, end_to_end, end_to_end_candidates,
+        candidate_active, fine_active,
+    )
 
 
 def run_repeated_posting_launch_ladder(
@@ -291,22 +352,55 @@ def run_repeated_posting_launch_ladder(
     ]
     stage_rows = []
     for index in range(len(reports[0]["launches"]) - 1):
-        stage_rows.append(aggregate_launch_rows(
-            [report["launches"][index] for report in reports],
-            "publish_rate", "platform_lt_per_request",
-        ))
+        seed_rows = [report["launches"][index] for report in reports]
+        row = (
+            aggregate_creator_launch(seed_rows)
+            if config.world_version == "creator-neural-supply-v4"
+            else aggregate_launch_rows(
+                seed_rows, "publish_rate", "platform_lt_per_request",
+            )
+        )
+        if "creator_online_by_seed" not in row:
+            row["creator_online_by_seed"] = [
+                value["creator_online_ab"] for value in seed_rows
+            ]
+        stage_rows.append(row)
     candidate_active = "popular_geo"
     for row in stage_rows:
-        if row["stage"] == "candidate" and row["decision"] == "pass_all_seeds":
+        if row["stage"] == "candidate" and row["decision"].startswith("pass"):
             candidate_active = row["treatment"]
+    if config.world_version == "creator-neural-supply-v4":
+        passed = [
+            row for row in stage_rows
+            if row["stage"] == "candidate" and row["decision"].startswith("pass")
+        ]
+        if passed:
+            candidate_active = max(
+                passed,
+                key=lambda row: row["metrics"]["platform_lt_per_request"][
+                    "pooled_effect"
+                ],
+            )["treatment"]
     fine_active = "rule"
     for row in stage_rows:
         if row["stage"] != "fine":
             continue
-        if row["control"] != fine_active:
+        if config.world_version != "creator-neural-supply-v4" and row["control"] != fine_active:
             row["decision"] = "hold_global_control_mismatch"
-        elif row["decision"] == "pass_all_seeds":
+        elif row["decision"].startswith("pass"):
             fine_active = row["treatment"]
+    if config.world_version == "creator-neural-supply-v4":
+        passed = [
+            row for row in stage_rows
+            if row["stage"] == "fine" and row["decision"].startswith("pass")
+        ]
+        if passed:
+            fine_active = max(
+                passed,
+                key=lambda row: row["metrics"]["platform_lt_per_request"][
+                    "pooled_effect"
+                ],
+            )["treatment"]
     end_name = f"{candidate_active}_plus_{fine_active}"
     end_rows = []
     for report in reports:
@@ -314,12 +408,24 @@ def run_repeated_posting_launch_ladder(
             row for row in report["end_to_end_candidates"]
             if row["treatment"] == end_name
         ))
-    end_to_end = aggregate_launch_rows(
-        end_rows, "publish_rate", "platform_lt_per_request"
+    end_to_end = (
+        aggregate_creator_launch(end_rows)
+        if config.world_version == "creator-neural-supply-v4"
+        else aggregate_launch_rows(
+            end_rows, "publish_rate", "platform_lt_per_request"
+        )
     )
+    if "creator_online_by_seed" not in end_to_end:
+        end_to_end["creator_online_by_seed"] = [
+            value["creator_online_ab"] for value in end_rows
+        ]
     launches = [*stage_rows, end_to_end]
-    return {
-        "schema": "poi-posting-request-launch-review-v2",
+    result = {
+        "schema": (
+            "poi-posting-request-launch-review-v3"
+            if config.world_version == "creator-neural-supply-v4"
+            else "poi-posting-request-launch-review-v2"
+        ),
         "seeds": list(seeds),
         "config": asdict(config),
         "launches": launches,
@@ -328,10 +434,24 @@ def run_repeated_posting_launch_ladder(
             "fine": fine_active,
             "end_to_end": (
                 end_name
-                if end_to_end["decision"] == "pass_all_seeds"
+                if end_to_end["decision"].startswith("pass")
                 else "popular_geo_plus_rule"
             ),
         },
-        "seed_reports": reports,
         "evidence_boundary": reports[0]["evidence_boundary"],
     }
+    if config.world_version == "creator-neural-supply-v4":
+        result.update({
+            "models_by_seed": [report["models"] for report in reports],
+            "seed_diagnostics": [
+                {
+                    "config": report["config"],
+                    "performance": report["performance"],
+                    "logging_contract": report["logging_contract"],
+                }
+                for report in reports
+            ],
+        })
+    else:
+        result["seed_reports"] = reports
+    return result

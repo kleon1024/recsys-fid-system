@@ -297,6 +297,26 @@ def _feed_posting_stage_records(root: Path) -> list[dict]:
     )
 
 
+def _poi_posting_v4_records(root: Path) -> list[dict]:
+    relative = "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json"
+    report, evidence = _load(root, relative)
+    counters = {"candidate": 0, "fine": 0, "end_to_end": 0}
+    records = []
+    for row in report["launches"]:
+        stage = "fine" if row["stage"] == "fine_incremental" else row["stage"]
+        counters[stage] += 1
+        records.append(_record(
+            launch_id=f"L-POI-POST-V4-{stage.upper()}-{counters[stage]:03d}",
+            surface="poi_posting", stage=stage,
+            change_type=f"creator_neural_v4_{row['stage']}",
+            control=row["control"], treatment=row["treatment"],
+            decision=row["decision"], evidence=evidence,
+            primary_metric="creator_publish_with_platform_lt_and_supply_quality",
+            evidence_boundary=report["evidence_boundary"],
+        ))
+    return records
+
+
 def _local_search_stage_records(root: Path) -> list[dict]:
     return _surface_stage_records(
         root,
@@ -408,6 +428,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_poi_detail_stage_records(root),
         *_poi_distribution_v4_records(root),
         *_request_retrieval_v4_records(root),
+        *_poi_posting_v4_records(root),
     ]
     identifiers = [record["launch_id"] for record in records]
     if len(identifiers) != len(set(identifiers)):

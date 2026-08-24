@@ -8,6 +8,7 @@ import torch
 from torch.nn import functional as functional
 
 from .contracts import POSTING_ROUTES, PostingWorldConfig
+from .teacher import NeuralSupplyTeacher, build_neural_supply_teacher
 
 
 FEATURE_NAMES = (
@@ -44,6 +45,8 @@ class PostingRequests:
     creator_activity: torch.Tensor
     preference_proxy: torch.Tensor
     outside_preference: torch.Tensor
+    creator_id: torch.Tensor
+    request_step: torch.Tensor
 
 
 @dataclass(frozen=True)
@@ -52,6 +55,7 @@ class PostingWorld:
     catalog: PostingCatalog
     requests: PostingRequests
     category_basis: torch.Tensor
+    teacher: NeuralSupplyTeacher | None
 
 
 @dataclass(frozen=True)
@@ -200,11 +204,105 @@ def _build_requests(config, generator, device, category_basis, city_centers):
         request_id, latent_draft, observed_draft, history, latent_city,
         observed_city, latent_category, observed_category, location,
         permission, creator_activity, preference_proxy, outside_preference,
+        request_id, torch.zeros_like(request_id),
+    )
+
+
+def _build_creator_requests(config, generator, device, category_basis, city_centers):
+    request_id = torch.arange(config.requests, device=device)
+    creator_id = torch.remainder(request_id, config.creators)
+    request_step = torch.div(request_id, config.creators, rounding_mode="floor")
+    primary = torch.randint(
+        config.categories, (config.creators,), generator=generator, device=device
+    )
+    secondary = torch.randint(
+        config.categories, (config.creators,), generator=generator, device=device
+    )
+    city = torch.randint(
+        config.cities, (config.creators,), generator=generator, device=device
+    )
+    activity_trait = torch.randn(
+        config.creators, generator=generator, device=device
+    )
+    activity = torch.sigmoid(
+        activity_trait[creator_id]
+        + 0.18 * torch.sin(request_step.float() * 0.9)
+        + 0.18 * torch.randn(config.requests, generator=generator, device=device)
+    )
+    drift = torch.sigmoid((request_step.float() - 3.0) * 0.8)[:, None]
+    latent_draft = _normalize(
+        category_basis[primary[creator_id]]
+        + (0.18 + 0.32 * drift) * category_basis[secondary[creator_id]]
+        + 0.28 * torch.randn(
+            config.requests, config.semantic_dim, generator=generator, device=device
+        )
+    )
+    observed_draft = _normalize(
+        latent_draft + 0.45 * torch.randn(
+            config.requests, config.semantic_dim, generator=generator, device=device
+        )
+    )
+    history = _normalize(
+        category_basis[primary[creator_id]] + 0.35 * category_basis[secondary[creator_id]]
+        + 0.35 * torch.randn(
+            config.requests, config.semantic_dim, generator=generator, device=device
+        )
+    )
+    permission_by_creator = torch.multinomial(
+        torch.tensor([0.56, 0.29, 0.15], device=device),
+        config.creators, replacement=True, generator=generator,
+    )
+    permission = permission_by_creator[creator_id]
+    latent_city = city[creator_id]
+    wrong_city = torch.randint(
+        config.cities, (config.requests,), generator=generator, device=device
+    )
+    ip_wrong = (permission == 2) & (
+        torch.rand(config.requests, generator=generator, device=device) < 0.12
+    )
+    observed_city = torch.where(ip_wrong, wrong_city, latent_city)
+    noise = torch.where(
+        permission[:, None] == 0, 0.08,
+        torch.where(permission[:, None] == 1, 0.45, 0.90),
+    )
+    location = city_centers[observed_city] + noise * torch.randn(
+        config.requests, 2, generator=generator, device=device
+    )
+    preference_proxy = torch.clamp(
+        activity + 0.25 * torch.randn(config.requests, generator=generator, device=device),
+        0.0, 1.0,
+    )
+    outside = 0.30 - 0.72 * activity + 0.10 * request_step.float() + (
+        0.30 * torch.randn(config.requests, generator=generator, device=device)
+    )
+    observed_category = (observed_draft @ category_basis.T).argmax(dim=1)
+    return PostingRequests(
+        request_id, latent_draft, observed_draft, history, latent_city,
+        observed_city, primary[creator_id], observed_category, location,
+        permission, activity, preference_proxy, outside, creator_id, request_step,
     )
 
 
 def build_world(config: PostingWorldConfig):
     device = torch.device(config.device)
+    if config.world_version == "creator-neural-supply-v4":
+        catalog_seed = config.seed if config.catalog_seed is None else config.catalog_seed
+        catalog_generator = torch.Generator(device=device).manual_seed(catalog_seed)
+        category_basis = _normalize(torch.randn(
+            config.categories, config.semantic_dim,
+            generator=catalog_generator, device=device,
+        ))
+        catalog, city_centers = _build_catalog(
+            config, catalog_generator, device, category_basis
+        )
+        request_generator = torch.Generator(device=device).manual_seed(config.seed)
+        requests = _build_creator_requests(
+            config, request_generator, device, category_basis, city_centers
+        )
+        return PostingWorld(
+            config, catalog, requests, category_basis,
+            build_neural_supply_teacher(device),
+        )
     generator = torch.Generator(device=device).manual_seed(config.seed)
     category_basis = _normalize(torch.randn(
         config.categories, config.semantic_dim, generator=generator, device=device
@@ -216,7 +314,7 @@ def build_world(config: PostingWorldConfig):
         config, generator, device, category_basis, city_centers
     )
     return PostingWorld(
-        config, catalog, requests, category_basis
+        config, catalog, requests, category_basis, None
     )
 
 
@@ -264,6 +362,8 @@ def _route_items(world: PostingWorld):
 
 
 def hidden_utility(world: PostingWorld, item_ids):
+    if world.teacher is not None:
+        return hidden_supply_outputs(world, item_ids)[:, :, 0]
     catalog, requests = world.catalog, world.requests
     latent_similarity = torch.einsum(
         "bkd,bd->bk", catalog.semantic[item_ids], requests.latent_draft
@@ -287,6 +387,30 @@ def hidden_utility(world: PostingWorld, item_ids):
         + 0.10 * catalog.popularity[item_ids]
         + 0.16 * nonlinear
     )
+
+
+def hidden_supply_outputs(world: PostingWorld, item_ids):
+    catalog, requests = world.catalog, world.requests
+    latent_similarity = torch.einsum(
+        "bkd,bd->bk", catalog.semantic[item_ids], requests.latent_draft
+    )
+    history_similarity = torch.einsum(
+        "bkd,bd->bk", catalog.semantic[item_ids], requests.history
+    )
+    inputs = torch.stack((
+        latent_similarity,
+        history_similarity,
+        (catalog.city[item_ids] == requests.latent_city[:, None]).float(),
+        (catalog.category[item_ids] == requests.latent_category[:, None]).float(),
+        catalog.quality[item_ids], catalog.popularity[item_ids],
+        catalog.commerce[item_ids],
+        requests.creator_activity[:, None].expand_as(latent_similarity),
+        requests.outside_preference[:, None].expand_as(latent_similarity),
+        requests.request_step[:, None].float().expand_as(latent_similarity) / 8.0,
+        (requests.permission[:, None] == 0).float().expand_as(latent_similarity),
+        (requests.permission[:, None] == 1).float().expand_as(latent_similarity),
+    ), dim=2)
+    return world.teacher(inputs)
 
 
 def retrieve(world: PostingWorld, enabled_routes):
@@ -384,7 +508,14 @@ def rule_score(features):
 def simulate_response(world: PostingWorld, candidates: CandidateSet, scores):
     top = torch.topk(scores, world.config.exposed_candidates, dim=1).indices
     exposed_items = candidates.item_ids.gather(1, top)
-    utility = hidden_utility(world, exposed_items)
+    hidden_outputs = (
+        hidden_supply_outputs(world, exposed_items)
+        if world.teacher is not None else None
+    )
+    utility = (
+        hidden_outputs[:, :, 0]
+        if hidden_outputs is not None else hidden_utility(world, exposed_items)
+    )
     position = torch.arange(
         world.config.exposed_candidates, device=scores.device
     ).float()
@@ -408,31 +539,53 @@ def simulate_response(world: PostingWorld, candidates: CandidateSet, scores):
     selected_similarity = (
         world.catalog.semantic[selected_item] * world.requests.latent_draft
     ).sum(dim=1)
-    publish_probability = torch.sigmoid(
-        -1.45
-        + 1.05 * selected_utility
-        + 0.65 * world.requests.creator_activity
-        + 0.35 * world.catalog.quality[selected_item]
-        - 0.25 * world.catalog.popularity[selected_item].square()
+    selected_hidden = (
+        hidden_outputs.gather(
+            1, selected_rank[:, None, None].expand(-1, 1, hidden_outputs.shape[2])
+        ).squeeze(1)
+        if hidden_outputs is not None else None
+    )
+    publish_probability = (
+        torch.sigmoid(selected_hidden[:, 1])
+        if selected_hidden is not None else torch.sigmoid(
+            -1.45 + 1.05 * selected_utility
+            + 0.65 * world.requests.creator_activity
+            + 0.35 * world.catalog.quality[selected_item]
+            - 0.25 * world.catalog.popularity[selected_item].square()
+        )
     )
     publish_draw = _uniform(
         world.requests.request_id, selected_item, 103, world.config.seed
     )
     published = selected & (publish_draw < publish_probability)
-    relevance = torch.sigmoid(3.5 * (selected_similarity - 0.25))
-    supply_quality = torch.sigmoid(
-        1.4 * selected_similarity
-        + 0.9 * world.catalog.quality[selected_item]
-        - 0.4 * world.catalog.popularity[selected_item]
+    relevance = (
+        torch.sigmoid(selected_hidden[:, 2]) if selected_hidden is not None
+        else torch.sigmoid(3.5 * (selected_similarity - 0.25))
+    )
+    supply_quality = (
+        torch.sigmoid(selected_hidden[:, 3]) if selected_hidden is not None
+        else torch.sigmoid(
+            1.4 * selected_similarity
+            + 0.9 * world.catalog.quality[selected_item]
+            - 0.4 * world.catalog.popularity[selected_item]
+        )
+    )
+    downstream = (
+        torch.nn.functional.softplus(selected_hidden[:, 5])
+        if selected_hidden is not None else torch.zeros_like(relevance)
     )
     feed_stay_seconds = published.float() * (
-        0.80 + 1.60 * supply_quality + 0.90 * relevance
+        0.80 + 1.60 * supply_quality + 0.90 * relevance + 0.35 * downstream
     )
     feed_active_day = published.float() * torch.clamp(
         0.0015 * supply_quality + 0.0008 * relevance, max=0.003
     )
-    negative_risk = torch.sigmoid(
-        -4.0 - 1.4 * selected_similarity + 0.8 * world.catalog.popularity[selected_item]
+    negative_risk = (
+        torch.sigmoid(selected_hidden[:, 4]) if selected_hidden is not None
+        else torch.sigmoid(
+            -4.0 - 1.4 * selected_similarity
+            + 0.8 * world.catalog.popularity[selected_item]
+        )
     )
     negative = published.float() * negative_risk
     labels = torch.zeros(
@@ -444,12 +597,12 @@ def simulate_response(world: PostingWorld, candidates: CandidateSet, scores):
     ).squeeze(1)
     labels[batch[selected], selected_candidate_index[selected], 0] = 1.0
     labels[batch[published], selected_candidate_index[published], 1] = 1.0
-    latent_candidate_similarity = torch.einsum(
-        "bkd,bd->bk",
-        world.catalog.semantic[candidates.item_ids],
-        world.requests.latent_draft,
-    )
-    labels[:, :, 2] = (latent_candidate_similarity > 0.50).float()
+    label_masks = torch.ones_like(labels)
+    label_masks[:, :, 2] = 0.0
+    labels[batch[published], selected_candidate_index[published], 2] = (
+        relevance[published] > 0.555
+    ).float()
+    label_masks[batch[published], selected_candidate_index[published], 2] = 1.0
     return {
         "top_indices": top,
         "selected": selected,
@@ -462,4 +615,5 @@ def simulate_response(world: PostingWorld, candidates: CandidateSet, scores):
         "negative": negative,
         "selected_content_negative_risk": negative_risk,
         "labels": labels,
+        "label_masks": label_masks,
     }

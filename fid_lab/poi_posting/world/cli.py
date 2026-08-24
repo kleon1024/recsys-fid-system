@@ -16,6 +16,12 @@ def main():
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument(
+        "--world-version", default="teacher-hidden-posting-v1",
+        choices=("teacher-hidden-posting-v1", "creator-neural-supply-v4"),
+    )
+    parser.add_argument("--creators", type=int, default=25_000)
+    parser.add_argument("--catalog-seed", type=int)
+    parser.add_argument(
         "--seeds", type=int, nargs="+",
         default=(20260824, 20260825, 20260826),
     )
@@ -27,6 +33,9 @@ def main():
         train_epochs=args.epochs,
         device=args.device,
         seed=args.seeds[0],
+        creators=args.creators,
+        catalog_seed=args.catalog_seed,
+        world_version=args.world_version,
     ), tuple(args.seeds), args.artifact_dir)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
