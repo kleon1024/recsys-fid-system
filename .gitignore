@@ -53,6 +53,15 @@ artifacts/models/*
 !artifacts/models/poi-distribution-v4/
 !artifacts/models/poi-distribution-v4/MANIFEST.sha256
 !artifacts/models/poi-distribution-v4/*.pt
+!artifacts/models/poi-retrieval-v4-poi-only/
+!artifacts/models/poi-retrieval-v4-poi-only/MANIFEST.sha256
+!artifacts/models/poi-retrieval-v4-poi-only/*.pt
+!artifacts/models/shared-retrieval-v4-sequence-skew/
+!artifacts/models/shared-retrieval-v4-sequence-skew/MANIFEST.sha256
+!artifacts/models/shared-retrieval-v4-sequence-skew/*.pt
+!artifacts/models/shared-retrieval-v4-aligned/
+!artifacts/models/shared-retrieval-v4-aligned/MANIFEST.sha256
+!artifacts/models/shared-retrieval-v4-aligned/*.pt
 !artifacts/releases/
 !artifacts/releases/*.json
 !artifacts/releases/historical/

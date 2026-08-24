@@ -485,6 +485,10 @@ combined release path. It includes the important result that W&D, DCNv2, and
 MMoE beat Linear on offline AUC but fail the online LT gate, while the accepted
 Linear coarse and fine stack produces positive pooled simulator lift.
 
+The [request-level Retrieval V4 Launch Review](docs/launch-reviews/2026-08-24-request-retrieval-v4.md)
+records the POI-only corpus failure, training-serving query skew, paired-estimator
+repair, Two-Tower promotion, and Multi-interest rejection.
+
 ## Run
 
 ```bash

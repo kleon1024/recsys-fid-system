@@ -1,0 +1,84 @@
+{
+  "schema": "poi-retrieval-v4-training-v1",
+  "dataset": {
+    "path": "manifest.json",
+    "sha256": "8dfa992b4ef0e01528040824a33a3d3c6a7c723d52b9ad2d43fa7b2cdf13ae59"
+  },
+  "negative_sampling": {
+    "in_batch": 0.6,
+    "same_request_hard": 0.25,
+    "random_poi": 0.15,
+    "sampling_probability_correction": "subtract_log_q",
+    "propensity_weighted": true
+  },
+  "corpus": {
+    "items": 200000,
+    "global_catalog_items": 200000,
+    "top_k": 20,
+    "same_for_all_models": true,
+    "semantics": "shared Feed ANN corpus with Local behavior upweighting"
+  },
+  "semantic_baseline": {
+    "recall_at_k": 6.117030716268346e-05,
+    "ndcg_at_k": 2.6159235858358443e-05,
+    "high_value_recall_at_k": 0.0,
+    "catalog_coverage": 0.48087
+  },
+  "models": {
+    "two_tower": {
+      "artifact": {
+        "artifact_file": "two_tower.pt",
+        "sha256": "80ed003f2d603a6c8a21fb7a5591de0e29cfffeb91f9fca8a36a3e4fbbdcde9e"
+      },
+      "offline": {
+        "recall_at_k": 0.002581387059763074,
+        "ndcg_at_k": 0.0013643453130498528,
+        "high_value_recall_at_k": 0.006959707010537386,
+        "catalog_coverage": 0.30837,
+        "exact_full_corpus_ms_per_query": 0.009418421903985792,
+        "fixed_pool_ms_per_query": 4.0413574708964006e-05,
+        "corpus_items": 200000,
+        "top_k": 20,
+        "loss": [
+          14.215222113688473,
+          13.938474481756037,
+          13.883008515881926,
+          13.844525913947184
+        ],
+        "training_seconds": 5.142476545006502,
+        "parameters": 7808,
+        "train_examples": 258262,
+        "validation_examples": 81739
+      },
+      "shadow_replay_max_delta": 0.0
+    },
+    "multi_interest": {
+      "artifact": {
+        "artifact_file": "multi_interest.pt",
+        "sha256": "153e6d41a95abbe8a6bd69dfc89d7e2e02425083476722e56f647d31ac6b9396"
+      },
+      "offline": {
+        "recall_at_k": 0.0016393642872571945,
+        "ndcg_at_k": 0.0008188303327187896,
+        "high_value_recall_at_k": 0.008791209198534489,
+        "catalog_coverage": 0.32928,
+        "exact_full_corpus_ms_per_query": 0.01553790607917012,
+        "fixed_pool_ms_per_query": 3.824401950680567e-05,
+        "corpus_items": 200000,
+        "top_k": 20,
+        "loss": [
+          14.224304391461398,
+          13.935616308521377,
+          13.858915099042207,
+          13.840651542301705
+        ],
+        "training_seconds": 5.443431089996011,
+        "parameters": 16096,
+        "train_examples": 258262,
+        "validation_examples": 81739
+      },
+      "shadow_replay_max_delta": 0.0
+    }
+  },
+  "evidence_boundary": "Synthetic Neural Local V4 request log only."
+}

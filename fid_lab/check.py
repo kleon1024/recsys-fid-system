@@ -168,6 +168,9 @@ def check_model_artifacts() -> None:
         "artifacts/models/local-search-request-v1/MANIFEST.sha256",
         "artifacts/models/poi-detail-request-v1/MANIFEST.sha256",
         "artifacts/models/poi-distribution-v4/MANIFEST.sha256",
+        "artifacts/models/poi-retrieval-v4-poi-only/MANIFEST.sha256",
+        "artifacts/models/shared-retrieval-v4-sequence-skew/MANIFEST.sha256",
+        "artifacts/models/shared-retrieval-v4-aligned/MANIFEST.sha256",
     )
     failures = []
     for relative_manifest in manifests:
@@ -283,6 +286,10 @@ def check_simulator_world_release() -> None:
         failures.append("Local kernel is not eligible for simulator authority")
     if active_local.get("artifact_sha256") != local.get("artifact_sha256"):
         failures.append("active Local kernel differs from the accepted review")
+    if active_local.get("retrieval_artifact_sha256") != local.get(
+        "retrieval_artifact_sha256"
+    ):
+        failures.append("active retrieval kernel differs from the accepted review")
     if release.get("production_readiness") != "simulator_only":
         failures.append("simulator world release overstates production readiness")
     if failures:
@@ -304,6 +311,8 @@ def _check_simulated_surface_release(
         bundle["model_artifact"], *bundle["sources"],
         *bundle.get("evidence_reports", []), release["source_report"]
     ]
+    if "retrieval_artifact" in bundle:
+        resources.append(bundle["retrieval_artifact"])
     if "training_dataset" in bundle:
         resources.append(bundle["training_dataset"])
     for resource in resources:

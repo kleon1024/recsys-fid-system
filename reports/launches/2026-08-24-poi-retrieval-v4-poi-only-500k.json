@@ -1,0 +1,731 @@
+{
+  "schema": "poi-retrieval-v4-launch-review-v1",
+  "users_per_seed": 500000,
+  "steps": 24,
+  "seeds": [
+    20260824,
+    20260825,
+    20260826
+  ],
+  "fixed_budget": {
+    "catalog": {
+      "items": 56164,
+      "global_catalog_items": 200000,
+      "top_k": 20,
+      "same_for_all_models": true
+    },
+    "ann_pool_per_request": 24,
+    "ann_route_top_k": 8,
+    "final_merged_candidates": 48
+  },
+  "launches": [
+    {
+      "stage": "retrieval",
+      "control": "personalized_rank",
+      "treatment": "poi_ann_two_tower",
+      "decision": "reject_mean_regression",
+      "gates": {
+        "offline_recall_positive": true,
+        "online_anchor_positive": true,
+        "platform_lt_nonnegative": false,
+        "stay_guardrail": false,
+        "negative_guardrail": true,
+        "direction_consistency": false
+      },
+      "offline_control": {
+        "recall_at_k": 0.00019328900089021772,
+        "ndcg_at_k": 5.883129051653668e-05,
+        "high_value_recall_at_k": 0.0,
+        "catalog_coverage": 0.12402962751940745
+      },
+      "offline_treatment": {
+        "recall_at_k": 0.002860677195712924,
+        "ndcg_at_k": 0.0021750035230070353,
+        "high_value_recall_at_k": 0.004395604599267244,
+        "catalog_coverage": 0.18355174132896518,
+        "exact_full_corpus_ms_per_query": 0.009860023155659432,
+        "fixed_pool_ms_per_query": 3.6216187382365206e-05,
+        "corpus_items": 56164,
+        "top_k": 20,
+        "loss": [
+          13.312643695521999,
+          12.99423766780544,
+          12.903346770518535,
+          12.864400773435026
+        ],
+        "training_seconds": 1.6457270020036958,
+        "parameters": 7808,
+        "train_examples": 74951,
+        "validation_examples": 25868
+      },
+      "metrics": {
+        "anchor_click_rate": {
+          "per_seed": [
+            0.0007456728258371636,
+            0.0007578524574947433,
+            0.0007273121684776302
+          ],
+          "pooled_effect": 0.0007433976267446426,
+          "pooled_standard_error": 4.9992793700583445e-05,
+          "pooled_confidence_interval": [
+            0.0006454117510914991,
+            0.0008413835023977862
+          ]
+        },
+        "lt_value_per_user": {
+          "per_seed": [
+            -0.006167828964215971,
+            -0.0016434207157018932,
+            -0.00041385594712295415
+          ],
+          "pooled_effect": -0.0027371145794998983,
+          "pooled_standard_error": 0.009323131938965964,
+          "pooled_confidence_interval": [
+            -0.021010453179873188,
+            0.015536224020873391
+          ]
+        },
+        "stay_per_exposure": {
+          "per_seed": [
+            -0.018880333365341784,
+            -0.010553201619615038,
+            -0.011228374463865265
+          ],
+          "pooled_effect": -0.013534453908245717,
+          "pooled_standard_error": 0.01712985735758944,
+          "pooled_confidence_interval": [
+            -0.04710897432912101,
+            0.02004006651262958
+          ]
+        },
+        "negative_rate": {
+          "per_seed": [
+            5.041154121880956e-06,
+            3.3131803274840787e-06,
+            7.445723243822383e-06
+          ],
+          "pooled_effect": 5.188920936816708e-06,
+          "pooled_standard_error": 9.9564296256684e-06,
+          "pooled_confidence_interval": [
+            -1.4325681129493359e-05,
+            2.4703523003126772e-05
+          ]
+        },
+        "poi_candidate_fraction": {
+          "per_seed": [
+            0.05910247789059003,
+            0.05932567174696718,
+            0.05931528236853634
+          ],
+          "pooled_effect": 0.059248056462275864,
+          "pooled_standard_error": 4.013327951011034e-05,
+          "pooled_confidence_interval": [
+            0.05916939523443605,
+            0.05932671769011568
+          ]
+        },
+        "conversion_rate": {
+          "per_seed": [
+            2.52387838215294e-05,
+            2.8631307275795402e-05,
+            2.5557407869754517e-05
+          ],
+          "pooled_effect": 2.6501011295246652e-05,
+          "pooled_standard_error": 8.653106218415485e-06,
+          "pooled_confidence_interval": [
+            9.540923107152302e-06,
+            4.3461099483341e-05
+          ]
+        }
+      },
+      "online_disjoint_by_seed": [
+        {
+          "anchor_click_rate": {
+            "control_mean": 0.011896786453917797,
+            "treatment_mean": 0.012563989086284214,
+            "relative_lift": 0.0560825929717093,
+            "standard_error": 8.683692858348516e-05,
+            "confidence_interval": [
+              0.0004970022523427856,
+              0.0008374030123900476
+            ],
+            "p_value": 1.549240350119354e-14
+          },
+          "lt_value_per_user": {
+            "control_mean": 11.522098592760253,
+            "treatment_mean": 11.514723769284936,
+            "relative_lift": -0.0006400590496553017,
+            "standard_error": 0.016140676540174724,
+            "confidence_interval": [
+              -0.03901054949405928,
+              0.024260902543425646
+            ],
+            "p_value": 0.6477363168374761
+          }
+        },
+        {
+          "anchor_click_rate": {
+            "control_mean": 0.011879580409446432,
+            "treatment_mean": 0.012702324060584509,
+            "relative_lift": 0.0692569621805704,
+            "standard_error": 8.728857723855715e-05,
+            "confidence_interval": [
+              0.0006516580397505046,
+              0.0009938292625256485
+            ],
+            "p_value": 4.2781982075487255e-21
+          },
+          "lt_value_per_user": {
+            "control_mean": 11.514522782167765,
+            "treatment_mean": 11.507212346360669,
+            "relative_lift": -0.0006348883010954783,
+            "standard_error": 0.016154026392959982,
+            "confidence_interval": [
+              -0.038972327537297236,
+              0.02435145592310589
+            ],
+            "p_value": 0.6508758786929614
+          }
+        },
+        {
+          "anchor_click_rate": {
+            "control_mean": 0.011807252978003255,
+            "treatment_mean": 0.01259198111552495,
+            "relative_lift": 0.06646153334595534,
+            "standard_error": 8.624056255699018e-05,
+            "confidence_interval": [
+              0.0006156966349099931,
+              0.0009537596401333946
+            ],
+            "p_value": 9.092184518275219e-20
+          },
+          "lt_value_per_user": {
+            "control_mean": 11.515990156519932,
+            "treatment_mean": 11.51062071890404,
+            "relative_lift": -0.00046625930926590337,
+            "standard_error": 0.016138105629045846,
+            "confidence_interval": [
+              -0.03700012464882178,
+              0.026261249417037932
+            ],
+            "p_value": 0.7393471895922481
+          }
+        }
+      ],
+      "seed_diagnostics": [
+        {
+          "candidate_graph": {
+            "version": "multiroute-rrf-cascade-v3",
+            "stage_attribution": {
+              "recall_miss": 1690994,
+              "coarse_miss": 515,
+              "fine_rank_miss": 2868377,
+              "mix_rank_miss": 0,
+              "served_audit_oracle": 6450513
+            },
+            "stage_attribution_rate": {
+              "recall_miss": 0.15358153687255113,
+              "coarse_miss": 4.677396341404158e-05,
+              "fine_rank_miss": 0.26051526379743367,
+              "mix_rank_miss": 0.0,
+              "served_audit_oracle": 0.5858564253666012
+            },
+            "mean_route_hits": {
+              "ann": 8.0,
+              "graph": 8.0,
+              "geo": 8.0,
+              "fresh": 8.0,
+              "long_tail": 8.0,
+              "popular": 8.0,
+              "post_search": 0.15995496620967142,
+              "retarget": 0.8670216220138798
+            },
+            "mean_unique_recalled": 49.02460582945268,
+            "requests": 11010399
+          },
+          "performance": {
+            "seconds": 5.73822954800562,
+            "users_per_second": 87134.88991979766,
+            "requests_per_second": 1918779.8096761005,
+            "peak_gpu_memory_bytes": 6677801472
+          }
+        },
+        {
+          "candidate_graph": {
+            "version": "multiroute-rrf-cascade-v3",
+            "stage_attribution": {
+              "recall_miss": 1690492,
+              "coarse_miss": 544,
+              "fine_rank_miss": 2864451,
+              "mix_rank_miss": 0,
+              "served_audit_oracle": 6446989
+            },
+            "stage_attribution_rate": {
+              "recall_miss": 0.1536465064772693,
+              "coarse_miss": 4.944341619104645e-05,
+              "fine_rank_miss": 0.26034603483797647,
+              "mix_rank_miss": 0.0,
+              "served_audit_oracle": 0.5859580152685632
+            },
+            "mean_route_hits": {
+              "ann": 8.0,
+              "graph": 8.0,
+              "geo": 8.0,
+              "fresh": 8.0,
+              "long_tail": 8.0,
+              "popular": 8.0,
+              "post_search": 0.16014213527936802,
+              "retarget": 0.8698773803278462
+            },
+            "mean_unique_recalled": 49.02752780374163,
+            "requests": 11002476
+          },
+          "performance": {
+            "seconds": 5.707895269995788,
+            "users_per_second": 87597.96323319172,
+            "requests_per_second": 1927588.9762441488,
+            "peak_gpu_memory_bytes": 6704124928
+          }
+        },
+        {
+          "candidate_graph": {
+            "version": "multiroute-rrf-cascade-v3",
+            "stage_attribution": {
+              "recall_miss": 1688962,
+              "coarse_miss": 502,
+              "fine_rank_miss": 2864443,
+              "mix_rank_miss": 0,
+              "served_audit_oracle": 6448943
+            },
+            "stage_attribution_rate": {
+              "recall_miss": 0.1535022289679492,
+              "coarse_miss": 4.5624542732110314e-05,
+              "fine_rank_miss": 0.2603364582812635,
+              "mix_rank_miss": 0.0,
+              "served_audit_oracle": 0.5861156882080552
+            },
+            "mean_route_hits": {
+              "ann": 8.0,
+              "graph": 8.0,
+              "geo": 8.0,
+              "fresh": 8.0,
+              "long_tail": 8.0,
+              "popular": 8.0,
+              "post_search": 0.1591260446157132,
+              "retarget": 0.8644527554224587
+            },
+            "mean_unique_recalled": 49.02109335308579,
+            "requests": 11002850
+          },
+          "performance": {
+            "seconds": 5.749251561006531,
+            "users_per_second": 86967.84176068722,
+            "requests_per_second": 1913788.2354331547,
+            "peak_gpu_memory_bytes": 6703364096
+          }
+        }
+      ]
+    },
+    {
+      "stage": "retrieval",
+      "control": "poi_ann_two_tower",
+      "treatment": "poi_ann_multi_interest",
+      "decision": "reject_mean_regression",
+      "gates": {
+        "offline_recall_positive": true,
+        "online_anchor_positive": false,
+        "platform_lt_nonnegative": false,
+        "stay_guardrail": false,
+        "negative_guardrail": true,
+        "direction_consistency": false
+      },
+      "offline_control": {
+        "recall_at_k": 0.002860677195712924,
+        "ndcg_at_k": 0.0021750035230070353,
+        "high_value_recall_at_k": 0.004395604599267244,
+        "catalog_coverage": 0.18355174132896518,
+        "exact_full_corpus_ms_per_query": 0.009860023155659432,
+        "fixed_pool_ms_per_query": 3.6216187382365206e-05,
+        "corpus_items": 56164,
+        "top_k": 20,
+        "loss": [
+          13.312643695521999,
+          12.99423766780544,
+          12.903346770518535,
+          12.864400773435026
+        ],
+        "training_seconds": 1.6457270020036958,
+        "parameters": 7808,
+        "train_examples": 74951,
+        "validation_examples": 25868
+      },
+      "offline_treatment": {
+        "recall_at_k": 0.004522962961345911,
+        "ndcg_at_k": 0.0029778138268738985,
+        "high_value_recall_at_k": 0.008424908854067326,
+        "catalog_coverage": 0.22886546542269068,
+        "exact_full_corpus_ms_per_query": 0.00466286396362649,
+        "fixed_pool_ms_per_query": 3.902416878531767e-05,
+        "corpus_items": 56164,
+        "top_k": 20,
+        "loss": [
+          13.339159308253107,
+          12.989799435074264,
+          12.924177904386777,
+          12.869874335624075
+        ],
+        "training_seconds": 1.4465471480070846,
+        "parameters": 16096,
+        "train_examples": 74951,
+        "validation_examples": 25868
+      },
+      "metrics": {
+        "anchor_click_rate": {
+          "per_seed": [
+            -0.0005242697110929145,
+            -0.0005069251830030989,
+            -0.0005082985814681053
+          ],
+          "pooled_effect": -0.0005132794595010433,
+          "pooled_standard_error": 5.009301559109953e-05,
+          "pooled_confidence_interval": [
+            -0.0006114617700595983,
+            -0.00041509714894248824
+          ]
+        },
+        "lt_value_per_user": {
+          "per_seed": [
+            0.0018509738493062144,
+            -0.0013358419755462592,
+            -0.0033823658856668715
+          ],
+          "pooled_effect": -0.0009591023760037681,
+          "pooled_standard_error": 0.009340117529087854,
+          "pooled_confidence_interval": [
+            -0.01926573273301596,
+            0.017347527981008422
+          ]
+        },
+        "stay_per_exposure": {
+          "per_seed": [
+            0.001816465015046731,
+            -0.00507029799628711,
+            -0.009325387299146115
+          ],
+          "pooled_effect": -0.004215607835152063,
+          "pooled_standard_error": 0.01719172348409091,
+          "pooled_confidence_interval": [
+            -0.03791138586397024,
+            0.029480170193666118
+          ]
+        },
+        "negative_rate": {
+          "per_seed": [
+            1.161308037044939e-06,
+            2.290976504633617e-06,
+            1.3726429615395054e-06
+          ],
+          "pooled_effect": 1.6299606111304437e-06,
+          "pooled_standard_error": 9.983456199207653e-06,
+          "pooled_confidence_interval": [
+            -1.7937613539316555e-05,
+            2.119753476157744e-05
+          ]
+        },
+        "poi_candidate_fraction": {
+          "per_seed": [
+            -0.043810203693395555,
+            -0.04402717720736504,
+            -0.043936786879941236
+          ],
+          "pooled_effect": -0.04392493062394786,
+          "pooled_standard_error": 4.8116615194368434e-05,
+          "pooled_confidence_interval": [
+            -0.044019239189728825,
+            -0.043830622058166895
+          ]
+        },
+        "conversion_rate": {
+          "per_seed": [
+            -2.2803712201006996e-05,
+            -2.3092024534354964e-05,
+            -2.0584966406673468e-05
+          ],
+          "pooled_effect": -2.214566885338101e-05,
+          "pooled_standard_error": 8.573629910203895e-06,
+          "pooled_confidence_interval": [
+            -3.8949983477380645e-05,
+            -5.3413542293813775e-06
+          ]
+        }
+      },
+      "online_disjoint_by_seed": [
+        {
+          "anchor_click_rate": {
+            "control_mean": 0.012621274813022866,
+            "treatment_mean": 0.012039719375191299,
+            "relative_lift": -0.04607739285032502,
+            "standard_error": 8.708765083466328e-05,
+            "confidence_interval": [
+              -0.0007522472334675071,
+              -0.0004108636421956271
+            ],
+            "p_value": 2.42526800755377e-11
+          },
+          "lt_value_per_user": {
+            "control_mean": 11.519030878095208,
+            "treatment_mean": 11.516574743134242,
+            "relative_lift": -0.0002132240973184782,
+            "standard_error": 0.016169329754544562,
+            "confidence_interval": [
+              -0.03414802127987287,
+              0.029235751357941812
+            ],
+            "p_value": 0.8792651365388852
+          }
+        },
+        {
+          "anchor_click_rate": {
+            "control_mean": 0.012644463700886323,
+            "treatment_mean": 0.01219539887758141,
+            "relative_lift": -0.03551473861824882,
+            "standard_error": 8.726276678034016e-05,
+            "confidence_interval": [
+              -0.0006200998461943796,
+              -0.0002780298004154461
+            ],
+            "p_value": 2.6592684611452314e-07
+          },
+          "lt_value_per_user": {
+            "control_mean": 11.51038284199245,
+            "treatment_mean": 11.505876504385123,
+            "relative_lift": -0.00039150197427733377,
+            "standard_error": 0.016188530298517908,
+            "confidence_interval": [
+              -0.03623585699242309,
+              0.027223181777767107
+            ],
+            "p_value": 0.7807313604609831
+          }
+        },
+        {
+          "anchor_click_rate": {
+            "control_mean": 0.012522384357495106,
+            "treatment_mean": 0.012083682534056844,
+            "relative_lift": -0.035033409845440705,
+            "standard_error": 8.62781336186216e-05,
+            "confidence_interval": [
+              -0.00060780696533076,
+              -0.0002695966815457634
+            ],
+            "p_value": 3.6813121231981656e-07
+          },
+          "lt_value_per_user": {
+            "control_mean": 11.512396826412438,
+            "treatment_mean": 11.507238353018373,
+            "relative_lift": -0.0004480798804841554,
+            "standard_error": 0.016169070171135374,
+            "confidence_interval": [
+              -0.036849850929490384,
+              0.026532904141360274
+            ],
+            "p_value": 0.7497011873442962
+          }
+        }
+      ],
+      "seed_diagnostics": [
+        {
+          "candidate_graph": {
+            "version": "multiroute-rrf-cascade-v3",
+            "stage_attribution": {
+              "recall_miss": 1724466,
+              "coarse_miss": 454,
+              "fine_rank_miss": 2843900,
+              "mix_rank_miss": 0,
+              "served_audit_oracle": 6441185
+            },
+            "stage_attribution_rate": {
+              "recall_miss": 0.15662717682689517,
+              "coarse_miss": 4.1235221964022724e-05,
+              "fine_rank_miss": 0.25830142674776263,
+              "mix_rank_miss": 0.0,
+              "served_audit_oracle": 0.5850301612033783
+            },
+            "mean_route_hits": {
+              "ann": 8.0,
+              "graph": 8.0,
+              "geo": 8.0,
+              "fresh": 8.0,
+              "long_tail": 8.0,
+              "popular": 8.0,
+              "post_search": 0.15991854681264905,
+              "retarget": 0.8258151563055602
+            },
+            "mean_unique_recalled": 48.98327112476334,
+            "requests": 11010005
+          },
+          "performance": {
+            "seconds": 5.794851782004116,
+            "users_per_second": 86283.4838248577,
+            "requests_per_second": 1899963.176658205,
+            "peak_gpu_memory_bytes": 6703705600
+          }
+        },
+        {
+          "candidate_graph": {
+            "version": "multiroute-rrf-cascade-v3",
+            "stage_attribution": {
+              "recall_miss": 1723702,
+              "coarse_miss": 496,
+              "fine_rank_miss": 2842443,
+              "mix_rank_miss": 0,
+              "served_audit_oracle": 6435440
+            },
+            "stage_attribution_rate": {
+              "recall_miss": 0.1566705426000772,
+              "coarse_miss": 4.508238032423139e-05,
+              "fine_rank_miss": 0.2583550330160267,
+              "mix_rank_miss": 0.0,
+              "served_audit_oracle": 0.5849293420035718
+            },
+            "mean_route_hits": {
+              "ann": 8.0,
+              "graph": 8.0,
+              "geo": 8.0,
+              "fresh": 8.0,
+              "long_tail": 8.0,
+              "popular": 8.0,
+              "post_search": 0.16015006615566638,
+              "retarget": 0.830780558696123
+            },
+            "mean_unique_recalled": 48.98833866065883,
+            "requests": 11002081
+          },
+          "performance": {
+            "seconds": 5.8234570780041395,
+            "users_per_second": 85859.6523169299,
+            "requests_per_second": 1889269.6988454012,
+            "peak_gpu_memory_bytes": 6703610368
+          }
+        },
+        {
+          "candidate_graph": {
+            "version": "multiroute-rrf-cascade-v3",
+            "stage_attribution": {
+              "recall_miss": 1722690,
+              "coarse_miss": 520,
+              "fine_rank_miss": 2839224,
+              "mix_rank_miss": 0,
+              "served_audit_oracle": 6440003
+            },
+            "stage_attribution_rate": {
+              "recall_miss": 0.1565734936723564,
+              "coarse_miss": 4.726225653462047e-05,
+              "fine_rank_miss": 0.25805410201394474,
+              "mix_rank_miss": 0.0,
+              "served_audit_oracle": 0.5853251420571642
+            },
+            "mean_route_hits": {
+              "ann": 8.0,
+              "graph": 8.0,
+              "geo": 8.0,
+              "fresh": 8.0,
+              "long_tail": 8.0,
+              "popular": 8.0,
+              "post_search": 0.15911093151453629,
+              "retarget": 0.8255351973385533
+            },
+            "mean_unique_recalled": 48.98210460100794,
+            "requests": 11002437
+          },
+          "performance": {
+            "seconds": 5.816614299998037,
+            "users_per_second": 85960.65927908763,
+            "requests_per_second": 1891553.476393254,
+            "peak_gpu_memory_bytes": 6703325184
+          }
+        }
+      ]
+    }
+  ],
+  "seed_configs": [
+    {
+      "users": 500000,
+      "steps": 24,
+      "candidates": 20,
+      "route_candidates": 8,
+      "route_oversample": 3,
+      "merged_candidates": 48,
+      "audit_candidates": 24,
+      "candidate_graph_version": "multiroute-rrf-cascade-v3",
+      "trace_users": 16,
+      "trace_requests_per_user": 24,
+      "topics": 12,
+      "catalog_items": 200000,
+      "batch_users": 200000,
+      "seed": 20260824,
+      "catalog_seed": 20260823,
+      "device": "cuda:0",
+      "count_inactive_play_bug": false,
+      "signal_version": "kuairand-local-neural-v4",
+      "max_sessions": 4,
+      "requests_per_session": 8,
+      "search_event_rate": 0.02,
+      "search_ttl_requests": 3
+    },
+    {
+      "users": 500000,
+      "steps": 24,
+      "candidates": 20,
+      "route_candidates": 8,
+      "route_oversample": 3,
+      "merged_candidates": 48,
+      "audit_candidates": 24,
+      "candidate_graph_version": "multiroute-rrf-cascade-v3",
+      "trace_users": 16,
+      "trace_requests_per_user": 24,
+      "topics": 12,
+      "catalog_items": 200000,
+      "batch_users": 200000,
+      "seed": 20260825,
+      "catalog_seed": 20260823,
+      "device": "cuda:0",
+      "count_inactive_play_bug": false,
+      "signal_version": "kuairand-local-neural-v4",
+      "max_sessions": 4,
+      "requests_per_session": 8,
+      "search_event_rate": 0.02,
+      "search_ttl_requests": 3
+    },
+    {
+      "users": 500000,
+      "steps": 24,
+      "candidates": 20,
+      "route_candidates": 8,
+      "route_oversample": 3,
+      "merged_candidates": 48,
+      "audit_candidates": 24,
+      "candidate_graph_version": "multiroute-rrf-cascade-v3",
+      "trace_users": 16,
+      "trace_requests_per_user": 24,
+      "topics": 12,
+      "catalog_items": 200000,
+      "batch_users": 200000,
+      "seed": 20260826,
+      "catalog_seed": 20260823,
+      "device": "cuda:0",
+      "count_inactive_play_bug": false,
+      "signal_version": "kuairand-local-neural-v4",
+      "max_sessions": 4,
+      "requests_per_session": 8,
+      "search_event_rate": 0.02,
+      "search_ttl_requests": 3
+    }
+  ],
+  "evaluation_protocol": {
+    "shadow_replay": "same users and common-random event streams",
+    "online_ab": "orthogonal disjoint hash cells",
+    "changed_owner": "ANN route scorer only"
+  },
+  "evidence_boundary": "Synthetic Neural Local V4 simulator evidence only."
+}

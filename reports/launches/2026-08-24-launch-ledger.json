@@ -402,7 +402,7 @@
       "decision": "hold_world_authority",
       "evidence": {
         "report": "reports/world-model/v4/composite-launch-review.json",
-        "report_sha256": "70c471acf06ae4ca3763c2dd5821abdaf7ec68127c8558bcb57d5c33a6517971"
+        "report_sha256": "b6a81ee1bd08c51cd25e143ec4e734f48f5ca9a82244790f87bb3830cf9463f8"
       },
       "evidence_boundary": "This promotes an external-data-calibrated Feed kernel and a causally tested synthetic neural Local kernel inside the simulator. It is not a production deployment, live A/B, or production LT estimate. Feed status: eligible_simulator_authority"
     },
@@ -1095,6 +1095,96 @@
         "report_sha256": "f1d56362b388f035114480e2c557a8250e64cbfb5a38ca8ef55f76105a7bddd8"
       },
       "evidence_boundary": "Common-random GPU A/B on the hidden neural Local V4 teacher; simulator evidence only."
+    },
+    {
+      "launch_id": "L-REQUEST-RETRIEVAL-V4-01-01",
+      "surface": "poi_distribution",
+      "stage": "retrieval",
+      "change_type": "poi_only_corpus",
+      "control": "personalized_rank",
+      "treatment": "poi_ann_two_tower",
+      "primary_metric": "equal_corpus_recall_with_unified_lt_and_local_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-retrieval-v4-poi-only-500k.json",
+        "report_sha256": "a31a82e10488924462e81d486d906e7d1b5e5dd35dabb5094f7deae4e3ac733e"
+      },
+      "evidence_boundary": "Synthetic Neural Local V4 simulator evidence only."
+    },
+    {
+      "launch_id": "L-REQUEST-RETRIEVAL-V4-01-02",
+      "surface": "poi_distribution",
+      "stage": "retrieval",
+      "change_type": "poi_only_corpus",
+      "control": "poi_ann_two_tower",
+      "treatment": "poi_ann_multi_interest",
+      "primary_metric": "equal_corpus_recall_with_unified_lt_and_local_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-retrieval-v4-poi-only-500k.json",
+        "report_sha256": "a31a82e10488924462e81d486d906e7d1b5e5dd35dabb5094f7deae4e3ac733e"
+      },
+      "evidence_boundary": "Synthetic Neural Local V4 simulator evidence only."
+    },
+    {
+      "launch_id": "L-REQUEST-RETRIEVAL-V4-02-01",
+      "surface": "main_feed",
+      "stage": "retrieval",
+      "change_type": "training_serving_skew",
+      "control": "personalized_rank",
+      "treatment": "poi_ann_two_tower",
+      "primary_metric": "equal_corpus_recall_with_unified_lt_and_local_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-shared-retrieval-v4-sequence-skew-500k.json",
+        "report_sha256": "89594ca1dfde18ad79a6012c03890d41d0faa83840b03c5e5fb385cfaaaaa16c"
+      },
+      "evidence_boundary": "Synthetic Neural Local V4 simulator evidence only."
+    },
+    {
+      "launch_id": "L-REQUEST-RETRIEVAL-V4-02-02",
+      "surface": "main_feed",
+      "stage": "retrieval",
+      "change_type": "training_serving_skew",
+      "control": "poi_ann_two_tower",
+      "treatment": "poi_ann_multi_interest",
+      "primary_metric": "equal_corpus_recall_with_unified_lt_and_local_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-shared-retrieval-v4-sequence-skew-500k.json",
+        "report_sha256": "89594ca1dfde18ad79a6012c03890d41d0faa83840b03c5e5fb385cfaaaaa16c"
+      },
+      "evidence_boundary": "Synthetic Neural Local V4 simulator evidence only."
+    },
+    {
+      "launch_id": "L-REQUEST-RETRIEVAL-V4-03-01",
+      "surface": "main_feed",
+      "stage": "retrieval",
+      "change_type": "aligned_query_paired_ab",
+      "control": "personalized_rank",
+      "treatment": "poi_ann_two_tower",
+      "primary_metric": "equal_corpus_recall_with_unified_lt_and_local_guardrails",
+      "decision": "pass_pooled_three_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-shared-retrieval-v4-aligned-paired-500k.json",
+        "report_sha256": "0037115e5f4b72192b10b1a704aa1e8667fbd7c558c3796f18a5ceb7c40a6beb"
+      },
+      "evidence_boundary": "Synthetic Neural Local V4 simulator evidence only."
+    },
+    {
+      "launch_id": "L-REQUEST-RETRIEVAL-V4-03-02",
+      "surface": "main_feed",
+      "stage": "retrieval",
+      "change_type": "aligned_query_paired_ab",
+      "control": "poi_ann_two_tower",
+      "treatment": "poi_ann_multi_interest",
+      "primary_metric": "equal_corpus_recall_with_unified_lt_and_local_guardrails",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-shared-retrieval-v4-aligned-paired-500k.json",
+        "report_sha256": "0037115e5f4b72192b10b1a704aa1e8667fbd7c558c3796f18a5ceb7c40a6beb"
+      },
+      "evidence_boundary": "Synthetic Neural Local V4 simulator evidence only."
     }
   ],
   "coverage": {
@@ -1133,10 +1223,10 @@
     }
   },
   "summary": {
-    "records": 73,
-    "passed": 20,
+    "records": 79,
+    "passed": 21,
     "held": 28,
-    "rejected": 25,
+    "rejected": 30,
     "missing_cells": 0
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."

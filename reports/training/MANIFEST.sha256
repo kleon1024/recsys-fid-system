@@ -1,2 +1,5 @@
 601407199bee5b034676dd61b29677e6a01214a8a883473503353e172f4274fc  reports/training/2026-08-23-v3-model-ladder-gpu.json
 286ec078acde7e8fdc8137247e898953139d0c89529077d82fda7a1152a595c3  reports/training/2026-08-24-poi-distribution-v4-training.json
+435a19b4b12e9d2a8232a5e5bfd2afe5f39b074f305a7799ef6d4b1971e768e1  reports/training/2026-08-24-poi-retrieval-v4-poi-only-training.json
+7fe1514ac0e333c7a97ac0053838dc081730d33965620bcb40f6200a13f2459e  reports/training/2026-08-24-shared-retrieval-v4-aligned-training.json
+83f8f75576ec6d1b6edadb02f4405418c542bde68cb46168fa467060b3984faf  reports/training/2026-08-24-shared-retrieval-v4-sequence-skew-training.json

@@ -8,7 +8,8 @@
     },
     "local_response": {
       "authority": "synthetic_neural_v4",
-      "artifact_sha256": "f21e5d6ae0aac2d0034261e0e0d8fa95c6843cfb03c4aa0e91f5f8c7e31ca28b"
+      "artifact_sha256": "f21e5d6ae0aac2d0034261e0e0d8fa95c6843cfb03c4aa0e91f5f8c7e31ca28b",
+      "retrieval_artifact_sha256": "80ed003f2d603a6c8a21fb7a5591de0e29cfffeb91f9fca8a36a3e4fbbdcde9e"
     },
     "supply_response": {
       "authority": "synthetic_v3"
@@ -18,7 +19,7 @@
     }
   },
   "rollback_epoch": "v3",
-  "source_review_sha256": "70c471acf06ae4ca3763c2dd5821abdaf7ec68127c8558bcb57d5c33a6517971",
+  "source_review_sha256": "b6a81ee1bd08c51cd25e143ec4e734f48f5ca9a82244790f87bb3830cf9463f8",
   "production_readiness": "simulator_only",
   "evidence_boundary": "This promotes an external-data-calibrated Feed kernel and a causally tested synthetic neural Local kernel inside the simulator. It is not a production deployment, live A/B, or production LT estimate."
 }

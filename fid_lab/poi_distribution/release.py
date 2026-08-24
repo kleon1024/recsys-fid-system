@@ -26,27 +26,39 @@ def _passed(report, stage, treatment):
 
 def build_poi_distribution_release(
     root, training_relative, coarse_relative, fine_relative, end_relative,
-    artifact_dir,
+    artifact_dir, retrieval_training_relative, retrieval_launch_relative,
+    retrieval_artifact_dir,
 ):
     training = json.loads((root / training_relative).read_text())
     coarse = json.loads((root / coarse_relative).read_text())
     fine = json.loads((root / fine_relative).read_text())
     end = json.loads((root / end_relative).read_text())
+    retrieval_training = json.loads((root / retrieval_training_relative).read_text())
+    retrieval_launch = json.loads((root / retrieval_launch_relative).read_text())
     if training.get("schema") != "poi-distribution-model-training-v1":
         raise ValueError("POI distribution release requires V4 training evidence")
     _passed(coarse, "coarse", "poi_coarse_linear")
     _passed(fine, "fine", "poi_fine_linear")
     _passed(end, "end_to_end", "poi_e2e_linear_coarse_fine")
+    if retrieval_training.get("schema") != "poi-retrieval-v4-training-v1":
+        raise ValueError("POI distribution release requires retrieval training evidence")
+    _passed(retrieval_launch, "retrieval", "poi_ann_two_tower")
     artifact = verified_artifact(
         root, artifact_dir, training["models"]["linear"]["artifact"]
+    )
+    retrieval_artifact = verified_artifact(
+        root, retrieval_artifact_dir,
+        retrieval_training["models"]["two_tower"]["artifact"],
     )
     evidence_reports = [
         resource(root, relative) for relative in (
             training_relative, coarse_relative, fine_relative, end_relative,
+            retrieval_training_relative, retrieval_launch_relative,
         )
     ]
     active = {
-        "retrieval_policy": "ann_graph_geo_fresh_long_tail_popular_search_retarget",
+        "retrieval_policy": "shared_two_tower_ann_graph_geo_fresh_tail_popular_search_retarget",
+        "retrieval_artifact": retrieval_artifact,
         "coarse_model": "linear",
         "fine_model": "linear",
         "mix_policy": "feed_guarded_no_extra_local_weight",
@@ -60,7 +72,11 @@ def build_poi_distribution_release(
         "sources": source_resources(root, (
             "fid_lab/poi_distribution",
             "fid_lab/feed_loop/scale/tensor_runtime/local_response.py",
+            "fid_lab/feed_loop/scale/tensor_runtime/contracts.py",
             "fid_lab/feed_loop/scale/tensor_engine.py",
+            "fid_lab/feed_loop/scale/tensor_catalog.py",
+            "fid_lab/feed_loop/scale/graph",
+            "fid_lab/feed_loop/scale/experiment/trigger.py",
             "fid_lab/feed_loop/tensor_cascade.py",
             "fid_lab/simulation/experimentation/assignment.py",
             "fid_lab/launches/release_resources.py",
@@ -68,7 +84,7 @@ def build_poi_distribution_release(
     }
     return {
         "schema": "simulated-poi-distribution-v4-authority-v1",
-        "active_key": "eight_route_linear_coarse_linear_fine_feed_guarded_mix",
+        "active_key": "two_tower_ann_linear_coarse_linear_fine_feed_guarded_mix",
         "active_bundle_id": bundle_identifier(active),
         "active_bundle": active,
         "rollback_key": "eight_route_quality_coarse_rule_fine",
@@ -85,12 +101,16 @@ def main():
     parser.add_argument("--fine", required=True)
     parser.add_argument("--end-to-end", required=True)
     parser.add_argument("--artifact-dir", required=True)
+    parser.add_argument("--retrieval-training", required=True)
+    parser.add_argument("--retrieval-launch", required=True)
+    parser.add_argument("--retrieval-artifact-dir", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     release = build_poi_distribution_release(
         root, args.training, args.coarse, args.fine, args.end_to_end,
-        args.artifact_dir,
+        args.artifact_dir, args.retrieval_training, args.retrieval_launch,
+        args.retrieval_artifact_dir,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(release, indent=2) + "\n")

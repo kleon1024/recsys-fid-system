@@ -81,13 +81,16 @@
       "status": "eligible_simulator_authority",
       "world_version": "kuairand-local-neural-v4",
       "artifact_sha256": "f21e5d6ae0aac2d0034261e0e0d8fa95c6843cfb03c4aa0e91f5f8c7e31ca28b",
+      "retrieval_artifact_sha256": "80ed003f2d603a6c8a21fb7a5591de0e29cfffeb91f9fca8a36a3e4fbbdcde9e",
       "gates": {
         "hidden_neural_dgp": true,
         "propensity_request_log": true,
         "model_artifact_bound": true,
         "coarse_launch": true,
         "fine_launch": true,
-        "end_to_end_launch": true
+        "end_to_end_launch": true,
+        "retrieval_artifact_bound": true,
+        "retrieval_launch": true
       },
       "external_validation": "missing",
       "not_authorized": [
@@ -166,6 +169,14 @@
     "local_v4_end_to_end": {
       "logical_key": "local_v4_end_to_end",
       "sha256": "f1d56362b388f035114480e2c557a8250e64cbfb5a38ca8ef55f76105a7bddd8"
+    },
+    "request_retrieval_training": {
+      "logical_key": "request_retrieval_training",
+      "sha256": "7fe1514ac0e333c7a97ac0053838dc081730d33965620bcb40f6200a13f2459e"
+    },
+    "request_retrieval_launch": {
+      "logical_key": "request_retrieval_launch",
+      "sha256": "0037115e5f4b72192b10b1a704aa1e8667fbd7c558c3796f18a5ceb7c40a6beb"
     }
   },
   "rollback_epoch": "v3",

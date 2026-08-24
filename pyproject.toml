@@ -79,6 +79,8 @@ entry_points = [
   "fid_lab/poi_distribution/train_cli.py",
   "fid_lab/poi_distribution/launch_cli.py",
   "fid_lab/poi_distribution/release.py",
+  "fid_lab/poi_distribution/retrieval/train_cli.py",
+  "fid_lab/poi_distribution/retrieval/launching/cli.py",
   "fid_lab/launches/ledger_cli.py",
   "fid_lab/feed_loop/scale/queue_value_cli.py",
   "fid_lab/value/tree.py",

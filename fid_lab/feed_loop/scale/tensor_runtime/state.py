@@ -197,4 +197,3 @@ def advance_state(config, policy, generator, state, selected, values, step):
     state["active"] &= ~leave | returned
     return return_value, returned
 
-

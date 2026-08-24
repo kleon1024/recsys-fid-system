@@ -68,11 +68,18 @@ class PoiDistributionV4Test(unittest.TestCase):
             "reports/launches/2026-08-24-poi-distribution-v4-fine-mix-200k.json",
             "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json",
             "artifacts/models/poi-distribution-v4",
+            "reports/training/2026-08-24-shared-retrieval-v4-aligned-training.json",
+            "reports/launches/2026-08-24-shared-retrieval-v4-aligned-paired-500k.json",
+            "artifacts/models/shared-retrieval-v4-aligned",
         )
         self.assertEqual(
             release["active_bundle"]["coarse_model"], "linear"
         )
         self.assertEqual(release["active_bundle"]["fine_model"], "linear")
+        self.assertEqual(
+            release["active_bundle"]["retrieval_policy"],
+            "shared_two_tower_ann_graph_geo_fresh_tail_popular_search_retarget",
+        )
         self.assertEqual(
             release["production_readiness"],
             "simulator_only_external_local_validation_required",

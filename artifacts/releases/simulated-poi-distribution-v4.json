@@ -1,9 +1,13 @@
 {
   "schema": "simulated-poi-distribution-v4-authority-v1",
-  "active_key": "eight_route_linear_coarse_linear_fine_feed_guarded_mix",
-  "active_bundle_id": "sha256:395d243f252367c8873325a244a6d36a1df90e7bbd07f36d630e3041e8b1608c",
+  "active_key": "two_tower_ann_linear_coarse_linear_fine_feed_guarded_mix",
+  "active_bundle_id": "sha256:29f20105c61223cacc8ceb9c46d2cef420356a4788ea6066d14a985bf6f9ea27",
   "active_bundle": {
-    "retrieval_policy": "ann_graph_geo_fresh_long_tail_popular_search_retarget",
+    "retrieval_policy": "shared_two_tower_ann_graph_geo_fresh_tail_popular_search_retarget",
+    "retrieval_artifact": {
+      "path": "artifacts/models/shared-retrieval-v4-aligned/two_tower.pt",
+      "sha256": "80ed003f2d603a6c8a21fb7a5591de0e29cfffeb91f9fca8a36a3e4fbbdcde9e"
+    },
     "coarse_model": "linear",
     "fine_model": "linear",
     "mix_policy": "feed_guarded_no_extra_local_weight",
@@ -32,12 +36,52 @@
       {
         "path": "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json",
         "sha256": "f1d56362b388f035114480e2c557a8250e64cbfb5a38ca8ef55f76105a7bddd8"
+      },
+      {
+        "path": "reports/training/2026-08-24-shared-retrieval-v4-aligned-training.json",
+        "sha256": "7fe1514ac0e333c7a97ac0053838dc081730d33965620bcb40f6200a13f2459e"
+      },
+      {
+        "path": "reports/launches/2026-08-24-shared-retrieval-v4-aligned-paired-500k.json",
+        "sha256": "0037115e5f4b72192b10b1a704aa1e8667fbd7c558c3796f18a5ceb7c40a6beb"
       }
     ],
     "sources": [
       {
+        "path": "fid_lab/feed_loop/scale/experiment/trigger.py",
+        "sha256": "e7592e77b0edb0d92dab18ceaa768a77d00d5b20a6b00dcb71c9f3cb9c10a017"
+      },
+      {
+        "path": "fid_lab/feed_loop/scale/graph/__init__.py",
+        "sha256": "7c8da31ed41d2e8d9c3146f830dbec06a122a655174ffb679cd486b1e2580ce5"
+      },
+      {
+        "path": "fid_lab/feed_loop/scale/graph/candidate.py",
+        "sha256": "e2e8771c37425fdf0a94073583fde87aaa222a4b2e1b39553f2828a7a74945e3"
+      },
+      {
+        "path": "fid_lab/feed_loop/scale/graph/random.py",
+        "sha256": "d3ea4a9f51d746c3298d698d85c0534acf566e46540b184e04d3fc3d2b1f9d2a"
+      },
+      {
+        "path": "fid_lab/feed_loop/scale/graph/reporting.py",
+        "sha256": "19c8cbb88c6042c8deaaa30a01cda4147f9e122a6e8f317470418aa4d4d1eb8f"
+      },
+      {
+        "path": "fid_lab/feed_loop/scale/graph/trace.py",
+        "sha256": "71cd217f86ff68df9fdf9cb1aa399848922cc9015b4d7de4e60237c15574ebf6"
+      },
+      {
+        "path": "fid_lab/feed_loop/scale/tensor_catalog.py",
+        "sha256": "1471d09594b619b7b27fd7c29843ddacc838e78a72c6b3f0960d39d5a320f59d"
+      },
+      {
         "path": "fid_lab/feed_loop/scale/tensor_engine.py",
-        "sha256": "dce310c2dc3514eadfa0c2a34bc75527415183d10435eecffb6c38501aedb691"
+        "sha256": "8b9fd8146cf5bacc0ff4e0e54cfd70f526961048a99fc38e7561ff9ef7c38313"
+      },
+      {
+        "path": "fid_lab/feed_loop/scale/tensor_runtime/contracts.py",
+        "sha256": "8b8d6dda3b48dda1a0c0bee0d6a74800295ba71e1c0c58617f3e7a9c8f42d19e"
       },
       {
         "path": "fid_lab/feed_loop/scale/tensor_runtime/local_response.py",
@@ -101,7 +145,63 @@
       },
       {
         "path": "fid_lab/poi_distribution/release.py",
-        "sha256": "40dac83fd2d9ac854c5de7369d047251a4cc6e5121a4de2a238fb2d5da5cc8a5"
+        "sha256": "7a896914275c00d46d9d14dd6c697cc04efefb3fe9c53d5d11977ed15cb9b96d"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/__init__.py",
+        "sha256": "dce07e288f29e4287004b387b86628ae1142c1a4ae9c6617ca82a89162f7345e"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/data.py",
+        "sha256": "a1639f944b5188be076497c10a0bd052fb8c4b32d82f9fd67a486a9795453777"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/features.py",
+        "sha256": "a7c59269cbe725f77c98c6a5d4023139c14ed807b8e6ff166cc8b8f8bc3672d9"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/launching/__init__.py",
+        "sha256": "ff3130ec1e7ff17fa584b72bded16095601b1370295bf1d3001060bc6a89480e"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/launching/analysis.py",
+        "sha256": "0246b8dd213119fe68c089806d7afb1ecbb33b33977225fea415d3095b0946d4"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/launching/cli.py",
+        "sha256": "bf52df2d8836a5b81a8c1f0bf118916207130088e87e7ebd9e44cd027527f37a"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/launching/launch.py",
+        "sha256": "42632a2ac874a8e9101e06cd663fb4c5e90871f5bb00392d20df6cef8c965861"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/models/__init__.py",
+        "sha256": "60c28909a3a736b1a9a81aed8872b3195da143b564d2ba000b5ec73ac890aecf"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/models/architectures.py",
+        "sha256": "c8baede02e74a4ea057541be3f89abbc2c13a7356f41d78d6e150bdd56c2321c"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/models/bundle.py",
+        "sha256": "7384aa88571b645265738b3ed5854d367034e2f7b2d54396565b75307a7b6924"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/models/evaluation.py",
+        "sha256": "c7231d7eef2e80bbfb006c9b0feba7f3cce4f69f23503a23815788475bb0fefa"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/models/training.py",
+        "sha256": "ac8f3c3d2bed32e6347d6932a8e2022a7a3579e19e454d468d526b33ee8cd7ed"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/policy.py",
+        "sha256": "7cd9cf07df4b5a0e2d2e83b51735da7057ab0903e154843e7eb303552677a060"
+      },
+      {
+        "path": "fid_lab/poi_distribution/retrieval/train_cli.py",
+        "sha256": "f84d32f02001b0754ac1197c669d090152d4a38c39aa1addf5499e58d29100d9"
       },
       {
         "path": "fid_lab/poi_distribution/train_cli.py",

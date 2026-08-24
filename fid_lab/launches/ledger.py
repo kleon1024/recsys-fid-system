@@ -358,6 +358,40 @@ def _poi_distribution_v4_records(root: Path) -> list[dict]:
     return records
 
 
+def _request_retrieval_v4_records(root: Path) -> list[dict]:
+    specifications = (
+        (
+            "reports/launches/2026-08-24-poi-retrieval-v4-poi-only-500k.json",
+            "poi_distribution", "poi_only_corpus",
+        ),
+        (
+            "reports/launches/2026-08-24-shared-retrieval-v4-sequence-skew-500k.json",
+            "main_feed", "training_serving_skew",
+        ),
+        (
+            "reports/launches/2026-08-24-shared-retrieval-v4-aligned-paired-500k.json",
+            "main_feed", "aligned_query_paired_ab",
+        ),
+    )
+    records = []
+    for campaign, (relative, surface, change_type) in enumerate(specifications, 1):
+        report, evidence = _load(root, relative)
+        for model, row in enumerate(report["launches"], 1):
+            records.append(_record(
+                launch_id=f"L-REQUEST-RETRIEVAL-V4-{campaign:02d}-{model:02d}",
+                surface=surface,
+                stage="retrieval",
+                change_type=change_type,
+                control=row["control"],
+                treatment=row["treatment"],
+                decision=row["decision"],
+                evidence=evidence,
+                primary_metric="equal_corpus_recall_with_unified_lt_and_local_guardrails",
+                evidence_boundary=report["evidence_boundary"],
+            ))
+    return records
+
+
 def build_launch_ledger(root: Path) -> dict:
     records = [
         *_main_feed_policy_records(root),
@@ -373,6 +407,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_local_search_stage_records(root),
         *_poi_detail_stage_records(root),
         *_poi_distribution_v4_records(root),
+        *_request_retrieval_v4_records(root),
     ]
     identifiers = [record["launch_id"] for record in records]
     if len(identifiers) != len(set(identifiers)):

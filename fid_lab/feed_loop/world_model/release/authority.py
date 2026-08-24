@@ -32,6 +32,12 @@ EVIDENCE_REPORTS = {
     "local_v4_end_to_end": (
         "reports/launches/2026-08-24-poi-distribution-v4-e2e-500k.json"
     ),
+    "request_retrieval_training": (
+        "reports/training/2026-08-24-shared-retrieval-v4-aligned-training.json"
+    ),
+    "request_retrieval_launch": (
+        "reports/launches/2026-08-24-shared-retrieval-v4-aligned-paired-500k.json"
+    ),
 }
 
 
@@ -148,6 +154,12 @@ def _local_component(root, reports):
     artifact_path = root / "artifacts/models/poi-distribution-v4" / artifact[
         "artifact_file"
     ]
+    retrieval = reports["request_retrieval_training"]["models"]["two_tower"][
+        "artifact"
+    ]
+    retrieval_path = root / "artifacts/models/shared-retrieval-v4-aligned" / (
+        retrieval["artifact_file"]
+    )
     gates = {
         "hidden_neural_dgp": dataset["config"]["signal_version"]
         == "kuairand-local-neural-v4",
@@ -164,6 +176,11 @@ def _local_component(root, reports):
             reports["local_v4_end_to_end"], "end_to_end",
             "poi_e2e_linear_coarse_fine",
         ),
+        "retrieval_artifact_bound": retrieval_path.exists()
+        and _hash(retrieval_path) == retrieval["sha256"],
+        "retrieval_launch": _launch_pass(
+            reports["request_retrieval_launch"], "retrieval", "poi_ann_two_tower"
+        ),
     }
     return {
         "scope": "local_response_and_poi_distribution",
@@ -171,6 +188,7 @@ def _local_component(root, reports):
         else "hold_research_challenger",
         "world_version": "kuairand-local-neural-v4",
         "artifact_sha256": artifact["sha256"],
+        "retrieval_artifact_sha256": retrieval["sha256"],
         "gates": gates,
         "external_validation": "missing",
         "not_authorized": (
@@ -246,6 +264,7 @@ def build_world_release(review_path: Path) -> dict:
             "local_response": {
                 "authority": "synthetic_neural_v4",
                 "artifact_sha256": local["artifact_sha256"],
+                "retrieval_artifact_sha256": local["retrieval_artifact_sha256"],
             },
             "supply_response": {"authority": "synthetic_v3"},
             "retention_and_commercialization": {"authority": "measurement_only"},
