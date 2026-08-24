@@ -281,7 +281,17 @@ class CascadeRanker:
                 - self.config.kind_penalty * kind_count.sum(dim=2)
             ).masked_fill(~available, -torch.inf)
             choice = adjusted.argmax(dim=1)
-            selected_item[:, position] = item_id[rows, choice]
-            selected_score[:, position] = score[rows, choice]
-            available[rows, choice] = False
+            choice_is_valid = torch.isfinite(adjusted[rows, choice])
+            selected_item[:, position] = torch.where(
+                choice_is_valid,
+                item_id[rows, choice],
+                torch.full_like(choice, -1),
+            )
+            selected_score[:, position] = torch.where(
+                choice_is_valid,
+                score[rows, choice],
+                torch.full_like(score[rows, choice], -torch.inf),
+            )
+            valid_rows = rows[choice_is_valid]
+            available[valid_rows, choice[choice_is_valid]] = False
         return selected_item, selected_score

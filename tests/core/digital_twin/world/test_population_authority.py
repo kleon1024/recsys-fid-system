@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from pathlib import Path
+from tempfile import TemporaryDirectory
+
 import torch
 
 from fid_lab.simulation.digital_twin import (
@@ -12,18 +15,52 @@ from fid_lab.simulation.digital_twin import (
 )
 from fid_lab.feed_loop.world_model.contracts import WorldModelConfig
 from fid_lab.feed_loop.world_model.ensemble import WorldModelEnsemble
+from fid_lab.feed_loop.world_model.training import save_world_ensemble
+from fid_lab.feed_loop.world_model.feature_contract import V4_REQUIRED_FEATURES
+from fid_lab.feed_loop.world_model.validation.support import SUPPORT_PROFILE_SCHEMA
 from fid_lab.simulation.digital_twin.world.authority import (
     NeuralFeedResponseAuthority,
+)
+from fid_lab.simulation.digital_twin.world.neural_features import (
+    V4_FEATURE_CONTRACT,
+    V4_FEATURE_COVERAGE,
+)
+from fid_lab.feed_loop.world_model.external.kuairand.data.core_bridge import (
+    KUAI_FEATURE_COVERAGE,
 )
 from fid_lab.simulation.digital_twin.world.dynamics.population import (
     sample_population,
 )
 from fid_lab.simulation.digital_twin.world.dynamics.trends import TrendProcess
+from fid_lab.simulation.digital_twin.world.training.shadow import (
+    AuthorityShadowConfig,
+    run_authority_shadow,
+)
 
 
 def _correlation(left: torch.Tensor, right: torch.Tensor) -> float:
     matrix = torch.corrcoef(torch.stack((left.float(), right.float())))
     return float(matrix[0, 1])
+
+
+def _wide_support_profile():
+    indices = sorted(V4_REQUIRED_FEATURES)
+    return {
+        "schema": SUPPORT_PROFILE_SCHEMA,
+        "feature_indices": indices,
+        "combination": "union_of_source_components",
+        "components": [{
+            "name": "wide-test",
+            "feature_indices": indices,
+            "distance_feature_indices": indices,
+            "bounded_feature_indices": [],
+            "bounded_lower": [],
+            "bounded_upper": [],
+            "center": [0.0] * len(indices),
+            "scale": [1.0] * len(indices),
+            "request_distance_threshold": 100.0,
+        }],
+    }
 
 
 def test_population_is_deterministic_correlated_and_heterogeneous():
@@ -133,6 +170,10 @@ def test_neural_feed_authority_is_request_keyed_and_keeps_hidden_inputs_private(
         ensemble,
         member_index=0,
         artifact_sha256="a" * 64,
+        feature_contract_sha256=V4_FEATURE_CONTRACT["sha256"],
+        feature_coverage=V4_FEATURE_COVERAGE,
+        support_profile=_wide_support_profile(),
+        inference_batch_size=3,
     )
     world = UserEcosystemWorld(UserWorldConfig(
         users=8,
@@ -166,3 +207,91 @@ def test_neural_feed_authority_is_request_keyed_and_keeps_hidden_inputs_private(
     assert first.event(EventType.IMPRESSION).sum() == 40
     assert "neural-feed" in world.manifest()["response"]
     assert not hasattr(slate, "selected_features")
+
+
+def test_neural_feed_authority_rejects_training_serving_feature_skew():
+    ensemble = WorldModelEnsemble(WorldModelConfig(
+        width=32, latent_dim=8, attention_heads=4,
+        ensemble_members=2, batch_size=8, epochs=1,
+    ))
+    try:
+        NeuralFeedResponseAuthority(
+            ensemble, member_index=0, artifact_sha256="a" * 64,
+            feature_contract_sha256="b" * 64,
+            feature_coverage=V4_FEATURE_COVERAGE,
+            support_profile=_wide_support_profile(),
+        )
+    except ValueError as error:
+        assert "feature contract" in str(error)
+    else:
+        raise AssertionError("feature-contract skew must fail closed")
+
+    try:
+        NeuralFeedResponseAuthority(
+            ensemble, member_index=0, artifact_sha256="a" * 64,
+            feature_contract_sha256=V4_FEATURE_CONTRACT["sha256"],
+            feature_coverage=KUAI_FEATURE_COVERAGE,
+            support_profile=_wide_support_profile(),
+        )
+    except ValueError as error:
+        assert "coverage" in str(error)
+    else:
+        raise AssertionError("incomplete source coverage must fail closed")
+
+    try:
+        NeuralFeedResponseAuthority(
+            ensemble, member_index=0, artifact_sha256="a" * 64,
+            feature_contract_sha256=V4_FEATURE_CONTRACT["sha256"],
+            feature_coverage=V4_FEATURE_COVERAGE,
+            support_profile={},
+        )
+    except ValueError as error:
+        assert "support profile" in str(error)
+    else:
+        raise AssertionError("missing support profile must fail closed")
+
+    try:
+        NeuralFeedResponseAuthority(
+            ensemble, member_index=0, artifact_sha256="a" * 64,
+            feature_contract_sha256=V4_FEATURE_CONTRACT["sha256"],
+            feature_coverage=V4_FEATURE_COVERAGE,
+            support_profile=_wide_support_profile(), inference_batch_size=0,
+        )
+    except ValueError as error:
+        assert "batch size" in str(error)
+    else:
+        raise AssertionError("invalid inference batch size must fail closed")
+
+
+def test_neural_authority_shadow_replays_reference_cascade_without_committing():
+    ensemble = WorldModelEnsemble(WorldModelConfig(
+        width=32, latent_dim=8, attention_heads=4,
+        ensemble_members=2, batch_size=8, epochs=1,
+    ))
+    with TemporaryDirectory() as directory:
+        artifact = Path(directory) / "artifact"
+        save_world_ensemble(
+            ensemble, [[], []], artifact,
+            {
+                "manifest_sha256": "dataset",
+                "feature_contract_sha256": V4_FEATURE_CONTRACT["sha256"],
+                "feature_coverage": V4_FEATURE_COVERAGE,
+            },
+            support_profile=_wide_support_profile(),
+        )
+        report = run_authority_shadow(
+            artifact,
+            AuthorityShadowConfig(
+                users=200, items=900, ticks=2, topics=8,
+                countries=4, regions_per_country=3, embedding_dim=8,
+                inference_batch_size=17,
+                device="cpu",
+            ),
+        )
+    assert report["decision"] == "pass"
+    assert all(report["gates"].values())
+    assert report["first_run"]["trace_hash"] == report["second_run"]["trace_hash"]
+    assert report["semantic_replay"]["factual"]["discrete_fields_exact"]
+    assert report["semantic_replay"]["neural"]["discrete_fields_exact"]
+    assert report["semantic_replay"]["neural"]["maximum_float_delta"] <= 1e-6
+    assert report["semantic_replay"]["neural"]["duration_max_delta_ms"] <= 1

@@ -72,7 +72,14 @@ class PublishFailureReason(IntEnum):
     CREATOR_COOLDOWN = 3
 
 
-APP_EVENT_SCHEMA_VERSION = 4
+APP_EVENT_SCHEMA_VERSION = 5
+
+EVENT_ORDINAL_BITS = 12
+EVENT_TYPE_BITS = 6
+EVENT_REQUEST_BITS = 45
+EVENT_ORDINAL_MAX = (1 << EVENT_ORDINAL_BITS) - 2
+EVENT_TYPE_MAX = (1 << EVENT_TYPE_BITS) - 1
+EVENT_REQUEST_MAX = (1 << EVENT_REQUEST_BITS) - 1
 
 
 def _require_shape(name, value, shape):
@@ -299,15 +306,28 @@ def deterministic_event_id(
     item_id: torch.Tensor,
     ordinal: torch.Tensor,
 ) -> torch.Tensor:
-    """Stable event identity independent of batch and experiment-cell order."""
-    mask = 0x7FFFFFFFFFFFFFFF
-    value = request_id.long() * 1_103_515_245
-    value += event_type.long() * 104_729
-    value += item_id.long().clamp_min(0) * 48_271
-    value += ordinal.long() * 12_345
-    value = torch.bitwise_and(value, mask)
-    value = torch.bitwise_xor(value, torch.bitwise_right_shift(value, 29))
-    return torch.bitwise_and(value * 2_654_435_761, mask)
+    """Injectively encode the request, event channel and request-local slot.
+
+    Item identity is payload, not event identity. Two items occupying the same
+    request/event/ordinal slot are a producer bug and remain visible to the
+    duplicate-ID check instead of being hidden behind a probabilistic hash.
+    """
+    requests = request_id.long()
+    event_types = event_type.long()
+    ordinals = ordinal.long()
+    if ((requests < 0) | (requests > EVENT_REQUEST_MAX)).any():
+        raise ValueError("event request_id exceeds the 45-bit identity contract")
+    if ((event_types < 0) | (event_types > EVENT_TYPE_MAX)).any():
+        raise ValueError("event type exceeds the 6-bit identity contract")
+    if ((ordinals < -1) | (ordinals > EVENT_ORDINAL_MAX)).any():
+        raise ValueError("event ordinal exceeds the 12-bit identity contract")
+    del item_id
+    ordinal_code = ordinals + 1
+    return (
+        requests << (EVENT_TYPE_BITS + EVENT_ORDINAL_BITS)
+        | event_types << EVENT_ORDINAL_BITS
+        | ordinal_code
+    )
 
 
 def make_app_events(

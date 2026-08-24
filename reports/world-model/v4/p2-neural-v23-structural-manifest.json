@@ -1,0 +1,286 @@
+{
+  "schema": "v4-structural-neural-scm-bridge-v3",
+  "source": "synthetic_v4_formula_stress_worlds",
+  "config": {
+    "rows": 300000,
+    "users": 100000,
+    "items": 200000,
+    "slate_width": 8,
+    "ticks": 192,
+    "max_extension_ticks": 64,
+    "topics": 64,
+    "countries": 12,
+    "regions_per_country": 16,
+    "embedding_dim": 32,
+    "platform_seed": 701,
+    "environment_seed": 709,
+    "test_family_id": 9,
+    "device": "cuda:0"
+  },
+  "feature_contract": {
+    "schema": "neural-scm-feature-contract-v1",
+    "fields": [
+      {
+        "index": 0,
+        "semantic": "history_topic_affinity"
+      },
+      {
+        "index": 1,
+        "semantic": "content_quality_prior_sqrt"
+      },
+      {
+        "index": 2,
+        "semantic": "unused_02"
+      },
+      {
+        "index": 3,
+        "semantic": "content_quality_prior"
+      },
+      {
+        "index": 4,
+        "semantic": "recent_topic_match"
+      },
+      {
+        "index": 5,
+        "semantic": "same_region"
+      },
+      {
+        "index": 6,
+        "semantic": "history_engagement_rate"
+      },
+      {
+        "index": 7,
+        "semantic": "history_negative_rate"
+      },
+      {
+        "index": 8,
+        "semantic": "user_activity"
+      },
+      {
+        "index": 9,
+        "semantic": "user_habit"
+      },
+      {
+        "index": 10,
+        "semantic": "history_fill_ratio"
+      },
+      {
+        "index": 11,
+        "semantic": "long_topic_match"
+      },
+      {
+        "index": 12,
+        "semantic": "duration_log_seconds"
+      },
+      {
+        "index": 13,
+        "semantic": "unused_13"
+      },
+      {
+        "index": 14,
+        "semantic": "unused_14"
+      },
+      {
+        "index": 15,
+        "semantic": "unused_15"
+      },
+      {
+        "index": 16,
+        "semantic": "unused_16"
+      },
+      {
+        "index": 17,
+        "semantic": "content_topic"
+      },
+      {
+        "index": 18,
+        "semantic": "same_country"
+      },
+      {
+        "index": 19,
+        "semantic": "recent_topic_match_copy"
+      },
+      {
+        "index": 20,
+        "semantic": "feed_surface"
+      },
+      {
+        "index": 21,
+        "semantic": "bias"
+      },
+      {
+        "index": 22,
+        "semantic": "content_age"
+      },
+      {
+        "index": 23,
+        "semantic": "user_novelty"
+      },
+      {
+        "index": 24,
+        "semantic": "account_age"
+      },
+      {
+        "index": 25,
+        "semantic": "user_activity_copy"
+      },
+      {
+        "index": 26,
+        "semantic": "user_lifecycle"
+      },
+      {
+        "index": 27,
+        "semantic": "unused_27"
+      }
+    ],
+    "sha256": "f8cde7b032f2f0ad4d3cd7b91a85f85a3a1fb9355ea9f0a7a7ba05e402646082"
+  },
+  "feature_contract_sha256": "f8cde7b032f2f0ad4d3cd7b91a85f85a3a1fb9355ea9f0a7a7ba05e402646082",
+  "feature_coverage": {
+    "0": "native_v4",
+    "1": "native_v4",
+    "2": "unused",
+    "3": "native_v4",
+    "4": "native_v4",
+    "5": "native_v4",
+    "6": "native_v4",
+    "7": "native_v4",
+    "8": "native_v4",
+    "9": "native_v4",
+    "10": "native_v4",
+    "11": "native_v4",
+    "12": "native_v4",
+    "13": "unused",
+    "14": "unused",
+    "15": "unused",
+    "16": "unused",
+    "17": "native_v4",
+    "18": "native_v4",
+    "19": "native_v4",
+    "20": "native_v4",
+    "21": "native_v4",
+    "22": "native_v4",
+    "23": "native_v4",
+    "24": "native_v4",
+    "25": "native_v4",
+    "26": "native_v4",
+    "27": "unused"
+  },
+  "split_authority": "multi_train_disjoint_holdout_world_families",
+  "families": {
+    "train": [
+      {
+        "family_id": 1,
+        "platform_seed": 100704,
+        "environment_seed": 100728,
+        "rows": 90000,
+        "base_requests": 22500,
+        "capture_tick_min": 0,
+        "capture_tick_max": 179,
+        "capture_tick_count": 180,
+        "planned_ticks": 192,
+        "simulated_ticks": 192,
+        "extension_ticks": 0,
+        "row_semantics": "control_plus_three_structural_augmentations"
+      },
+      {
+        "family_id": 2,
+        "platform_seed": 200707,
+        "environment_seed": 200747,
+        "rows": 90000,
+        "base_requests": 22500,
+        "capture_tick_min": 0,
+        "capture_tick_max": 179,
+        "capture_tick_count": 180,
+        "planned_ticks": 192,
+        "simulated_ticks": 192,
+        "extension_ticks": 0,
+        "row_semantics": "control_plus_three_structural_augmentations"
+      }
+    ],
+    "validation": [
+      {
+        "family_id": 3,
+        "platform_seed": 300710,
+        "environment_seed": 300766,
+        "rows": 60000,
+        "base_requests": 15000,
+        "capture_tick_min": 0,
+        "capture_tick_max": 179,
+        "capture_tick_count": 180,
+        "planned_ticks": 192,
+        "simulated_ticks": 192,
+        "extension_ticks": 0,
+        "row_semantics": "control_plus_three_structural_augmentations"
+      }
+    ],
+    "test": [
+      {
+        "family_id": 9,
+        "platform_seed": 900728,
+        "environment_seed": 900880,
+        "rows": 60000,
+        "base_requests": 60000,
+        "capture_tick_min": 0,
+        "capture_tick_max": 214,
+        "capture_tick_count": 215,
+        "planned_ticks": 192,
+        "simulated_ticks": 215,
+        "extension_ticks": 23,
+        "row_semantics": "control_with_paired_potential_outcomes"
+      }
+    ]
+  },
+  "interventions": [
+    "recent_interest_signal",
+    "content_quality_prior",
+    "negative_history_signal"
+  ],
+  "splits": {
+    "train": {
+      "rows": 180000,
+      "sha256": "5d8d0237a02f746ef0166f0107f18edaac42b9444e7b3c116f335821958714e5"
+    },
+    "validation": {
+      "rows": 60000,
+      "sha256": "7ca863fca5bce417c41d4696a7ec125ec44ff26195ca8f22a76ebca506723cce"
+    },
+    "test": {
+      "rows": 60000,
+      "sha256": "2092961b138c54984192316cd4adc0c56fe34516a6ac39b6b07039ba30170d4c"
+    }
+  },
+  "paired_splits": {
+    "structural_adaptation": {
+      "rows": 45000,
+      "sha256": "a2fff956e4275209b0dd06e0927fb6d66dc09ad572fbf715e32c7ce334ef331d"
+    },
+    "structural_validation": {
+      "rows": 15000,
+      "sha256": "cbc1dac938e83b52c34bf2253d5626145eecb7896f6311843fb35c94523801de"
+    }
+  },
+  "family_parts": {
+    "train:family-1": {
+      "path": "parts/train-family-1.pt",
+      "sha256": "8ada0e42d10296b9f5f49fceed83778f60893b72d562321e36cc2ba3fb1228f1",
+      "rows": 90000
+    },
+    "train:family-2": {
+      "path": "parts/train-family-2.pt",
+      "sha256": "a7fd60b2b8b2c44909de1123df32548c533bdfeca62f3a279bf85965fd662dd9",
+      "rows": 90000
+    },
+    "validation:family-3": {
+      "path": "parts/validation-family-3.pt",
+      "sha256": "d54aeee09a4a1e502c36964865e1bd39fa60e4af5332782b38d82ca40281bc4c",
+      "rows": 60000
+    },
+    "test:family-9": {
+      "path": "parts/test-family-9.pt",
+      "sha256": "0e62973cdc3d1c1a2bdccb4a16ef06c565322e64af0b0cc17c101d540518cba5",
+      "rows": 60000
+    }
+  },
+  "evidence_boundary": "Synthetic v4 formula families teach structural stress mechanisms; they are not external behavior, production truth or LT evidence."
+}

@@ -269,3 +269,13 @@ def test_ramped_user_ab_leaves_unallocated_traffic_on_active_policy():
     assert plan.policies[-1] is active
     assert plan.policies[0] is active
     assert plan.policies[1] is treatment
+
+
+def test_event_identity_closes_the_former_linear_hash_collision():
+    event_id = deterministic_event_id(
+        torch.tensor([25, 1]),
+        torch.tensor([3, 0]),
+        torch.tensor([0, 548_667]),
+        torch.tensor([2, 0]),
+    )
+    assert event_id[0] != event_id[1]

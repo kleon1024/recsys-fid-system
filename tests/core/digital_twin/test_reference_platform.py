@@ -125,6 +125,17 @@ def test_routes_gain_behavioral_graph_and_keep_search_triggered():
         assert has_search_route[search_rows].any()
 
 
+def test_final_ranker_pads_after_candidate_exhaustion_without_reexposure():
+    _, platform, _, _, _, _ = build_system()
+    item = torch.tensor([[10, 11, -1, -1, -1, -1, -1, -1]])
+    score = torch.tensor([[0.8, 0.7, -torch.inf, -torch.inf,
+                           -torch.inf, -torch.inf, -torch.inf, -torch.inf]])
+    selected, selected_score = platform.ranker._diversified_top(item, score)
+    assert selected.tolist() == [[10, 11, -1, -1]]
+    assert torch.isfinite(selected_score[:, :2]).all()
+    assert torch.isneginf(selected_score[:, 2:]).all()
+
+
 def test_policy_can_change_only_retrieval_routes_and_version():
     world, platform, log, _, _, _ = build_system(users=192, items=2_000)
     kernel = AtomicSimulationKernel(world, platform, log)

@@ -1,0 +1,284 @@
+{
+  "schema": "neural-scm-v4-authority-shadow-v1",
+  "config": {
+    "users": 100000,
+    "items": 1000000,
+    "ticks": 8,
+    "topics": 64,
+    "countries": 12,
+    "regions_per_country": 16,
+    "embedding_dim": 32,
+    "platform_seed": 811,
+    "environment_seed": 821,
+    "member_index": 0,
+    "inference_batch_size": 4096,
+    "device": "cuda:0"
+  },
+  "artifact_manifest_sha256": "fc8fa5fd9bb81a3e29e06ecf1ecc69acaaa4fbc8d78cdf4790474d60035ad465",
+  "weights_sha256": "8d61966e5472a649773453540a48c175c7c73f26ec5b75c20f9baa25779b9726",
+  "feature_contract_sha256": "f8cde7b032f2f0ad4d3cd7b91a85f85a3a1fb9355ea9f0a7a7ba05e402646082",
+  "authority_version": "neural-feed:v4-kuairand-feed-bridge-v1:member-0:fc8fa5fd9bb8",
+  "first_run": {
+    "trace_hash": "31afcb0df197416343fa6ae39217f4c362588d9f43e07ffed1ed9648fff020df",
+    "neural_event_hash": "c727759438b5d53f71b3a3ca98afda55aa0ebfcbe94d73d2a76164ae2171d4b2",
+    "formula_event_hash": "f93663a7662a938f421cc37395bc51600cc8fb34ea2973a766b2c5464cfea297",
+    "feed_requests": 412006,
+    "supported_feed_requests": 407818,
+    "support_rate": 0.9898350994888424,
+    "partition_pairs": [
+      [
+        "6554025158c9cfd906e2198aea81fd3359c1dcfed2591cbf56c347c7701c6241",
+        "6554025158c9cfd906e2198aea81fd3359c1dcfed2591cbf56c347c7701c6241"
+      ],
+      [
+        "b0740257ecf0b7f158f44cbb78816eda4c0fb23698851dbddb81d20c07558bb5",
+        "b0740257ecf0b7f158f44cbb78816eda4c0fb23698851dbddb81d20c07558bb5"
+      ],
+      [
+        "5971524b4f2c0dcf87fcc7768afd470b02e23e8a92d088da606896baf389c24c",
+        "5971524b4f2c0dcf87fcc7768afd470b02e23e8a92d088da606896baf389c24c"
+      ],
+      [
+        "2802f5b7bf4a78a04d7f754e1487d15f80fa1bb6b7669e296d151524b6a1922f",
+        "2802f5b7bf4a78a04d7f754e1487d15f80fa1bb6b7669e296d151524b6a1922f"
+      ],
+      [
+        "dee456ac385335a9508c63edf0407d16e380df87c6373ff39f2a2c6aa5758b6e",
+        "dee456ac385335a9508c63edf0407d16e380df87c6373ff39f2a2c6aa5758b6e"
+      ],
+      [
+        "c154956ed4d5df2b70d66d0e742110857bafd32126b5465aa777dfe8969a31a6",
+        "c154956ed4d5df2b70d66d0e742110857bafd32126b5465aa777dfe8969a31a6"
+      ],
+      [
+        "93d28d39470311ef3e553cf5d6aad309cefeaa378c38b103c09c1b00786f3831",
+        "93d28d39470311ef3e553cf5d6aad309cefeaa378c38b103c09c1b00786f3831"
+      ],
+      [
+        "b4d4566262ab8ac3c88ae04ccb0f25f1a225f1ef9551608bec0760923e6d96c6",
+        "b4d4566262ab8ac3c88ae04ccb0f25f1a225f1ef9551608bec0760923e6d96c6"
+      ]
+    ],
+    "neural_event_counts": {
+      "impression": 4467336,
+      "play": 1901365,
+      "play_3s": 1560800,
+      "long_view": 22678,
+      "complete": 19312,
+      "like": 15378,
+      "negative": 39711,
+      "session_end": 378034
+    },
+    "formula_event_counts": {
+      "impression": 4467336,
+      "play": 1050383,
+      "play_3s": 765967,
+      "long_view": 425211,
+      "complete": 214220,
+      "like": 120537,
+      "negative": 72991,
+      "session_end": 65110
+    }
+  },
+  "second_run": {
+    "trace_hash": "31afcb0df197416343fa6ae39217f4c362588d9f43e07ffed1ed9648fff020df",
+    "neural_event_hash": "22bf44ab981da5a424ae34228b20c0c10f9c10f7d3c6cd9c9803af44c7832486",
+    "formula_event_hash": "973aeb7c7e2425fd56867416a0d8e90d3a2fe4a30205e77a325f2166687afc9a",
+    "feed_requests": 412006,
+    "supported_feed_requests": 407818,
+    "support_rate": 0.9898350994888424,
+    "partition_pairs": [
+      [
+        "6554025158c9cfd906e2198aea81fd3359c1dcfed2591cbf56c347c7701c6241",
+        "6554025158c9cfd906e2198aea81fd3359c1dcfed2591cbf56c347c7701c6241"
+      ],
+      [
+        "b0740257ecf0b7f158f44cbb78816eda4c0fb23698851dbddb81d20c07558bb5",
+        "b0740257ecf0b7f158f44cbb78816eda4c0fb23698851dbddb81d20c07558bb5"
+      ],
+      [
+        "5971524b4f2c0dcf87fcc7768afd470b02e23e8a92d088da606896baf389c24c",
+        "5971524b4f2c0dcf87fcc7768afd470b02e23e8a92d088da606896baf389c24c"
+      ],
+      [
+        "2802f5b7bf4a78a04d7f754e1487d15f80fa1bb6b7669e296d151524b6a1922f",
+        "2802f5b7bf4a78a04d7f754e1487d15f80fa1bb6b7669e296d151524b6a1922f"
+      ],
+      [
+        "dee456ac385335a9508c63edf0407d16e380df87c6373ff39f2a2c6aa5758b6e",
+        "dee456ac385335a9508c63edf0407d16e380df87c6373ff39f2a2c6aa5758b6e"
+      ],
+      [
+        "e5ec5ad94959b8a21fd08f610ebf7748088b0aa9c0505075844fc646bc6ce61e",
+        "e5ec5ad94959b8a21fd08f610ebf7748088b0aa9c0505075844fc646bc6ce61e"
+      ],
+      [
+        "93d28d39470311ef3e553cf5d6aad309cefeaa378c38b103c09c1b00786f3831",
+        "93d28d39470311ef3e553cf5d6aad309cefeaa378c38b103c09c1b00786f3831"
+      ],
+      [
+        "606fe016e2a037d3c75af5e048dacec3961111dfa7f3eee37bd713a9c3720e11",
+        "606fe016e2a037d3c75af5e048dacec3961111dfa7f3eee37bd713a9c3720e11"
+      ]
+    ],
+    "neural_event_counts": {
+      "impression": 4467336,
+      "play": 1901365,
+      "play_3s": 1560800,
+      "long_view": 22678,
+      "complete": 19312,
+      "like": 15378,
+      "negative": 39711,
+      "session_end": 378034
+    },
+    "formula_event_counts": {
+      "impression": 4467336,
+      "play": 1050383,
+      "play_3s": 765967,
+      "long_view": 425211,
+      "complete": 214220,
+      "like": 120537,
+      "negative": 72991,
+      "session_end": 65110
+    }
+  },
+  "semantic_replay": {
+    "factual": {
+      "pass": true,
+      "tick_count_equal": true,
+      "ticks": 8,
+      "discrete_fields_exact": true,
+      "discrete_field_mismatches": {
+        "advertiser_id": 0,
+        "content_kind": 0,
+        "country": 0,
+        "creator_id": 0,
+        "event_id": 0,
+        "event_time": 0,
+        "event_type": 0,
+        "experiment_cell": 0,
+        "ingest_time": 0,
+        "item_id": 0,
+        "merchant_id": 0,
+        "order_id": 0,
+        "poi_id": 0,
+        "position": 0,
+        "post_id": 0,
+        "product_id": 0,
+        "query_id": 0,
+        "region": 0,
+        "request_id": 0,
+        "schema_version": 0,
+        "source_candidate_id": 0,
+        "surface": 0,
+        "topic_id": 0,
+        "user_id": 0
+      },
+      "discrete_field_max_deltas": {
+        "advertiser_id": 0,
+        "content_kind": 0,
+        "country": 0,
+        "creator_id": 0,
+        "event_id": 0,
+        "event_time": 0,
+        "event_type": 0,
+        "experiment_cell": 0,
+        "ingest_time": 0,
+        "item_id": 0,
+        "merchant_id": 0,
+        "order_id": 0,
+        "poi_id": 0,
+        "position": 0,
+        "post_id": 0,
+        "product_id": 0,
+        "query_id": 0,
+        "region": 0,
+        "request_id": 0,
+        "schema_version": 0,
+        "source_candidate_id": 0,
+        "surface": 0,
+        "topic_id": 0,
+        "user_id": 0
+      },
+      "float_nonfinite_patterns_exact": true,
+      "maximum_float_delta": 0.0,
+      "float_tolerance": 1e-06,
+      "duration_max_delta_ms": 1,
+      "duration_tolerance_ms": 1
+    },
+    "neural": {
+      "pass": true,
+      "tick_count_equal": true,
+      "ticks": 8,
+      "discrete_fields_exact": true,
+      "discrete_field_mismatches": {
+        "advertiser_id": 0,
+        "content_kind": 0,
+        "country": 0,
+        "creator_id": 0,
+        "event_id": 0,
+        "event_time": 0,
+        "event_type": 0,
+        "experiment_cell": 0,
+        "ingest_time": 0,
+        "item_id": 0,
+        "merchant_id": 0,
+        "order_id": 0,
+        "poi_id": 0,
+        "position": 0,
+        "post_id": 0,
+        "product_id": 0,
+        "query_id": 0,
+        "region": 0,
+        "request_id": 0,
+        "schema_version": 0,
+        "source_candidate_id": 0,
+        "surface": 0,
+        "topic_id": 0,
+        "user_id": 0
+      },
+      "discrete_field_max_deltas": {
+        "advertiser_id": 0,
+        "content_kind": 0,
+        "country": 0,
+        "creator_id": 0,
+        "event_id": 0,
+        "event_time": 0,
+        "event_type": 0,
+        "experiment_cell": 0,
+        "ingest_time": 0,
+        "item_id": 0,
+        "merchant_id": 0,
+        "order_id": 0,
+        "poi_id": 0,
+        "position": 0,
+        "post_id": 0,
+        "product_id": 0,
+        "query_id": 0,
+        "region": 0,
+        "request_id": 0,
+        "schema_version": 0,
+        "source_candidate_id": 0,
+        "surface": 0,
+        "topic_id": 0,
+        "user_id": 0
+      },
+      "float_nonfinite_patterns_exact": true,
+      "maximum_float_delta": 0.0,
+      "float_tolerance": 1e-06,
+      "duration_max_delta_ms": 1,
+      "duration_tolerance_ms": 1
+    }
+  },
+  "gates": {
+    "factual_slate_replay": true,
+    "factual_response_replay": true,
+    "neural_response_replay": true,
+    "batch_partition_invariance": true,
+    "support_fallback_bounded": true,
+    "reference_cascade_exercised": true,
+    "artifact_support_bound": true
+  },
+  "decision": "pass",
+  "evidence_boundary": "Formula responses alone mutate the factual world. Neural responses are shadow-only simulator evidence, not production traffic."
+}

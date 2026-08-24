@@ -44,6 +44,7 @@ class WorldModelEnsemble(nn.Module):
     def predict(self, batch):
         member_probabilities = []
         member_stay = []
+        member_utility = []
         zero_noise = torch.zeros(
             len(batch["labels"]), self.config.latent_dim,
             device=batch["labels"].device,
@@ -57,13 +58,17 @@ class WorldModelEnsemble(nn.Module):
             member_stay.append((
                 torch.softmax(output.stay_mixture_logits, dim=1) * output.stay_mean
             ).sum(dim=1))
+            member_utility.append(member.utility_value(output.utility_logit))
         probabilities = torch.stack(member_probabilities)
         stay = torch.stack(member_stay)
+        utility = torch.stack(member_utility)
         return {
             "probability_mean": probabilities.mean(dim=0),
             "probability_std": probabilities.std(dim=0),
             "stay_mean": stay.mean(dim=0),
             "stay_std": stay.std(dim=0),
+            "utility_mean": utility.mean(dim=0),
+            "utility_std": utility.std(dim=0),
         }
 
     @staticmethod
@@ -108,7 +113,7 @@ class WorldModelEnsemble(nn.Module):
         ]
 
     @torch.inference_mode()
-    def rollout(self, batch, steps: int, seed: int):
+    def rollout(self, batch, steps: int, seed: int, event_mask=None):
         sequence = batch["sequence"].clone()
         events = []
         for step in range(steps):
@@ -118,6 +123,8 @@ class WorldModelEnsemble(nn.Module):
             )
             samples = self.sample_members(current, noise)
             event = torch.stack([sample["event"] for sample in samples]).float().mean(dim=0)
+            if event_mask is not None:
+                event = event * event_mask.to(event.device)[None]
             events.append(event)
             sequence = torch.roll(sequence, shifts=-1, dims=1)
             sequence[:, -1] = event

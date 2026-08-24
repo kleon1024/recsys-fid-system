@@ -1,5 +1,8 @@
 # Hidden environment and platform separation
 
+Status: historical design input. Completed decisions and remaining work are owned
+by `docs/plans/digital-twin-v4-execution-plan.md`; this file is not a backlog authority.
+
 ## Scope
 
 Refactor `fid_lab/simulation/twin` so a continuously evolving app-user world

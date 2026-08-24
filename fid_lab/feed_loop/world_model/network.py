@@ -16,6 +16,7 @@ class WorldModelOutput:
     stay_mixture_logits: torch.Tensor
     stay_mean: torch.Tensor
     stay_log_scale: torch.Tensor
+    utility_logit: torch.Tensor
     context: torch.Tensor
 
 
@@ -25,8 +26,19 @@ class NeuralSCM(nn.Module):
     def __init__(self, config: WorldModelConfig) -> None:
         super().__init__()
         self.config = config
+        self._action_index = {
+            action.name: index for index, action in enumerate(STOCHASTIC_ACTIONS)
+        }
         self.register_buffer("stay_calibration_shift", torch.zeros(()))
         self.register_buffer("stay_calibration_scale", torch.ones(()))
+        self.register_buffer(
+            "action_calibration_scale", torch.ones(len(STOCHASTIC_ACTIONS)),
+        )
+        self.register_buffer(
+            "action_calibration_bias", torch.zeros(len(STOCHASTIC_ACTIONS)),
+        )
+        self.register_buffer("utility_calibration_scale", torch.ones(()))
+        self.register_buffer("utility_calibration_shift", torch.zeros(()))
         width = config.width
         self.feature_encoder = nn.Sequential(
             nn.LayerNorm(config.feature_dim), nn.Linear(config.feature_dim, width),
@@ -51,6 +63,13 @@ class NeuralSCM(nn.Module):
             nn.Linear(decoder_width, width), nn.SiLU()
         )
         self.stay_head = nn.Linear(width, config.stay_mixture_components * 3)
+        self.utility_head = nn.Linear(width, 1)
+        self.utility_feature_adapter = nn.Sequential(
+            nn.Linear(config.feature_dim, width // 2), nn.SiLU(),
+            nn.Linear(width // 2, 1),
+        )
+        nn.init.zeros_(self.utility_feature_adapter[-1].weight)
+        nn.init.zeros_(self.utility_feature_adapter[-1].bias)
         self.action_heads = nn.ModuleDict(
             {action.name: nn.Linear(width, 1) for action in STOCHASTIC_ACTIONS}
         )
@@ -96,6 +115,20 @@ class NeuralSCM(nn.Module):
         log_var = log_var.clamp(-6.0, 3.0)
         return mean + torch.exp(0.5 * log_var) * noise, mean, log_var
 
+    def _action_logit(self, action_name, hidden):
+        raw = self.action_heads[action_name](hidden).squeeze(-1)
+        index = self._action_index[action_name]
+        return (
+            raw * self.action_calibration_scale[index]
+            + self.action_calibration_bias[index]
+        )
+
+    def utility_value(self, utility_logit):
+        return (
+            torch.sigmoid(utility_logit) * self.utility_calibration_scale
+            + self.utility_calibration_shift
+        ).clamp(0.0, 1.0)
+
     def forward(self, batch, latent_noise=None) -> WorldModelOutput:
         context = self.encode_context(
             batch["selected_features"], batch["slate_features"], batch["sequence"],
@@ -121,15 +154,20 @@ class NeuralSCM(nn.Module):
             + torch.log(self.stay_calibration_scale.clamp_min(1e-4))
         )
         logits = {}
+        utility_logit = (
+            self.utility_head(hidden)
+            + self.utility_feature_adapter(batch["selected_features"])
+        ).squeeze(-1)
         for action in STOCHASTIC_ACTIONS:
-            logit = self.action_heads[action.name](hidden).squeeze(1)
+            logit = self._action_logit(action.name, hidden)
             logits[action.name] = logit
             action_value = torch.sigmoid(logit)
             hidden = self.action_transition(
                 torch.stack((action_value, torch.sigmoid(logit)), dim=1), hidden
             )
         return WorldModelOutput(
-            logits, stay_mixture_logits, stay_mean, stay_log_scale, context,
+            logits, stay_mixture_logits, stay_mean, stay_log_scale,
+            utility_logit, context,
         )
 
     def next_hidden(self, context: torch.Tensor, event: torch.Tensor) -> torch.Tensor:
@@ -170,7 +208,7 @@ class NeuralSCM(nn.Module):
         actions = {}
         probabilities = {}
         for index, action in enumerate(STOCHASTIC_ACTIONS):
-            logit = self.action_heads[action.name](hidden).squeeze(1)
+            logit = self._action_logit(action.name, hidden)
             probability = torch.sigmoid(logit)
             sampled = action_uniforms[:, index] < probability
             if action.requires is not None:
@@ -216,6 +254,10 @@ class NeuralSCM(nn.Module):
         )
         latent, _, _ = self._latent(self.prior(context), latent_noise)
         hidden = self.decoder_init(torch.cat((context, latent), dim=2))
+        utility = self.utility_value((
+            self.utility_head(hidden)
+            + self.utility_feature_adapter(batch["slate_features"])
+        ).squeeze(-1))
         stay_parameters = self.stay_head(hidden).reshape(
             *hidden.shape[:2], self.config.stay_mixture_components, 3
         )
@@ -244,7 +286,7 @@ class NeuralSCM(nn.Module):
         actions = {}
         probabilities = {}
         for index, action in enumerate(STOCHASTIC_ACTIONS):
-            logit = self.action_heads[action.name](flat_hidden).reshape(
+            logit = self._action_logit(action.name, flat_hidden).reshape(
                 *hidden.shape[:2]
             )
             probability = torch.sigmoid(logit)
@@ -280,5 +322,6 @@ class NeuralSCM(nn.Module):
             "stay_seconds": stay,
             "completion": completion,
             "event": event,
+            "utility": utility,
             "context": context,
         }

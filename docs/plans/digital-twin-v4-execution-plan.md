@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (P1 accepted; full backlog research and reuse audit)
+Updated: 2026-08-25 (all unfinished work researched; P2 evidence refreshed)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -47,11 +47,15 @@ tree but has not passed the repository acceptance path. `Implemented` means the
 focused contract is executable; it does not mean the phase, benchmark or launch
 review is accepted.
 
-The latest published P0 authority is commit
-`48769dd49000da64fcd5d28e24e651f0c724adb5`. The accepted P1 implementation is
-commit `e70334d`; its reports remain independently bound by content hashes.
-The unified remote gate runs 202 historical tests plus 49 focused v4 tests; the
-architecture lint has zero errors. One P0 CLI invocation
+The current published repository authority is
+`336c2195dca839e6aff2cecc8d814246c6fe259b`; local and `origin/main` agree.
+P0 was accepted at `48769dd49000da64fcd5d28e24e651f0c724adb5`, P1 at
+`e70334d`, and the published P2 foundations at `336c219`. Their reports remain
+independently bound by content hashes. The current P2 continuation is a dirty
+43-path working tree until its final commit. The exact synchronized source passed
+202 historical tests, 57 v4 digital-twin tests and the repository acceptance
+report. Local architecture lint reports zero errors plus the pre-existing
+asset-wrapper warning. One P0 CLI invocation
 materialized a 32-request fixture with all seven Parquet tables, table hashes,
 932 raw-route rows, 612 merged candidate decisions, 525 events, 1,632 task-label
 rows, 625 training examples and one checkpoint. This proves table closure and
@@ -67,26 +71,51 @@ time partitions rather than one monolithic analytical snapshot.
 
 | Capability | Current evidence | Status | Blocking gap |
 |---|---|---|---|
-| Hidden user world boundary | Platform cannot directly read hidden preference state | Implemented | Held-out family calibration remains incomplete |
+| Hidden user world boundary | Platform cannot directly read hidden preference state | Accepted | Non-Feed worlds remain separately gated |
 | Atomic factual A/B world | One request receives one factual policy and commits once | Implemented | Longer-horizon interference tests remain incomplete |
 | Delayed outcomes | Order/payment/refund/Pixel occurrence and ingestion time are distinct | Implemented | Production-like loss/duplicate/orphan distributions need calibration |
-| Point-in-time projection | Delivered events, lifecycle transitions and removals replay across content-bound partitions | Implemented | P2 calibration remains |
+| Point-in-time projection | Delivered events, lifecycle transitions and removals replay across content-bound partitions | Implemented | P3 trainer parity remains |
 | Request cascade trace | Raw routes, request-time lifecycle, post lineage and every cascade stage are retained | Implemented | P3 proposal propensity and learned artifacts remain |
 | Feed retrieval mechanics | Six lifecycle-owned Feed routes plus six separately owned business routes | Implemented | Learned retrieval starts only after P2 |
 | Layered experiments | Ownership, independent assignment and composed factual policy | Implemented | Learned artifacts and continuous trainers are not connected |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
 | Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
-| Behavior realism | Hidden state, examination, multi-action response, drift and delayed outcomes exist | Partial | Current response is still a hand-authored one-step SCM, not a calibrated neural-SCM ensemble |
+| Behavior realism | v23 passes external, held-out-family, support, anti-exploitation and 100K semantic-shadow gates | Accepted for Feed | Retention, creator supply and every business response remain masked |
 | Full-chain analytical store | Seven partitioned Parquet tables plus P1 lifecycle/post fields; DuckDB and ClickHouse agree | Implemented | P3 trainer consumption remains |
 | Recall/coarse/fine sample authorities | Typed request-level examples and partitioned replay authority exist | Partial | Recall negatives, propensity correction and trainer consumption remain |
 | Continuous learning | Historical demos exist outside v4 | Not connected | No active/candidate streaming lanes, checkpoints or snapshot gates |
 | Model ladder | Historical synthetic ladders exist | Invalid for v4 launch | Must train on the same factual request dataset and serving budget |
 | Search/Ads/Commerce/Live/Local | Surface actions and catalog types exist | Skeleton | Each lacks a closed business workflow and independent launch contract |
 
-Consequently, current route Launch Reviews test mechanism plumbing only. They
-cannot yet decide whether Graph, Two-Tower or Multi-interest should launch, and
-no P1 result may be called an online-equivalent lift before the P1-P3 gates pass.
+The v23 NeuralSCM is accepted for manual promotion as the v4 Feed response
+authority. Its canonical
+KuaiRand bridge excludes the prior-only period from training, removes future
+popularity leakage and uses the same semantic feature-contract hash as v4. The
+user-disjoint randomized path separates adaptation, calibration and untouched
+evaluation users. The strongest external-only artifact still passes Feed
+distribution, sequence and supported randomized-policy gates, but cannot claim
+native coverage for features absent from KuaiRand.
+
+The structural bridge uses the real six-route cascade, independent platform
+and environment seeds, family 1/2 training, family 3 validation and untouched
+family 9 testing. Its 300K temporal dataset spans the full simulated horizon;
+the full build took 13m08s on RTX 4090 and a reused held-out-family rebuild took
+3m24s. The frozen v23 weight lineage passes external distribution, free-running
+sequence, uncertainty, boundary, held-out structural magnitude and DR-OPE gates.
+The OPE report has six supported policy pairs, Kendall tau `0.666667` and passes
+its value-calibration gate. Independent training processes produced the exact
+same weights SHA-256, and semantic replay now passes exact lineage, <=1 ms stay
+quantization drift and bounded floating-point differences.
+
+v23 preserves the external source and structural families 1/2 as distinct support
+components. Its 100K-user, one-million-item, eight-tick shadow covers `98.9835%`
+of 412,006 Feed requests and passes all seven replay gates. Streaming evidence and
+4,096-request neural micro-batches bound peak RSS at 2.46 GiB. Event schema v5
+replaces the collision-prone linear ID hash with an injective request/type/ordinal
+encoding. Formula remains the dependency-free invariant oracle; P3 may explicitly
+load the accepted neural artifact. No route or business-model LR is implied by
+this simulator-authority promotion.
 
 ## 2.1 Research disposition
 
@@ -135,6 +164,61 @@ justify namespaces but not causal independence; shared training data can create
 symbiosis bias, so data-diverted or corpus-co-diverted designs are required for
 selected model-learning experiments. HSTU, TIGER and OneRec remain challengers
 after the conventional cascade is identified; they are not P2 dependencies.
+
+### 2.3 Backlog research closure
+
+Every backlog row now has a selected implementation path. “Research closed” means
+the next falsifiable implementation and rejection boundary are known. It does not
+mean the implementation exists, the chosen model will win, or a phase is accepted.
+The remaining work is empirical execution against section 9.1.
+
+A scoped source audit found no executable unfinished-work marker or orphan
+`NotImplementedError` under `fid_lab`, `tests`, `scripts` or active docs. Words
+such as `missing` and `pending` elsewhere are domain states or historical report
+values, not work items. Unfinished work is therefore owned only by the register
+in section 9.1. The three
+dated plan files are retained as historical design inputs and explicitly defer to
+this plan; they cannot create a second backlog.
+
+| Backlog | Research conclusion | Adopted decision | Rejected shortcut |
+|---|---|---|---|
+| P2 user-world validity | RecSim NG supports modular latent multi-agent worlds, while KuaiSim and SARDINE show that request, session, cross-session, uncertainty and feedback loops must be tested separately. No public simulator guarantees live realism. | Keep the hidden probabilistic ecosystem and evaluate it as multiple falsifiable families. Calibrate only observed Feed behavior; treat geography, creator response, retention and LT as declared synthetic stress families until separate evidence exists. | Fitting one universal DGP to KuaiRand-1K or tuning it until MMoE wins. |
+| P2 randomized evidence | KuaiRand provides random inserted exposures and known item-pool support. OPE is identified only for actions with logged propensity and overlap; randomized item exposure does not reveal counterfactual hidden-user transitions or Local outcomes. | Bind the v4 Feed challenger to a user-disjoint randomized calibration/evaluation split. Use DR/SNIPS policy estimates with ESS, maximum-weight and support gates. Keep structural intervention tests as a separate multi-world robustness gate. | Fabricating three interventions from observational rows or calling randomized Feed evidence universal causal validation. |
+| P3 full-flow samples | RecFlow retains candidates lost at six funnel stages and demonstrates why exposure-only data cannot diagnose a multi-stage cascade. | Preserve the factual candidate universe and every stage decision; build Recall, Coarse and Fine examples from one request authority with stage-specific sampling and correction. | Training every stage from exposed rows or comparing models on different candidate budgets. |
+| P3 continuous learning | Monolith supports event-time online training, versioned sparse state and an explicit reliability/freshness trade-off. | Port the existing active/candidate trainer to v4 partitions. Every request logs the served checkpoint and both lanes consume the same eligible factual stream with watermark, resume and fallback. | Freezing models for a long A/B or claiming that faster checkpoints are a business launch without ranking delta. |
+| P3 feature/FID authority | Monolith identifies sparse-state lifecycle and collision handling as system concerns; Meta's event-based features standardize heterogeneous sequences by stream, length and event schema. Neither source validates an internal FID layout. | One versioned manifest owns field semantics, point-in-time source, transform, bucket/hash, vocabulary, default, TTL and serving owner. Hash collisions are measured per namespace and the exact serving features are replayed offline. | Treating raw IDs as continuous values, exposing hidden-world state, or allowing train/serve code to define the same feature independently. |
+| P3 model ladders | Public retrieval, sampled-softmax and multi-stage work support hard negatives, proposal correction and equal-budget comparisons; no paper says a deeper model must win. | Run retrieval, coarse and fine ladders only after sample parity. Freeze corpus, candidates, tuning budget and latency; require one explained pass, hold and reject. | Shaping the DGP for W&D/MMoE or treating global AUC as launch evidence. |
+| P3 evaluation | RecFlow demonstrates stage-selection bias; counterfactual literature requires known propensity and support. Global AUC cannot localize a cascade failure. | One request-aware evaluator replays the served slate and reports stage pass-through, request GAUC/NDCG, calibration, Top-K delta, latency and slice regressions. OPE is emitted only for logged-supported actions. | Comparing models on sampled random negatives, different candidate sets or unsupported counterfactual policies. |
+| P4 overlapping experiments | Overlapping experiments scale orthogonal changes, but shared learning data creates symbiosis bias and violates hidden-treatment assumptions. | Use namespaces plus a compatibility graph for normal parameter tests; use data-diverted, cluster or user-corpus co-diverted designs when the learned algorithm itself is the treatment. | Calling all layer experiments causally independent because their assignment hashes differ. |
+| P4 Value/LT | Public evidence supports calibrated primitive prediction and constrained policy optimization, not a proprietary universal LT formula. | Value Tree ranks calibrated primitives. Unified LT is measured after randomization with explicit, nonnegative synthetic exchange assumptions and sensitivity; it is never a training label. | Directly predicting request LT or relabeling Local/GMV/ads value as LT. |
+| P4 final-slate policy | Multi-stage systems and heterogeneous feeds require one observable final decision after retrieval/ranking; public work does not provide a transferable COPP formula. | One mixer owns dedup, format/business queues, quotas, diversity, eligibility, load and displacement. Every removed candidate records the exact constraint and displaced alternative. | Independent queues each claiming the same exposure, or hiding permanent business boost inside model scores. |
+| P5 Search | Public search systems combine lexical and semantic retrieval, query understanding/rewrite, vertical triggering and blending. Search intent and success differ from passive Feed response. | Build query/session state, lexical+semantic routes, reformulation and success labels, then connect only observed search intent and post-search behavior back to Feed. | Reusing Feed candidates/labels or evaluating Search only by CTR. |
+| P5 Ads | Public Ads systems retain a retrieval→ranking funnel and predict both user and advertiser value under strict latency; auction, pacing and budgets introduce interference absent from organic Feed. | Model eligibility, bid, pacing, budget, retrieval, ranking, mixing, click and delayed conversion as one closed workflow with revenue and Feed-experience guardrails. | Treating Ads as an organic queue with a score boost or ignoring budget exhaustion and advertiser-side value. |
+| P5 Commerce | Industrial e-commerce retrieval uses stage-specific ordered/clicked/unclicked/random signals; purchase and refund mature later than browsing. | Close shelf→detail→cart→order→payment→refund with inventory snapshots, conditional labels and deterministic order/payment lineage. | Marking every unclicked exposure as CVR-negative or counting unpaid/refunded orders as durable value. |
+| P5 Local | Public POI work supports geo, category, graph and diversity signals, but no public source identifies this repository's open-loop attribution process. | Own POI/video/anchor eligibility, detail/map/YMAL, closed-loop order and separately observed Pixel events. Keep identity loss, attribution coverage and orphan rates explicit. | Treating nearest POI as intent, imputing missing Pixel feedback as zero, or converting Local actions directly into LT. |
+| P5 Posting | Public content-generation ranking uses sparse participation targets, proxy intent, conditional losses and personalized value. It does not identify a proprietary creator experiment framework. | Separate draft→candidate→select→publish recommendation from Feed distribution; use proxy/qualified-publish tasks, future-supply outcomes and user/creator-randomized experiments with interference declared. | Calling product-entry lift algorithmic relevance or training publication on future distribution outcomes without point-in-time controls. |
+| P5 Live/formats | Live has availability, concurrent actions and fresh/delayed outcomes; photo/card/article have different examination and dwell semantics. Multi-surface content encoders can share representations without sharing response labels. | Give Live, photo, card and article separate eligibility, examination, labels and calibration; share only versioned content representations and infrastructure. | Reusing video completion thresholds or one universal response head across formats. |
+| Orchestration | The repository already has a logical asset graph and content-addressed partitions. A second scheduler does not improve semantics by itself. | Extend the existing graph with v4 sample, training, evaluation and publication assets. Add Dagster or another external scheduler only when cross-process retries, backfills or remote execution become a measured operational requirement. | Introducing a parallel DAG authority while the v4 learning path is still disconnected. |
+| P6 scale/runtime | RecSim NG demonstrates accelerated probabilistic simulation; the current P1 run shows Arrow partitioning and GPU tensorization are viable. | Keep PyTorch/Arrow/Parquet as the authority, profile at 100K/1M/10M, tensorize measured hot paths, and introduce Rust/C++ only for a proven CPU or serialization bottleneck with parity. | Rewriting the simulator in Rust/C++ before a profile or using item/user count as the only realism measure. |
+| P6 reliability/release | Large recommendation fleets require model-quality SLOs in addition to request success; checkpoint/index/feature skew can silently degrade ranking. | Seed failures for index/model mismatch, stale real-time features, PS loss, delayed labels, timeout, overload and fallback; accept recovery only when request traces and business metrics return to baseline. Delete legacy paths only after content-bound parity. | Calling a 200 response healthy, preserving two runtime authorities indefinitely, or accepting rollback without replay evidence. |
+
+The causal acceptance contract is therefore changed from one ambiguous gate into
+two independent claims:
+
+1. **External policy evidence**: at least three full-support Feed policies are
+   ordered on the user-disjoint KuaiRand randomized evaluation split with a
+   declared propensity, ESS threshold, bounded importance weights and confidence
+   intervals. The new neural world artifact must be content-bound as the outcome
+   model; an OPE report bound to an older model does not count.
+2. **Structural robustness**: at least three mechanism interventions are run on
+   multiple frozen synthetic world families that were not used to train or tune
+   the challenger. Sign, magnitude, batch/order invariance and exploitation
+   probes must pass. This tests robustness; it is explicitly not external causal
+   truth.
+
+Failure of either claim keeps the neural authority on `HOLD`. Passing both can
+promote only the declared Feed behavior scope; retention, creator supply, Local,
+Ads, Commerce and LT remain separately gated.
 
 ## 3. Target system and invariants
 
@@ -460,36 +544,36 @@ in another document is informative only; it cannot override this register.
 | P1-04 | Lifecycle/post observability | Done | P1-02/03 | request-time lifecycle and route admission pass DuckDB/ClickHouse |
 | P1-05 | Creator feedback, retention, deletion and moderation | Done for P1 mechanics | P1-02 | future supply, exit, delete and moderation tests pass; P2 owns calibration |
 | P1-06 | P1 scale and replay review | Done | P1-01..05 | 100K/2M/two-tick 4090 report passes with content hashes |
-| P2-01 | Correlated population generator | Runtime now uses a versioned six-component low-rank latent mixture; external fitter and held-out calibration are pending | P1 | one versioned user/creator/content latent-mixture fitter and sampler; held-out marginal, joint, tail and cohort statistics |
-| P2-02 | Arrival, timezone calendar, session and churn process | Cohort calendar, Weibull return survival, explicit churn and bounded reactivation are wired; empirical hazard calibration is pending | P2-01 | request/session/cross-session distributions, censoring and hazard calibration by country/timezone/lifecycle |
-| P2-03 | Exogenous/endogenous trend and concept drift | Regional-topic AR shocks and factual feedback response are wired; held-out recovery and policy-independence gates are pending | P2-01 | region/topic/time shocks, recovery, supply response and policy-independent counterfactual seed tests |
-| P2-04 | Neural slate response SCM | Existing model now has vectorized whole-slate sampling and a v4 Feed-only adapter; no accepted retrained artifact is active, so formula remains the default oracle | P2-01/02 | retrained component artifacts plus distribution/intervention/policy gates; formula world retained only as deterministic oracle |
-| P2-05 | Latent transition, return survival and creator response | Transition/rollout and separate creator kernels exist; free-running and unified retention validation failed or is missing | P2-04 | free-running multi-step calibration, survival calibration and supply trajectories without teacher forcing |
-| P2-06 | Ensemble uncertainty and causal noise | Three-member ensemble plus v4 request/item-keyed slate noise exist; member disagreement and support-distance launch reports remain pending | P2-04/05 | paired outcomes, member disagreement, support distance and batch/order invariance |
-| P2-07 | External evidence adapters | KuaiRand randomized/standard, sequence, shadow and DR-OPE pipelines exist outside v4; other task evidence is absent | P2-04 | bridge Feed adapter into v4; retain task-scoped authorization, checksums, propensity/support and license manifest |
-| P2-08 | DGP validity suite | Executable legacy suite correctly rejects the universal challenger; v4 does not invoke it | P2-01..07 | distribution, sequence, intervention, policy-order, leakage and anti-exploitation gates run from the repository gate |
-| P3-01 | Recall Joiner and corrected negatives | v4 emits positives plus exposed/unexposed sampled negatives and proposal probability; no in-batch/mined pool, false-negative mask or loss correction | P1/P2 | in-batch/exposed/mined negatives, false-negative mask, proposal probability and correction tests |
-| P3-02 | Coarse Joiner and teacher lineage | v4 maps factual recall candidates and fine scores; teacher order, conflict sampling and distillation trainer are absent | P1/P2 | factual recall candidates, teacher logits/order, conflict samples and Top-K pass-through |
-| P3-03 | Fine Joiner and cascade labels | v4 has point-in-time context, 17 task masks, maturity, exposure and assignment probabilities; feature manifest, long sequence and DR fields are incomplete | P1/P2 | point-in-time features, short/long sequences, conditional masks, delayed maturity and propensity/DR fields |
-| P3-04 | Streaming sample bus and checkpoint registry | v4 partition/checkpoint tables exist; a complete legacy active/candidate loop exists but consumes legacy traces | P3-01..03 | port registry/trainers to v4; watermark/resume, compatibility, mixed factual feedback and fallback |
-| P3-05 | Feature/FID authority | Legacy implementation exists outside v4 | P3-03/04 | user/item/creator/context/route/counter/sequence/content manifests; collision and parity reports |
+| P2-01 | Correlated population generator | Done as a versioned six-component low-rank synthetic family authority | P1 | accepted with explicit no-TikTok-demographic-fidelity boundary |
+| P2-02 | Arrival, timezone calendar, session and churn process | Done for synthetic mechanics and externally observed Feed sequence channels | P2-01 | unsupported universal retention remains masked |
+| P2-03 | Exogenous/endogenous trend and concept drift | Done with regional-topic shocks, recovery and policy-independence tests | P2-01 | accepted as synthetic stress evidence only |
+| P2-04 | Neural slate response SCM | Done; v23 passes external, sequence and held-out-family structural gates | P2-01/02 | frozen weights and content-bound reports agree |
+| P2-05 | Latent transition, return survival and creator response | Done for observed Feed trajectory; retention and creator response deferred as masked tasks | P2-04 | no false KuaiRand labels |
+| P2-06 | Ensemble uncertainty, support and causal noise | Done; 100K shadow support 98.9835%, attack rejection 100%, replay passes | P2-04/05 | 97%/99% frozen gates pass without threshold movement |
+| P2-07 | External evidence adapters | Done; user-disjoint KuaiRand DR-OPE and manifests pass | P2-04 | overlap, ESS, max-weight and unsupported-task boundaries retained |
+| P2-08 | DGP validity and authority shadow | Done for Feed; 100K/1M/8-tick shadow and full repository gate pass | P2-01..07 | Launch Review accepts explicit Feed-only manual promotion |
+| P3-01 | Recall Joiner and corrected negatives | v4 emits positives plus exposed/unexposed sampled negatives and proposal probability; no in-batch/mined pool, false-negative mask or correction in the learner | P1/P2 | one `RecallExample` authority with corpus snapshot, route, proposal probability, in-batch/exposed/mined negatives, false-negative mask and sampled-loss correction tests |
+| P3-02 | Coarse Joiner and teacher lineage | v4 maps factual recalled candidates and fine scores; teacher order, conflict sampling and distillation trainer are absent | P1/P2 | one `CoarseRankExample` authority with factual candidates, route scores, teacher logits/order, conflict sampling and fixed-budget Top-K pass-through |
+| P3-03 | Fine Joiner and cascade labels | v4 has point-in-time context, 17 task masks, maturity, exposure and assignment probabilities; manifest, long sequence and DR fields are incomplete | P1/P2 | one `FineRankExample` authority with PIT features, short/long sequences, conditional/entire-space labels, maturity censoring, propensity and DR fields |
+| P3-04 | Streaming sample bus and checkpoint registry | v4 partition/checkpoint tables exist; the reusable active/candidate loop still consumes legacy traces | P3-01..03 | one v4 event-time stream for both lanes; watermark/resume, one-pass consumption, artifact compatibility, served-checkpoint logging, fallback and recovery tests |
+| P3-05 | Feature/FID authority | A semantic NeuralSCM feature contract now exists, but the general sparse/dense/sequence FID authority remains legacy | P3-03/04 | versioned manifests for user/item/creator/context/route/counter/sequence/content; PIT source, hash/bucket/vocabulary/default/TTL, collision and online-replay parity reports |
 | P3-06 | Retrieval model ladder | Route-mechanism LR and historical Two-Tower/Multi-interest ladders exist; none trains on accepted v4 recall samples | P3-01/04 | fixed corpus/Top-K/latency Popular→Graph→Two-Tower→Multi-interest; Semantic-ID only after dense retrieval baseline |
 | P3-07 | Coarse model ladder | Implementations exist outside v4; no accepted v4 training/serving artifact | P3-02/04/05 | Rule/LR/XGBoost/W&D/DeepFM/DCNv2/distillation with equal candidate, tuning and latency budgets |
 | P3-08 | Fine model ladder | Implementations and historical ladders exist outside v4; no v4 multi-task serving bridge | P3-03/04/05 | LR/XGBoost→deep crosses→DIN/Transformer→MMoE/PLE; HSTU only after long-sequence value is proven |
-| P3-09 | Request-aware evaluation and diagnostics | Metric/report code exists; v4 lacks one common runner and served-rank replay | P3-06..08 | request GAUC, NDCG, calibration, Top-K delta, slices, latency and paired A/B attribution |
+| P3-09 | Request-aware evaluation and diagnostics | Metric/report code exists; v4 lacks one common runner and exact served-rank replay | P3-06..08 | stage pass-through, request GAUC/NDCG, PR-AUC, calibration, Top-K delta, slices, latency and paired A/B attribution from one frozen candidate authority |
 | P4-01 | Primitive calibration and Value Tree | Value-tree code exists outside v4; accepted v4 calibrated predictions do not | P3 | calibrated probabilities/magnitudes; versioned nonnegative exchange coefficients and sensitivity |
 | P4-02 | Unified LT measurement container | Historical metric code exists; production exchange is intentionally unavailable | P4-01 | LT is an A/B outcome container, never a training label; MDE/power and explicit synthetic exchange assumptions |
-| P4-03 | COPP, dedup, diversity, quotas and multi-queue mixer | Historical mixers exist; v4 has no single final-slate policy authority or exposure dedup | P4-01 | one final-slate owner; exposure dedup; load, displacement and constraint attribution |
+| P4-03 | COPP, dedup, diversity, quotas and multi-queue mixer | Historical mixers exist; v4 has no single final-slate policy authority or exposure dedup | P4-01 | one final-slate owner with dedup, eligibility, quotas, diversity and load; log displaced item/queue and exact constraint for every decision |
 | P4-04 | Cadence ladder | Legacy loop proves mechanics only; no controlled daily/hourly/streaming LR | P3-04 | fixed model/features/traffic comparisons with checkpoint-age, cost and freshness curves |
 | P4-05 | Orthogonal experiment program | Atomic layered assignment exists; compatibility, shared-data bias and interference analysis are incomplete | P3/P4 | compatibility graph, factual traffic, SRM/A-A, symbiosis/interference design, feedback-aware analysis and rollback |
-| P5-01 | Search closed loop | Skeleton | P2-P4 | query/reformulation/retrieval/ranking/click/success/post-search Feed and independent LR |
-| P5-02 | Ads closed loop | Skeleton | P2-P4 | auction, pacing, budget interference, click/conversion delay, revenue and Feed guardrails |
-| P5-03 | Commerce closed loop | Skeleton | P2-P4 | shelf→detail→cart→order→payment/refund, stock and transaction value |
-| P5-04 | Local closed/open loops | Skeleton | P2-P4 | POI video/anchor→detail/map/YMAL→order plus Pixel identity/attribution/loss |
-| P5-05 | Posting recommendation | Feed posting identity only | P1-P4 | draft/media→POI/product/topic candidates→select→publish; user- and creator-randomized LR |
-| P5-06 | Live and format-specific loops | Skeleton | P2-P4 | room availability/enter/stay/gift and photo/card/article-specific examination/actions |
+| P5-01 | Search closed loop | Skeleton; hybrid lexical/semantic, query and success authorities are absent | P2-P4 | query/rewrite→lexical+semantic routes→rank/blend→click/dwell/reformulation/success→post-search Feed, with independent samples and LR |
+| P5-02 | Ads closed loop | Skeleton; no auction/pacing/budget state exists | P2-P4 | eligibility→bid/pacing/budget→retrieve/rank→mix→impression→click→mature conversion, with advertiser value, revenue, user-cost and Feed guardrails |
+| P5-03 | Commerce closed loop | Skeleton; product lineage exists but inventory and mature transaction workflow do not | P2-P4 | shelf→detail→cart→order→payment→refund with inventory snapshots, conditional labels and deterministic transaction lineage |
+| P5-04 | Local closed/open loops | Skeleton; POI lineage exists but no accepted Local response or attribution world | P2-P4 | POI video/anchor→detail/map/YMAL→closed-loop order plus separately observed Pixel identity, attribution, loss, duplicate and orphan metrics |
+| P5-05 | Posting recommendation | Feed post identity/lifecycle exists; candidate recommendation and qualified-supply learning do not | P1-P4 | draft/media→POI/product/topic candidates→select→publish→future qualified supply; proxy/conditional tasks plus user- and creator-randomized LR |
+| P5-06 | Live and format-specific loops | Skeleton; no format-specific examination authority | P2-P4 | room availability→enter→stay/interact/gift with fresh/delayed labels; separate photo/card/article examination and calibration, shared content encoder only |
 | P6-01 | Scale profiles | P1 accepted at 100K users/2M items/two ticks; historical 1M/10M runs are not v4 end-state evidence | P1-P5 | 100K diagnostic, 1M standard, 10M stress on 4090 with fixed scenario manifests |
-| P6-02 | Tensor/GPU performance | Partial vectorization | P1-P5 | no per-request Python hot loop; numerical and semantic parity across batch sizes |
+| P6-02 | Tensor/GPU performance | Streaming shadow and neural micro-batches close P2 memory/CUDA defects; 100K shadow takes 7m25s and 2.46 GiB RSS | P1-P5 | profile batch-size latency/throughput frontier; remove measured Python hot paths only |
 | P6-03 | Failure injection and recovery | P0 seeded diagnostics only | P3-P5 | index/checkpoint mismatch, PS shard, feature delay, late labels, timeout, overload and recovery LR |
 | P6-04 | Legacy deletion and public release | Missing | all accepted successors | delete superseded `simulation/twin`, zero orphan authority, clean public scan and reproducible README |
 
@@ -520,19 +604,17 @@ P1 Feed supply-consumption closure
           → P6 scale, failures and legacy deletion
 ```
 
-P1-01 through P1-06 are accepted. The next slice is P2-01 through P2-08; P3
-learned-model work must not begin until the hidden-world validity suite can
-falsify a candidate simulator. P2 is an integration and authority-replacement
-phase, not a second neural-world implementation. Its execution order is:
+P1 and the declared Feed scope of P2 are accepted. The next slice is P3-01
+through P3-09. It must consume the accepted request/event/world authorities rather
+than revive the legacy twin path. Its execution order is:
 
 ```text
-freeze v4 hidden/observable world-model interface
-→ port correlated population, arrival/session/churn and trend authorities
-→ adapt and retrain existing slate/stay/action/transition ensemble components
-→ bridge task-scoped KuaiRand randomized and observational evidence
-→ run distribution/sequence/intervention/policy/leakage/anti-exploitation gates
-→ delete superseded component path only after accepted parity
-→ P2 Launch Review
+complete RecallExample, CoarseRankExample and FineRankExample authorities
+→ port one active/candidate streaming trainer and checkpoint registry
+→ freeze feature/FID and online-replay manifests
+→ run fixed-budget retrieval, coarse and fine model ladders
+→ diagnose pass, hold and reject from one request-aware evaluator
+→ P3 Launch Review
 ```
 
 Accepted P1 command set:
@@ -608,17 +690,27 @@ transitions are deterministic under replay.
 
 ### P2 — User-world families and calibration
 
-Status: research and reuse audit complete; integration is the active phase.
+Status: accepted for the declared Feed response scope on 2026-08-25. Non-Feed,
+retention and creator-supply heads remain masked and independently gated.
 
 - Reuse the existing neural-SCM/ensemble and KuaiRand components through a
   versioned v4 adapter; do not fork their model logic into `digital_twin`.
-- Implement the missing correlated population, calibrated cohort hazards,
-  trend process and task-scoped retention/supply authorities.
-- Make the existing failed gates executable against the v4 runtime. Promotion
-  requires all gates; a failed challenger remains a useful `HOLD` artifact.
+- Generated reports and Launch Review bind the canonical manifest and weights.
+- Preserve the shared canonical feature contract and make dataset coverage a
+  first-class manifest. An external-only artifact cannot claim native v4 fields.
+- Preserve real-cascade family 1/2 train, family 3 validation and family 9 test.
+- Complete scope-aware retention/supply evidence or leave those heads masked;
+  do not use KuaiRand to manufacture labels it does not observe.
+- Leakage, support-distance and anti-exploitation remain mandatory regression
+  gates for every later world artifact.
 
-Acceptance: calibrated marginal, conditional and sequence statistics pass by
-country/timezone/activity/content/lifecycle slices; leakage probes fail closed.
+Acceptance: one content-bound artifact passes external distribution, free-running
+sequence, supported policy ordering, held-out-family structural magnitude,
+batch/order, leakage, uncertainty, boundary, support and exploitation gates. Its
+v4 shadow preserves exact discrete lineage, <=1 ms duration drift and bounded
+float deltas, with >=97% supported factual Feed requests. Unsupported heads remain
+masked. Reports, weights, data manifests, repository gate and clean commit agree
+before any authority switch.
 
 ### P3 — Streaming learning and learned cascade
 
@@ -673,31 +765,7 @@ clean commit.
 
 ## 11. Research basis
 
-- [RecSim: configurable sequential user simulation](https://research.google/pubs/recsim-a-configurable-simulation-platform-for-recommender-systems/)
-- [RecSim NG: probabilistic multi-agent ecosystem and accelerated execution](https://google-research.github.io/recsim_ng/)
-- [RecFlow: An Industrial Full Flow Recommendation Dataset](https://arxiv.org/abs/2410.20868)
-- [KuaiSim: A Comprehensive Simulator for Recommender Systems](https://arxiv.org/abs/2309.12645)
-- [SARDINE: Dynamic and Interactive Recommendation Environments](https://arxiv.org/abs/2311.16586)
-- [RecInter: interaction-centric dynamic recommender simulation](https://aclanthology.org/2025.emnlp-main.956/)
-- [AAAI-25 LLM-Powered User Simulator](https://ojs.aaai.org/index.php/AAAI/article/view/33456)
-- [Monolith: Real Time Recommendation System](https://arxiv.org/abs/2209.07663)
-- [Scaling Instagram Explore Recommendations](https://engineering.fb.com/2023/08/09/ml-applications/scaling-instagram-explore-recommendations-system/)
-- [How Instagram Suggests New Content](https://engineering.fb.com/2020/12/10/web/how-instagram-suggests-new-content/)
-- [Content-based Related Video Recommendations](https://research.google/pubs/content-based-related-video-recommendations/)
-- [Co-optimize Content Generation and Consumption](https://research.google/pubs/co-optimize-content-generation-and-consumption-in-a-large-scale-video-recommendation-system/)
-- [Modeling Recommender Ecosystems](https://research.google/pubs/modeling-recommender-ecosystems-research-challenges-at-the-intersection-of-mechanism-design-reinforcement-learning-and-generative-models/)
-- [Provider-aware recommendation ecosystem simulation](https://research.google/pubs/towards-content-provider-aware-recommendation-systems-a-simulation-study-on-interplays-among-user-and-provider-utilities/)
-- [Slate off-policy evaluation](https://arxiv.org/abs/1605.04812)
-- [Top-K off-policy correction](https://research.google/pubs/top-k-off-policy-correction-for-a-reinforce-recommender-system/)
-- [Overlapping experiment infrastructure](https://research.google/pubs/overlapping-experiment-infrastructure-more-better-faster-experimentation/)
-- [Symbiosis bias in recommender A/B tests](https://research.google/pubs/reducing-symbiosis-bias-through-better-ab-tests-of-recommendation-algorithms/)
-- [Sampled softmax for item recommendation](https://arxiv.org/abs/2201.02327)
-- [Cross-batch negatives for Two-Tower](https://arxiv.org/abs/2110.15154)
-- [TIGER Semantic-ID generative retrieval](https://arxiv.org/abs/2305.05065)
-- [Meta Generative Recommenders / HSTU](https://github.com/meta-recsys/generative-recommenders)
-- [OneRec session-wise generative recommendation](https://arxiv.org/abs/2502.18965)
-
-These sources support architecture and evaluation choices. RecInter and LLM
-simulator results justify an optional semantic-agent lane, not replacement of
-the reproducible vectorized numeric kernel. No source validates this simulator;
-only the executable acceptance gates above can accept a repository claim.
+The source-to-decision crosswalk lives in
+[`docs/research/digital-twin-v4-research-basis.md`](../research/digital-twin-v4-research-basis.md).
+It is evidence support, not a second backlog authority. No public source validates
+this simulator; only the executable acceptance gates above can accept a claim.

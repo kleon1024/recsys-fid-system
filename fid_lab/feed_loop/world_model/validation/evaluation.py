@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import math
 from pathlib import Path
 
@@ -12,6 +11,9 @@ import torch
 from ..contracts import ACCEPTANCE_THRESHOLDS, BINARY_ACTIONS
 from ..data import WorldModelSplit
 from ..ensemble import StructuralNoise, WorldModelEnsemble
+from .boundary import boundary_invariance_report
+from .policy_evidence import verify_policy_evidence
+from .support import anti_exploitation_report, support_report
 from .synthetic import synthetic_causal_validation
 
 
@@ -71,12 +73,14 @@ def _collect_predictions(ensemble, split, device, limit):
     deviations = []
     generated_actions = []
     generated_stay = []
+    utilities = []
     for start in range(0, count, ensemble.config.batch_size):
         index = torch.arange(start, min(start + ensemble.config.batch_size, count))
         batch = split.batch(index, device)
         predicted = ensemble.predict(batch)
         probabilities.append(predicted["probability_mean"].cpu())
         deviations.append(predicted["probability_std"].cpu())
+        utilities.append(predicted["utility_mean"].cpu())
         noise = StructuralNoise.generate(
             len(index), ensemble.config, device, ensemble.config.seed + start
         )
@@ -94,12 +98,13 @@ def _collect_predictions(ensemble, split, device, limit):
     return (
         torch.cat(probabilities).numpy(), torch.cat(deviations).numpy(),
         torch.cat(generated_actions).numpy(), torch.cat(generated_stay).numpy(),
+        torch.cat(utilities).numpy(),
     )
 
 
 def _distribution_report(ensemble, split, device, limit):
     count = min(len(split), limit)
-    probabilities, deviations, generated, generated_stay = _collect_predictions(
+    probabilities, deviations, generated, generated_stay, utility = _collect_predictions(
         ensemble, split, device, count
     )
     labels = split.labels[:count].numpy()
@@ -133,6 +138,16 @@ def _distribution_report(ensemble, split, device, limit):
         observed_quantiles, 1.0
     )
     observable_deviations = deviations[binary_masks]
+    observed_utility = (
+        0.55 * np.log1p(labels[:, 2]) / math.log(181.0)
+        + 0.30 * labels[:, 5]
+        + 0.10 * labels[:, 7]
+        - 0.05 * labels[:, 8]
+    )
+    utility_correlation = (
+        float(np.corrcoef(observed_utility, utility)[0, 1])
+        if observed_utility.std() > 1e-8 and utility.std() > 1e-8 else 0.0
+    )
     return {
         "rows": count,
         "binary_ece": ece,
@@ -156,85 +171,96 @@ def _distribution_report(ensemble, split, device, limit):
             "p99": float(np.quantile(observable_deviations, 0.99)),
             "maximum": float(observable_deviations.max()),
         },
+        "utility_head": {
+            "mae": float(np.abs(observed_utility - utility).mean()),
+            "correlation": utility_correlation,
+            "predicted_std": float(utility.std()),
+            "observed_std": float(observed_utility.std()),
+        },
     }
 
 
+def _trajectory_rows(split, steps, limit):
+    users = split.user_ids.numpy()
+    order = np.argsort(users, kind="stable")
+    ordered_users = users[order]
+    possible = np.arange(max(len(order) - steps + 1, 0))
+    starts = possible[
+        ordered_users[possible] == ordered_users[possible + steps - 1]
+    ]
+    if not len(starts):
+        raise ValueError("sequence evaluation has no complete user trajectories")
+    if len(starts) > limit:
+        starts = starts[np.arange(limit) * len(starts) // limit]
+    return torch.from_numpy(order[starts[:, None] + np.arange(steps)[None]])
+
+
+def _observed_events(split, trajectories):
+    labels = split.labels[trajectories]
+    features = split.selected_features[trajectories]
+    log_181 = math.log(181.0)
+    return torch.stack((
+        features[:, :, 17],
+        torch.log1p(labels[:, :, 2]) / log_181,
+        labels[:, :, 5],
+        labels[:, :, 6],
+        labels[:, :, 7],
+        labels[:, :, 8],
+        labels[:, :, 9],
+        labels[:, :, 12],
+    ), dim=2)
+
+
+def _free_running_events(ensemble, split, trajectories, device, event_mask):
+    sequence = split.sequence[trajectories[:, 0]].to(device)
+    generated = []
+    for step in range(trajectories.shape[1]):
+        batch = split.batch(trajectories[:, step], device)
+        batch["sequence"] = sequence
+        noise = StructuralNoise.generate(
+            len(sequence), ensemble.config, device,
+            ensemble.config.seed + 90_000 + step,
+        )
+        samples = ensemble.sample_members(batch, noise)
+        event = torch.stack([
+            sample["event"] for sample in samples
+        ]).float().mean(dim=0)
+        event *= event_mask[None]
+        generated.append(event.cpu())
+        sequence = torch.roll(sequence, shifts=-1, dims=1)
+        sequence[:, -1] = event
+    return torch.stack(generated, dim=1)
+
+
 def _sequence_report(ensemble, split, device, limit, steps=8):
-    count = min(len(split), limit)
-    index = torch.arange(count)
-    batch = split.batch(index, device)
-    simulated = ensemble.rollout(
-        batch, steps, ensemble.config.seed + 90_000
-    ).cpu().numpy()
-    observed = split.sequence[:count].numpy()
-    observed_lag = _lag1(observed[:, :, 2:8])
-    simulated_lag = _lag1(simulated[:, :, 2:8])
+    trajectories = _trajectory_rows(split, steps, limit)
+    observed = _observed_events(split, trajectories).numpy()
+    history_observable = np.abs(split.sequence.numpy()).sum(axis=(0, 1)) > 0
+    event_mask = torch.from_numpy(history_observable).to(device)
+    simulated = _free_running_events(
+        ensemble, split, trajectories, device, event_mask,
+    ).numpy()
+    evaluated = np.flatnonzero(history_observable[2:8]) + 2
+    if not len(evaluated):
+        raise ValueError("sequence evaluation has no observed response channels")
+    observed_lag = _lag1(observed[:, :, evaluated])
+    simulated_lag = _lag1(simulated[:, :, evaluated])
     return {
-        "rows": count,
+        "rows": len(trajectories),
         "steps": steps,
+        "candidate_context": "next_factual_request_without_teacher_forced_response",
+        "evaluated_event_channels": evaluated.tolist(),
         "observed_lag1": observed_lag.tolist(),
         "simulated_lag1": simulated_lag.tolist(),
         "sequence_lag1_mae": float(np.abs(observed_lag - simulated_lag).mean()),
     }
 
 
-def _kendall_tau(observed, predicted):
-    concordant = 0
-    discordant = 0
-    for left in range(len(observed)):
-        for right in range(left + 1, len(observed)):
-            product = (observed[left] - observed[right]) * (
-                predicted[left] - predicted[right]
-            )
-            concordant += product > 0
-            discordant += product < 0
-    pairs = concordant + discordant
-    return float((concordant - discordant) / pairs) if pairs else 0.0
-
-
-def _causal_report(path: Path | None, manifest_sha256: str):
-    unavailable = {
-        "available": False,
-        "reason": "held-out randomized interventions and frozen policy outcomes not supplied",
-        "intervention_recovery_pass": False,
-        "policy_order_pass": False,
-    }
-    if path is None or not path.exists():
-        return unavailable
-    evidence = json.loads(path.read_text())
-    if evidence.get("world_model_manifest_sha256") != manifest_sha256:
-        return {**unavailable, "reason": "causal evidence is not bound to this artifact"}
-    interventions = evidence.get("interventions", [])
-    policies = evidence.get("policies", [])
-    observed = np.asarray([row["observed_effect"] for row in interventions])
-    predicted = np.asarray([row["predicted_effect"] for row in interventions])
-    sign_accuracy = float((np.sign(observed) == np.sign(predicted)).mean()) if len(observed) else 0.0
-    normalized_mae = float(np.abs(observed - predicted).mean() / max(np.abs(observed).mean(), 1e-8)) if len(observed) else math.inf
-    observed_policy = np.asarray([row["observed_value"] for row in policies])
-    predicted_policy = np.asarray([row["predicted_value"] for row in policies])
-    tau = _kendall_tau(observed_policy, predicted_policy)
-    return {
-        "available": True,
-        "interventions": len(interventions),
-        "sign_accuracy": sign_accuracy,
-        "normalized_mae": normalized_mae,
-        "policies": len(policies),
-        "policy_kendall_tau": tau,
-        "intervention_recovery_pass": (
-            len(interventions) >= 3
-            and sign_accuracy >= ACCEPTANCE_THRESHOLDS["intervention_sign_accuracy"]
-            and normalized_mae <= ACCEPTANCE_THRESHOLDS["intervention_normalized_mae"]
-        ),
-        "policy_order_pass": (
-            len(policies) >= 3
-            and tau >= ACCEPTANCE_THRESHOLDS["policy_kendall_tau"]
-        ),
-    }
-
-
 def evaluate_world_model(ensemble: WorldModelEnsemble, split: WorldModelSplit,
                          device_name: str, manifest_sha256: str,
-                         causal_evidence: Path | None = None,
+                         policy_evidence: Path | None = None,
+                         structural_split: WorldModelSplit | None = None,
+                         support_profile: dict | None = None,
                          distribution_rows: int = 100_000,
                          rollout_rows: int = 10_000):
     device = torch.device(device_name)
@@ -242,8 +268,33 @@ def evaluate_world_model(ensemble: WorldModelEnsemble, split: WorldModelSplit,
         ensemble, split, device, distribution_rows
     )
     sequence = _sequence_report(ensemble, split, device, rollout_rows)
-    causal = _causal_report(causal_evidence, manifest_sha256)
-    synthetic = synthetic_causal_validation(ensemble, split, device_name)
+    external_policy = verify_policy_evidence(policy_evidence, manifest_sha256)
+    synthetic = synthetic_causal_validation(
+        ensemble,
+        split if structural_split is None else structural_split,
+        device_name,
+    )
+    boundary = boundary_invariance_report(ensemble, split, device_name)
+    if support_profile is None:
+        support = {
+            "available": False,
+            "external": {"pass": False},
+            "structural": {"pass": False},
+        }
+        exploitation = {"available": False, "pass": False}
+    else:
+        support = {
+            "available": True,
+            "external": support_report(split, support_profile),
+            "structural": (
+                support_report(structural_split, support_profile)
+                if structural_split is not None else {"pass": False}
+            ),
+        }
+        exploitation = {
+            "available": True,
+            **anti_exploitation_report(split, support_profile),
+        }
     threshold = ACCEPTANCE_THRESHOLDS
     gates = {
         "distribution": (
@@ -256,17 +307,24 @@ def evaluate_world_model(ensemble: WorldModelEnsemble, split: WorldModelSplit,
         ),
         "free_running_sequence": sequence["sequence_lag1_mae"] <= threshold["sequence_lag1_mae"],
         "uncertainty": distribution["ensemble_probability_std"]["p99"] <= threshold["maximum_ensemble_probability_std"],
-        "synthetic_intervention_recovery": synthetic["intervention_recovery"]["pass"],
-        "synthetic_policy_order": synthetic["policy_order"]["pass"],
-        "intervention_recovery": causal["intervention_recovery_pass"],
-        "policy_order": causal["policy_order_pass"],
+        "structural_intervention_recovery": synthetic["intervention_recovery"]["pass"],
+        "external_policy_order": external_policy["policy_order_pass"],
+        "boundary_invariance": boundary["pass"],
+        "support_distance": (
+            support["external"]["pass"]
+            and support["structural"]["pass"]
+        ),
+        "anti_exploitation": exploitation["pass"],
     }
     return {
         "schema": "neural-scm-world-model-evaluation-v1",
         "distribution": distribution,
         "sequence": sequence,
-        "causal": causal,
-        "synthetic_causal": synthetic,
+        "external_policy": external_policy,
+        "structural_robustness": synthetic,
+        "boundary_invariance": boundary,
+        "support_distance": support,
+        "anti_exploitation": exploitation,
         "thresholds": threshold,
         "gates": gates,
         "promotion_eligible": all(gates.values()),

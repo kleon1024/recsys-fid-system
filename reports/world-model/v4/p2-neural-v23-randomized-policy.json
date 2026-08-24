@@ -1,0 +1,155 @@
+{
+  "schema": "neural-scm-kuairand-policy-evidence-v1",
+  "world_model_manifest_sha256": "fc8fa5fd9bb81a3e29e06ecf1ecc69acaaa4fbc8d78cdf4790474d60035ad465",
+  "world_model_weights_sha256": "8d61966e5472a649773453540a48c175c7c73f26ec5b75c20f9baa25779b9726",
+  "bridge_manifest_sha256": "5ae1f13b86ffed0570c0efeae47afb59c3a214bda13669561635cabae559daf8",
+  "feature_contract_sha256": "f8cde7b032f2f0ad4d3cd7b91a85f85a3a1fb9355ea9f0a7a7ba05e402646082",
+  "source_dataset_manifest_sha256": "d45b8e8ffe104fcac98836ec074c6f10f2631e2dda046612ca919863db5f11a4",
+  "source_catalog_sha256": "0a4281d0269557789d2756f5dade4f9591ea2fdb91dfb6aab937bfd8efe1afb7",
+  "rows": 8192,
+  "users": 500,
+  "catalog_items": 7388,
+  "monte_carlo_actions_per_request": 64,
+  "reward_contract": "0.55*normalized_stay + 0.30*long_view + 0.10*like - 0.05*negative_feedback; Feed policy utility, not LT",
+  "policy_contract": {
+    "names": [
+      "uniform",
+      "popular",
+      "tail",
+      "long_duration"
+    ],
+    "uniform_mixture": 0.5,
+    "logging_propensity": 0.0001353546291283162,
+    "context": "fixed seven-item reference slate with action in slot zero"
+  },
+  "policies": [
+    {
+      "name": "uniform",
+      "observed_value": 0.17350901663303375,
+      "observed_ci95": [
+        0.1638994679822188,
+        0.18258576847897995
+      ],
+      "predicted_value": 0.16891443729400635,
+      "doubly_robust_value": 0.17359361052513123,
+      "effective_sample_size": 8191.99951171875,
+      "effective_sample_fraction": 0.9999999403953552,
+      "maximum_importance_weight": 0.9999999403953552,
+      "mean_importance_weight": 0.9999999403953552
+    },
+    {
+      "name": "popular",
+      "observed_value": 0.18428809940814972,
+      "observed_ci95": [
+        0.17361545982295237,
+        0.19568444862970535
+      ],
+      "predicted_value": 0.1692439466714859,
+      "doubly_robust_value": 0.18467187881469727,
+      "effective_sample_size": 5920.5634765625,
+      "effective_sample_fraction": 0.7227250337600708,
+      "maximum_importance_weight": 10.54406452178955,
+      "mean_importance_weight": 0.9970976710319519
+    },
+    {
+      "name": "tail",
+      "observed_value": 0.16871805489063263,
+      "observed_ci95": [
+        0.15945890582675187,
+        0.1771256832961227
+      ],
+      "predicted_value": 0.16885912418365479,
+      "doubly_robust_value": 0.16872566938400269,
+      "effective_sample_size": 7495.91015625,
+      "effective_sample_fraction": 0.9150280952453613,
+      "maximum_importance_weight": 1.4150477647781372,
+      "mean_importance_weight": 1.0035954713821411
+    },
+    {
+      "name": "long_duration",
+      "observed_value": 0.17581351101398468,
+      "observed_ci95": [
+        0.16601947995767127,
+        0.18484907081746577
+      ],
+      "predicted_value": 0.172665074467659,
+      "doubly_robust_value": 0.17575840651988983,
+      "effective_sample_size": 7868.88525390625,
+      "effective_sample_fraction": 0.9605572819709778,
+      "maximum_importance_weight": 1.3585249185562134,
+      "mean_importance_weight": 1.0006473064422607
+    }
+  ],
+  "pairwise_observed_differences": [
+    {
+      "left": "uniform",
+      "right": "popular",
+      "delta_ci95": [
+        -0.014142020769101302,
+        -0.0074029399578018264
+      ],
+      "identified": true
+    },
+    {
+      "left": "uniform",
+      "right": "tail",
+      "delta_ci95": [
+        0.003629196481045406,
+        0.0060091268233706495
+      ],
+      "identified": true
+    },
+    {
+      "left": "uniform",
+      "right": "long_duration",
+      "delta_ci95": [
+        -0.0029608867355642317,
+        -0.0016735981516370693
+      ],
+      "identified": true
+    },
+    {
+      "left": "popular",
+      "right": "tail",
+      "delta_ci95": [
+        0.011163224031268529,
+        0.02006794706653744
+      ],
+      "identified": true
+    },
+    {
+      "left": "popular",
+      "right": "long_duration",
+      "delta_ci95": [
+        0.0051178597894529455,
+        0.011811852082001846
+      ],
+      "identified": true
+    },
+    {
+      "left": "tail",
+      "right": "long_duration",
+      "delta_ci95": [
+        -0.008453720512867881,
+        -0.005592237494945435
+      ],
+      "identified": true
+    }
+  ],
+  "identified_policy_pairs": 6,
+  "policy_kendall_tau": 0.6666666865348816,
+  "policy_value_normalized_mae": 0.032646022737026215,
+  "gates": {
+    "artifact_closure": true,
+    "full_support": true,
+    "monte_carlo_actions": true,
+    "importance_support": true,
+    "bounded_importance_weights": true,
+    "identified_policy_pairs": true,
+    "policy_order": true,
+    "policy_value_calibration": true
+  },
+  "policy_order_pass": true,
+  "decision": "pass",
+  "evidence_boundary": "User-disjoint KuaiRand random exposures identify Feed action-policy value within the declared 7,388-item pool. They do not identify retention, creator supply, Local, Ads, Commerce, or LT."
+}

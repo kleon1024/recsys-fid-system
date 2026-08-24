@@ -1,0 +1,63 @@
+{
+  "schema": "v4-structural-bridge-build-state-v1",
+  "config": {
+    "rows": 300000,
+    "users": 100000,
+    "items": 200000,
+    "slate_width": 8,
+    "ticks": 192,
+    "max_extension_ticks": 64,
+    "topics": 64,
+    "countries": 12,
+    "regions_per_country": 16,
+    "embedding_dim": 32,
+    "platform_seed": 701,
+    "environment_seed": 709,
+    "test_family_id": 9,
+    "device": "cuda:0"
+  },
+  "family_plan": [
+    {
+      "family_id": 1,
+      "split": "train",
+      "rows": 90000
+    },
+    {
+      "family_id": 2,
+      "split": "train",
+      "rows": 90000
+    },
+    {
+      "family_id": 3,
+      "split": "validation",
+      "rows": 60000
+    },
+    {
+      "family_id": 9,
+      "split": "test",
+      "rows": 60000
+    }
+  ],
+  "completed": {
+    "train:family-1": {
+      "path": "parts/train-family-1.pt",
+      "sha256": "8ada0e42d10296b9f5f49fceed83778f60893b72d562321e36cc2ba3fb1228f1",
+      "rows": 90000
+    },
+    "train:family-2": {
+      "path": "parts/train-family-2.pt",
+      "sha256": "a7fd60b2b8b2c44909de1123df32548c533bdfeca62f3a279bf85965fd662dd9",
+      "rows": 90000
+    },
+    "validation:family-3": {
+      "path": "parts/validation-family-3.pt",
+      "sha256": "d54aeee09a4a1e502c36964865e1bd39fa60e4af5332782b38d82ca40281bc4c",
+      "rows": 60000
+    },
+    "test:family-9": {
+      "path": "parts/test-family-9.pt",
+      "sha256": "0e62973cdc3d1c1a2bdccb4a16ef06c565322e64af0b0cc17c101d540518cba5",
+      "rows": 60000
+    }
+  }
+}

@@ -1,6 +1,12 @@
 10edce48fa3a60b33ec5edb6386ef357f1bb90daf85246b530e018273a556e3b  reports/world-model/v4/benchmark.json
 8357f8bd63e8bbe620a8782b13307e87798e7da35b4d1cbebe09487586d95d2e  reports/world-model/v4/composite-launch-review.json
 4d75ddf32c445a63b1eb8b456bf12a6e01d5106dbd0599590577e03bbf31b41f  reports/world-model/v4/core-bridge-challenger.json
+fc8fa5fd9bb81a3e29e06ecf1ecc69acaaa4fbc8d78cdf4790474d60035ad465  reports/world-model/v4/p2-neural-v23-artifact-manifest.json
+b2d0480baa37ed684233b90c9c3c3fe73ff9817a918f34f895fe83d69b280880  reports/world-model/v4/p2-neural-v23-challenger-review.json
+639b6319fc88f069d10d7336b6233acc46514c788432c5085a41b012a8e3d72e  reports/world-model/v4/p2-neural-v23-randomized-policy.json
+b7a2064f60462b891a6b002f939ad99f7ce0f52c142cced9bb7b0ad0bb7c263c  reports/world-model/v4/p2-neural-v23-shadow-100k.json
+9aa84fd02e717260ef4838983434f2777da60eb7e52d805303d7e253cca5c269  reports/world-model/v4/p2-neural-v23-structural-build-state.json
+c76f30d08614302040fb7f9dc7308a8886681baedf7cf3f6bb8acb5857800a31  reports/world-model/v4/p2-neural-v23-structural-manifest.json
 9ec10d636935b5cd823e584e54bbca02accfe1fa4681cd3bed0ab5afbd5ebbeb  reports/world-model/v4/policy-adapter.json
 04f5c1b0a7014ac309b36f5ff70a4dcfc28afd086a888169a15d714b481a601c  reports/world-model/v4/randomized-ope.json
 b842724e9e60d6e65244ff5b0b60e9f84fa64e532a1e43dd84b29b54fca2e794  reports/world-model/v4/stateful-shadow-world-seed25.json

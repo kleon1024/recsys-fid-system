@@ -1,5 +1,8 @@
 # Local Search V4 Launch Plan
 
+Status: deferred P5 design input. Execution order and acceptance are owned by
+`docs/plans/digital-twin-v4-execution-plan.md`; this file is not a backlog authority.
+
 ## Scope
 
 Add the missing request-level Local Search retrieval, fine-rank, and end-to-end

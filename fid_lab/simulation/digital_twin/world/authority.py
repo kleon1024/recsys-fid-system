@@ -7,6 +7,10 @@ from typing import Protocol
 import torch
 
 from ....feed_loop.world_model.ensemble import WorldModelEnsemble
+from ....feed_loop.world_model.validation.support import (
+    SUPPORT_PROFILE_SCHEMA,
+    request_support_mask,
+)
 from ...randomness.counter import uniform_for_items
 from ..catalog import PublicCatalog
 from ..contracts import (
@@ -22,6 +26,8 @@ from .behavior import (
 )
 from .neural_features import (
     NEURAL_FEATURE_VERSION,
+    V4_FEATURE_CONTRACT,
+    V4_FEATURE_COVERAGE,
     build_neural_scm_batch,
     request_keyed_structural_noise,
 )
@@ -68,6 +74,7 @@ ACTION_EVENT_MAP = {
     "poi_detail": EventType.DETAIL,
     "poi_favorite": EventType.FAVORITE,
 }
+DEFAULT_NEURAL_INFERENCE_BATCH_SIZE = 4_096
 
 
 class NeuralFeedResponseAuthority:
@@ -79,14 +86,39 @@ class NeuralFeedResponseAuthority:
         *,
         member_index: int,
         artifact_sha256: str,
+        feature_contract_sha256: str,
+        feature_coverage: dict[str, str],
+        support_profile: dict,
+        inference_batch_size: int = DEFAULT_NEURAL_INFERENCE_BATCH_SIZE,
     ) -> None:
         if not 0 <= member_index < len(ensemble.members):
             raise ValueError("world-model member index is out of range")
         if len(artifact_sha256) != 64:
             raise ValueError("world-model authority requires a SHA-256 artifact")
+        if feature_contract_sha256 != V4_FEATURE_CONTRACT["sha256"]:
+            raise ValueError(
+                "world-model feature contract does not match v4 serving semantics"
+            )
+        missing = [
+            index for index, status in V4_FEATURE_COVERAGE.items()
+            if status == "native_v4"
+            and feature_coverage.get(index) not in {"native_v4", "multi_source"}
+        ]
+        if missing:
+            raise ValueError(
+                f"world-model feature coverage is incomplete at indices {missing}"
+            )
+        if support_profile.get("schema") != SUPPORT_PROFILE_SCHEMA:
+            raise ValueError("world-model authority requires a support profile")
+        if inference_batch_size <= 0:
+            raise ValueError("neural inference batch size must be positive")
         self.ensemble = ensemble
         self.member_index = member_index
         self.artifact_sha256 = artifact_sha256
+        self.feature_contract_sha256 = feature_contract_sha256
+        self.feature_coverage = dict(feature_coverage)
+        self.support_profile = dict(support_profile)
+        self.inference_batch_size = inference_batch_size
         self.formula = FormulaResponseAuthority()
         self.version = (
             f"neural-feed:{NEURAL_FEATURE_VERSION}:member-{member_index}:"
@@ -114,6 +146,43 @@ class NeuralFeedResponseAuthority:
         return AppEventBatch.concatenate(tuple(batches))
 
     def _feed_response(
+        self,
+        snapshot: UserWorldSnapshot,
+        catalog: PublicCatalog,
+        slate: RenderedSlateBatch,
+        seed: int,
+    ) -> AppEventBatch:
+        batches = []
+        for start in range(0, len(slate.request_id), self.inference_batch_size):
+            stop = min(start + self.inference_batch_size, len(slate.request_id))
+            batches.append(self._feed_response_batch(
+                snapshot, catalog, slate.select(slice(start, stop)), seed,
+            ))
+        return AppEventBatch.concatenate(tuple(batches))
+
+    def _feed_response_batch(
+        self,
+        snapshot: UserWorldSnapshot,
+        catalog: PublicCatalog,
+        slate: RenderedSlateBatch,
+        seed: int,
+    ) -> AppEventBatch:
+        batch = build_neural_scm_batch(snapshot, catalog, slate)
+        supported = request_support_mask(
+            batch["slate_features"], self.support_profile,
+        )
+        batches = []
+        if supported.any():
+            batches.append(self._supported_feed_response(
+                snapshot, catalog, slate.select(supported), seed,
+            ))
+        if (~supported).any():
+            batches.append(self.formula.respond(
+                snapshot, catalog, slate.select(~supported), seed,
+            ))
+        return AppEventBatch.concatenate(tuple(batches))
+
+    def _supported_feed_response(
         self,
         snapshot: UserWorldSnapshot,
         catalog: PublicCatalog,

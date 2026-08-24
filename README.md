@@ -74,8 +74,9 @@ Artifact and dataset identities fail closed before scoring, and V3 remains the
 rollback epoch. Composite V4 now promotes three simulator-only kernels: the
 external-data-calibrated Feed behavior kernel, the causally tested synthetic
 Local response kernel, and the repeated-creator synthetic Supply response
-kernel. Retention, commercialization, and the unified neural SCM remain held or
-measurement-only. The serving policy is a separate authority.
+kernel. The later v23 NeuralSCM is separately accepted as the v4 Feed response
+authority; retention, creator supply, commercialization and every business head
+remain held or measurement-only. The serving policy is a separate authority.
 
 The [scale and orchestration decision](docs/architecture/simulation-scale-and-orchestration.md)
 keeps a future asset DAG outside the GPU request hot path. The refactored tensor
@@ -93,12 +94,17 @@ stateful shadows also recover their paired-world truth in a one-million-user
 power simulation. This promotes the Feed behavior kernel inside the simulator,
 not into production and not as unified LT.
 
-The attempted universal NeuralSCM remains held. A request-level bridge with
-1,010,285 training requests corrected stay p50 error from 158% to 8.5%, p90
-error from 466% to 4.6%, and observed-task uncertainty p99 from 0.115 to 0.055.
-It still failed joint-action calibration and free-running sequence gates because
-Kuai Feed history does not observe Local, retention, or commercialization state.
-Those missing labels remain masked instead of being manufactured.
+The v23 NeuralSCM closes the former feature-contract and structural failures
+without retraining to the final shadow. It uses one canonical 28-field feature
+contract, external randomized Feed evidence, two real-cascade train families,
+one validation family and untouched family 9. Across uniform, popular, tail and
+long-duration policies, Kendall tau is 0.667, policy-value normalized MAE is
+3.26%, and all six policy pairs are identifiable. It recovers all three held-out
+structural directions and covers 98.9835% of 412,006 factual Feed requests in a
+100K-user, one-million-item shadow. Semantic replay and partition invariance pass.
+Formula remains the dependency-free invariant oracle; the accepted artifact must
+be supplied explicitly, and no retention, creator or business head is promoted. See
+[L-SIMULATOR-010](docs/launch-reviews/2026-08-25-p2-neural-world-policy-evidence.md).
 
 ```mermaid
 flowchart LR
@@ -160,8 +166,9 @@ in [Recommendation Digital Twin v4](docs/architecture/digital-twin-v4-redesign.m
 The current implementation order, audited work register, evidence boundaries and
 phase acceptance gates are maintained in the
 [v4 execution plan](docs/plans/digital-twin-v4-execution-plan.md).
-Until those gates pass, historical twin reports are engineering evidence, not
-model-lift evidence.
+P1 and the Feed scope of P2 now pass; P3 still must rebuild request-level
+Joiners, continuous trainers and model ladders before historical route/ranker
+lifts can become v4 launch evidence.
 
 The v4 event boundary and hidden user world are now executable under
 [`fid_lab/simulation/digital_twin`](fid_lab/simulation/digital_twin/). Online

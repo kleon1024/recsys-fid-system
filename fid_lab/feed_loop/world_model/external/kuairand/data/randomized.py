@@ -20,6 +20,7 @@ from ..contracts import (
     RANDOM_ITEM_POOL_SIZE,
     RANDOMIZED_SOURCE_FILES,
     RANDOMIZED_SPLIT_RATES,
+    PRIOR_END_DATE,
     SPARSE_NAMES,
     TRAIN_END_DATE,
     VALIDATION_END_DATE,
@@ -80,10 +81,11 @@ def _row_split(frame: pd.DataFrame) -> np.ndarray:
     return np.select(
         (
             random,
+            dates <= PRIOR_END_DATE,
             dates <= TRAIN_END_DATE,
             dates <= VALIDATION_END_DATE,
         ),
-        ("random_test", "train", "validation"),
+        ("random_test", "prior", "train", "validation"),
         default="standard_test",
     )
 
@@ -237,6 +239,32 @@ def _payload(logs, history_items, history_feedback, items, users, maps):
     }
 
 
+def _catalog_quality_prior(rows, standard_logs):
+    prior = standard_logs[standard_logs.date <= PRIOR_END_DATE].copy()
+    duration = prior.duration_ms.clip(1).to_numpy(float)
+    stay = np.minimum(prior.play_time_ms.clip(0).to_numpy(float), duration)
+    prior["quality_target"] = (
+        0.70 * np.log1p(stay) / np.log1p(duration)
+        + 0.30 * prior.long_view.to_numpy(float)
+    )
+    grouped = prior.groupby("video_id").quality_target.agg(["sum", "count"])
+    global_mean = float(prior.quality_target.mean())
+    total = rows.video_id.map(grouped["sum"]).fillna(0).to_numpy(float)
+    count = rows.video_id.map(grouped["count"]).fillna(0).to_numpy(float)
+    return ((total + 10.0 * global_mean) / (count + 10.0)).astype(np.float32)
+
+
+def _history_topic_lookup(items):
+    raw_id = items.index.to_numpy(np.int64)
+    item_hash = raw_id % (HASH_VOCABULARIES[1] - 1) + 1
+    tag = pd.to_numeric(
+        items.tag.astype(str).str.split(",").str[0], errors="coerce"
+    ).fillna(0).to_numpy(np.int64)
+    lookup = np.zeros(HASH_VOCABULARIES[1], dtype=np.int64)
+    lookup[item_hash] = tag % (HASH_VOCABULARIES[3] - 1) + 1
+    return torch.from_numpy(lookup)
+
+
 def _catalog(random_logs, standard_logs, items, users, maps):
     rows = random_logs.sort_values("time_ms").drop_duplicates("video_id")
     rows = rows.sort_values("video_id").reset_index(drop=True)
@@ -249,6 +277,10 @@ def _catalog(random_logs, standard_logs, items, users, maps):
         "standard_exposure_count": torch.from_numpy(
             rows.video_id.map(standard_count).fillna(0).to_numpy(np.int64)
         ),
+        "quality_prior": torch.from_numpy(
+            _catalog_quality_prior(rows, standard_logs)
+        ),
+        "history_topic_by_item_hash": _history_topic_lookup(items),
     }
 
 
@@ -277,7 +309,7 @@ def build_randomized_dataset(data_dir: Path, output_dir: Path,
         }
     catalog_path = output_dir / "random_item_catalog.pt"
     torch.save(
-        _catalog(random, pd.concat((early, late), ignore_index=True), items, users, maps),
+        _catalog(random, early, items, users, maps),
         catalog_path,
     )
     manifest = {
@@ -288,6 +320,7 @@ def build_randomized_dataset(data_dir: Path, output_dir: Path,
             name: stream_sha256(data_dir / name) for name in RANDOMIZED_SOURCE_FILES
         },
         "sequence_length": sequence_length,
+        "prior_end_date": PRIOR_END_DATE,
         "feedback_names": FEEDBACK_NAMES,
         "sparse_names": SPARSE_NAMES,
         "sparse_vocabularies": HASH_VOCABULARIES,

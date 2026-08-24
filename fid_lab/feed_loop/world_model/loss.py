@@ -52,9 +52,23 @@ def world_model_loss(output, batch, config: WorldModelConfig):
     stay = _stay_nll(output, batch["labels"])
     stay_mask = batch["label_masks"][:, STAY_LABEL_INDEX]
     total += config.stay_loss_weight * stay * stay_mask
+    utility_target = (
+        0.55 * torch.log1p(batch["labels"][:, 2]) / math.log(181.0)
+        + 0.30 * batch["labels"][:, 5]
+        + 0.10 * batch["labels"][:, 7]
+        - 0.05 * batch["labels"][:, 8]
+    ).clamp(0.0, 1.0)
+    utility_mask = batch["label_masks"][:, (2, 5, 7, 8)].amin(dim=1)
+    utility = nn.functional.smooth_l1_loss(
+        torch.sigmoid(output.utility_logit), utility_target, reduction="none",
+    )
+    total += config.utility_loss_weight * utility * utility_mask
     return _weighted_mean(total, weights), {
         **task_losses,
         "stay_nll": float(_weighted_mean(
             stay.detach(), weights * stay_mask
+        )),
+        "utility_huber": float(_weighted_mean(
+            utility.detach(), weights * utility_mask
         )),
     }

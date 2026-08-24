@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-WORLD_MODEL_VERSION = "neural-scm-v4.1-research"
+WORLD_MODEL_VERSION = "neural-scm-v4.2-research"
 
 WORLD_LABEL_NAMES = (
     "play", "play_3s", "stay_seconds", "play_completion_ratio",
@@ -57,6 +57,11 @@ STOCHASTIC_ACTIONS = tuple(
 STAY_LABEL_INDEX = 2
 COMPLETION_LABEL_INDEX = 3
 SEQUENCE_EVENT_INDICES = (5, 6, 7, 8, 9, 12)
+STRUCTURAL_INTERVENTION_NAMES = (
+    "recent_interest_signal",
+    "content_quality_prior",
+    "negative_history_signal",
+)
 
 
 @dataclass(frozen=True)
@@ -74,7 +79,14 @@ class WorldModelConfig:
     learning_rate: float = 8e-4
     weight_decay: float = 1e-4
     stay_loss_weight: float = 2.0
+    utility_loss_weight: float = 1.0
     max_ips_weight: float = 20.0
+    randomized_adaptation_epochs: int = 2
+    randomized_adaptation_learning_rate: float = 1e-4
+    randomized_pairwise_epochs: int = 2
+    structural_adaptation_epochs: int = 16
+    structural_adaptation_learning_rate: float = 2e-4
+    structural_mean_loss_weight: float = 10.0
     seed: int = 20260823
 
     def __post_init__(self) -> None:
@@ -88,6 +100,20 @@ class WorldModelConfig:
             raise ValueError("world-model training sizes must be positive")
         if self.stay_loss_weight <= 0.0:
             raise ValueError("stay likelihood weight must be positive")
+        if self.utility_loss_weight <= 0.0:
+            raise ValueError("utility loss weight must be positive")
+        if self.randomized_adaptation_epochs < 0:
+            raise ValueError("randomized adaptation epochs cannot be negative")
+        if self.randomized_adaptation_learning_rate <= 0.0:
+            raise ValueError("randomized adaptation learning rate must be positive")
+        if self.randomized_pairwise_epochs < 0:
+            raise ValueError("randomized pairwise epochs cannot be negative")
+        if self.structural_adaptation_epochs < 0:
+            raise ValueError("structural adaptation epochs cannot be negative")
+        if self.structural_adaptation_learning_rate <= 0.0:
+            raise ValueError("structural adaptation learning rate must be positive")
+        if self.structural_mean_loss_weight <= 0.0:
+            raise ValueError("structural mean loss weight must be positive")
 
 
 ACCEPTANCE_THRESHOLDS = {

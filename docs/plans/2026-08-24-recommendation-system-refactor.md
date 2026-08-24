@@ -1,5 +1,9 @@
 # Refactor Plan
 
+Status: historical refactor input. Completed moves and remaining authority
+migration are owned by `docs/plans/digital-twin-v4-execution-plan.md`; this file
+is not a backlog authority.
+
 ## Scope
 
 - `fid_lab/feed_loop/world_model/external/kuairand/`

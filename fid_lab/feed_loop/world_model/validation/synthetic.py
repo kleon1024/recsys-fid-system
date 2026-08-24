@@ -1,83 +1,75 @@
-"""Independent paired-world checks against the frozen V3 synthetic oracle."""
+"""Independent paired checks on held-out v4 structural world families."""
 
 from __future__ import annotations
-
-import math
 
 import numpy as np
 import torch
 
-from ...scale.calibration.nonlinear import nonlinear_stay_adjustment
-from ...scale.graph.random import normal, uniform
-from ..contracts import ACCEPTANCE_THRESHOLDS, BINARY_ACTIONS
+from ..contracts import (
+    ACCEPTANCE_THRESHOLDS,
+    BINARY_ACTIONS,
+    STRUCTURAL_INTERVENTION_NAMES,
+)
 from ..data import WorldModelSplit
-from ..ensemble import StructuralNoise, WorldModelEnsemble
+from ..ensemble import WorldModelEnsemble
 
 
-INTERVENTIONS = {
-    "interest_affinity_up": (0, 0.08),
-    "item_quality_up": (1, 0.08),
-    "realtime_fatigue_up": (7, 0.08),
-}
+def _unavailable_interventions(reason):
+    return {
+        "world": "held_out_v4_structural_families",
+        "available": False,
+        "reason": reason,
+        "interventions": [],
+        "sign_accuracy": None,
+        "normalized_mae": None,
+        "pass": False,
+        "production_evidence": False,
+    }
 
 
-def _treated_batch(batch, exposed_index, feature_index, delta):
-    selected = batch["selected_features"].clone()
-    selected[:, feature_index] = (selected[:, feature_index] + delta).clamp(0.0, 1.0)
-    slate = batch["slate_features"].clone()
-    rows = torch.arange(len(selected), device=selected.device)
-    slate[rows, exposed_index, feature_index] = selected[:, feature_index]
-    return {**batch, "selected_features": selected, "slate_features": slate}
-
-
-def _v3_stay(features, user_ids, steps, seed):
-    affinity = features[:, 0]
-    quality = features[:, 1]
-    fatigue = features[:, 7]
-    satisfaction = features[:, 6]
-    duration = torch.expm1(
-        features[:, 12] * math.log(181.0)
-    ).clamp(1.0, 180.0)
-    played = uniform(user_ids, steps, 31, seed) < torch.sigmoid(
-        1.7 + 0.4 * affinity - 0.6 * fatigue
-    )
-    log_mean = (
-        0.8 + 1.7 * affinity + 0.55 * quality
-        + 0.20 * satisfaction - fatigue + nonlinear_stay_adjustment(features)
-    )
-    return torch.minimum(
-        duration,
-        torch.exp(log_mean + 2.8 * normal(user_ids, steps, 32, seed)),
-    ) * played
+def _treated_batch(split, batch, index, rows, device):
+    return {
+        **batch,
+        "selected_features": split.structural_intervention_features[
+            :rows, index
+        ].to(device),
+        "slate_features": split.structural_intervention_slates[
+            :rows, index
+        ].to(device),
+        "sequence": split.structural_intervention_sequences[
+            :rows, index
+        ].to(device),
+    }
 
 
 def intervention_recovery(ensemble: WorldModelEnsemble, split: WorldModelSplit,
                           device: torch.device, limit=50_000):
+    required = (
+        split.structural_intervention_features,
+        split.structural_intervention_slates,
+        split.structural_intervention_sequences,
+        split.structural_intervention_effects,
+        split.structural_family_ids,
+    )
+    if any(value is None for value in required):
+        return _unavailable_interventions(
+            "held-out structural potential outcomes are absent",
+        )
     count = min(len(split), limit)
     index = torch.arange(count)
     batch = split.batch(index, device)
-    exposed = split.exposed_index[:count].to(device)
-    user_ids = split.user_ids[:count].to(device)
-    steps = split.request_steps[:count].to(device)
+    baseline = ensemble.predict(batch)["utility_mean"]
     observed = []
     predicted = []
     details = []
-    for offset, (name, (feature_index, delta)) in enumerate(INTERVENTIONS.items()):
-        treated = _treated_batch(batch, exposed, feature_index, delta)
-        noise = StructuralNoise.generate(
-            count, ensemble.config, device, ensemble.config.seed + 50_000 + offset
+    for offset, name in enumerate(STRUCTURAL_INTERVENTION_NAMES):
+        treated = _treated_batch(split, batch, offset, count, device)
+        observed_effect = float(
+            split.structural_intervention_effects[:count, offset].mean()
         )
-        control_stay = torch.stack([
-            sample["stay_seconds"] for sample in ensemble.sample_members(batch, noise)
-        ]).mean(dim=0)
-        treated_stay = torch.stack([
-            sample["stay_seconds"] for sample in ensemble.sample_members(treated, noise)
-        ]).mean(dim=0)
-        observed_effect = float((
-            _v3_stay(treated["selected_features"], user_ids, steps, ensemble.config.seed)
-            - _v3_stay(batch["selected_features"], user_ids, steps, ensemble.config.seed)
-        ).mean())
-        predicted_effect = float((treated_stay - control_stay).mean())
+        predicted_effect = float(
+            (ensemble.predict(treated)["utility_mean"] - baseline).mean()
+        )
         observed.append(observed_effect)
         predicted.append(predicted_effect)
         details.append({
@@ -92,7 +84,11 @@ def intervention_recovery(ensemble: WorldModelEnsemble, split: WorldModelSplit,
         / max(np.abs(observed_array).mean(), 1e-8)
     )
     return {
-        "world": "frozen_v3_synthetic_oracle",
+        "world": "held_out_v4_structural_families",
+        "available": True,
+        "family_ids": torch.unique(
+            split.structural_family_ids[:count]
+        ).tolist(),
         "interventions": details,
         "sign_accuracy": sign_accuracy,
         "normalized_mae": normalized_mae,

@@ -11,6 +11,11 @@ from ....feed_loop.world_model.contracts import (
     WorldModelConfig,
 )
 from ....feed_loop.world_model.ensemble import StructuralNoise
+from ....feed_loop.world_model.feature_contract import feature_contract
+from ....feed_loop.world_model.feature_contract import (
+    CANONICAL_FEATURE_FIELDS,
+    V4_REQUIRED_FEATURES,
+)
 from ...randomness.counter import (
     uniform_for_item_channels,
     uniform_for_items,
@@ -21,6 +26,13 @@ from .state import UserWorldSnapshot
 
 
 NEURAL_FEATURE_VERSION = "v4-kuairand-feed-bridge-v1"
+V4_FEATURE_CONTRACT = feature_contract(CANONICAL_FEATURE_FIELDS)
+V4_FEATURE_COVERAGE = {
+    str(index): (
+        "native_v4" if index in V4_REQUIRED_FEATURES else "unused"
+    )
+    for index in range(len(CANONICAL_FEATURE_FIELDS))
+}
 
 
 def build_neural_scm_batch(
@@ -31,16 +43,18 @@ def build_neural_scm_batch(
     users = snapshot.users
     row = slate.user_id
     item = slate.item_ids.clamp_min(0)
-    semantic = catalog.content_embedding[item]
-    short_affinity = torch.einsum(
-        "bkd,bd->bk", semantic, users.short_interest[row],
-    )
-    long_affinity = torch.einsum(
-        "bkd,bd->bk", semantic, users.long_interest[row],
-    )
     history = users.behavior_sequence[row].float()
     history_present = history.abs().sum(dim=2) > 0
     denominator = history_present.float().sum(dim=1).clamp_min(1.0)
+    topic_denominator = max(int(catalog.topic_id.max()), 1)
+    topic = catalog.topic_id[item].float() / topic_denominator
+    topic_match = (
+        (history[:, None, :, 0] - topic[:, :, None]).abs()
+        <= 0.5 / topic_denominator
+    ) & history_present[:, None]
+    recent_match = topic_match[:, :, -3:].any(dim=2).float()
+    long_match = topic_match.float().sum(dim=2) / denominator[:, None]
+    topic_affinity = (0.65 * recent_match + 0.35 * long_match).clamp(0.0, 1.0)
     engagement = history[:, :, (2, 3, 4, 6)].sum(dim=(1, 2)) / (
         4.0 * denominator
     )
@@ -49,10 +63,10 @@ def build_neural_scm_batch(
         *item.shape, 28, device=item.device, dtype=torch.float,
     )
     prior = catalog.quality_prior[item]
-    features[:, :, 0] = (0.62 * short_affinity + 0.38 * long_affinity).clamp(-1, 1)
+    features[:, :, 0] = topic_affinity
     features[:, :, 1] = prior.sqrt()
     features[:, :, 3] = prior
-    features[:, :, 4] = short_affinity.clamp(-1, 1)
+    features[:, :, 4] = recent_match
     features[:, :, 5] = (
         catalog.region[item] == users.region[row, None]
     ).float()
@@ -61,36 +75,30 @@ def build_neural_scm_batch(
     features[:, :, 8] = users.activity[row, None]
     features[:, :, 9] = users.habit[row, None]
     features[:, :, 10] = (denominator / history.shape[1])[:, None]
-    features[:, :, 11] = long_affinity.clamp(-1, 1)
+    features[:, :, 11] = long_match
     duration = catalog.duration_seconds[item].clamp(1.0, 180.0)
     features[:, :, 12] = torch.log1p(duration) / math.log(181.0)
-    features[:, :, 13] = slate.positions.float() / max(item.shape[1] - 1, 1)
-    features[:, :, 14] = (
-        torch.remainder(row, 1_001).float() / 1_000.0
-    )[:, None]
-    features[:, :, 15] = torch.remainder(item, 262_144).float() / 262_143.0
-    features[:, :, 16] = (
-        torch.remainder(snapshot.item_creator_id[item], 262_144).float()
-        / 262_143.0
-    )
-    features[:, :, 17] = catalog.topic_id[item].float() / max(
-        int(catalog.topic_id.max()), 1,
-    )
+    features[:, :, 17] = topic
     features[:, :, 18] = (
         catalog.country[item] == users.country[row, None]
     ).float()
-    features[:, :, 19] = short_affinity.clamp(-1, 1)
-    features[:, :, 20] = slate.surface[:, None].float() / 5.0
+    features[:, :, 19] = recent_match
+    features[:, :, 20] = 0.0
     features[:, :, 21] = 1.0
     age = (slate.event_time[:, None] - snapshot.item_publish_time[item]).clamp_min(0)
     features[:, :, 22] = torch.log1p(age.float()) / math.log1p(
         30 * snapshot.ticks_per_day
     )
     features[:, :, 23] = users.novelty[row, None]
-    features[:, :, 24] = torch.log1p(users.session_count[row].float())[:, None] / 8.0
+    account_age_days = (
+        (slate.event_time - users.signup_time[row]).clamp_min(0).float()
+        / snapshot.ticks_per_day
+    )
+    features[:, :, 24] = (
+        torch.log1p(account_age_days) / math.log1p(4_000.0)
+    )[:, None]
     features[:, :, 25] = users.activity[row, None]
     features[:, :, 26] = users.lifecycle_cohort[row, None].float() / 3.0
-    features[:, :, 27] = torch.remainder(users.region[row], 10).float()[:, None] / 9.0
     features.masked_fill_(~slate.valid[:, :, None], 0.0)
     return {
         "slate_features": features,

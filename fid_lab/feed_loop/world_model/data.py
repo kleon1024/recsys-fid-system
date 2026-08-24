@@ -26,6 +26,12 @@ class WorldModelSplit:
     candidate_fine_scores: torch.Tensor
     candidate_audit_utility: torch.Tensor
     candidate_utility_source: str = "synthetic_oracle"
+    event_days: torch.Tensor | None = None
+    structural_intervention_features: torch.Tensor | None = None
+    structural_intervention_slates: torch.Tensor | None = None
+    structural_intervention_sequences: torch.Tensor | None = None
+    structural_intervention_effects: torch.Tensor | None = None
+    structural_family_ids: torch.Tensor | None = None
 
     def __len__(self) -> int:
         return len(self.labels)
@@ -83,7 +89,76 @@ def load_world_split(dataset_dir: Path, split: str, max_rows: int | None = None,
         candidate_utility_source=payload.get(
             "candidate_utility_source", "synthetic_oracle"
         ),
+        event_days=payload.get("event_day", torch.zeros(total_rows))[row_index].long(),
+        structural_intervention_features=_optional_rows(
+            payload, "structural_intervention_features", row_index,
+        ),
+        structural_intervention_slates=_optional_rows(
+            payload, "structural_intervention_slates", row_index,
+        ),
+        structural_intervention_sequences=_optional_rows(
+            payload, "structural_intervention_sequences", row_index,
+        ),
+        structural_intervention_effects=_optional_rows(
+            payload, "structural_intervention_effects", row_index,
+        ),
+        structural_family_ids=_optional_rows(
+            payload, "structural_family_id", row_index,
+        ),
     )
+
+
+def concatenate_world_splits(
+    splits: tuple[WorldModelSplit, ...], source="mixed_sources"
+) -> WorldModelSplit:
+    if not splits:
+        raise ValueError("cannot concatenate an empty world-model split list")
+    widths = {split.slate_features.shape[1:] for split in splits}
+    if len(widths) != 1:
+        raise ValueError("world-model source feature shapes differ")
+    tensor_fields = (
+        "selected_features", "slate_features", "sequence", "labels",
+        "label_masks", "weights", "lifecycle", "region", "user_ids",
+        "request_steps", "exposed_index", "candidate_fine_scores",
+        "candidate_audit_utility",
+    )
+    values = {
+        name: torch.cat(tuple(getattr(split, name) for split in splits))
+        for name in tensor_fields
+    }
+    event_days = torch.cat(tuple(
+        split.event_days if split.event_days is not None
+        else torch.zeros(len(split), dtype=torch.long)
+        for split in splits
+    ))
+    optional = {
+        name: _concatenate_optional(splits, name)
+        for name in (
+            "structural_intervention_features",
+            "structural_intervention_slates",
+            "structural_intervention_sequences",
+            "structural_intervention_effects",
+            "structural_family_ids",
+        )
+    }
+    return WorldModelSplit(
+        **values, **optional, candidate_utility_source=source,
+        event_days=event_days,
+    )
+
+
+def _optional_rows(payload, name, row_index):
+    value = payload.get(name)
+    return None if value is None else value[row_index]
+
+
+def _concatenate_optional(splits, name):
+    values = tuple(getattr(split, name) for split in splits)
+    if all(value is None for value in values):
+        return None
+    if any(value is None for value in values):
+        return None
+    return torch.cat(values)
 
 
 def _with_session_exit(payload, rows):
