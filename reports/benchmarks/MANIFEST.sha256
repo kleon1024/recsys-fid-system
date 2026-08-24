@@ -5,3 +5,5 @@ bb383c00e44d0325c2aae6be20a6191b4a6ec6b6dc81cdcd923057cdf6f85957  reports/benchm
 fd11364bfd8651ce46c1151bac375a83ecc47a34ec92e210142df1e12409dad7  reports/benchmarks/2026-08-23-tensor-batch-scale-1m-gpu.json
 dd241d2016bbfdf114a253093a2dab6c842933f92d5b2e88a7e1f44b41f80f7b  reports/benchmarks/2026-08-24-tensor-batch-pareto-cascade-v3.json
 913343ea44fd7487f1ab256801e99fe7feb9c86e765140903dbe7ad7ed935595  reports/benchmarks/2026-08-24-tensor-runtime-refactor-4090.json
+2d808026c172f0ae7920677fda64f64b65c37b73f5369d27ae3c9076cbac5fff  reports/benchmarks/2026-08-24-multi-surface-continuous-learning-1m-4090.json
+8d4315b7401f9f82cbb85c13a1940d607ee6677f19fc0790f5f022401d021e5b  reports/benchmarks/2026-08-24-hidden-environment-mmoe-heldout-screen-4090.json

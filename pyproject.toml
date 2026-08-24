@@ -97,6 +97,11 @@ entry_points = [
   "fid_lab/value/tree.py",
   "fid_lab/simulation/local/switchback.py",
   "fid_lab/simulation/local/switchback_cli.py",
+  "fid_lab/simulation/twin/cli/experiment.py",
+  "fid_lab/simulation/twin/cli/campaign.py",
+  "fid_lab/simulation/twin/cli/learning.py",
+  "fid_lab/simulation/twin/cli/robustness.py",
+  "fid_lab/simulation/twin/experimentation/orthogonal.py",
 ]
 authority_modules = [
   "fid_lab.fid",
@@ -116,6 +121,7 @@ authority_modules = [
   "fid_lab.scale.contracts",
   "fid_lab.evolution.data.contracts",
   "fid_lab.simulation.experimentation.contracts",
+  "fid_lab.simulation.twin.contracts",
   "fid_lab.value.contracts",
   "fid_lab.value.container",
   "fid_lab.value.gate",

@@ -1,0 +1,743 @@
+{
+  "schema": "heldout-hidden-environment-gate-v1",
+  "source_environment_seed": 20260825,
+  "heldout_environment_seeds": [
+    20261834,
+    20262843
+  ],
+  "artifact_fingerprint": "667556cc8a3eb12eda689bb74dfa70746bc76629f4e765b8901fdc4a3b136e04",
+  "artifact": {
+    "model_id": "heldout-mmoe-20260825",
+    "architecture": "mmoe",
+    "tasks": [
+      "play",
+      "play_3s",
+      "long_view",
+      "complete",
+      "like",
+      "comment",
+      "share",
+      "follow",
+      "click",
+      "detail",
+      "favorite",
+      "add_cart",
+      "order",
+      "payment",
+      "negative",
+      "create",
+      "publish"
+    ],
+    "features": [
+      "observed_affinity",
+      "realtime_affinity",
+      "quality",
+      "freshness",
+      "popularity",
+      "same_country",
+      "same_region",
+      "trend",
+      "query_match",
+      "price_match",
+      "affordability",
+      "merchant_quality",
+      "inventory",
+      "live_active",
+      "open_now",
+      "ad_pacing",
+      "ad_ecpm_prior",
+      "risk",
+      "author_fatigue",
+      "cluster_fatigue",
+      "topic_fatigue",
+      "kind_fatigue",
+      "repeated_item",
+      "user_lifecycle",
+      "user_activity_tier",
+      "user_socioeconomic",
+      "spending_power_estimate",
+      "satisfaction_estimate",
+      "fatigue_counter",
+      "user_cold_start",
+      "trend_affinity_estimate",
+      "commerce_intent_estimate",
+      "local_intent_estimate",
+      "creator_intent_estimate",
+      "user_query_strength",
+      "session_depth",
+      "local_hour_sin",
+      "local_hour_cos",
+      "surface_intent",
+      "kind:short_video",
+      "kind:photo",
+      "kind:article",
+      "kind:card",
+      "kind:live_room",
+      "kind:product",
+      "kind:poi",
+      "kind:ad",
+      "kind:creator_prompt",
+      "route:0",
+      "route:1",
+      "route:2",
+      "route:3",
+      "route:4",
+      "route:5"
+    ],
+    "training": {
+      "source_schema": "twin-request-samples-v1",
+      "source_policy": "heldout-source-exploration",
+      "rows": 137517,
+      "mature_labels": 789002,
+      "epochs": 3,
+      "microbatch_rows": 4096,
+      "loss_first": 3.0566457968491774,
+      "loss_last": 2.199292903680068,
+      "optimizer": "torch.optim.AdamW",
+      "training_device": "cuda:0",
+      "training_seed": 20260824,
+      "architecture": "mmoe",
+      "parameters": 55711,
+      "chronological_split": {
+        "train_requests": 52469,
+        "test_requests": 13067,
+        "train_max_step": 15,
+        "test_min_step": 16,
+        "mode": "whole_step"
+      },
+      "offline": {
+        "requests": 13067,
+        "tasks": {
+          "play": {
+            "rows": 7664,
+            "positive": 4713,
+            "auc": 0.7194832235085504,
+            "pr_auc": 0.7511975812571041,
+            "log_loss": 0.563922218111273,
+            "ece": 0.038328405382162214,
+            "ndcg": 0.9619311103133686,
+            "user_gauc": {
+              "value": 0.6678360889912267,
+              "total_groups": 3167,
+              "eligible_groups": 1293,
+              "eligible_group_rate": 0.4082728133880644,
+              "total_records": 7664,
+              "eligible_records": 4467,
+              "eligible_record_rate": 0.5828549060542797
+            }
+          },
+          "play_3s": {
+            "rows": 7664,
+            "positive": 3689,
+            "auc": 0.6647100081663827,
+            "pr_auc": 0.5865006597429205,
+            "log_loss": 0.6286499896686467,
+            "ece": 0.015519750916976556,
+            "ndcg": 0.9275504127580583,
+            "user_gauc": {
+              "value": 0.6433859089358455,
+              "total_groups": 3167,
+              "eligible_groups": 1430,
+              "eligible_group_rate": 0.4515314177455005,
+              "total_records": 7664,
+              "eligible_records": 4746,
+              "eligible_record_rate": 0.619258872651357
+            }
+          },
+          "long_view": {
+            "rows": 7664,
+            "positive": 2443,
+            "auc": 0.6202718672184336,
+            "pr_auc": 0.38607658679779044,
+            "log_loss": 0.5953505399395733,
+            "ece": 0.02163594981338558,
+            "ndcg": 0.8685869931347251,
+            "user_gauc": {
+              "value": 0.6188807537317667,
+              "total_groups": 3167,
+              "eligible_groups": 1300,
+              "eligible_group_rate": 0.4104831070413641,
+              "total_records": 7664,
+              "eligible_records": 4195,
+              "eligible_record_rate": 0.5473643006263048
+            }
+          },
+          "complete": {
+            "rows": 7664,
+            "positive": 1775,
+            "auc": 0.6010010068903829,
+            "pr_auc": 0.2788785828712488,
+            "log_loss": 0.5225763029634731,
+            "ece": 0.01730317154817578,
+            "ndcg": 0.8268362119989524,
+            "user_gauc": {
+              "value": 0.5905986688301529,
+              "total_groups": 3167,
+              "eligible_groups": 1105,
+              "eligible_group_rate": 0.34891064098515945,
+              "total_records": 7664,
+              "eligible_records": 3551,
+              "eligible_record_rate": 0.46333507306889354
+            }
+          },
+          "like": {
+            "rows": 9433,
+            "positive": 582,
+            "auc": 0.7242397135315054,
+            "pr_auc": 0.1086709283766013,
+            "log_loss": 0.20029209743016615,
+            "ece": 0.005106881091180789,
+            "ndcg": 0.6850725694195848,
+            "user_gauc": {
+              "value": 0.6949938195302842,
+              "total_groups": 3508,
+              "eligible_groups": 527,
+              "eligible_group_rate": 0.15022805017103763,
+              "total_records": 9433,
+              "eligible_records": 1618,
+              "eligible_record_rate": 0.17152549560055125
+            }
+          },
+          "comment": {
+            "rows": 6940,
+            "positive": 189,
+            "auc": 0.7318374937986847,
+            "pr_auc": 0.06018869023419862,
+            "log_loss": 0.11231200233138572,
+            "ece": 0.006071792784022327,
+            "ndcg": 0.5771311045733063,
+            "user_gauc": {
+              "value": 0.7174479166666666,
+              "total_groups": 3383,
+              "eligible_groups": 153,
+              "eligible_group_rate": 0.04522613065326633,
+              "total_records": 6940,
+              "eligible_records": 384,
+              "eligible_record_rate": 0.0553314121037464
+            }
+          },
+          "share": {
+            "rows": 6940,
+            "positive": 173,
+            "auc": 0.7258841145955679,
+            "pr_auc": 0.04988207814721435,
+            "log_loss": 0.10545077022330068,
+            "ece": 0.0039574564343963494,
+            "ndcg": 0.5510708025100071,
+            "user_gauc": {
+              "value": 0.6867977528089888,
+              "total_groups": 3383,
+              "eligible_groups": 142,
+              "eligible_group_rate": 0.04197457877623411,
+              "total_records": 6940,
+              "eligible_records": 356,
+              "eligible_record_rate": 0.051296829971181554
+            }
+          },
+          "follow": {
+            "rows": 2265,
+            "positive": 58,
+            "auc": 0.7182632064121994,
+            "pr_auc": 0.04856284028796999,
+            "log_loss": 0.10670804055157315,
+            "ece": 0.00510711514905751,
+            "ndcg": 0.47477661492030887,
+            "user_gauc": {
+              "value": null,
+              "total_groups": 2265,
+              "eligible_groups": 0,
+              "eligible_group_rate": 0.0,
+              "total_records": 2265,
+              "eligible_records": 0,
+              "eligible_record_rate": 0.0
+            }
+          },
+          "click": {
+            "rows": 25944,
+            "positive": 2462,
+            "auc": 0.7214877448000858,
+            "pr_auc": 0.1783858114256871,
+            "log_loss": 0.28521606302184666,
+            "ece": 0.006998311554280174,
+            "ndcg": 0.789066862728087,
+            "user_gauc": {
+              "value": 0.7171896922356471,
+              "total_groups": 3637,
+              "eligible_groups": 1872,
+              "eligible_group_rate": 0.5147099257629915,
+              "total_records": 25944,
+              "eligible_records": 14208,
+              "eligible_record_rate": 0.547641073080481
+            }
+          },
+          "detail": {
+            "rows": 14611,
+            "positive": 441,
+            "auc": 0.616083450552651,
+            "pr_auc": 0.045623642638925856,
+            "log_loss": 0.13311918451930735,
+            "ece": 0.0004122343132210266,
+            "ndcg": 0.5977771344886139,
+            "user_gauc": {
+              "value": 0.6413999142987847,
+              "total_groups": 2257,
+              "eligible_groups": 422,
+              "eligible_group_rate": 0.18697385910500663,
+              "total_records": 14611,
+              "eligible_records": 3264,
+              "eligible_record_rate": 0.22339333378961057
+            }
+          },
+          "favorite": {
+            "rows": 2776,
+            "positive": 26,
+            "auc": 0.6437342657342657,
+            "pr_auc": 0.01753619809691996,
+            "log_loss": 0.05278056344476574,
+            "ece": 0.0005825486644790152,
+            "ndcg": 0.3487165484967353,
+            "user_gauc": {
+              "value": 0.6547619047619048,
+              "total_groups": 638,
+              "eligible_groups": 26,
+              "eligible_group_rate": 0.04075235109717868,
+              "total_records": 2776,
+              "eligible_records": 128,
+              "eligible_record_rate": 0.04610951008645533
+            }
+          },
+          "add_cart": {
+            "rows": 3013,
+            "positive": 46,
+            "auc": 0.6882665846045632,
+            "pr_auc": 0.03496658917546949,
+            "log_loss": 0.07624801964498898,
+            "ece": 0.0009033586834537268,
+            "ndcg": 0.43859332266793133,
+            "user_gauc": {
+              "value": 0.6611992945326279,
+              "total_groups": 1048,
+              "eligible_groups": 29,
+              "eligible_group_rate": 0.02767175572519084,
+              "total_records": 3013,
+              "eligible_records": 135,
+              "eligible_record_rate": 0.0448058413541321
+            }
+          },
+          "order": {
+            "rows": 0,
+            "positive": 0,
+            "auc": null,
+            "gauc": null
+          },
+          "payment": {
+            "rows": 0,
+            "positive": 0,
+            "auc": null,
+            "gauc": null
+          },
+          "negative": {
+            "rows": 24044,
+            "positive": 376,
+            "auc": 0.7056400665770103,
+            "pr_auc": 0.03159473312411721,
+            "log_loss": 0.0760963208583146,
+            "ece": 0.00016197291734139363,
+            "ndcg": 0.5628224457761751,
+            "user_gauc": {
+              "value": 0.7054502100799895,
+              "total_groups": 3634,
+              "eligible_groups": 359,
+              "eligible_group_rate": 0.09878921298844248,
+              "total_records": 24044,
+              "eligible_records": 2543,
+              "eligible_record_rate": 0.10576443187489602
+            }
+          },
+          "create": {
+            "rows": 1450,
+            "positive": 43,
+            "auc": 0.6839391084444886,
+            "pr_auc": 0.06393514506404438,
+            "log_loss": 0.1276060262146619,
+            "ece": 0.004190429308740742,
+            "ndcg": 0.47972476196562247,
+            "user_gauc": {
+              "value": 0.7169841269841268,
+              "total_groups": 274,
+              "eligible_groups": 43,
+              "eligible_group_rate": 0.15693430656934307,
+              "total_records": 1450,
+              "eligible_records": 250,
+              "eligible_record_rate": 0.1724137931034483
+            }
+          },
+          "publish": {
+            "rows": 0,
+            "positive": 0,
+            "auc": null,
+            "gauc": null
+          }
+        }
+      },
+      "objective": "clipped_ips_bce + 0.15_pairwise + 0.05_listwise",
+      "loss_components_last": {
+        "pointwise": 2.0635364055633545,
+        "pairwise": 0.209208682179451,
+        "listwise": 0.05928907170891762
+      },
+      "task_maturity": {
+        "play": {
+          "mature": 28591,
+          "positive": 17486,
+          "used_for_serving": true
+        },
+        "play_3s": {
+          "mature": 28591,
+          "positive": 13634,
+          "used_for_serving": true
+        },
+        "long_view": {
+          "mature": 28591,
+          "positive": 8992,
+          "used_for_serving": true
+        },
+        "complete": {
+          "mature": 28591,
+          "positive": 6594,
+          "used_for_serving": true
+        },
+        "like": {
+          "mature": 35602,
+          "positive": 2231,
+          "used_for_serving": true
+        },
+        "comment": {
+          "mature": 35602,
+          "positive": 1022,
+          "used_for_serving": true
+        },
+        "share": {
+          "mature": 35602,
+          "positive": 914,
+          "used_for_serving": true
+        },
+        "follow": {
+          "mature": 35602,
+          "positive": 960,
+          "used_for_serving": true
+        },
+        "click": {
+          "mature": 111573,
+          "positive": 9929,
+          "used_for_serving": true
+        },
+        "detail": {
+          "mature": 66046,
+          "positive": 1942,
+          "used_for_serving": true
+        },
+        "favorite": {
+          "mature": 17516,
+          "positive": 184,
+          "used_for_serving": true
+        },
+        "add_cart": {
+          "mature": 18865,
+          "positive": 271,
+          "used_for_serving": true
+        },
+        "order": {
+          "mature": 57413,
+          "positive": 262,
+          "used_for_serving": true
+        },
+        "payment": {
+          "mature": 12867,
+          "positive": 36,
+          "used_for_serving": true
+        },
+        "negative": {
+          "mature": 101648,
+          "positive": 1562,
+          "used_for_serving": true
+        },
+        "create": {
+          "mature": 9925,
+          "positive": 295,
+          "used_for_serving": true
+        },
+        "publish": {
+          "mature": 8305,
+          "positive": 117,
+          "used_for_serving": true
+        }
+      }
+    },
+    "serving_task_weights": [
+      0.05000000074505806,
+      0.10000000149011612,
+      0.4000000059604645,
+      0.44999998807907104,
+      0.3499999940395355,
+      0.25,
+      0.44999998807907104,
+      0.5,
+      0.20000000298023224,
+      0.30000001192092896,
+      0.3499999940395355,
+      0.44999998807907104,
+      0.6499999761581421,
+      0.800000011920929,
+      -0.550000011920929,
+      0.3499999940395355,
+      0.6000000238418579
+    ]
+  },
+  "source_samples": {
+    "schema": "twin-request-samples-v1",
+    "features": [
+      "observed_affinity",
+      "realtime_affinity",
+      "quality",
+      "freshness",
+      "popularity",
+      "same_country",
+      "same_region",
+      "trend",
+      "query_match",
+      "price_match",
+      "affordability",
+      "merchant_quality",
+      "inventory",
+      "live_active",
+      "open_now",
+      "ad_pacing",
+      "ad_ecpm_prior",
+      "risk",
+      "author_fatigue",
+      "cluster_fatigue",
+      "topic_fatigue",
+      "kind_fatigue",
+      "repeated_item",
+      "user_lifecycle",
+      "user_activity_tier",
+      "user_socioeconomic",
+      "spending_power_estimate",
+      "satisfaction_estimate",
+      "fatigue_counter",
+      "user_cold_start",
+      "trend_affinity_estimate",
+      "commerce_intent_estimate",
+      "local_intent_estimate",
+      "creator_intent_estimate",
+      "user_query_strength",
+      "session_depth",
+      "local_hour_sin",
+      "local_hour_cos",
+      "surface_intent",
+      "kind:short_video",
+      "kind:photo",
+      "kind:article",
+      "kind:card",
+      "kind:live_room",
+      "kind:product",
+      "kind:poi",
+      "kind:ad",
+      "kind:creator_prompt",
+      "route:0",
+      "route:1",
+      "route:2",
+      "route:3",
+      "route:4",
+      "route:5"
+    ],
+    "tasks": [
+      "play",
+      "play_3s",
+      "long_view",
+      "complete",
+      "like",
+      "comment",
+      "share",
+      "follow",
+      "click",
+      "detail",
+      "favorite",
+      "add_cart",
+      "order",
+      "payment",
+      "negative",
+      "create",
+      "publish"
+    ],
+    "recall_requests": 28382,
+    "coarse_requests": 65536,
+    "fine_requests": 65536,
+    "watermark_step": 20,
+    "logging_policy_versions": 1,
+    "experiment_cells": 1
+  },
+  "model_weight": 0.3,
+  "evaluations": [
+    {
+      "environment_seed": 20261834,
+      "decision": "hold",
+      "gates": {
+        "request_trace_closes": true,
+        "primary_direction_nonnegative": true,
+        "primary_noninferior": true,
+        "stay_noninferior": true,
+        "negative_guardrail": false,
+        "request_guardrail": true
+      },
+      "primary": {
+        "control_mean": 3.1789292601885104,
+        "treatment_mean": 3.2060126827440256,
+        "difference": 0.027784430516463843,
+        "standard_error": 0.009027363161714166,
+        "confidence_interval": [
+          0.010090798719504076,
+          0.045478062313423606
+        ],
+        "p_value": 0.002085338759532285,
+        "theta": 0.716630903086005,
+        "estimator": "user_hash_ab_with_single_snapshot_cuped"
+      },
+      "stay": {
+        "control_mean": 160.25824289084036,
+        "treatment_mean": 161.7868007434516,
+        "difference": 1.5474344646235352,
+        "standard_error": 0.48100418441570736,
+        "confidence_interval": [
+          0.6046662631687487,
+          2.4902026660783214
+        ],
+        "p_value": 0.0012949729998704537,
+        "theta": 0.5218047471624557,
+        "estimator": "user_hash_ab_with_single_snapshot_cuped"
+      },
+      "negative": {
+        "control_mean": 0.29837868207721324,
+        "treatment_mean": 0.2961685670999123,
+        "difference": -0.0022389856353497994,
+        "standard_error": 0.003417445209707158,
+        "confidence_interval": [
+          -0.00893717824637583,
+          0.00445920697567623
+        ],
+        "p_value": 0.5123624407382444,
+        "theta": 0.03856636306441819,
+        "estimator": "user_hash_ab_with_single_snapshot_cuped"
+      },
+      "requests": {
+        "control_mean": 9.630548198089734,
+        "treatment_mean": 9.621182521330038,
+        "difference": -0.009821302865899995,
+        "standard_error": 0.01636440567661321,
+        "confidence_interval": [
+          -0.04189553799206188,
+          0.02225293226026189
+        ],
+        "p_value": 0.548397932847586,
+        "theta": 0.7919549816364275,
+        "estimator": "user_hash_ab_with_single_snapshot_cuped"
+      },
+      "trace_gates": {
+        "control": {
+          "exposure_in_recall": true,
+          "selected_in_exposure": true,
+          "label_mask_shape": true,
+          "point_in_time_history": true
+        },
+        "treatment": {
+          "exposure_in_recall": true,
+          "selected_in_exposure": true,
+          "label_mask_shape": true,
+          "point_in_time_history": true
+        }
+      }
+    },
+    {
+      "environment_seed": 20262843,
+      "decision": "hold",
+      "gates": {
+        "request_trace_closes": true,
+        "primary_direction_nonnegative": true,
+        "primary_noninferior": true,
+        "stay_noninferior": true,
+        "negative_guardrail": false,
+        "request_guardrail": true
+      },
+      "primary": {
+        "control_mean": 3.149066367251687,
+        "treatment_mean": 3.1838355723142535,
+        "difference": 0.030386887623915282,
+        "standard_error": 0.0090662022145342,
+        "confidence_interval": [
+          0.01261713128342825,
+          0.048156643964402314
+        ],
+        "p_value": 0.0008032667612026411,
+        "theta": 0.6953099954696494,
+        "estimator": "user_hash_ab_with_single_snapshot_cuped"
+      },
+      "stay": {
+        "control_mean": 159.0194901523536,
+        "treatment_mean": 161.00963956267938,
+        "difference": 1.782615610306891,
+        "standard_error": 0.48499861677950284,
+        "confidence_interval": [
+          0.8320183214190655,
+          2.733212899194717
+        ],
+        "p_value": 0.0002373779164373487,
+        "theta": 0.5059407706543675,
+        "estimator": "user_hash_ab_with_single_snapshot_cuped"
+      },
+      "negative": {
+        "control_mean": 0.30436604541645046,
+        "treatment_mean": 0.3030710018842962,
+        "difference": -0.0013452689197073764,
+        "standard_error": 0.003451173049575955,
+        "confidence_interval": [
+          -0.008109568096876248,
+          0.005419030257461495
+        ],
+        "p_value": 0.6966840869982308,
+        "theta": 0.04104564547162749,
+        "estimator": "user_hash_ab_with_single_snapshot_cuped"
+      },
+      "requests": {
+        "control_mean": 9.625733328012132,
+        "treatment_mean": 9.616686044180732,
+        "difference": -0.02953782710018693,
+        "standard_error": 0.016339427283481468,
+        "confidence_interval": [
+          -0.06156310457581061,
+          0.0024874503754367464
+        ],
+        "p_value": 0.07064325156624417,
+        "theta": 0.7844312719148385,
+        "estimator": "user_hash_ab_with_single_snapshot_cuped"
+      },
+      "trace_gates": {
+        "control": {
+          "exposure_in_recall": true,
+          "selected_in_exposure": true,
+          "label_mask_shape": true,
+          "point_in_time_history": true
+        },
+        "treatment": {
+          "exposure_in_recall": true,
+          "selected_in_exposure": true,
+          "label_mask_shape": true,
+          "point_in_time_history": true
+        }
+      }
+    }
+  ],
+  "aggregate_decision": "hold",
+  "invariant": "The exact source-trained checkpoint is replayed without fitting or calibration in every held-out hidden environment.",
+  "evidence_boundary": "Synthetic robustness gate; not production lift."
+}

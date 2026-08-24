@@ -142,9 +142,74 @@ never executable sample plans. See the
 [unified launch protocol](docs/operations/launch-protocol.md) and
 [registered experiment plans](experiments/README.md).
 
-The historical stateful Feed control served logistic regression. The active V4
-simulator control is now the guarded MMoE described above. The old LR result did
-not show that neural ranking could not work: the original simulator
+The v2 multi-surface continuous-learning twin is implemented under
+[`fid_lab/simulation/twin`](fid_lab/simulation/twin/). One user and supply state
+spans Feed, Search, Commerce, Live, Local, and Posting, but hidden user truth is
+physically separated from platform-observable state. Short video, photo,
+article, card, live room, product, POI, ad, and creator-prompt items share one
+versioned catalog and cross-request exposure ledger. A pre-period is
+materialized once. Pure control and treatment branches are disposable shadow
+counterfactuals; the factual future is always the shared mixed-A/B world, so
+experiment exposure changes later users, supply, and training samples. See the bilingual
+[multi-surface architecture](docs/architecture/multi-surface-digital-twin.md).
+
+```mermaid
+flowchart LR
+    Hidden["Hidden user environment<br/>preference, satisfaction, fatigue, retention"]
+    Platform["Platform<br/>recall → coarse → fine → VT/mix"]
+    Platform -->|"ServedSlate only"| Hidden
+    Hidden -->|"Observable events only"| Events["play, stay, slide, interaction, order, publish"]
+    Events --> Platform
+    Events --> Joiner["Maturity + point-in-time Joiner"]
+    Joiner --> Samples["Recall / coarse / fine authorities"]
+    Samples --> Train["GPU stream training"]
+    Train --> Registry["Candidate → shadow → active/hold/reject"]
+    Registry --> Mixed["Mixed-world online A/B"]
+    Mixed --> Platform
+    Mixed -.-> Shadow["Disposable full-rollout counterfactuals"]
+```
+
+The request trace contains 54 observable estimates, counters, content signals,
+and context features. It contains no latent preference, true satisfaction,
+true quality, true risk, retention state, or future signup schedule. It retains
+all recalled candidates,
+route provenance, coarse/fine scores, exploration and position propensity,
+exposure, point-in-time history, 17 labels, maturity masks, served-policy ID,
+and experiment-cell ID. The Joiner compiles three independent tensor
+authorities rather than reusing one exposure table for every stage. The online
+trainer supports LR, Wide & Deep, DCNv2, and MMoE on the current dense
+observable contract and uses clipped IPS BCE plus request-aware pairwise and
+listwise losses;
+unmatured order, payment, and publish heads cannot enter serving value.
+Offline metrics use a whole-step chronological holdout and include AUC,
+PR-AUC, log loss, ECE, NDCG, and user GAUC coverage. A separate robustness gate
+replays one source-trained checkpoint unchanged across unseen hidden-world
+seeds; offline lift or success in only one simulated world cannot promote it.
+
+The first v2 held-out screen freezes one MMoE checkpoint and replays it in two
+unseen user worlds. Both worlds improve synthetic LT and stay, but both remain
+`hold` because the negative-feedback confidence bound exceeds the fixed
+guardrail. The result demonstrates learnable neural-model impact without
+manufacturing a launch. See the
+[held-out MMoE screen](reports/benchmarks/2026-08-24-hidden-environment-mmoe-heldout-screen-4090.json).
+
+The fixed RTX 4090 profile contains 1,000,000 users, 2,000,000 items, 250,000
+users per persistent state shard, 50,000 requests per candidate compute
+microbatch, 96 candidates per request, and 64 exposure-history slots. In the
+frozen one-iteration report, 65,536 observed logging requests produce 145,079
+fine-rank rows. The run takes 279.5 seconds and reports 8.90GB peak CUDA
+allocation. Its LR lift is now explicitly rejected as model evidence because
+that v1 run exposed noisy transforms of hidden satisfaction and intent to the
+ranker. The artifact remains an immutable throughput and end-to-end plumbing
+canary only. A new v2 model Launch Review requires hidden/platform isolation,
+held-out environment seeds, and a rerun on the RTX 4090. See the
+[content-bound historical GPU report](reports/benchmarks/2026-08-24-multi-surface-continuous-learning-1m-4090.json).
+
+The historical stateful Feed control served logistic regression, and the
+legacy single-Feed V4 simulator later selected a guarded MMoE. The new v2
+multi-surface twin still keeps `shared_rules_v1` active because its held-out
+MMoE is `hold`, not passed. The old LR result did not show that neural ranking
+could not work: the original simulator
 was nearly linear, the actual policy consumed only 24 dense features, and the
 training split contained about 20,000 rows. A versioned nonlinear DGP run on an
 RTX 4090 shows the missing capacity effect: at ten million main impressions and
