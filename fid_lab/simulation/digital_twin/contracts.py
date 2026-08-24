@@ -8,6 +8,27 @@ from enum import IntEnum
 import torch
 
 
+class Surface(IntEnum):
+    FEED = 0
+    SEARCH = 1
+    COMMERCE = 2
+    LIVE = 3
+    LOCAL = 4
+    POSTING = 5
+
+
+class ContentKind(IntEnum):
+    SHORT_VIDEO = 0
+    PHOTO = 1
+    ARTICLE = 2
+    CARD = 3
+    LIVE_ROOM = 4
+    PRODUCT = 5
+    POI = 6
+    AD = 7
+    CREATOR_PROMPT = 8
+
+
 class EventType(IntEnum):
     REGISTRATION = 0
     SESSION_START = 1
@@ -34,6 +55,14 @@ class EventType(IntEnum):
     SESSION_END = 22
     INVENTORY = 23
     BID = 24
+    SURFACE_ENTRY = 25
+    PLAY_3S = 26
+    LONG_VIEW = 27
+    COMPLETE = 28
+    DWELL = 29
+
+
+APP_EVENT_SCHEMA_VERSION = 2
 
 
 def _require_shape(name, value, shape):
@@ -74,6 +103,8 @@ class RenderedSlateBatch:
     positions: torch.Tensor
     valid: torch.Tensor
     ui_variant: torch.Tensor
+    exposure_probability: torch.Tensor
+    assignment_probability: torch.Tensor
 
     def __post_init__(self):
         requests = len(self.request_id)
@@ -83,14 +114,29 @@ class RenderedSlateBatch:
         _require_shape("item_ids", self.item_ids, (requests, width))
         _require_shape("positions", self.positions, (requests, width))
         _require_shape("valid", self.valid, (requests, width))
+        _require_shape(
+            "exposure_probability", self.exposure_probability,
+            (requests, width),
+        )
         for name in (
             "user_id", "surface", "event_time", "ui_variant",
+            "assignment_probability",
         ):
             _require_shape(name, getattr(self, name), (requests,))
         if not torch.equal(self.valid, self.item_ids >= 0):
             raise ValueError("slate validity must exactly match nonnegative items")
         if self.valid.any() and (self.positions[self.valid] < 0).any():
             raise ValueError("valid rendered positions must be nonnegative")
+        if self.valid.any() and (
+            (self.exposure_probability[self.valid] <= 0.0)
+            | (self.exposure_probability[self.valid] > 1.0)
+        ).any():
+            raise ValueError("valid exposure probabilities must be in (0, 1]")
+        if requests and (
+            (self.assignment_probability <= 0.0)
+            | (self.assignment_probability > 1.0)
+        ).any():
+            raise ValueError("assignment probabilities must be in (0, 1]")
 
     def select(self, selector) -> RenderedSlateBatch:
         return RenderedSlateBatch(**{
@@ -104,6 +150,7 @@ class AppEventBatch:
     """Observable, append-only events; no latent state or model output."""
 
     event_id: torch.Tensor
+    schema_version: torch.Tensor
     event_type: torch.Tensor
     event_time: torch.Tensor
     ingest_time: torch.Tensor
@@ -116,7 +163,15 @@ class AppEventBatch:
     poi_id: torch.Tensor
     order_id: torch.Tensor
     position: torch.Tensor
+    content_kind: torch.Tensor
+    topic_id: torch.Tensor
+    country: torch.Tensor
+    region: torch.Tensor
+    query_id: torch.Tensor
+    duration_ms: torch.Tensor
     value: torch.Tensor
+    logging_probability: torch.Tensor
+    assignment_probability: torch.Tensor
     experiment_cell: torch.Tensor
 
     def __post_init__(self):
@@ -127,6 +182,18 @@ class AppEventBatch:
             raise ValueError("event batch contains duplicate event_id")
         if (self.ingest_time < self.event_time).any():
             raise ValueError("event ingest time cannot precede event time")
+        if rows and not (
+            self.schema_version == APP_EVENT_SCHEMA_VERSION
+        ).all():
+            raise ValueError("event batch contains unsupported schema version")
+        for name in ("logging_probability", "assignment_probability"):
+            probability = getattr(self, name)
+            present = probability >= 0.0
+            if present.any() and (
+                (probability[present] <= 0.0)
+                | (probability[present] > 1.0)
+            ).any():
+                raise ValueError(f"{name} must be missing or in (0, 1]")
         if rows and (
             (self.event_type < min(EventType))
             | (self.event_type > max(EventType))
@@ -138,6 +205,9 @@ class AppEventBatch:
         integer = torch.empty(0, device=device, dtype=torch.long)
         return cls(
             event_id=integer,
+            schema_version=torch.full_like(
+                integer, APP_EVENT_SCHEMA_VERSION,
+            ),
             event_type=integer.clone(),
             event_time=integer.clone(),
             ingest_time=integer.clone(),
@@ -150,7 +220,15 @@ class AppEventBatch:
             poi_id=integer.clone(),
             order_id=integer.clone(),
             position=integer.clone(),
+            content_kind=integer.clone(),
+            topic_id=integer.clone(),
+            country=integer.clone(),
+            region=integer.clone(),
+            query_id=integer.clone(),
+            duration_ms=integer.clone(),
             value=torch.empty(0, device=device),
+            logging_probability=torch.empty(0, device=device),
+            assignment_probability=torch.empty(0, device=device),
             experiment_cell=integer.clone(),
         )
 
@@ -172,6 +250,7 @@ class AppEventBatch:
             for field in fields(cls)
         })
         order = torch.argsort(merged.event_id, stable=True)
+        order = order[torch.argsort(merged.event_time[order], stable=True)]
         return merged.select(order)
 
     def event(self, event_type: EventType) -> torch.Tensor:
@@ -193,3 +272,97 @@ def deterministic_event_id(
     value = torch.bitwise_and(value, mask)
     value = torch.bitwise_xor(value, torch.bitwise_right_shift(value, 29))
     return torch.bitwise_and(value * 2_654_435_761, mask)
+
+
+def make_app_events(
+    event_type: EventType | torch.Tensor,
+    *,
+    event_time: int | torch.Tensor,
+    request_id: torch.Tensor,
+    user_id: torch.Tensor,
+    surface: torch.Tensor,
+    item_id: torch.Tensor | None = None,
+    position: torch.Tensor | None = None,
+    experiment_cell: torch.Tensor | None = None,
+    content_kind: torch.Tensor | None = None,
+    topic_id: torch.Tensor | None = None,
+    country: torch.Tensor | None = None,
+    region: torch.Tensor | None = None,
+    query_id: torch.Tensor | None = None,
+    duration_ms: torch.Tensor | None = None,
+    creator_id: torch.Tensor | None = None,
+    product_id: torch.Tensor | None = None,
+    poi_id: torch.Tensor | None = None,
+    order_id: torch.Tensor | None = None,
+    value: torch.Tensor | None = None,
+    logging_probability: torch.Tensor | None = None,
+    assignment_probability: torch.Tensor | None = None,
+    ingest_time: int | torch.Tensor | None = None,
+    ordinal: torch.Tensor | None = None,
+) -> AppEventBatch:
+    """Construct one typed, aligned event batch without implicit data access."""
+    rows, device = len(request_id), request_id.device
+    missing = torch.full((rows,), -1, device=device, dtype=torch.long)
+    zeros = torch.zeros(rows, device=device, dtype=torch.long)
+
+    def integer(values):
+        return missing.clone() if values is None else values.long()
+
+    def aligned(values):
+        if isinstance(values, int):
+            return torch.full((rows,), values, device=device, dtype=torch.long)
+        return values.long()
+
+    event_types = (
+        torch.full((rows,), int(event_type), device=device, dtype=torch.long)
+        if isinstance(event_type, EventType) else event_type.long()
+    )
+    times = aligned(event_time)
+    ingest = aligned(event_time if ingest_time is None else ingest_time)
+    items = integer(item_id)
+    ordinals = zeros if ordinal is None else ordinal.long()
+    positions = integer(position)
+    return AppEventBatch(
+        event_id=deterministic_event_id(
+            request_id, event_types, items, ordinals
+        ),
+        schema_version=torch.full(
+            (rows,), APP_EVENT_SCHEMA_VERSION,
+            device=device, dtype=torch.long,
+        ),
+        event_type=event_types,
+        event_time=times,
+        ingest_time=ingest,
+        request_id=request_id.long(),
+        user_id=user_id.long(),
+        surface=surface.long(),
+        item_id=items,
+        creator_id=integer(creator_id),
+        product_id=integer(product_id),
+        poi_id=integer(poi_id),
+        order_id=integer(order_id),
+        position=positions,
+        content_kind=integer(content_kind),
+        topic_id=integer(topic_id),
+        country=integer(country),
+        region=integer(region),
+        query_id=integer(query_id),
+        duration_ms=integer(duration_ms),
+        value=(
+            torch.zeros(rows, device=device)
+            if value is None else value.float()
+        ),
+        logging_probability=(
+            torch.full((rows,), -1.0, device=device)
+            if logging_probability is None else logging_probability.float()
+        ),
+        assignment_probability=(
+            torch.full((rows,), -1.0, device=device)
+            if assignment_probability is None
+            else assignment_probability.float()
+        ),
+        experiment_cell=(
+            missing.clone()
+            if experiment_cell is None else experiment_cell.long()
+        ),
+    )

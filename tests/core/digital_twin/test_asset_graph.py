@@ -13,13 +13,12 @@ def test_default_asset_graph_declares_training_and_factual_closure():
     order = DIGITAL_TWIN_ASSETS.order()
     assert order.index("events.observable") < order.index("samples.fine")
     assert order.index("samples.fine") < order.index("models.candidate")
-    assert order.index("experiment.mixed_ab") < order.index(
+    assert order.index("events.observable") < order.index(
         "world.factual_successor"
     )
     successor = DIGITAL_TWIN_ASSETS.spec("world.factual_successor")
-    assert successor.inputs == (
-        "experiment.mixed_ab", "release.decision"
-    )
+    assert successor.inputs == ("events.observable",)
+    assert "release.decision" not in successor.inputs
 
 
 def test_asset_graph_rejects_unknown_inputs_and_cycles():

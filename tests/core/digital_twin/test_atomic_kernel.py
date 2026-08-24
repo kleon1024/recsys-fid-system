@@ -27,6 +27,7 @@ def event_batch(
         event_id=deterministic_event_id(
             request_id, event_types, item_id, ordinal
         ),
+        schema_version=torch.full((rows,), 2, dtype=torch.long),
         event_type=event_types,
         event_time=torch.full((rows,), logical_time, dtype=torch.long),
         ingest_time=torch.full((rows,), logical_time, dtype=torch.long),
@@ -39,7 +40,15 @@ def event_batch(
         poi_id=integer_missing.clone(),
         order_id=integer_missing.clone(),
         position=ordinal,
+        content_kind=integer_missing.clone(),
+        topic_id=integer_missing.clone(),
+        country=integer_missing.clone(),
+        region=integer_missing.clone(),
+        query_id=integer_missing.clone(),
+        duration_ms=integer_missing.clone(),
         value=torch.ones(rows),
+        logging_probability=torch.ones(rows),
+        assignment_probability=torch.ones(rows),
         experiment_cell=cell,
     )
 
@@ -103,7 +112,10 @@ class FakePlatform:
             event_time=entry_events.event_time[session],
         )
 
-    def render(self, snapshot, requests, policy, experiment_cell):
+    def render(
+        self, snapshot, requests, policy, experiment_cell,
+        assignment_probability,
+    ):
         assert len(snapshot["ingested"]) == 6
         item = requests.user_id + int(policy) * 100
         return RenderedSlateBatch(
@@ -117,6 +129,8 @@ class FakePlatform:
             ui_variant=torch.full(
                 (len(item),), experiment_cell, dtype=torch.long
             ),
+            exposure_probability=torch.ones(len(item), 1),
+            assignment_probability=assignment_probability,
         )
 
 
@@ -126,9 +140,12 @@ def run(order):
     log = ObservableEventLog()
     result = AtomicSimulationKernel(world, platform, log).step(
         7,
-        ExperimentPlan(
-            cell_by_request=torch.tensor([0, 1, 0, 1, 0, 1]),
-            policies={0: 10, 1: 20},
+        ExperimentPlan.ramped_user_ab(
+            active_policy=10,
+            treatment_policy=20,
+            experiment_seed=20260824,
+            control_fraction=0.5,
+            treatment_fraction=0.5,
         ),
         cell_order=order,
     )
@@ -136,8 +153,8 @@ def run(order):
 
 
 def test_atomic_tick_is_invariant_to_experiment_cell_order():
-    left = run((0, 1))
-    right = run((1, 0))
+    left = run((-1, 0, 1))
+    right = run((1, 0, -1))
     torch.testing.assert_close(left[0].market_budget, right[0].market_budget)
     torch.testing.assert_close(left[0].impressions, right[0].impressions)
     left_events, right_events = left[2].read(), right[2].read()
@@ -145,11 +162,12 @@ def test_atomic_tick_is_invariant_to_experiment_cell_order():
         assert torch.equal(
             getattr(left_events, field.name), getattr(right_events, field.name)
         ), field.name
-    assert left[3].cell_counts == right[3].cell_counts == {0: 3, 1: 3}
+    assert left[3].cell_counts == right[3].cell_counts
+    assert sum(left[3].cell_counts.values()) == 6
 
 
 def test_boundary_payloads_exclude_model_scores_and_hidden_state():
-    _, _, log, result = run((0, 1))
+    _, _, log, result = run((-1, 0, 1))
     slate_fields = {field.name for field in fields(RenderedSlateBatch)}
     event_fields = {field.name for field in fields(AppEventBatch)}
     assert "score" not in " ".join(slate_fields)
@@ -172,30 +190,73 @@ def test_event_log_rejects_duplicate_delivery():
         raise AssertionError("duplicate event delivery must fail closed")
 
 
+def test_event_log_duplicate_failure_is_transactional_across_event_times():
+    log = ObservableEventLog()
+    original = event_batch(
+        EventType.IMPRESSION,
+        torch.tensor([101]),
+        torch.tensor([1]),
+        torch.tensor([7]),
+        2,
+        torch.tensor([0]),
+    )
+    future = event_batch(
+        EventType.IMPRESSION,
+        torch.tensor([202]),
+        torch.tensor([2]),
+        torch.tensor([9]),
+        3,
+        torch.tensor([1]),
+    )
+    log.append(original)
+    attempted = AppEventBatch.concatenate((future, original))
+    try:
+        log.append(attempted)
+    except ValueError as error:
+        assert "duplicate" in str(error)
+    else:
+        raise AssertionError("cross-time duplicate delivery must fail closed")
+    assert log.manifest()["events"] == 1
+    log.append(future)
+    assert log.manifest()["events"] == 2
+
+
 def test_ramped_user_ab_leaves_unallocated_traffic_on_active_policy():
     users = torch.arange(5_000).repeat_interleave(2)
     requests = PlatformRequestBatch(
         request_id=torch.arange(len(users)),
         user_id=users,
-        surface=torch.zeros_like(users),
+        surface=torch.remainder(users, 2),
         event_time=torch.zeros_like(users),
     )
     eligible = users.remainder(2) == 0
     active, treatment = object(), object()
     plan = ExperimentPlan.ramped_user_ab(
-        requests,
         active_policy=active,
         treatment_policy=treatment,
         experiment_seed=20260824,
         control_fraction=0.05,
         treatment_fraction=0.05,
-        eligible=eligible,
+        eligible_surfaces=(0,),
     )
+    assignment = plan.assign(requests)
     assert torch.equal(
-        plan.cell_by_request[0::2], plan.cell_by_request[1::2]
+        assignment.cell_by_request[0::2],
+        assignment.cell_by_request[1::2],
     )
-    assert (plan.cell_by_request[~eligible] == -1).all()
-    assert 350 <= int(plan.experiment_mask.sum()) <= 650
+    assert (assignment.cell_by_request[~eligible] == -1).all()
+    assert (assignment.probability_by_request[~eligible] == 1.0).all()
+    allocated_default = eligible & (assignment.cell_by_request == -1)
+    torch.testing.assert_close(
+        assignment.probability_by_request[allocated_default],
+        torch.full_like(
+            assignment.probability_by_request[allocated_default], 0.9,
+        ),
+    )
+    assert (
+        assignment.probability_by_request[assignment.experiment_mask] == 0.05
+    ).all()
+    assert 350 <= int(assignment.experiment_mask.sum()) <= 650
     assert plan.policies[-1] is active
     assert plan.policies[0] is active
     assert plan.policies[1] is treatment

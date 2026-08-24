@@ -7,3 +7,4 @@ dd241d2016bbfdf114a253093a2dab6c842933f92d5b2e88a7e1f44b41f80f7b  reports/benchm
 913343ea44fd7487f1ab256801e99fe7feb9c86e765140903dbe7ad7ed935595  reports/benchmarks/2026-08-24-tensor-runtime-refactor-4090.json
 2d808026c172f0ae7920677fda64f64b65c37b73f5369d27ae3c9076cbac5fff  reports/benchmarks/2026-08-24-multi-surface-continuous-learning-1m-4090.json
 8d4315b7401f9f82cbb85c13a1940d607ee6677f19fc0790f5f022401d021e5b  reports/benchmarks/2026-08-24-hidden-environment-mmoe-heldout-screen-4090.json
+f5b77bfc58025c19a047722ca383c0b9830ccc4ec542e9c5f3b316311dc30921  reports/benchmarks/2026-08-24-digital-twin-v4-world-kernel-4090.json

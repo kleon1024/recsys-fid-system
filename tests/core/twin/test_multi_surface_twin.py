@@ -54,6 +54,23 @@ def baseline_policy():
     return TwinPolicy(name="shared_rules_v1")
 
 
+def assert_tensor_dataclass_equal(testcase, left, right):
+    for field in fields(left):
+        testcase.assertTrue(torch.equal(
+            getattr(left, field.name), getattr(right, field.name),
+        ), field.name)
+
+
+def assert_platform_user_equal(testcase, left, right):
+    for field in fields(left):
+        if field.name == "ledger":
+            assert_tensor_dataclass_equal(testcase, left.ledger, right.ledger)
+            continue
+        testcase.assertTrue(torch.equal(
+            getattr(left, field.name), getattr(right, field.name),
+        ), field.name)
+
+
 class MultiSurfaceTwinTest(unittest.TestCase):
     def test_contract_covers_business_surfaces_and_content_shapes(self):
         self.assertEqual(set(SURFACE_CONTRACTS), set(Surface))
@@ -115,18 +132,7 @@ class MultiSurfaceTwinTest(unittest.TestCase):
         for left_users, right_users in zip(
             factual.users, counterfactual.users, strict=True
         ):
-            for field in fields(left_users):
-                if field.name == "ledger":
-                    for ledger_field in fields(left_users.ledger):
-                        self.assertTrue(torch.equal(
-                            getattr(left_users.ledger, ledger_field.name),
-                            getattr(right_users.ledger, ledger_field.name),
-                        ), ledger_field.name)
-                else:
-                    self.assertTrue(torch.equal(
-                        getattr(left_users, field.name),
-                        getattr(right_users, field.name),
-                    ), field.name)
+            assert_platform_user_equal(self, left_users, right_users)
         for field in fields(factual.catalog):
             self.assertTrue(torch.equal(
                 getattr(factual.catalog, field.name),

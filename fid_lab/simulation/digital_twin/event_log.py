@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import torch
+
 from .contracts import AppEventBatch
 
 
 class ObservableEventLog:
     def __init__(self):
         self._batches: list[AppEventBatch] = []
-        self._event_ids: set[int] = set()
+        self._ids_by_event_time: dict[int, torch.Tensor] = {}
+        self._events = 0
         self._watermark = -1
 
     @property
@@ -16,11 +19,24 @@ class ObservableEventLog:
         return self._watermark
 
     def append(self, batch: AppEventBatch) -> None:
-        ids = set(int(value) for value in batch.event_id.cpu())
-        duplicate = ids & self._event_ids
-        if duplicate:
-            raise ValueError(f"event log duplicate ids: {len(duplicate)}")
-        self._event_ids.update(ids)
+        staged: dict[int, torch.Tensor] = {}
+        for event_time in torch.unique(batch.event_time).tolist():
+            selected = batch.event_time == event_time
+            incoming = batch.event_id[selected]
+            existing = self._ids_by_event_time.get(event_time)
+            if existing is None:
+                staged[event_time] = torch.sort(incoming).values
+                continue
+            merged = torch.cat((existing, incoming))
+            unique = torch.unique(merged, sorted=True)
+            duplicate_count = len(merged) - len(unique)
+            if duplicate_count:
+                raise ValueError(
+                    f"event log duplicate ids: {duplicate_count}"
+                )
+            staged[event_time] = unique
+        self._ids_by_event_time.update(staged)
+        self._events += len(batch.event_id)
         self._batches.append(batch)
         if len(batch.event_time):
             self._watermark = max(
@@ -35,8 +51,8 @@ class ObservableEventLog:
 
     def manifest(self) -> dict[str, int | str]:
         return {
-            "schema": "observable-app-events-v1",
-            "events": len(self._event_ids),
+            "schema": "observable-app-events-v2",
+            "events": self._events,
             "batches": len(self._batches),
             "watermark": self._watermark,
         }

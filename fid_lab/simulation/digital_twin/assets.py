@@ -91,7 +91,7 @@ DIGITAL_TWIN_ASSETS = AssetGraph((
     ),
     AssetSpec(
         "world.factual_successor",
-        ("experiment.mixed_ab", "release.decision"),
+        ("events.observable",),
         "world",
     ),
 ))

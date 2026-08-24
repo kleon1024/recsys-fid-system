@@ -1,0 +1,116 @@
+"""Observable content catalog shared as public input, never latent truth."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, fields
+
+import torch
+
+from ..randomness.counter import normal, uniform
+from .contracts import ContentKind
+
+
+@dataclass(frozen=True)
+class PublicCatalog:
+    item_id: torch.Tensor
+    content_kind: torch.Tensor
+    topic_id: torch.Tensor
+    content_embedding: torch.Tensor
+    creator_id: torch.Tensor
+    merchant_id: torch.Tensor
+    country: torch.Tensor
+    region: torch.Tensor
+    publish_time: torch.Tensor
+    duration_seconds: torch.Tensor
+    quality_prior: torch.Tensor
+    price: torch.Tensor
+    inventory: torch.Tensor
+    active: torch.Tensor
+
+    def __post_init__(self):
+        items = len(self.item_id)
+        for field in fields(self):
+            value = getattr(self, field.name)
+            if field.name == "content_embedding":
+                if value.ndim != 2 or value.shape[0] != items:
+                    raise ValueError("content embedding must be [item, dim]")
+            elif value.shape != (items,):
+                raise ValueError(f"catalog field {field.name} is not item-aligned")
+        if not torch.equal(
+            self.item_id,
+            torch.arange(items, device=self.item_id.device),
+        ):
+            raise ValueError("reference catalog item IDs must be contiguous")
+
+
+def build_public_catalog(
+    *,
+    items: int,
+    creators: int,
+    merchants: int,
+    topics: int,
+    countries: int,
+    regions_per_country: int,
+    embedding_dim: int,
+    platform_seed: int,
+    device: str | torch.device,
+) -> PublicCatalog:
+    dimensions = (
+        items,
+        creators,
+        merchants,
+        topics,
+        countries,
+        regions_per_country,
+        embedding_dim,
+    )
+    if any(value <= 0 for value in dimensions):
+        raise ValueError("catalog dimensions must be positive")
+    device = torch.device(device)
+    item_id = torch.arange(items, device=device)
+    topic_id = torch.remainder(item_id * 69_697 + 29, topics)
+    topic_ids = torch.arange(topics, device=device)
+    prototypes = torch.nn.functional.normalize(
+        normal(topic_ids, 0, 101, platform_seed, embedding_dim), dim=1
+    )
+    content_embedding = torch.nn.functional.normalize(
+        prototypes[topic_id]
+        + 0.28 * normal(
+            item_id, 0, 103, platform_seed, embedding_dim
+        ),
+        dim=1,
+    )
+    content_kind = torch.remainder(item_id, len(ContentKind))
+    country = torch.remainder(item_id * 503 + 37, countries)
+    region = (
+        country * regions_per_country
+        + torch.remainder(item_id * 1_009 + 41, regions_per_country)
+    )
+    text_quality = uniform(item_id, 0, 107, platform_seed)
+    visual_quality = uniform(item_id, 0, 109, platform_seed)
+    quality_prior = torch.sigmoid(
+        -1.0 + 1.25 * text_quality + 1.45 * visual_quality
+        + 0.35 * normal(item_id, 0, 113, platform_seed)
+    )
+    return PublicCatalog(
+        item_id=item_id,
+        content_kind=content_kind,
+        topic_id=topic_id,
+        content_embedding=content_embedding,
+        creator_id=torch.remainder(item_id * 7_919 + 31, creators),
+        merchant_id=torch.remainder(item_id * 1_231 + 17, merchants),
+        country=country,
+        region=region,
+        publish_time=-torch.floor(
+            720.0 * uniform(item_id, 0, 127, platform_seed)
+        ).long(),
+        duration_seconds=(
+            4.0 + 176.0 * uniform(item_id, 0, 131, platform_seed).square()
+        ),
+        quality_prior=quality_prior,
+        price=torch.exp(
+            -1.5 + 5.0 * uniform(item_id, 0, 137, platform_seed)
+        ),
+        inventory=uniform(item_id, 0, 139, platform_seed),
+        active=torch.ones(items, device=device, dtype=torch.bool),
+    )

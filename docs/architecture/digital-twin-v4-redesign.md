@@ -6,6 +6,26 @@ Status: design authority; implementation is not complete.
 迁移输入和历史工程证据，不再通过局部修补继续扩展。任何新代码必须指向本文定义的
 边界、事件语义、DAG 节点和验收项。
 
+### 当前实现状态（2026-08-24）
+
+已经落地：
+
+- `AppEventBatch v2`、public catalog、hidden user/catalog truth 的物理边界。
+- 请求打开后执行稳定 user/request 分桶；支持 eligibility、部分流量 ramp、default active
+  policy 和逐请求 assignment probability。
+- 同一 event-time 内按 policy 做无副作用 GPU batching，统一事实提交；cell 执行顺序不会
+  改变用户状态或事件日志。
+- Feed、Search、Commerce、Live、Local、Posting 的 examination、outside option、行为级联、
+  dwell、session leave 和 cross-session return 用户世界。
+- 曝光与实验 propensity、append-only tensor idempotency index、事件到事实 successor 的直接
+  DAG 依赖。release decision 只决定未来 active policy，不能阻塞已经发生的事实行为。
+- RTX 4090 已验证 500K 用户、2M item、16M candidate 的单 event-time 微批；报告见
+  `reports/benchmarks/2026-08-24-digital-twin-v4-world-kernel-4090.json`。
+
+尚未落地：creator/merchant/advertiser supply agents、delayed-event queue、point-in-time
+projection/Joiner、真实多路召回与新模型 ladder。因此当前证据只证明因果边界、行为执行和
+吞吐，不证明推荐质量或业务增量。
+
 ## 1. 决策
 
 当前系统已经证明 GPU tensor execution、多 surface 状态、request trace、连续训练和
@@ -184,22 +204,28 @@ AppEvent
 每个 event 必须包含 event time、ingest time、request/item/creator/order keys、observable
 payload 和 schema version；不能包含 latent utility、true preference 或 counterfactual。
 
-## 6. Two-phase atomic simulation kernel
+## 6. Event-time microbatch simulation kernel
 
-每个 logical tick 必须分两阶段执行：
+每个 logical tick 是同一个 `event_time` 内的 GPU 微批，不是一个 control day、treatment
+day，也不是先跑完一个实验组再跑另一个实验组。每个请求打开后才执行 eligibility 和稳定
+分桶；请求只执行一个事实策略。未分配给实验的流量继续执行当前 active policy，并与实验
+流量共同改变唯一的事实世界。
+
+每个 event-time 微批分两阶段执行：
 
 ```text
 Phase A — read-only snapshot
 1. schedule exogenous events and active sessions
 2. project observable state at watermark
-3. assign orthogonal experiments
-4. serve every cell against the same catalog/market snapshot
-5. world generates potential observable events with independent RNG channels
+3. 对到达请求执行 eligibility 和正交实验稳定分桶
+4. 按 policy 临时聚合 GPU batch，但每个请求只执行一个 policy
+5. 把各 policy 输出恢复为原始 request/event-time 顺序
+6. world generates factual observable events with independent RNG channels
 
 Phase B — atomic commit
-6. merge user, creator, inventory, budget and trend deltas
-7. append events once with idempotency keys
-8. advance watermark and materialize downstream assets
+7. merge同一 event-time 的 user、creator、inventory、budget 和 trend delta
+8. append events once with idempotency keys
+9. advance watermark and materialize downstream assets
 ```
 
 control/treatment 执行顺序、GPU microbatch 大小、user shard 数量和 candidate partition
@@ -210,6 +236,11 @@ control/treatment 执行顺序、GPU microbatch 大小、user shard 数量和 ca
 请求进入 `default_cell`，继续使用 last accepted active policy，并参与真实世界状态与后续
 样本演进，但不进入该实验的 effect estimator。GPU 可以按 cell 串行计算，前提是所有
 cell 读取同一不可变 snapshot，且任何状态都只能在 Phase B 统一提交。
+
+这段“按 cell 计算”只允许存在于无副作用的 inference batching 内部，不能成为模拟时间。
+早到事件必须先提交并影响晚到请求；同一个 `event_time` 内才使用原子合并。延迟转化、退款
+和 Pixel 回传必须在真实 delivery time 重新进入 scheduler，禁止在产生请求时提前提交未来
+事件。
 
 ## 7. Hidden ecosystem / DGP
 
@@ -487,6 +518,9 @@ experiment.mixed_ab
 release.decision
 world.factual_successor
 ```
+
+`world.factual_successor[t+1]` 直接依赖 `events.observable[t]`。A/B estimator 和 release
+decision 是旁路分析与未来 policy authority，不能成为事实世界提交的前置条件。
 
 每个节点声明 input closure、content hash、partition key、watermark 和 owner。CLI 只选择
 scenario/profile，不手写第二套执行顺序。
