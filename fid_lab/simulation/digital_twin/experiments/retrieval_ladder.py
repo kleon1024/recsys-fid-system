@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict, dataclass
 import json
+import math
 from pathlib import Path
 import time
 
@@ -51,6 +52,12 @@ class RetrievalLadderConfig:
     device: str = "cuda"
     seed: int = 809
     auto_promote: bool = True
+    ticks_per_day: int = 8
+    minimum_triggered_users: int = 500
+
+    def __post_init__(self):
+        if self.ticks_per_day <= 0 or self.minimum_triggered_users <= 1:
+            raise ValueError("cadence and sample gate must be positive")
 
 
 def _sync(device: torch.device) -> None:
@@ -96,6 +103,15 @@ def _estimate(
     control: torch.Tensor,
     treatment: torch.Tensor,
 ) -> dict[str, float]:
+    if len(control) < 2 or len(treatment) < 2:
+        return {
+            "control_mean": float("nan"),
+            "treatment_mean": float("nan"),
+            "absolute_delta": float("nan"),
+            "relative_delta": float("nan"),
+            "ci95_low": float("nan"),
+            "ci95_high": float("nan"),
+        }
     control_mean = control.mean()
     treatment_mean = treatment.mean()
     delta = treatment_mean - control_mean
@@ -135,9 +151,17 @@ def _analyze(
     }
 
 
-def _decision(metrics: dict[str, dict[str, float]]) -> tuple[str, str]:
+def _decision(
+    metrics: dict[str, dict[str, float]],
+    sample: dict[str, int],
+    minimum_triggered_users: int,
+) -> tuple[str, str]:
+    if min(sample.values()) < minimum_triggered_users:
+        return "hold", "triggered-user sample is below the preregistered gate"
     dwell = metrics["dwell_seconds"]
     negative = metrics["negative"]
+    if not all(math.isfinite(value) for metric in metrics.values() for value in metric.values()):
+        return "hold", "non-finite experiment metric"
     if dwell["ci95_low"] <= 0.0:
         return "hold", "stay confidence interval crosses zero"
     if negative["ci95_low"] > 0.0:
@@ -179,7 +203,8 @@ def _build_kernel(config: RetrievalLadderConfig):
         countries=12,
         regions_per_country=16,
         environment_seed=config.seed + 2,
-        future_signup_fraction=0.0,
+        ticks_per_day=config.ticks_per_day,
+        future_signup_fraction=0.35,
     ), catalog)
     platform = ReferenceRecommendationPlatform(
         ReferencePlatformConfig(users=config.users, history_length=64),
@@ -252,7 +277,9 @@ def _run_one_review(
         kernel, plan, logical_time, config.experiment_steps, route,
     )
     metrics, sample = _analyze(batches, config.users)
-    decision, reason = _decision(metrics)
+    decision, reason = _decision(
+        metrics, sample, config.minimum_triggered_users,
+    )
     promoted = config.auto_promote and decision == "promote"
     review = {
         "launch_review": f"R-LR-{index:03d}",
@@ -334,6 +361,8 @@ def main() -> None:
     parser.add_argument("--treatment-fraction", type=float, default=0.20)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--seed", type=int, default=809)
+    parser.add_argument("--ticks-per-day", type=int, default=8)
+    parser.add_argument("--minimum-triggered-users", type=int, default=500)
     parser.add_argument("--no-auto-promote", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -347,6 +376,8 @@ def main() -> None:
         device=args.device,
         seed=args.seed,
         auto_promote=not args.no_auto_promote,
+        ticks_per_day=args.ticks_per_day,
+        minimum_triggered_users=args.minimum_triggered_users,
     ))
     payload = json.dumps(result, indent=2, sort_keys=True)
     if args.output:

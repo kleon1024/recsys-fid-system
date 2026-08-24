@@ -43,6 +43,30 @@ trace 已可作为训练输入，但尚未证明 Two-Tower、LR、XGBoost、W&D�
 MMoE 的相对效果。当前证据证明因果边界、候选链路、用户/供给行为、迟到与样本语义；不证明
 模型或业务增量。
 
+### 三大系统与当前 LR readiness
+
+| 系统 | 已实现 | 下一步 | 当前可否开可信 LR |
+|---|---|---|---|
+| User/Supply World | 多 surface 行为、session/return、creator/merchant/ads、延迟事件、唯一事实提交 | 稳态 arrival/calendar、trend/drift shock、held-out family calibration | 召回/规则策略可；长期生态仍需更长 horizon |
+| Recommendation Platform | 八种独立 route、RRF、coarse/fine/sequence/diversity、完整 stage trace | learned artifact adapter、calibration、per-business value、VT/COPP/queues | 召回 route 可；模型结构和跨业务混排暂不可 |
+| Continuous Learning & Experimentation | 三类样本 authority、layer ownership、正交 assignment、单 policy 合成 | streaming sample bus、active/candidate trainer/PS、snapshot gate、跨 checkpoint estimator | assignment 机制可；模型/cadence LR 暂不可 |
+
+核心 Feed 的基础 route 按 `Popular → Geo → Graph → Fresh → Long-tail → ANN` 逐项开 LR；
+Search/Retarget 只在对应触发场景单独实验。每次只改变一个 layer owner，通过者成为下一轮
+active baseline；真实 treatment 事件继续进入后续世界与样本。0 流量、NaN、SRM、低于
+preregistered triggered users 或功效不足必须 fail closed 为 hold。
+
+V4 的可信实验开放顺序：
+
+```text
+retrieval strategy LR
+→ streaming Joiner/sample bus parity
+→ active/candidate continuously trained model LR
+→ daily/hourly/event-stream cadence LR
+→ calibration/VT/COPP/mix LR
+→ Local/Posting/Ads/Commerce ecosystem LR
+```
+
 ## 1. 决策
 
 历史系统已经分别证明 GPU tensor execution、多 surface 状态、request trace、连续训练和
@@ -269,15 +293,18 @@ event watermark 判断，任何未交付事件都不能出现在训练或在线�
 
 ### 6.1 持续更新不变量
 
-推荐业务不存在“训练一次后长期冻结”的正常线上状态。真正差异只是 update cadence：
+推荐业务不存在“训练一次后长期冻结”的正常线上状态。V4 的 TikTok-like Feed 默认采用
+event-stream online training；小时/天级不是 Feed 默认值，只是其他任务的 cadence profile：
 
 ```text
-event-level streaming
-hourly nearline partition
-daily partitioned microbatch
+Feed ranking/retrieval sparse state: event-stream online training
+selected dense checkpoints/index snapshots: bounded atomic publish
+Posting/稀疏交易/内容 encoder: hourly or daily partitioned microbatch
+disaster fallback and controlled comparison: slower cadence profile
 ```
 
-三者都必须由同一持续学习协议表达。每个成熟 sample partition 按不可变 example ID fan-out
+这些 profile 必须由同一持续学习协议表达，但场景默认值不得混淆。每个成熟 sample partition
+按不可变 example ID fan-out
 给当前模型和候选模型；各 trainer 拥有独立 optimizer、PS namespace 和 checkpoint，但消费
 相同的 Joiner authority、watermark 和样本闭包。A/B 期间新旧模型均继续更新，线上请求按
 实验层调用各 lane 最新通过 snapshot gate 的 checkpoint。
@@ -501,8 +528,9 @@ factual mixed traffic
 ```
 
 失败实验产生的真实 treatment traffic 会进入公共事实样本，active/candidate lane 均消费它；
-失败的候选 lane 不能成为 active control，但原 active lane 也不是冻结权重。小时级和天级训练
-使用相同协议，只是 sample partition 和 checkpoint publish cadence 不同。
+失败的候选 lane 不能成为 active control，但原 active lane 也不是冻结权重。Feed 默认持续
+消费 event-stream microbatch；小时级和天级 profile 使用相同协议，只改变 sample partition
+和 checkpoint publish cadence。
 
 ### 11.3 Experiment units
 
@@ -660,6 +688,21 @@ unseen DGP family 仍存在。
 - A/B 影响后续 factual samples、retention 和 supply。
 - 实验跨多个 checkpoint 持续运行；active/candidate 都训练，effect estimator 按 event-time、
   checkpoint 和实验层分层，并审计 shared-training interference。
+- 单独建立 cadence ladder，固定模型、特征、loss 和排序参数，只比较 daily partition、hourly
+  nearline、Feed event-stream、sparse/embedding 与 dense snapshot 发布频率。每条 LR 报告
+  checkpoint age、sample/feature freshness、热点/新内容/新用户 slice、全局 Feed/留存/LT、
+  PS staleness、snapshot reject/fallback 和 GPU/网络成本。
+
+Cadence Launch Reviews：
+
+```text
+L-CADENCE-001  daily microbatch -> hourly nearline
+L-CADENCE-002  hourly nearline -> Feed event-stream training
+L-CADENCE-003  streaming sparse state -> more frequent dense snapshot
+```
+
+Cadence LR 不允许同时更换模型结构或新增特征。收益必须画成 business lift versus model age
+versus resource cost 曲线；稀疏且长延迟任务不得因“streaming”名义提前把未成熟 label 写零。
 
 Acceptance：至少一条 pass、一条 hold、一条 reject 有明确因果诊断；last accepted control、
 rollback、MDE、guardrail 和 interference 均闭合。
