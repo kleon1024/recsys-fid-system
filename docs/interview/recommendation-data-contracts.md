@@ -119,7 +119,7 @@ manifest 和 replay；它是有限规模 reference schema，不冒充真实公�
 | DCNv2 teacher distillation | Implemented, but the legacy scale benchmark is not yet request-graph-native |
 | ESMM probability and loss invariant | Implemented |
 | V4 randomized-exposure calibration and DR/OPE | Implemented; launch remains gated by policy-order and safety confidence |
-| Request-native pairwise/listwise fine tuning | Pending |
+| Request-native pairwise/listwise fine tuning | Planned in v4 P3-08/P3-09; no accepted implementation yet |
 | Hundreds of real proprietary features | Out of scope; the repository uses a bounded public/synthetic schema |
 
 因此标准答案不是“全有”。准确说法是：样本 authority 和闭环诊断已具备，召回 q 与 hard
