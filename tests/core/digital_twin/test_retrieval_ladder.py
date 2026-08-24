@@ -28,6 +28,10 @@ def test_retrieval_launches_change_one_route_and_preserve_factual_world():
         assert review["changed_owner"] == "retrieval routes only"
         assert review["requests"]["control"] > 0
         assert review["requests"]["treatment"] > 0
+        stages = review["treatment_route_stage_candidates"]
+        assert stages["recall"] >= stages["coarse"]
+        assert stages["coarse"] >= stages["fine"]
+        assert stages["fine"] >= stages["exposed"]
     assert result["final_active_routes"] == ["popular"]
 
 

@@ -232,10 +232,15 @@ def _run_review_window(
     logical_time: int,
     steps: int,
     route: str,
-) -> tuple[list[AppEventBatch], dict[str, int], dict[str, int], int]:
+) -> tuple[
+    list[AppEventBatch], dict[str, int], dict[str, int], dict[str, int], int,
+]:
     batches = []
     requests = {"control": 0, "treatment": 0, "default": 0}
     route_hits = {"control": 0, "treatment": 0}
+    stage_candidates = {
+        "recall": 0, "coarse": 0, "fine": 0, "exposed": 0,
+    }
     route_bit = 1 << ROUTE_NAMES.index(route)
     for _ in range(steps):
         tick = kernel.step(logical_time, plan)
@@ -251,7 +256,23 @@ def _run_review_window(
             route_hits[name] += int(
                 (trace.recall_route_id[rows] & route_bit).any(dim=1).sum()
             )
-    return batches, requests, route_hits, logical_time
+        treatment = trace.experiment_cell == 1
+        route_recall = (
+            trace.recall_route_id[treatment] & route_bit
+        ) > 0
+        recall_item = trace.recall_item_id[treatment]
+        stage_candidates["recall"] += int(route_recall.sum())
+        for name, stage_item in (
+            ("coarse", trace.coarse_item_id[treatment]),
+            ("fine", trace.fine_item_id[treatment]),
+            ("exposed", trace.exposed_item_id[treatment]),
+        ):
+            from_route = (
+                (stage_item[:, :, None] == recall_item[:, None, :])
+                & route_recall[:, None, :]
+            ).any(dim=2)
+            stage_candidates[name] += int(from_route.sum())
+    return batches, requests, route_hits, stage_candidates, logical_time
 
 
 def _run_one_review(
@@ -275,8 +296,10 @@ def _run_one_review(
         treatment_fraction=config.treatment_fraction,
         eligible_surfaces=(int(Surface.FEED),),
     )
-    batches, requests, route_hits, logical_time = _run_review_window(
+    batches, requests, route_hits, stage_candidates, logical_time = (
+        _run_review_window(
         kernel, plan, logical_time, config.experiment_steps, route,
+        )
     )
     metrics, sample = _analyze(batches, config.users)
     decision, reason = _decision(
@@ -291,6 +314,11 @@ def _run_one_review(
         "added_route": route,
         "requests": requests,
         "route_request_hits": route_hits,
+        "treatment_route_stage_candidates": stage_candidates,
+        "treatment_route_pass_rate": {
+            stage: count / max(stage_candidates["recall"], 1)
+            for stage, count in stage_candidates.items()
+        },
         "sample": sample,
         "metrics_per_triggered_user": metrics,
         "decision": decision,

@@ -154,6 +154,7 @@ class FaissItemIndex:
             self._indexed_active = active.clone()
         else:
             faiss = importlib.import_module("faiss")
+            faiss.omp_set_num_threads(int(os.environ.get("FID_FAISS_THREADS", "1")))
             new_item = active & ~self._indexed_active
             item = self.catalog.item_id[new_item].detach().cpu().numpy().astype("int64")
             vectors = self.catalog.content_embedding[new_item].detach().cpu().numpy()
