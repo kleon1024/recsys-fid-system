@@ -14,7 +14,14 @@ from fid_lab.feed_posting.models import (
     save_bundle,
     train_models,
 )
+from fid_lab.feed_posting.objectives import (
+    ENTIRE_SPACE_CASCADE,
+    entire_space_targets,
+    task_probabilities,
+)
+from fid_lab.feed_posting.release import build_feed_posting_release
 from fid_lab.feed_posting.scale import run_partitioned_feed_posting_ab
+from fid_lab.feed_posting.serving import request_standardize
 from fid_lab.feed_posting.simulation.features import candidate_features, rule_score
 from fid_lab.feed_posting.simulation.response import simulate_response
 from fid_lab.feed_posting.simulation.retrieval import retrieve
@@ -38,6 +45,66 @@ def _config(requests=600):
 
 
 class FeedPostingTest(unittest.TestCase):
+    def test_v43_release_keeps_immediate_din_rollback(self):
+        root = Path(__file__).resolve().parents[2]
+        release = build_feed_posting_release(
+            root,
+            "reports/launches/2026-08-24-feed-posting-v43-esmm-ladder-400k.json",
+            "artifacts/models/feed-posting-v43-esmm",
+            "reports/launches/2026-08-24-feed-posting-v43-esmm-wide-deep-standardized-ab-10m.json",
+            "reports/launches/2026-08-24-feed-posting-v43-cross-day-mediation.json",
+            "artifacts/releases/historical/simulated-feed-posting-control-v2-din020.json",
+        )
+        self.assertEqual(
+            release["rollback_key"], "trending_i2i_plus_din_blend_0.20"
+        )
+        self.assertEqual(
+            release["active_bundle"]["training_objective"],
+            ENTIRE_SPACE_CASCADE,
+        )
+        self.assertEqual(
+            release["active_bundle"]["model_blend_mode"],
+            "standardized_residual",
+        )
+
+    def test_request_standardization_removes_model_score_scale(self):
+        score = torch.tensor([[1.0, 3.0, 2.0], [8.0, 2.0, 5.0]])
+        self.assertTrue(torch.allclose(
+            request_standardize(score),
+            request_standardize(score * 17.0 + 400.0),
+            atol=1e-5,
+        ))
+
+    def test_entire_space_funnel_preserves_probability_order(self):
+        outputs = {
+            task: torch.zeros(2, 3)
+            for task in ("click", "create", "publish", "quality", "risk")
+        }
+        probabilities = task_probabilities(outputs, ENTIRE_SPACE_CASCADE)
+        self.assertTrue(torch.all(
+            probabilities["publish"] <= probabilities["create"]
+        ))
+        self.assertTrue(torch.all(
+            probabilities["create"] <= probabilities["click"]
+        ))
+        self.assertTrue(torch.allclose(
+            probabilities["publish"], torch.full((2, 3), 0.125)
+        ))
+
+    def test_entire_space_targets_use_impressions_without_leaking_quality(self):
+        labels = torch.zeros(1, 4, 5)
+        masks = torch.zeros_like(labels)
+        masks[:, :3, 0] = 1.0
+        masks[:, 1, 1] = 1.0
+        masks[:, 1, 2] = 1.0
+        masks[:, 1, 3:] = 1.0
+        labels[:, 1, 1:4] = 1.0
+        targets, observed = entire_space_targets(labels, masks)
+        self.assertEqual(int(observed[:, :, 1].sum()), 3)
+        self.assertEqual(int(observed[:, :, 2].sum()), 3)
+        self.assertEqual(int(observed[:, :, 3].sum()), 1)
+        self.assertTrue(torch.equal(targets, labels))
+
     def test_partitioned_creator_ab_uses_fixed_feed_model_artifact(self):
         config = FeedPostingConfig(
             **{

@@ -9,6 +9,7 @@ import torch
 
 from ...feed_posting.contracts import FeedPostingConfig
 from ...feed_posting.models import load_bundle
+from ...feed_posting.serving import blend_score, policy_name
 from ...feed_posting.simulation.features import candidate_features, rule_score
 from ...feed_posting.simulation.response import simulate_response
 from ...feed_posting.simulation.retrieval import retrieve
@@ -24,7 +25,7 @@ class FeedPostingIntervention:
 
     def __init__(
         self, config: FeedPostingConfig, model_path: Path, blend: float,
-        batch_creators: int = 25_000,
+        batch_creators: int = 25_000, blend_mode: str = "legacy_convex",
     ):
         if config.world_version != "creator-neural-feed-supply-v4":
             raise ValueError("ecosystem posting intervention requires creator V4")
@@ -35,8 +36,9 @@ class FeedPostingIntervention:
         self.config = config
         self.bundle = load_bundle(model_path, config.device)
         self.blend = blend
+        self.blend_mode = blend_mode
         self.batch_creators = batch_creators
-        self.name = f"{self.bundle.name}_blend_{blend:.2f}"
+        self.name = policy_name(self.bundle.name, blend, blend_mode)
 
     def _adapt_world(self, world, population, feedback):
         requests = world.requests
@@ -119,7 +121,9 @@ class FeedPostingIntervention:
         learned = self.bundle.score(
             features, semantic, world.requests.feed_sequence
         )
-        scores = baseline + self.blend * (learned - baseline)
+        scores = blend_score(
+            baseline, learned, self.blend, self.blend_mode
+        )
         response = simulate_response(world, candidates, scores)
         response["published"] &= population.active
         response["created"] &= population.active

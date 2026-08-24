@@ -46,6 +46,9 @@ def main():
     )
     parser.add_argument("--posting-model", type=Path)
     parser.add_argument("--posting-blend", type=float, default=0.20)
+    parser.add_argument(
+        "--posting-blend-mode", default="legacy_convex"
+    )
     args = parser.parse_args()
     total_steps = args.days * args.steps_per_day
     feed = TensorFeedConfig(
@@ -95,11 +98,11 @@ def main():
         )
         control_posting = FeedPostingIntervention(
             posting_config, args.posting_model, 0.0,
-            args.posting_batch_creators,
+            args.posting_batch_creators, args.posting_blend_mode,
         )
         treatment_posting = FeedPostingIntervention(
             posting_config, args.posting_model, args.posting_blend,
-            args.posting_batch_creators,
+            args.posting_batch_creators, args.posting_blend_mode,
         )
     report = run_ecosystem(
         feed, ecosystem, control, treatment, world,

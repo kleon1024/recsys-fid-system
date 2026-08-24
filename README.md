@@ -352,6 +352,16 @@ then inserts the new supply into later Feed days: creator posts and Feed stay
 increase, while the three-day LT interval still crosses zero. These are
 synthetic effects, not production claims.
 
+Feed Posting has now advanced again through the
+[V43 entire-space review](docs/launch-reviews/2026-08-24-feed-posting-esmm-v43.md).
+The model serves `pClick`, joint `pCreate`, and joint `pPublish` instead of
+adding incompatible conditional probabilities. ESMM-DIN and raw-score W&D are
+both rejected in adjacent 10m-request reviews. W&D with request-standardized
+20% residual passes against the previous DIN20% control: publish +1.20%, quality
+supply +1.50%, Feed stay +1.66%, and platform LT +1.64%. The previous DIN
+release is the immediate rollback. Cross-day supply gates pass, while
+three-day Feed LT remains directionally positive but not significant.
+
 The [Local Search request ladder](docs/launch-reviews/2026-08-24-local-search-request-ladder.md)
 adds a joint Search/Recommendation journey with Lexical, Geo, learned Two-Tower,
 History, and Retarget routes; position-biased exposure; closed/open-loop orders;

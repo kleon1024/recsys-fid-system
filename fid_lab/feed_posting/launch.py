@@ -226,6 +226,18 @@ def _feed_seed_report(
             "click_label_space": "exposed_candidates",
             "create_label_space": "clicked_candidate",
             "publish_label_space": "created_candidate",
+            "training_objective": (
+                "entire_space_click_create_publish_cascade"
+                if is_v4 else "masked_conditional_multitask"
+            ),
+            "served_create_probability": (
+                "p_click_times_p_create_given_click" if is_v4
+                else "p_create_given_click"
+            ),
+            "served_publish_probability": (
+                "p_click_times_p_create_given_click_times_p_publish_given_create"
+                if is_v4 else "p_publish_given_create"
+            ),
             "quality_is_observed_only_after_publish": is_v4,
             "unmatured_quality_uses_label_mask_zero": is_v4,
             "risk_is_observed_only_after_publish": is_v4,

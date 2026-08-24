@@ -1,5 +1,9 @@
 # L-FEED-POST-V4 — Creator-neural Feed Posting launch progression
 
+Historical note: this DIN20% authority is superseded by
+[L-FEED-POST-V43](2026-08-24-feed-posting-esmm-v43.md). It remains the immediate
+rollback and its original evidence below is unchanged.
+
 Decision: promote `Trending + I2I + 20% DIN residual` as the simulator-only
 Feed Posting authority. The 100% neural replacements are rejected. A 5% dose is
 safe but underpowered. The 20% dose passes the powered creator-randomized A/B.

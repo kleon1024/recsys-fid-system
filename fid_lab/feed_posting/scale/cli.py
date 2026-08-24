@@ -28,6 +28,10 @@ def main():
     parser.add_argument("--control-model", type=Path)
     parser.add_argument("--treatment-blend", type=float, default=1.0)
     parser.add_argument("--control-blend", type=float, default=1.0)
+    parser.add_argument(
+        "--treatment-blend-mode", default="legacy_convex"
+    )
+    parser.add_argument("--control-blend-mode", default="legacy_convex")
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -44,6 +48,7 @@ def main():
         ),
         args.model, args.partition_requests, args.control_model,
         args.treatment_blend, args.control_blend,
+        args.treatment_blend_mode, args.control_blend_mode,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

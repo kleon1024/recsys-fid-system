@@ -124,4 +124,6 @@ authority_modules = [
   "fid_lab.feed_loop.world_model.external.kuairand.contracts",
   "fid_lab.feed_loop.world_model.external.kuairand.kernel",
   "fid_lab.feed_loop.serving.contracts",
+  "fid_lab.feed_posting.objectives",
+  "fid_lab.feed_posting.serving",
 ]

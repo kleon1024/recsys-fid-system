@@ -6,6 +6,8 @@ from hashlib import sha256
 import json
 from pathlib import Path
 
+from .feed_posting_v43 import build_feed_posting_v43_records
+
 
 REQUIRED_CELLS = {
     "main_feed": ("retrieval", "coarse", "fine", "mix", "end_to_end"),
@@ -532,6 +534,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_poi_posting_stage_records(root),
         *_feed_posting_stage_records(root),
         *_feed_posting_v4_records(root),
+        *build_feed_posting_v43_records(root, _load, _record),
         *_local_search_stage_records(root),
         *_poi_detail_stage_records(root),
         *_poi_distribution_v4_records(root),

@@ -12,6 +12,7 @@ from ...launches.statistics import CreatorClusterAccumulator
 from ...value import DEFAULT_LT_CONFIG
 from ..contracts import FeedPostingConfig
 from ..models import load_bundle
+from ..serving import BLEND_MODES, blend_score
 from ..simulation.features import candidate_features, rule_score
 from ..simulation.response import simulate_response
 from ..simulation.retrieval import retrieve
@@ -23,6 +24,7 @@ AB_KEYS = (
     "feed_stay_seconds_per_request", "feed_active_day_per_request",
     "negative_per_request", "selected_content_risk",
     "platform_lt_per_request",
+    "exposure_set_change", "top1_change",
 )
 
 
@@ -47,6 +49,7 @@ def _outcomes(response):
 def _partition_outcomes(
     config, start, count, control_bundle, treatment_bundle,
     control_blend, treatment_blend,
+    control_blend_mode, treatment_blend_mode,
 ):
     world = build_world_partition(config, start, count)
     candidates = retrieve(world, ("trending", "i2i"))
@@ -55,23 +58,49 @@ def _partition_outcomes(
     history = world.requests.feed_sequence
     baseline = rule_score(features)
     control_scores = _blended_score(
-        control_bundle, features, semantic, history, baseline, control_blend
+        control_bundle, features, semantic, history, baseline, control_blend,
+        control_blend_mode,
     )
     treatment_scores = _blended_score(
-        treatment_bundle, features, semantic, history, baseline, treatment_blend
+        treatment_bundle, features, semantic, history, baseline, treatment_blend,
+        treatment_blend_mode,
     )
+    top_k = config.exposed_candidates
+    control_top = torch.topk(control_scores, top_k, dim=1).indices
+    treatment_top = torch.topk(treatment_scores, top_k, dim=1).indices
+    overlap = (
+        control_top[:, :, None] == treatment_top[:, None, :]
+    ).any(2).float().mean(1)
+    changed = 1.0 - overlap
+    top1_changed = (control_top[:, 0] != treatment_top[:, 0]).float()
+    control_values = _outcomes(
+        simulate_response(world, candidates, control_scores)
+    )
+    treatment_values = _outcomes(
+        simulate_response(world, candidates, treatment_scores)
+    )
+    control_values.update({
+        "exposure_set_change": torch.zeros_like(changed),
+        "top1_change": torch.zeros_like(top1_changed),
+    })
+    treatment_values.update({
+        "exposure_set_change": changed,
+        "top1_change": top1_changed,
+    })
     return (
         world.requests.creator_id,
-        _outcomes(simulate_response(world, candidates, control_scores)),
-        _outcomes(simulate_response(world, candidates, treatment_scores)),
+        control_values, treatment_values,
     )
 
 
-def _blended_score(bundle, features, semantic, history, baseline, blend):
+def _blended_score(
+    bundle, features, semantic, history, baseline, blend,
+    mode="legacy_convex",
+):
     if bundle is None:
         return baseline
     learned = bundle.score(features, semantic, history)
-    return baseline + blend * (learned - baseline)
+    return blend_score(baseline, learned, blend, mode)
 
 
 def run_partitioned_feed_posting_ab(
@@ -81,11 +110,17 @@ def run_partitioned_feed_posting_ab(
     control_model_path: Path | None = None,
     treatment_blend: float = 1.0,
     control_blend: float = 1.0,
+    treatment_blend_mode: str = "legacy_convex",
+    control_blend_mode: str = "legacy_convex",
 ):
     if config.world_version != "creator-neural-feed-supply-v4":
         raise ValueError("partitioned Feed posting A/B requires creator V4")
     if not 0.0 <= treatment_blend <= 1.0 or not 0.0 <= control_blend <= 1.0:
         raise ValueError("Feed posting blend must be between zero and one")
+    if treatment_blend_mode not in BLEND_MODES:
+        raise ValueError("unsupported treatment Feed Posting blend mode")
+    if control_blend_mode not in BLEND_MODES:
+        raise ValueError("unsupported control Feed Posting blend mode")
     treatment = load_bundle(model_path, config.device)
     control = (
         None if control_model_path is None
@@ -101,6 +136,7 @@ def run_partitioned_feed_posting_ab(
         creator_ids, control_values, treatment_values = _partition_outcomes(
             config, start, count, control, treatment,
             control_blend, treatment_blend,
+            control_blend_mode, treatment_blend_mode,
         )
         accumulator.add(creator_ids, control_values, treatment_values)
     paired_replay, randomized, observed_creators = accumulator.report()
@@ -120,7 +156,7 @@ def run_partitioned_feed_posting_ab(
     }
     elapsed = perf_counter() - started
     return {
-        "schema": "partitioned-feed-posting-v4-ab-v2",
+        "schema": "partitioned-feed-posting-v4-ab-v3",
         "decision_estimator": "creator_cluster_randomized_ab",
         "control": (
             "trending_i2i_plus_rule" if control is None
@@ -129,6 +165,8 @@ def run_partitioned_feed_posting_ab(
         "treatment": f"trending_i2i_plus_{treatment.name}",
         "control_blend": 0.0 if control is None else control_blend,
         "treatment_blend": treatment_blend,
+        "control_blend_mode": control_blend_mode,
+        "treatment_blend_mode": treatment_blend_mode,
         "requests": config.requests,
         "creators": observed_creators,
         "partition_requests": partition_requests,

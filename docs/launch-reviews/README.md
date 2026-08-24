@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-FEED-POST-V43](2026-08-24-feed-posting-esmm-v43.md) | Entire-space posting funnel, calibrated W&D serving, powered A/B | Promote in simulator; DIN20% is immediate rollback |
 | [L-SERVING-UNIFIED-001](2026-08-24-unified-feed-local-serving.md) | Main Feed + Local typed score composition and Value Tree | Continue powered online experiment; active release unchanged |
 | [L-LOCAL-SEARCH-REQUEST-001](2026-08-24-local-search-request-ladder.md) | Local Search retrieval/fine/end-to-end ladder | Retain Lexical+Geo; promote calibrated Linear |
 | [L-FEED-POST-REQUEST-001](2026-08-24-feed-posting-request-ladder.md) | Feed posting candidate/fine/end-to-end ladder | Promote calibrated Linear; hold new routes and deeper models |

@@ -1,0 +1,257 @@
+{
+  "schema": "partitioned-feed-posting-v4-ab-v3",
+  "decision_estimator": "creator_cluster_randomized_ab",
+  "control": "trending_i2i_plus_din",
+  "treatment": "trending_i2i_plus_wide_deep",
+  "control_blend": 0.2,
+  "treatment_blend": 0.2,
+  "control_blend_mode": "legacy_convex",
+  "treatment_blend_mode": "legacy_convex",
+  "requests": 10000000,
+  "creators": 1250000,
+  "partition_requests": 50000,
+  "model_sha256": "fc08045dd8d799cc456204b823ee0908afb178ad5a20ee9a2b39cba5276d7c83",
+  "control_model_sha256": "69649f456a53421115eed5a1f7bfa7e01572684e4ee0131724fa562e091d21bd",
+  "metrics": {
+    "publish_rate": {
+      "control_mean": 0.02457668992226989,
+      "treatment_mean": 0.024619335255534867,
+      "absolute_effect": 4.264533326497552e-05,
+      "standard_error": 9.847996359341874e-05,
+      "confidence_interval": [
+        -0.00015037539537812521,
+        0.00023566606190807626
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "quality_supply_per_request": {
+      "control_mean": 0.012934909758619256,
+      "treatment_mean": 0.012950887434798877,
+      "absolute_effect": 1.5977676179621328e-05,
+      "standard_error": 5.303312150291074e-05,
+      "confidence_interval": [
+        -8.796724196608372e-05,
+        0.00011992259432532637
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "feed_stay_seconds_per_request": {
+      "control_mean": 0.06319206773289476,
+      "treatment_mean": 0.06328894676126036,
+      "absolute_effect": 9.68790283655957e-05,
+      "standard_error": 0.0002558377621632653,
+      "confidence_interval": [
+        -0.00040456298547440425,
+        0.0005983210422055956
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "feed_active_day_per_request": {
+      "control_mean": 2.4670613084762675e-05,
+      "treatment_mean": 2.4709728079497896e-05,
+      "absolute_effect": 3.9114994735221364e-08,
+      "standard_error": 1.0108497312954584e-07,
+      "confidence_interval": [
+        -1.5901155259868848e-07,
+        2.372415420691312e-07
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "negative_per_request": {
+      "control_mean": 0.0005350840863554158,
+      "treatment_mean": 0.0005265108520070249,
+      "absolute_effect": -8.573234348390846e-06,
+      "standard_error": 1.4573138808563386e-05,
+      "confidence_interval": [
+        -3.713658641317508e-05,
+        1.999011771639339e-05
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "selected_content_risk": {
+      "control_mean": 0.02181305923001771,
+      "treatment_mean": 0.021793263377373376,
+      "absolute_effect": -1.9795852644333145e-05,
+      "standard_error": 6.188891938398363e-06,
+      "confidence_interval": [
+        -3.192608084359394e-05,
+        -7.665624445072353e-06
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "platform_lt_per_request": {
+      "control_mean": 0.0011765542492708806,
+      "treatment_mean": 0.001178364474985661,
+      "absolute_effect": 1.8102257147802926e-06,
+      "standard_error": 4.764342866511738e-06,
+      "confidence_interval": [
+        -7.527886303582713e-06,
+        1.1148337733143299e-05
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "exposure_set_change": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.024716384113389344,
+      "absolute_effect": 0.024716384113389344,
+      "standard_error": 2.7604079374131524e-05,
+      "confidence_interval": [
+        0.024662280117816047,
+        0.02477048810896264
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "top1_change": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.05062508905257664,
+      "absolute_effect": 0.05062508905257664,
+      "standard_error": 0.00012683657930279615,
+      "confidence_interval": [
+        0.05037648935714316,
+        0.050873688748010126
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    }
+  },
+  "paired_counterfactual_replay": {
+    "publish_rate": {
+      "control_mean": 0.024609699999999998,
+      "treatment_mean": 0.024582299999999998,
+      "absolute_effect": -2.74e-05,
+      "relative_effect": -0.0011133821216837265,
+      "standard_error": 1.4006411258264734e-05,
+      "confidence_interval": [
+        -5.4852566066198875e-05,
+        5.2566066198877907e-08
+      ],
+      "p_value": 0.05043606434904114
+    },
+    "quality_supply_per_request": {
+      "control_mean": 0.012953830718418956,
+      "treatment_mean": 0.012929887871837615,
+      "absolute_effect": -2.3942846581339836e-05,
+      "relative_effect": -0.0018483217128424938,
+      "standard_error": 7.577593212126144e-06,
+      "confidence_interval": [
+        -3.879492927710708e-05,
+        -9.090763885572594e-06
+      ],
+      "p_value": 0.0015793700701156443
+    },
+    "feed_stay_seconds_per_request": {
+      "control_mean": 0.06328152569224835,
+      "treatment_mean": 0.06319064942768812,
+      "absolute_effect": -9.087626456022262e-05,
+      "relative_effect": -0.001436063109511193,
+      "standard_error": 3.639373163462339e-05,
+      "confidence_interval": [
+        -0.00016220797856408446,
+        -1.954455055636077e-05
+      ],
+      "p_value": 0.01252381197780189
+    },
+    "feed_active_day_per_request": {
+      "control_mean": 2.4710974291205638e-05,
+      "treatment_mean": 2.4667547521810045e-05,
+      "absolute_effect": -4.342676939559169e-08,
+      "relative_effect": -0.0017573879881800855,
+      "standard_error": 1.448439763438665e-08,
+      "confidence_interval": [
+        -7.181618875898952e-08,
+        -1.5037350032193856e-08
+      ],
+      "p_value": 0.002716010192491895
+    },
+    "negative_per_request": {
+      "control_mean": 0.0005296,
+      "treatment_mean": 0.0005334,
+      "absolute_effect": 3.8e-06,
+      "relative_effect": 0.007175226586102719,
+      "standard_error": 2.034696970065422e-06,
+      "confidence_interval": [
+        -1.8800606132822654e-07,
+        7.788006061328227e-06
+      ],
+      "p_value": 0.06181785063557381
+    },
+    "selected_content_risk": {
+      "control_mean": 0.021812179060864915,
+      "treatment_mean": 0.02179439652887713,
+      "absolute_effect": -1.778253198778257e-05,
+      "relative_effect": -0.0008152570148155313,
+      "standard_error": 2.579580332225086e-07,
+      "confidence_interval": [
+        -1.8288129732898684e-05,
+        -1.7276934242666452e-05
+      ],
+      "p_value": 0.0
+    },
+    "platform_lt_per_request": {
+      "control_mean": 0.0011782470214571803,
+      "treatment_mean": 0.0011765152831371872,
+      "absolute_effect": -1.7317383199930191e-06,
+      "relative_effect": -0.0014697582836673045,
+      "standard_error": 6.782846998309615e-07,
+      "confidence_interval": [
+        -3.0611763316617036e-06,
+        -4.0230030832433463e-07
+      ],
+      "p_value": 0.010676447451379517
+    },
+    "exposure_set_change": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.02473338154876828,
+      "absolute_effect": 0.024733381548768283,
+      "relative_effect": null,
+      "standard_error": 1.9518147833119964e-05,
+      "confidence_interval": [
+        0.024695125979015367,
+        0.0247716371185212
+      ],
+      "p_value": 0.0
+    },
+    "top1_change": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.050749999999999997,
+      "absolute_effect": 0.05075,
+      "relative_effect": null,
+      "standard_error": 8.978639345288995e-05,
+      "confidence_interval": [
+        0.05057401866883234,
+        0.050925981331167665
+      ],
+      "p_value": 0.0
+    }
+  },
+  "gates": {
+    "publish_positive": false,
+    "platform_lt_nonnegative": false,
+    "quality_supply_nonnegative": true,
+    "content_risk_guardrail": true
+  },
+  "decision": "hold_or_reject",
+  "performance": {
+    "seconds": 44.72635181501391,
+    "requests_per_second": 223581.83921102106,
+    "peak_gpu_memory_bytes": 4911752192
+  },
+  "evidence_boundary": "Large-scale paired and creator-randomized A/B in synthetic Feed Posting V4. It is simulator evidence, not production lift."
+}

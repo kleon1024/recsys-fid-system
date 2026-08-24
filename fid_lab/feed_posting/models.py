@@ -7,15 +7,21 @@ from hashlib import sha256
 from math import sqrt
 
 import numpy as np
-from sklearn.metrics import average_precision_score, roc_auc_score
+from sklearn.metrics import average_precision_score, log_loss, roc_auc_score
 import torch
 from torch import nn
-from torch.nn import functional as functional
 
 from ..multitask import MultiGateMixtureOfExperts
 from ..training.common.request_rankers import RequestLinearRanker
 from ..training.common.tensor_ops import gather_candidates
 from .contracts import FEED_POSTING_TASKS
+from .objectives import (
+    ENTIRE_SPACE_CASCADE,
+    MASKED_CONDITIONAL,
+    entire_space_targets,
+    multitask_loss,
+    task_probabilities,
+)
 
 
 class LinearRanker(RequestLinearRanker):
@@ -120,6 +126,19 @@ MODEL_FACTORIES = {
 }
 
 
+def _ece(target, score, bins=20):
+    edges = np.linspace(0.0, 1.0, bins + 1)
+    bucket = np.clip(np.digitize(score, edges[1:-1]), 0, bins - 1)
+    value = 0.0
+    for index in range(bins):
+        selected = bucket == index
+        if selected.any():
+            value += selected.mean() * abs(
+                score[selected].mean() - target[selected].mean()
+            )
+    return float(value)
+
+
 @dataclass(frozen=True)
 class FeedPostingBundle:
     name: str
@@ -128,70 +147,48 @@ class FeedPostingBundle:
     scale: torch.Tensor
     logit_offsets: dict[str, torch.Tensor]
     offline: dict[str, object]
+    objective: str = MASKED_CONDITIONAL
 
-    def score(self, features, candidate_semantic, history, chunk=20_000):
-        values = []
+    def probabilities(
+        self, features, candidate_semantic, history, chunk=20_000,
+    ):
+        values = {task: [] for task in FEED_POSTING_TASKS}
         self.model.eval()
         with torch.inference_mode():
             for start in range(0, len(features), chunk):
-                normalized = (features[start : start + chunk] - self.mean) / self.scale
+                normalized = (
+                    features[start : start + chunk] - self.mean
+                ) / self.scale
                 outputs = self.model(
                     normalized,
                     candidate_semantic[start : start + chunk],
                     history[start : start + chunk],
                 )
-                task_value = (
-                    0.20 * torch.sigmoid(
-                        outputs["click"] - self.logit_offsets["click"]
-                    )
-                    + 0.25 * torch.sigmoid(
-                        outputs["create"] - self.logit_offsets["create"]
-                    )
-                    + 0.40 * torch.sigmoid(
-                        outputs["publish"] - self.logit_offsets["publish"]
-                    )
-                    + 0.15 * torch.sigmoid(
-                        outputs["quality"] - self.logit_offsets["quality"]
-                    )
-                    - 0.25 * torch.sigmoid(
-                        outputs["risk"] - self.logit_offsets["risk"]
-                    )
+                probabilities = task_probabilities(
+                    outputs, self.objective, self.logit_offsets
                 )
-                observable_guardrail = (
-                    0.10 * features[start : start + chunk, :, 5]
-                    - 0.12 * features[start : start + chunk, :, 7]
-                )
-                values.append(task_value + observable_guardrail)
-        return torch.cat(values)
+                for task in FEED_POSTING_TASKS:
+                    values[task].append(probabilities[task])
+        return {task: torch.cat(parts) for task, parts in values.items()}
 
-
-def _loss(outputs, labels, masks, positive_weight):
-    losses = []
-    for index, task in enumerate(FEED_POSTING_TASKS):
-        point = functional.binary_cross_entropy_with_logits(
-            outputs[task], labels[:, :, index],
-            pos_weight=positive_weight[index],
-            reduction="none",
+    def score(self, features, candidate_semantic, history, chunk=20_000):
+        probabilities = self.probabilities(
+            features, candidate_semantic, history, chunk
         )
-        point = (
-            point * masks[:, :, index]
-        ).sum() / masks[:, :, index].sum().clamp_min(1)
-        positive = labels[:, :, index].sum(1) > 0
-        listwise = torch.zeros((), device=labels.device)
-        if positive.any():
-            observed_logits = outputs[task][positive].masked_fill(
-                masks[positive, :, index] == 0, -1e9
-            )
-            listwise = -(
-                labels[positive, :, index]
-                * functional.log_softmax(observed_logits, dim=1)
-            ).sum(1).mean()
-        losses.append(point + 0.25 * listwise)
-    weights = (0.22, 0.18, 0.25, 0.20, 0.15)
-    return sum(weight * loss for weight, loss in zip(weights, losses))
+        task_value = (
+            0.20 * probabilities["click"]
+            + 0.25 * probabilities["create"]
+            + 0.40 * probabilities["publish"]
+            + 0.15 * probabilities["quality"]
+            - 0.25 * probabilities["risk"]
+        )
+        observable_guardrail = 0.10 * features[:, :, 5] - 0.12 * features[:, :, 7]
+        return task_value + observable_guardrail
 
 
-def _offline(model, features, semantic, history, labels, masks, mean, scale):
+def _offline(
+    model, features, semantic, history, labels, masks, mean, scale, objective,
+):
     predictions = {task: [] for task in FEED_POSTING_TASKS}
     model.eval()
     with torch.inference_mode():
@@ -200,8 +197,11 @@ def _offline(model, features, semantic, history, labels, masks, mean, scale):
                 (features[start : start + 20_000] - mean) / scale,
                 semantic[start : start + 20_000], history[start : start + 20_000],
             )
+            probabilities = task_probabilities(outputs, objective)
             for task in FEED_POSTING_TASKS:
-                predictions[task].append(torch.sigmoid(outputs[task]).flatten().cpu())
+                predictions[task].append(probabilities[task].flatten().cpu())
+    if objective == ENTIRE_SPACE_CASCADE:
+        labels, masks = entire_space_targets(labels, masks)
     target = labels.flatten(0, 1).cpu().numpy()
     observed = masks.flatten(0, 1).cpu().numpy()
     report = {}
@@ -228,6 +228,8 @@ def _offline(model, features, semantic, history, labels, masks, mean, scale):
             ),
             "positive_rate": float(task_target.mean()),
             "observed_rows": int(mask.sum()),
+            "log_loss": float(log_loss(task_target, score, labels=[0, 1])),
+            "ece_20": _ece(task_target, score),
         }
     return report
 
@@ -243,6 +245,11 @@ def train_models(
         torch.ones_like(exposed_labels)
         if label_masks is None else gather_candidates(label_masks, top)
     )
+    objective = (
+        ENTIRE_SPACE_CASCADE
+        if config.world_version == "creator-neural-feed-supply-v4"
+        else MASKED_CONDITIONAL
+    )
     first, second = int(config.requests * 0.70), int(config.requests * 0.85)
     mean = exposed_features[:first].flatten(0, 1).mean(0)
     scale = exposed_features[:first].flatten(0, 1).std(0).clamp_min(1e-4)
@@ -251,6 +258,16 @@ def train_models(
     positives = (flat_labels * flat_masks).sum(0).clamp_min(1.0)
     observed = flat_masks.sum(0)
     positive_weight = ((observed - positives) / positives).clamp(max=30.0)
+    if objective == ENTIRE_SPACE_CASCADE:
+        entire_labels, entire_masks = entire_space_targets(
+            exposed_labels[:first], exposed_masks[:first]
+        )
+        flat_labels = entire_labels.flatten(0, 1)
+        flat_masks = entire_masks.flatten(0, 1)
+        positives = (flat_labels * flat_masks).sum(0).clamp_min(1.0)
+        observed = flat_masks.sum(0)
+        positive_weight = ((observed - positives) / positives).clamp(max=30.0)
+        positive_weight[:3] = 1.0
     bundles = {}
     for offset, (name, factory) in enumerate(MODEL_FACTORIES.items()):
         if name not in model_names:
@@ -272,9 +289,9 @@ def train_models(
                     (exposed_features[request] - mean) / scale,
                     exposed_semantic[request], history[request],
                 )
-                loss = _loss(
+                loss = multitask_loss(
                     outputs, exposed_labels[request],
-                    exposed_masks[request], positive_weight,
+                    exposed_masks[request], positive_weight, objective,
                 )
                 optimizer.zero_grad()
                 loss.backward()
@@ -287,17 +304,38 @@ def train_models(
                 model, exposed_features[first:second], exposed_semantic[first:second],
                 history[first:second], exposed_labels[first:second],
                 exposed_masks[first:second], mean, scale,
+                objective,
             ),
+            "objective": objective,
+            "probability_space": {
+                "click": "P(click|impression)",
+                "create": (
+                    "P(click_and_create|impression)"
+                    if objective == ENTIRE_SPACE_CASCADE
+                    else "P(create|click)"
+                ),
+                "publish": (
+                    "P(click_and_create_and_publish|impression)"
+                    if objective == ENTIRE_SPACE_CASCADE
+                    else "P(publish|create)"
+                ),
+                "quality": "P(quality|publish)",
+                "risk": "P(risk|publish)",
+            },
         }
         offsets = {
-            task: positive_weight[index].log()
+            task: (
+                torch.zeros_like(positive_weight[index])
+                if objective == ENTIRE_SPACE_CASCADE and index < 3
+                else positive_weight[index].log()
+            )
             for index, task in enumerate(FEED_POSTING_TASKS)
         }
         offline["weighted_loss_logit_offsets"] = {
             task: float(offset) for task, offset in offsets.items()
         }
         bundles[name] = FeedPostingBundle(
-            name, model, mean, scale, offsets, offline
+            name, model, mean, scale, offsets, offline, objective
         )
     return bundles
 
@@ -305,18 +343,21 @@ def train_models(
 def save_bundle(bundle, path, config):
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({
-        "schema": "feed-posting-model-v2", "name": bundle.name,
+        "schema": "feed-posting-model-v3", "name": bundle.name,
         "feature_width": len(bundle.mean), "semantic_dim": config.semantic_dim,
         "state_dict": bundle.model.state_dict(), "mean": bundle.mean,
         "scale": bundle.scale, "logit_offsets": bundle.logit_offsets,
         "offline": bundle.offline,
+        "objective": bundle.objective,
     }, path)
     return {"artifact_file": path.name, "sha256": sha256(path.read_bytes()).hexdigest()}
 
 
 def load_bundle(path, device="cpu"):
     payload = torch.load(path, map_location=device, weights_only=False)
-    if payload.get("schema") != "feed-posting-model-v2":
+    if payload.get("schema") not in {
+        "feed-posting-model-v2", "feed-posting-model-v3"
+    }:
         raise ValueError("unsupported Feed-posting artifact")
     model = MODEL_FACTORIES[payload["name"]](
         payload["feature_width"], payload["semantic_dim"]
@@ -327,5 +368,5 @@ def load_bundle(path, device="cpu"):
         payload["name"], model, payload["mean"].to(device),
         payload["scale"].to(device),
         {name: value.to(device) for name, value in payload["logit_offsets"].items()},
-        payload["offline"],
+        payload["offline"], payload.get("objective", MASKED_CONDITIONAL),
     )
