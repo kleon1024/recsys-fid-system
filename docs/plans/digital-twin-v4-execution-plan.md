@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (P1 implementation and research audit)
+Updated: 2026-08-25 (P1 accepted; full backlog research and reuse audit)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -108,6 +108,33 @@ Decision: keep the vectorized event kernel, but replace its final behavior
 authority with a calibrated partially observed neural structural causal model
 ensemble. Retain the deterministic formula world only for invariant tests. Add
 LLM agents only as a low-volume semantic and adversarial scenario lane.
+
+### 2.2 Reuse audit and closed design decisions
+
+The repository already contains more implementation than the v4 package exposes.
+The remaining program is therefore an authority migration, not a greenfield
+rewrite. Existing artifacts are reusable only after they consume v4 contracts
+and pass v4 gates; an old synthetic launch report is not evidence for the new
+world.
+
+| Concern | Existing reusable authority | Closed decision |
+|---|---|---|
+| Neural user world | `fid_lab/feed_loop/world_model`: slate attention, censored stay mixture, multi-action heads, latent transition, ensemble and paired structural noise | Adapt these components behind the v4 hidden-world boundary. The current unified challenger is `HOLD`, so it cannot silently replace `world/behavior.py`. |
+| External falsification | KuaiRand standard/random adapters, sequence benchmarks, shadow worlds and DR OPE under `world_model/external/kuairand` | Reuse the content-bound pipeline. KuaiRand constrains Feed behavior only; it does not validate Local, supply, retention, ads or LT exchange. |
+| Continuous learning | `fid_lab/simulation/twin/training`: event window, Joiner, LR/W&D/DeepFM/DCNv2/MMoE trainer, registry and mixed-world loop | Port the trainer and registry behind v4 samples/checkpoints, then delete the legacy execution path. Do not create another trainer stack. |
+| Model implementations | Historical retrieval, coarse, fine, posting and Local ladders | Reuse architecture code only. Every model is retrained on the same v4 factual request dataset, corpus, candidates and budget; historical lifts remain non-authoritative. |
+| Value and LT | `fid_lab/value`, historical mixer and LT reports | Reuse formula/metric code after contract review. Value Tree ranks calibrated primitives; unified LT measures A/B outcomes and is never a supervised target. Historical Local-to-LT conversion is invalid. |
+| Experimentation | v4 atomic assignment/composition plus legacy CUPED launch analysis | Extend one experiment authority with compatibility, power, SRM, interference and shared-training-data checks. Control and treatment never execute sequentially on one factual user world. |
+| Multi-business | Shared v4 identity, catalog, event, experiment and logging contracts | Share infrastructure, not sample spaces or value definitions. Search, Ads, Commerce, Local, Posting and Live each own candidates, labels, model and Launch Review. |
+| Performance | PyTorch tensor kernel, Arrow/Parquet partitions, ClickHouse diagnostics and RTX 4090 evidence | Profile before adding Rust/C++. GPU-vectorize hot numerical paths; use compiled code only for a measured CPU/serialization bottleneck with semantic-parity evidence. |
+
+Research also closes four scope questions. RecFlow justifies retaining candidates
+lost at every funnel stage. Monolith justifies measuring freshness against
+reliability rather than assuming streaming wins. Google overlapping experiments
+justify namespaces but not causal independence; shared training data can create
+symbiosis bias, so data-diverted or corpus-co-diverted designs are required for
+selected model-learning experiments. HSTU, TIGER and OneRec remain challengers
+after the conventional cascade is identified; they are not P2 dependencies.
 
 ## 3. Target system and invariants
 
@@ -433,42 +460,43 @@ in another document is informative only; it cannot override this register.
 | P1-04 | Lifecycle/post observability | Done | P1-02/03 | request-time lifecycle and route admission pass DuckDB/ClickHouse |
 | P1-05 | Creator feedback, retention, deletion and moderation | Done for P1 mechanics | P1-02 | future supply, exit, delete and moderation tests pass; P2 owns calibration |
 | P1-06 | P1 scale and replay review | Done | P1-01..05 | 100K/2M/two-tick 4090 report passes with content hashes |
-| P2-01 | Correlated population generator | Missing in v4; current factors are mostly counter-random marginals | P1 | fit/sample users, creators and content with copula/flow or latent mixture; held-out joint statistics |
-| P2-02 | Arrival, timezone calendar, session and churn process | Partial | P2-01 | request/session/cross-session distributions and hazard calibration by cohort |
-| P2-03 | Exogenous/endogenous trend and concept drift | Partial formula | P2-01 | region/topic/time shocks, recovery and policy-independent counterfactual seed tests |
-| P2-04 | Neural slate response SCM | Missing; current authority is handwritten | P2-01/02 | set/attention slate encoder; censored watch-time and logically masked multi-action decoder |
-| P2-05 | Latent transition, return survival and creator response | Missing learned authority | P2-04 | free-running multi-step calibration, retention and supply trajectories without teacher forcing |
-| P2-06 | Ensemble uncertainty and causal noise | Counter RNG exists; ensemble missing | P2-04/05 | paired potential outcomes, world-member disagreement and support-distance report |
-| P2-07 | External evidence adapters | KuaiRand component exists outside v4 | P2-04 | versioned adapters for randomized, observational and historical A/B summaries; license manifest |
-| P2-08 | DGP validity suite | Research protocol exists, not connected | P2-01..07 | distribution, sequence, intervention, policy-order and anti-exploitation gates all executable |
-| P3-01 | Recall Joiner and corrected negatives | Typed shell only | P1/P2 | in-batch/exposed/mined negatives, false-negative mask, proposal probability and correction tests |
-| P3-02 | Coarse Joiner and teacher lineage | Partial typed example | P1/P2 | factual recall candidates, teacher logits/order, conflict samples and Top-K pass-through |
-| P3-03 | Fine Joiner and cascade labels | Partial typed example | P1/P2 | point-in-time features, sequences, conditional masks, delayed maturity and propensity/DR fields |
-| P3-04 | Streaming sample bus and checkpoint registry | Partition store exists; trainers missing | P3-01..03 | watermark/resume, active/candidate lanes, model-data-feature-index compatibility and fallback |
+| P2-01 | Correlated population generator | v4 uses mostly independent counter marginals; legacy Feed mixture is evidence-bound but not a general population authority | P1 | one versioned user/creator/content latent-mixture fitter and sampler; held-out marginal, joint, tail and cohort statistics |
+| P2-02 | Arrival, timezone calendar, session and churn process | v4 has sessions/return delay; KuaiSim-shaped legacy tasks exist; permanent churn and calibrated cohort hazards are absent | P2-01 | request/session/cross-session distributions, censoring and hazard calibration by country/timezone/lifecycle |
+| P2-03 | Exogenous/endogenous trend and concept drift | Handwritten trend/state mechanics exist; no accepted fitted shock process | P2-01 | region/topic/time shocks, recovery, supply response and policy-independent counterfactual seed tests |
+| P2-04 | Neural slate response SCM | Implemented challenger exists with attention, stay mixture and masked actions; unified release failed distribution/intervention/policy gates and is not wired to v4 | P2-01/02 | v4 adapter plus retrained component artifacts; formula world retained only as deterministic oracle |
+| P2-05 | Latent transition, return survival and creator response | Transition/rollout and separate creator kernels exist; free-running and unified retention validation failed or is missing | P2-04 | free-running multi-step calibration, survival calibration and supply trajectories without teacher forcing |
+| P2-06 | Ensemble uncertainty and causal noise | Three-member ensemble and paired `StructuralNoise` exist; uncertainty gate passed only in the held challenger | P2-04/05 | v4 request-keyed noise, member disagreement, support distance and batch/order invariance |
+| P2-07 | External evidence adapters | KuaiRand randomized/standard, sequence, shadow and DR-OPE pipelines exist outside v4; other task evidence is absent | P2-04 | bridge Feed adapter into v4; retain task-scoped authorization, checksums, propensity/support and license manifest |
+| P2-08 | DGP validity suite | Executable legacy suite correctly rejects the universal challenger; v4 does not invoke it | P2-01..07 | distribution, sequence, intervention, policy-order, leakage and anti-exploitation gates run from the repository gate |
+| P3-01 | Recall Joiner and corrected negatives | v4 emits positives plus exposed/unexposed sampled negatives and proposal probability; no in-batch/mined pool, false-negative mask or loss correction | P1/P2 | in-batch/exposed/mined negatives, false-negative mask, proposal probability and correction tests |
+| P3-02 | Coarse Joiner and teacher lineage | v4 maps factual recall candidates and fine scores; teacher order, conflict sampling and distillation trainer are absent | P1/P2 | factual recall candidates, teacher logits/order, conflict samples and Top-K pass-through |
+| P3-03 | Fine Joiner and cascade labels | v4 has point-in-time context, 17 task masks, maturity, exposure and assignment probabilities; feature manifest, long sequence and DR fields are incomplete | P1/P2 | point-in-time features, short/long sequences, conditional masks, delayed maturity and propensity/DR fields |
+| P3-04 | Streaming sample bus and checkpoint registry | v4 partition/checkpoint tables exist; a complete legacy active/candidate loop exists but consumes legacy traces | P3-01..03 | port registry/trainers to v4; watermark/resume, compatibility, mixed factual feedback and fallback |
 | P3-05 | Feature/FID authority | Legacy implementation exists outside v4 | P3-03/04 | user/item/creator/context/route/counter/sequence/content manifests; collision and parity reports |
-| P3-06 | Retrieval model ladder | Only route-mechanism LR exists | P3-01/04 | fixed corpus/Top-K/latency Popular→Graph→Two-Tower→Multi-interest→generative reviews |
-| P3-07 | Coarse model ladder | Missing on v4 samples | P3-02/04/05 | Rule/LR/XGBoost/W&D/DeepFM/DCNv2/distillation with equal candidate and tuning budgets |
-| P3-08 | Fine model ladder | Missing on v4 samples | P3-03/04/05 | LR/XGBoost→deep crosses→DIN/Transformer→MMoE/PLE/HSTU with multi-task masks |
-| P3-09 | Request-aware evaluation and diagnostics | Partial | P3-06..08 | request GAUC, NDCG, calibration, Top-K delta, slices, latency and paired A/B attribution |
-| P4-01 | Primitive calibration and Value Tree | Missing in v4 | P3 | calibrated probabilities/magnitudes; versioned nonnegative exchange coefficients and sensitivity |
-| P4-02 | Unified LT measurement container | Design only | P4-01 | LT is an A/B outcome container, never a training label; MDE/power and business argue sheet |
-| P4-03 | COPP, dedup, diversity, quotas and multi-queue mixer | Missing | P4-01 | one final-slate owner; exposure dedup; load, displacement and constraint attribution |
-| P4-04 | Cadence ladder | Missing | P3-04 | daily/hourly/streaming comparisons with fixed model/features/traffic and cost/freshness curves |
-| P4-05 | Orthogonal experiment program | Assignment core exists | P3/P4 | compatibility graph, factual traffic allocation, SRM/A-A, feedback-aware analysis and rollback |
+| P3-06 | Retrieval model ladder | Route-mechanism LR and historical Two-Tower/Multi-interest ladders exist; none trains on accepted v4 recall samples | P3-01/04 | fixed corpus/Top-K/latency Popular→Graph→Two-Tower→Multi-interest; Semantic-ID only after dense retrieval baseline |
+| P3-07 | Coarse model ladder | Implementations exist outside v4; no accepted v4 training/serving artifact | P3-02/04/05 | Rule/LR/XGBoost/W&D/DeepFM/DCNv2/distillation with equal candidate, tuning and latency budgets |
+| P3-08 | Fine model ladder | Implementations and historical ladders exist outside v4; no v4 multi-task serving bridge | P3-03/04/05 | LR/XGBoost→deep crosses→DIN/Transformer→MMoE/PLE; HSTU only after long-sequence value is proven |
+| P3-09 | Request-aware evaluation and diagnostics | Metric/report code exists; v4 lacks one common runner and served-rank replay | P3-06..08 | request GAUC, NDCG, calibration, Top-K delta, slices, latency and paired A/B attribution |
+| P4-01 | Primitive calibration and Value Tree | Value-tree code exists outside v4; accepted v4 calibrated predictions do not | P3 | calibrated probabilities/magnitudes; versioned nonnegative exchange coefficients and sensitivity |
+| P4-02 | Unified LT measurement container | Historical metric code exists; production exchange is intentionally unavailable | P4-01 | LT is an A/B outcome container, never a training label; MDE/power and explicit synthetic exchange assumptions |
+| P4-03 | COPP, dedup, diversity, quotas and multi-queue mixer | Historical mixers exist; v4 has no single final-slate policy authority or exposure dedup | P4-01 | one final-slate owner; exposure dedup; load, displacement and constraint attribution |
+| P4-04 | Cadence ladder | Legacy loop proves mechanics only; no controlled daily/hourly/streaming LR | P3-04 | fixed model/features/traffic comparisons with checkpoint-age, cost and freshness curves |
+| P4-05 | Orthogonal experiment program | Atomic layered assignment exists; compatibility, shared-data bias and interference analysis are incomplete | P3/P4 | compatibility graph, factual traffic, SRM/A-A, symbiosis/interference design, feedback-aware analysis and rollback |
 | P5-01 | Search closed loop | Skeleton | P2-P4 | query/reformulation/retrieval/ranking/click/success/post-search Feed and independent LR |
 | P5-02 | Ads closed loop | Skeleton | P2-P4 | auction, pacing, budget interference, click/conversion delay, revenue and Feed guardrails |
 | P5-03 | Commerce closed loop | Skeleton | P2-P4 | shelf→detail→cart→order→payment/refund, stock and transaction value |
 | P5-04 | Local closed/open loops | Skeleton | P2-P4 | POI video/anchor→detail/map/YMAL→order plus Pixel identity/attribution/loss |
 | P5-05 | Posting recommendation | Feed posting identity only | P1-P4 | draft/media→POI/product/topic candidates→select→publish; user- and creator-randomized LR |
 | P5-06 | Live and format-specific loops | Skeleton | P2-P4 | room availability/enter/stay/gift and photo/card/article-specific examination/actions |
-| P6-01 | Scale profiles | P0 100K/2M evidence only | P1-P5 | 100K diagnostic, 1M standard, 10M stress on 4090 with fixed scenario manifests |
+| P6-01 | Scale profiles | P1 accepted at 100K users/2M items/two ticks; historical 1M/10M runs are not v4 end-state evidence | P1-P5 | 100K diagnostic, 1M standard, 10M stress on 4090 with fixed scenario manifests |
 | P6-02 | Tensor/GPU performance | Partial vectorization | P1-P5 | no per-request Python hot loop; numerical and semantic parity across batch sizes |
 | P6-03 | Failure injection and recovery | P0 seeded diagnostics only | P3-P5 | index/checkpoint mismatch, PS shard, feature delay, late labels, timeout, overload and recovery LR |
 | P6-04 | Legacy deletion and public release | Missing | all accepted successors | delete superseded `simulation/twin`, zero orphan authority, clean public scan and reproducible README |
 
 The research disposition for every row is settled. Remaining uncertainty is
 empirical and must be resolved by its acceptance artifact, not another design
-essay. In particular:
+essay. “Settled” means the next falsifiable implementation is known; it does not
+mean a model, coefficient or simulator has already passed. In particular:
 
 - RecSim NG is a reference for decomposition and vectorization, not a dependency
   to transplant wholesale into the PyTorch runtime.
@@ -494,15 +522,16 @@ P1 Feed supply-consumption closure
 
 P1-01 through P1-06 are accepted. The next slice is P2-01 through P2-08; P3
 learned-model work must not begin until the hidden-world validity suite can
-falsify a candidate simulator. P2 execution order is:
+falsify a candidate simulator. P2 is an integration and authority-replacement
+phase, not a second neural-world implementation. Its execution order is:
 
 ```text
-correlated population generator
-→ arrival/session/churn and trend process
-→ neural slate response and censored multi-action decoder
-→ latent transition, survival and creator response
-→ ensemble causal noise and external evidence adapters
-→ distribution/sequence/intervention/policy/anti-exploitation gates
+freeze v4 hidden/observable world-model interface
+→ port correlated population, arrival/session/churn and trend authorities
+→ adapt and retrain existing slate/stay/action/transition ensemble components
+→ bridge task-scoped KuaiRand randomized and observational evidence
+→ run distribution/sequence/intervention/policy/leakage/anti-exploitation gates
+→ delete superseded component path only after accepted parity
 → P2 Launch Review
 ```
 
@@ -579,12 +608,14 @@ transitions are deterministic under replay.
 
 ### P2 — User-world families and calibration
 
-Status: research complete; implementation is the active phase.
+Status: research and reuse audit complete; integration is the active phase.
 
-- Implement arrival/calendar/lifecycle mixtures, sessions, churn, trends,
-  nonlinear response and held-out mechanisms.
-- Add public-data calibration adapters where licenses permit; synthetic-only
-  tasks remain explicitly labelled.
+- Reuse the existing neural-SCM/ensemble and KuaiRand components through a
+  versioned v4 adapter; do not fork their model logic into `digital_twin`.
+- Implement the missing correlated population, calibrated cohort hazards,
+  trend process and task-scoped retention/supply authorities.
+- Make the existing failed gates executable against the v4 runtime. Promotion
+  requires all gates; a failed challenger remains a useful `HOLD` artifact.
 
 Acceptance: calibrated marginal, conditional and sequence statistics pass by
 country/timezone/activity/content/lifecycle slices; leakage probes fail closed.
@@ -593,8 +624,8 @@ country/timezone/activity/content/lifecycle slices; leakage probes fail closed.
 
 Status: contracts partial; trainers and v4 model ladders pending.
 
-- Build partitioned sample bus, three Joiners, active/candidate trainers,
-  checkpoint registry and snapshot validation.
+- Complete the three v4 Joiners, then port the existing active/candidate trainer
+  and registry to consume them; do not create a parallel learning framework.
 - Run retrieval, coarse and fine ladders in dependency order.
 - Add FID collision/version and offline-online replay checks.
 
@@ -657,6 +688,14 @@ clean commit.
 - [Modeling Recommender Ecosystems](https://research.google/pubs/modeling-recommender-ecosystems-research-challenges-at-the-intersection-of-mechanism-design-reinforcement-learning-and-generative-models/)
 - [Provider-aware recommendation ecosystem simulation](https://research.google/pubs/towards-content-provider-aware-recommendation-systems-a-simulation-study-on-interplays-among-user-and-provider-utilities/)
 - [Slate off-policy evaluation](https://arxiv.org/abs/1605.04812)
+- [Top-K off-policy correction](https://research.google/pubs/top-k-off-policy-correction-for-a-reinforce-recommender-system/)
+- [Overlapping experiment infrastructure](https://research.google/pubs/overlapping-experiment-infrastructure-more-better-faster-experimentation/)
+- [Symbiosis bias in recommender A/B tests](https://research.google/pubs/reducing-symbiosis-bias-through-better-ab-tests-of-recommendation-algorithms/)
+- [Sampled softmax for item recommendation](https://arxiv.org/abs/2201.02327)
+- [Cross-batch negatives for Two-Tower](https://arxiv.org/abs/2110.15154)
+- [TIGER Semantic-ID generative retrieval](https://arxiv.org/abs/2305.05065)
+- [Meta Generative Recommenders / HSTU](https://github.com/meta-recsys/generative-recommenders)
+- [OneRec session-wise generative recommendation](https://arxiv.org/abs/2502.18965)
 
 These sources support architecture and evaluation choices. RecInter and LLM
 simulator results justify an optional semantic-agent lane, not replacement of
