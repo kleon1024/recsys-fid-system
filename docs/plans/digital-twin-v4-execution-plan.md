@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (P3-P6 source audit and research disposition refreshed)
+Updated: 2026-08-25 (P3-01..03 accepted; every remaining implementation row researched)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -47,26 +47,20 @@ tree but has not passed the repository acceptance path. `Implemented` means the
 focused contract is executable; it does not mean the phase, benchmark or launch
 review is accepted.
 
-The audited implementation baseline before these plan-only changes is
-`7f35068712c2e949e79b6101b3fcc776735a2d72`; local and `origin/main` agreed and
-the source tree was clean at audit start. P0 was accepted at
-`48769dd49000da64fcd5d28e24e651f0c724adb5`, P1 at `e70334d`, and the Feed scope
-of P2 at `7f35068`. Their reports remain independently bound by content hashes.
-The synchronized P2 source passed 202 historical tests, 57 v4 digital-twin tests
-and the repository acceptance report. Local architecture lint reported zero
-errors plus the pre-existing asset-wrapper warning. One P0 CLI invocation
-materialized a 32-request fixture with all seven Parquet tables, table hashes,
-932 raw-route rows, 612 merged candidate decisions, 525 events, 1,632 task-label
-rows, 625 training examples and one checkpoint. This proves table closure and
-query execution at fixture scale. The scale and seeded-failure claims below are
-separate P0 artifacts; they are not inferred from this small fixture.
+The audited implementation baseline is
+`7ba5c63590d096738a8856a7dbecc5b986497332`; local and `origin/main` agreed and
+the tree was clean. P0, P1, the declared Feed scope of P2 and P3-01..03 have
+content-bound reviews. The synchronized source passes 202 historical tests,
+62 v4 tests and the repository gate. Architecture lint has zero errors and one
+declared warning because this project uses its own `AssetGraph`, not Dagster
+decorators.
 
-The RTX 4090 P0 standard run now covers 100K users, 2M catalog items and
-44,658,634 persisted rows. It completed in 74.34 seconds with 4.25 GiB peak
-CUDA memory, 5.02 GiB process RSS and 124.67 MiB compressed Parquet. Building
-and writing one Arrow table at a time prevented seven simultaneous CPU copies.
-This is the accepted P0 scale strategy; 1M/10M business experiments must use
-time partitions rather than one monolithic analytical snapshot.
+The latest P3 RTX 4090 run covers 100K users, 1M items, two ticks and 191,710
+factual requests at cascade width 96→48→16→8. It records 1,286,014 historical
+events across 19 event types, uses 6.217 GiB peak CUDA memory, and completes the
+cascade/Joiner in 91.389/0.086 seconds. The accepted P0 100K-user/2M-item run
+separately proves 44.7M-row partitioned observability. These are scale and
+contract results, not learned-model or A/B lift claims.
 
 | Capability | Current evidence | Status | Blocking gap |
 |---|---|---|---|
@@ -74,47 +68,26 @@ time partitions rather than one monolithic analytical snapshot.
 | Atomic factual A/B world | One request receives one factual policy and commits once | Implemented | Longer-horizon interference tests remain incomplete |
 | Delayed outcomes | Order/payment/refund/Pixel occurrence and ingestion time are distinct | Implemented | Production-like loss/duplicate/orphan distributions need calibration |
 | Point-in-time projection | Delivered events, lifecycle transitions and removals replay across content-bound partitions | Implemented | P3 trainer parity remains |
-| Request cascade trace | Raw routes, request-time lifecycle, post lineage and every cascade stage are retained | Implemented | P3 proposal propensity and learned artifacts remain |
-| Feed retrieval mechanics | Six lifecycle-owned Feed routes plus six separately owned business routes | Implemented | Learned retrieval starts only after P2 |
+| Request cascade trace | Raw routes, request-time lifecycle, post lineage and every cascade stage are retained | Implemented | Learned artifacts remain |
+| Feed retrieval mechanics | Six lifecycle-owned Feed routes plus six separately owned business routes | Implemented | Learned retrieval starts after P3-04/05 |
 | Layered experiments | Ownership, independent assignment and composed factual policy | Implemented | Learned artifacts and continuous trainers are not connected |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
 | Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
 | Behavior realism | v23 passes external, held-out-family, support, anti-exploitation and 100K semantic-shadow gates | Accepted for Feed | Retention, creator supply and every business response remain masked |
 | Full-chain analytical store | Seven partitioned Parquet tables plus P1 lifecycle/post fields; DuckDB and ClickHouse agree | Implemented | P3 trainer consumption remains |
-| Recall/coarse/fine sample authorities | Typed request-level examples and partitioned replay authority exist | Partial | Recall negatives, propensity correction and trainer consumption remain |
+| Recall/coarse/fine sample authorities | Source-corrected recall, teacher-aware coarse and PIT fine examples replay from one request authority | Accepted for P3-01..03 | Trainer consumption remains P3-04 |
 | Continuous learning | Historical demos exist outside v4 | Not connected | No active/candidate streaming lanes, checkpoints or snapshot gates |
 | Model ladder | Historical synthetic ladders exist | Invalid for v4 launch | Must train on the same factual request dataset and serving budget |
-| Search/Ads/Commerce/Live/Local | Surface actions and catalog types exist | Skeleton | Each lacks a closed business workflow and independent launch contract |
+| Search/Ads/Commerce/Live/Local/Posting | Surface actions and catalog types exist | Skeleton | Each lacks a closed business workflow and independent launch contract |
 
-The v23 NeuralSCM is accepted for manual promotion as the v4 Feed response
-authority. Its canonical
-KuaiRand bridge excludes the prior-only period from training, removes future
-popularity leakage and uses the same semantic feature-contract hash as v4. The
-user-disjoint randomized path separates adaptation, calibration and untouched
-evaluation users. The strongest external-only artifact still passes Feed
-distribution, sequence and supported randomized-policy gates, but cannot claim
-native coverage for features absent from KuaiRand.
-
-The structural bridge uses the real six-route cascade, independent platform
-and environment seeds, family 1/2 training, family 3 validation and untouched
-family 9 testing. Its 300K temporal dataset spans the full simulated horizon;
-the full build took 13m08s on RTX 4090 and a reused held-out-family rebuild took
-3m24s. The frozen v23 weight lineage passes external distribution, free-running
-sequence, uncertainty, boundary, held-out structural magnitude and DR-OPE gates.
-The OPE report has six supported policy pairs, Kendall tau `0.666667` and passes
-its value-calibration gate. Independent training processes produced the exact
-same weights SHA-256, and semantic replay now passes exact lineage, <=1 ms stay
-quantization drift and bounded floating-point differences.
-
-v23 preserves the external source and structural families 1/2 as distinct support
-components. Its 100K-user, one-million-item, eight-tick shadow covers `98.9835%`
-of 412,006 Feed requests and passes all seven replay gates. Streaming evidence and
-4,096-request neural micro-batches bound peak RSS at 2.46 GiB. Event schema v5
-replaces the collision-prone linear ID hash with an injective request/type/ordinal
-encoding. Formula remains the dependency-free invariant oracle; P3 may explicitly
-load the accepted neural artifact. No route or business-model LR is implied by
-this simulator-authority promotion.
+The accepted v23 NeuralSCM is the declared Feed response authority only. Its
+KuaiRand path is user-disjoint, PIT-safe and support-gated; its structural path
+uses real cascade requests, independent seeds and held-out world families. The
+100K-user/1M-item/eight-tick shadow covers `98.9835%` of 412,006 requests and
+passes replay gates with 2.46 GiB peak RSS. Retention, creator supply, Local,
+Ads, Commerce and LT remain masked. No route or business-model LR follows from
+this promotion.
 
 ## 2.1 Research disposition
 
@@ -166,7 +139,8 @@ after the conventional cascade is identified; they are not P2 dependencies.
 
 ### 2.3 Backlog research closure
 
-Every backlog row now has a selected implementation path. “Research closed” means
+Every backlog row now has a selected implementation path. Twenty-one implementation
+rows remain: P3-04..09, P4-01..05, P5-01..06 and P6-01..04. “Research closed” means
 the next falsifiable implementation and rejection boundary are known. It does not
 mean the implementation exists, the chosen model will win, or a phase is accepted.
 The remaining work is empirical execution against section 9.1.
@@ -200,6 +174,16 @@ plan files explicitly defer here and cannot create a second backlog.
 | Orchestration | The repository already has a logical asset graph and content-addressed partitions. A second scheduler does not improve semantics by itself. | Extend the existing graph with v4 sample, training, evaluation and publication assets. Add Dagster or another external scheduler only when cross-process retries, backfills or remote execution become a measured operational requirement. | Introducing a parallel DAG authority while the v4 learning path is still disconnected. |
 | P6 scale/runtime | RecSim NG demonstrates accelerated probabilistic simulation; the current P1 run shows Arrow partitioning and GPU tensorization are viable. | Keep PyTorch/Arrow/Parquet as the authority, profile at 100K/1M/10M, tensorize measured hot paths, and introduce Rust/C++ only for a proven CPU or serialization bottleneck with parity. | Rewriting the simulator in Rust/C++ before a profile or using item/user count as the only realism measure. |
 | P6 reliability/release | Large recommendation fleets require a model registry plus per-head calibration/discrimination health; feature freshness, snapshot quality and index compatibility can fail while requests return 200. | Seed index/model mismatch, stale features, bad snapshot, PS loss, delayed labels, timeout, overload and fallback. Accept recovery only when lineage, per-head quality and business metrics return to baseline; then delete legacy paths after content-bound parity. | Calling availability model health, preserving two runtime authorities indefinitely, or accepting rollback without replay evidence. |
+
+### 2.4 Execution stack disposition
+
+| Boundary | Decision now | Trigger for another mature wheel |
+|---|---|---|
+| Event/sample storage | Keep PyArrow/Parquet manifests and DuckDB pushdown; they already provide partitioned, lazy, content-bound replay. | Add Flink only when a replayable external source, cross-process state and transactional/idempotent sink must recover together. |
+| Feature store | Compile one repository-owned PIT feature/FID manifest to online tensors and replay tensors. | Add Feast only when a real online store and multiple serving consumers exist; its PIT semantics are adopted now, not a second registry. |
+| Training/ANN | Keep PyTorch, XGBoost and FAISS on the 4090. | Add TorchRec only when sparse tables no longer fit one GPU or measured sharding/communication is required; add Ray only for proven multi-process or multi-node scheduling need. |
+| Registry/tracking | Keep immutable artifact manifests plus active/candidate/fallback aliases in the v4 registry. | Add MLflow only when a persistent multi-user service/UI is required; aliases cannot replace feature/FID/index/corpus compatibility gates. |
+| Orchestration | Extend the existing logical `AssetGraph`; one asset declares inputs, outputs, resume and evidence. | Add Dagster only for remote execution, operational backfills or cross-process retries; never keep two DAG authorities. |
 
 The causal acceptance contract is therefore changed from one ambiguous gate into
 two independent claims:
@@ -554,8 +538,8 @@ in another document is informative only; it cannot override this register.
 | P3-01 | `samples/recall`: source-aware negatives and correction contract | Done for sample authority; P3-04 must consume the stored expected count | P1/P2 | four sources retain q/log-q, expected count, observed status and false-negative mask; exhaustive-softmax and peer-frequency tests pass; 100K scale uses O(requests × draws) memory |
 | P3-02 | `samples/coarse`: teacher/order/conflict authority | Done for lineage contract; Top-K model pass-through remains P3-07 | P1/P2 | every factual candidate retains recall/coarse score/rank, fine teacher score/rank and conflict mask; hard-label observation boundary and exact replay tests pass |
 | P3-03 | `samples/fine`: PIT cascade/sequence authority | Done for sample contract; identified DR remains P3-09 | P1/P2 | applicability/maturity/time are separate; heterogeneous long history and declared short suffix are PIT; joint logging probability and support persist in full-flow schema v3 |
-| P3-04 | `learning`: port legacy active/candidate trainer and registry | Reusable legacy implementation only; v4 partitions/checkpoint rows exist | P3-01..03 | both lanes idempotently consume one event-time stream with watermark/resume; request logs bind served checkpoint; incompatible manifest/index rejects before scoring; snapshot reject, fallback and restart preserve lineage |
-| P3-05 | `platform/features`: compile one feature/FID manifest to train and serve | Split authority: NeuralSCM semantic contract is v4; general FID path is legacy | P3-03/04 | user/item/creator/context/route/counter/sequence/content fields declare PIT source, transform, namespace, hash/bucket/vocabulary, default and TTL; collision/drift reports exist; fixture online-vs-replay tensors are byte-identical |
+| P3-04 | `learning`: port one persistent sample bus, active/candidate lanes and registry | Reusable legacy trainer only; v4 partitions/checkpoint rows exist | P3-01..03 plus joint P3-05 slice | both lanes idempotently consume one event-time stream with independent cursors; request logs bind numeric served checkpoint; artifact binds data/schema/feature/FID/code/index/corpus hashes; reject, fallback and restart preserve lineage |
+| P3-05 | `platform/features`: compile one feature/FID manifest to train and serve | Split authority: NeuralSCM semantic contract is v4; general FID path is legacy | P3-03 | user/item/creator/context/route/counter/sequence/content fields declare PIT source, transform, namespace, hash/bucket/vocabulary, default and TTL; exact served dense/FID tensors persist in the request sample; collision/drift reports exist; online-vs-replay bytes match |
 | P3-06 | `platform/retrieval` + `learning/retrieval`: migrate retrieval ladder | Historical Two-Tower/Multi-interest code; no v4-trained artifact | P3-01/04/05 | one frozen corpus/query set/Top-K/quota/latency budget compares lifecycle rules, Graph, Two-Tower and Multi-interest; report marginal unique recall, downstream fixed-ranker delta and cost; Semantic-ID waits for an accepted dense baseline |
 | P3-07 | `platform/ranking/coarse`: migrate equal-budget ladder and distillation | Historical implementations only | P3-02/04/05 | Rule/LR/XGBoost/W&D/DeepFM/DCNv2 share factual candidates, feature manifest and tuning budget; distillation preserves teacher Top-K; selection reports effect, calibration, latency, memory and failure slices |
 | P3-08 | `platform/ranking/fine`: migrate multi-task and sequence ladder | Historical implementations only; request-native pairwise/listwise path absent | P3-03/04/05 | pointwise baseline then pairwise/listwise LR/XGBoost/deep-cross/DIN/Transformer/MMoE/PLE on identical requests; per-head calibration, gradient conflict, gate/expert health and latency decide; HSTU requires measured long-sequence gain |
@@ -603,19 +587,25 @@ P1 Feed supply-consumption closure
           → P6 scale, failures and legacy deletion
 ```
 
-P1, the declared Feed scope of P2 and the P3-01..03 sample-contract slice are
-accepted. The next slice is P3-04/05, followed by P3-06..09. It must consume the
-accepted request/event/world/sample authorities rather than revive the legacy
-twin path. Its execution order is:
+P1, the declared Feed scope of P2 and P3-01..03 are accepted. P3-04/05 is one
+atomic migration slice because a checkpoint cannot be valid before its serving
+feature contract exists. It must consume accepted v4 authorities rather than
+revive the legacy twin path. Its execution order is:
 
 ```text
 accepted RecallExample, CoarseRankExample and FineRankExample authorities
-→ port one active/candidate streaming trainer and checkpoint registry
-→ freeze feature/FID and online-replay manifests
+→ P3-04a: persistent sample bus, independent lane cursors and registry shell
+→ P3-05: platform computes and logs exact dense/FID tensors from one manifest
+→ P3-04b: trainer consumes those tensors, masks and sampling corrections
+→ validate snapshot compatibility, served checkpoint, reject/fallback and restart
 → run fixed-budget retrieval, coarse and fine model ladders
 → diagnose pass, hold and reject from one request-aware evaluator
 → P3 Launch Review
 ```
+
+The P3-04/05 infrastructure probe may train LR only to prove end-to-end update
+and serving parity. It is not a model launch. LR/XGBoost/deep model comparisons
+belong exclusively to P3-06..09, after the same sample and feature bytes are frozen.
 
 Accepted P1 command set:
 
