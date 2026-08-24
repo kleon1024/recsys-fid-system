@@ -11,6 +11,7 @@ from ...feed_posting.contracts import FeedPostingConfig
 from ..scale.tensor_engine import TensorFeedConfig
 from ..scale.tensor_runtime.behavior.external import ExternalSequenceMixtureWorld
 from ..scale.tensor_runtime.contracts import EXTERNAL_MIXTURE_FEED_VERSION
+from ..scale.tensor_runtime.contracts import LOCAL_NEURAL_SIGNAL_VERSION
 from ..tensor_policies import PERSONALIZED, PERSONALIZED_SUPPLY, POPULAR
 from .contracts import EcosystemConfig
 from .posting import FeedPostingIntervention
@@ -58,6 +59,7 @@ def main():
         catalog_creators=args.creators,
         batch_users=args.batch_users,
         signal_version=EXTERNAL_MIXTURE_FEED_VERSION,
+        local_signal_version=LOCAL_NEURAL_SIGNAL_VERSION,
         device=args.device, max_sessions=max(args.days * 2, 4),
     )
     objective = (

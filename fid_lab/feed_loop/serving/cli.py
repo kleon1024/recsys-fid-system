@@ -11,6 +11,7 @@ from ..scale.model_ladder.v4.serving import TensorV4RequestPolicy
 from ..scale.tensor_engine import TensorFeedConfig
 from ..scale.tensor_runtime.behavior.external import ExternalSequenceMixtureWorld
 from ..scale.tensor_runtime.contracts import EXTERNAL_MIXTURE_FEED_VERSION
+from ..scale.tensor_runtime.contracts import LOCAL_NEURAL_SIGNAL_VERSION
 from .contracts import CompositeValueTreeConfig
 from .launch import run_composite_serving_launch
 
@@ -23,22 +24,30 @@ def main():
     parser.add_argument("--feed-report", type=Path, required=True)
     parser.add_argument("--feed-artifact-dir", type=Path, required=True)
     parser.add_argument("--local-artifact", type=Path, required=True)
+    parser.add_argument("--control-local-artifact", type=Path)
+    parser.add_argument("--coarse-local-artifact", type=Path)
     parser.add_argument("--users", type=int, default=100_000)
     parser.add_argument("--steps", type=int, default=8)
+    parser.add_argument("--warmup-steps", type=int, default=4)
     parser.add_argument("--batch-users", type=int, default=25_000)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--feed-inference-chunk", type=int, default=2_048)
+    parser.add_argument("--experiment-salt", type=int, default=0x1B873593)
     parser.add_argument("--local-coarse-weight", type=float, default=0.025)
     parser.add_argument("--local-fine-weight", type=float, default=0.025)
     parser.add_argument("--local-coarse-keep", type=int, default=20)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     config = TensorFeedConfig(
-        users=args.users, steps=args.steps, batch_users=args.batch_users,
+        users=args.users, steps=args.steps + args.warmup_steps,
+        batch_users=args.batch_users,
         candidates=12, route_candidates=16, route_oversample=4,
         merged_candidates=64, audit_candidates=32,
         catalog_items=200_000, catalog_creators=25_000,
         signal_version=EXTERNAL_MIXTURE_FEED_VERSION,
+        local_signal_version=LOCAL_NEURAL_SIGNAL_VERSION,
         device=args.device, retain_paired_user_metrics=True,
+        experiment_salt=args.experiment_salt,
     )
     world = ExternalSequenceMixtureWorld(
         args.behavior_artifact, args.calibration_report,
@@ -47,15 +56,27 @@ def main():
     feed = TensorV4RequestPolicy(
         "mmoe", args.feed_report, args.feed_artifact_dir,
         args.device, blend_weight=0.01, base_tolerance=0.05,
+        inference_chunk=args.feed_inference_chunk,
     )
     local = load_bundle(args.local_artifact, args.device)
+    control_local = (
+        None if args.control_local_artifact is None
+        else load_bundle(args.control_local_artifact, args.device)
+    )
+    coarse_local = (
+        None if args.coarse_local_artifact is None
+        else load_bundle(args.coarse_local_artifact, args.device)
+    )
     value_config = CompositeValueTreeConfig(
         local_coarse_weight=args.local_coarse_weight,
         local_fine_weight=args.local_fine_weight,
         local_coarse_keep=args.local_coarse_keep,
     )
     report = run_composite_serving_launch(
-        config, feed, local, world, value_config
+        config, feed, local, world, value_config,
+        control_local_bundle=control_local,
+        treatment_coarse_local_bundle=coarse_local,
+        warmup_steps=args.warmup_steps,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

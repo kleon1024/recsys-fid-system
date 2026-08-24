@@ -10,6 +10,8 @@ from ....simulation.contracts import DEFAULT_SEARCH_EVENT_RATE
 DEFAULT_GPU_BATCH_USERS = 200_000
 CANDIDATE_GRAPH_VERSION = "multiroute-rrf-cascade-v3"
 EXTERNAL_MIXTURE_FEED_VERSION = "external-sequence-mixture-v4"
+LEGACY_LOCAL_SIGNAL_VERSION = "legacy-local-v1"
+LOCAL_NEURAL_SIGNAL_VERSION = "kuairand-local-neural-v4"
 
 
 @dataclass(frozen=True)
@@ -31,9 +33,11 @@ class TensorFeedConfig:
     seed: int = 20260823
     catalog_seed: int | None = None
     retain_paired_user_metrics: bool = False
+    experiment_salt: int = 0x1B873593
     device: str = "cuda:0"
     count_inactive_play_bug: bool = False
     signal_version: str = "industrial-cross-sequence-v1"
+    local_signal_version: str | None = None
     max_sessions: int = 4
     requests_per_session: int = 8
     search_event_rate: float = DEFAULT_SEARCH_EVENT_RATE
@@ -53,6 +57,22 @@ class TensorFeedConfig:
             EXTERNAL_MIXTURE_FEED_VERSION,
         }:
             raise ValueError(f"unsupported signal version: {self.signal_version}")
+        if self.local_signal_version is None:
+            object.__setattr__(
+                self,
+                "local_signal_version",
+                (
+                    LOCAL_NEURAL_SIGNAL_VERSION
+                    if self.signal_version == LOCAL_NEURAL_SIGNAL_VERSION
+                    else LEGACY_LOCAL_SIGNAL_VERSION
+                ),
+            )
+        if self.local_signal_version not in {
+            LEGACY_LOCAL_SIGNAL_VERSION, LOCAL_NEURAL_SIGNAL_VERSION,
+        }:
+            raise ValueError(
+                f"unsupported Local signal version: {self.local_signal_version}"
+            )
         if not 0.0 <= self.search_event_rate <= 1.0:
             raise ValueError("search event rate must be in [0, 1]")
         if self.search_ttl_requests < 1:
@@ -71,3 +91,5 @@ class TensorFeedConfig:
             raise ValueError("trace sampling limits are invalid")
         if self.behavior_sequence_length < 8:
             raise ValueError("Feed behavior sequence must contain at least eight events")
+        if self.experiment_salt < 0:
+            raise ValueError("experiment salt must be nonnegative")

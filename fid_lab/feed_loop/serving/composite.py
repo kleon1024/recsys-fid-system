@@ -20,9 +20,12 @@ class CompositeTensorPolicy:
     realtime_interest_rate = PERSONALIZED.realtime_interest_rate
     multi_queue = False
 
-    def __init__(self, feed_policy, local_bundle, config=None):
+    def __init__(
+        self, feed_policy, local_bundle, config=None, coarse_local_bundle=None,
+    ):
         self.feed_policy = feed_policy
         self.local_bundle = local_bundle
+        self.coarse_local_bundle = coarse_local_bundle or local_bundle
         self.config = config or CompositeValueTreeConfig()
         if feed_policy.blend_weight != self.config.feed_residual_weight:
             raise ValueError("composite tree and Feed release blend differ")
@@ -30,7 +33,8 @@ class CompositeTensorPolicy:
             raise ValueError("composite tree and Feed release guard differ")
         self.value_tree = CompositeValueTree(feed_policy, self.config)
         self.name = (
-            f"unified_{feed_policy.name}_{local_bundle.name}_local_"
+            f"unified_{feed_policy.name}_{self.coarse_local_bundle.name}_coarse_"
+            f"{local_bundle.name}_fine_local_"
             f"{self.config.local_fine_weight:g}"
         )
 
@@ -38,7 +42,8 @@ class CompositeTensorPolicy:
         return {
             "name": self.name,
             "feed_model": self.feed_policy.describe(),
-            "local_model": self.local_bundle.name,
+            "local_coarse_model": self.coarse_local_bundle.name,
+            "local_fine_model": self.local_bundle.name,
             "value_tree": self.config.manifest(),
         }
 
@@ -56,10 +61,19 @@ class CompositeTensorPolicy:
             {"ad": candidates["ad_value"], "live": candidates["live_value"]},
             {
                 "feed": self.feed_policy.model_name,
-                "local": self.local_bundle.name,
+                "local_fine": self.local_bundle.name,
+                "local_coarse": self.coarse_local_bundle.name,
                 "value_tree": self.config.version,
             },
         )
+
+    def _local_probabilities(self, bundle, features, shape):
+        return {
+            name: value.reshape(shape)
+            for name, value in bundle.probabilities(
+                features.flatten(0, 1)
+            ).items()
+        }
 
     @torch.inference_mode()
     def select_candidate(self, user_ids, state, candidates, device, step, config):
@@ -75,8 +89,16 @@ class CompositeTensorPolicy:
         score, components = self.value_tree.evaluate(bundle, features, candidates)
         coarse_base, _, _ = coarse_rank(PERSONALIZED, affinity, candidates)
         keep = min(self.config.local_coarse_keep, coarse_base.shape[1])
+        coarse_local = components["local_model_value"]
+        if self.coarse_local_bundle is not self.local_bundle:
+            coarse_local = self.value_tree.local_value(
+                self._local_probabilities(
+                    self.coarse_local_bundle, features, features.shape[:2]
+                ),
+                candidates,
+            )
         coarse = coarse_base + self.config.local_coarse_weight * request_standardize(
-            components["local_model_value"]
+            coarse_local
         )
         indices = torch.topk(coarse, keep, dim=1).indices
         coarse_mask = torch.zeros_like(coarse, dtype=torch.bool)
@@ -95,5 +117,6 @@ class CompositeTensorPolicy:
         selected.update({
             name: value[batch, choice] for name, value in components.items()
         })
+        selected["local_coarse_model_value"] = coarse_local[batch, choice]
         selected["score_bundle_versions"] = bundle.model_versions
         return selected

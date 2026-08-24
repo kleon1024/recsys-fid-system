@@ -10,7 +10,10 @@ from pathlib import Path
 from ..model_ladder.v4.serving import TensorV4RequestPolicy
 from ..tensor_engine import TensorFeedConfig, combine_tensor_ab, run_tensor_feed
 from ..tensor_runtime.behavior.external import ExternalSequenceMixtureWorld
-from ..tensor_runtime.contracts import EXTERNAL_MIXTURE_FEED_VERSION
+from ..tensor_runtime.contracts import (
+    EXTERNAL_MIXTURE_FEED_VERSION,
+    LOCAL_NEURAL_SIGNAL_VERSION,
+)
 from ...tensor_policies import PERSONALIZED
 
 
@@ -77,6 +80,7 @@ def main():
         route_candidates=16, route_oversample=4, merged_candidates=64,
         audit_candidates=32, catalog_items=200_000, catalog_creators=25_000,
         batch_users=args.batch_users, signal_version=EXTERNAL_MIXTURE_FEED_VERSION,
+        local_signal_version=LOCAL_NEURAL_SIGNAL_VERSION,
         behavior_sequence_length=64, device=args.device,
         retain_paired_user_metrics=True,
     )

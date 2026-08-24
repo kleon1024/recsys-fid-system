@@ -70,3 +70,17 @@ class CompositeValueTreeConfig:
 
     def manifest(self) -> dict[str, object]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class CompositeLaunchThresholds:
+    shadow_lt_noninferiority: float = -0.001
+    shadow_stay_noninferiority: float = -0.02
+    shadow_negative_upper: float = 0.0002
+    shadow_coarse_recall_noninferiority: float = -0.00005
+    online_lt_noninferiority: float = -0.01
+    online_stay_noninferiority: float = -0.02
+    online_negative_upper: float = 0.0002
+
+    def manifest(self):
+        return asdict(self)

@@ -40,6 +40,7 @@ class TensorV4RequestPolicy:
         device="cuda:0",
         blend_weight: float | None = None,
         base_tolerance: float = 0.05,
+        inference_chunk: int = 2_048,
     ) -> None:
         if model_name not in REQUEST_MODELS:
             raise ValueError(f"unsupported V4 request model: {model_name}")
@@ -57,6 +58,9 @@ class TensorV4RequestPolicy:
         )
         self.blend_weight = blend_weight
         self.base_tolerance = base_tolerance
+        if inference_chunk < 1:
+            raise ValueError("V4 serving inference chunk must be positive")
+        self.inference_chunk = inference_chunk
         self.behavior_world = report["behavior_world"]
         self.dataset_manifest_sha256 = report["dataset_manifest_sha256"]
         self.artifact = artifact
@@ -76,6 +80,7 @@ class TensorV4RequestPolicy:
             "behavior_world": self.behavior_world,
             "blend_weight": self.blend_weight,
             "base_tolerance": self.base_tolerance,
+            "inference_chunk": self.inference_chunk,
             "value_tree": self.value_config.manifest(),
         }
 
@@ -102,7 +107,8 @@ class TensorV4RequestPolicy:
         ).reshape(features.shape[:2])
 
     @torch.inference_mode()
-    def predict_tasks(self, features, sequence, chunk=2_048):
+    def predict_tasks(self, features, sequence, chunk=None):
+        chunk = self.inference_chunk if chunk is None else chunk
         output = {}
         for start in range(0, len(features), chunk):
             stop = min(start + chunk, len(features))
@@ -129,7 +135,8 @@ class TensorV4RequestPolicy:
         return self._value(predictions, features, config)
 
     @torch.inference_mode()
-    def _scores(self, features, sequence, chunk=2_048):
+    def _scores(self, features, sequence, chunk=None):
+        chunk = self.inference_chunk if chunk is None else chunk
         output = []
         for start in range(0, len(features), chunk):
             stop = min(start + chunk, len(features))

@@ -6,6 +6,7 @@ from math import erfc, sqrt
 
 import torch
 
+from ....simulation.experimentation.assignment import assign_binary_torch
 from ..graph.reporting import CELL_METRICS
 
 
@@ -81,6 +82,77 @@ def combine_tensor_ab(control_report, treatment_report):
         control_report["experiment_cells"]["control"],
         treatment_report["experiment_cells"]["treatment"],
     )
+
+
+def combine_tensor_cuped_ab(control_report, treatment_report):
+    """CUPED-adjust disjoint hash cells using an identical pre-period."""
+    required = ("_all_user_metrics", "_preperiod_user_metrics")
+    if any(name not in control_report for name in required):
+        raise ValueError("control report does not retain CUPED user metrics")
+    if any(name not in treatment_report for name in required):
+        raise ValueError("treatment report does not retain CUPED user metrics")
+    control_y = control_report["_all_user_metrics"].double()
+    treatment_y = treatment_report["_all_user_metrics"].double()
+    control_x = control_report["_preperiod_user_metrics"].double()
+    treatment_x = treatment_report["_preperiod_user_metrics"].double()
+    if control_y.shape != treatment_y.shape or control_x.shape != control_y.shape:
+        raise ValueError("CUPED reports have incompatible user shapes")
+    preperiod_max_abs_delta = float((control_x - treatment_x).abs().max())
+    if preperiod_max_abs_delta > 1e-5:
+        raise ValueError(
+            "CUPED pre-period differs across experiment worlds: "
+            f"max_abs_delta={preperiod_max_abs_delta:.9g}"
+        )
+    control_salt = control_report["config"].get("experiment_salt")
+    treatment_salt = treatment_report["config"].get("experiment_salt")
+    if control_salt != treatment_salt:
+        raise ValueError("CUPED reports use different experiment salts")
+    assigned = assign_binary_torch(
+        torch.arange(len(control_y)), control_salt
+    )
+    report = {}
+    for index, name in enumerate(CELL_METRICS):
+        x = control_x[:, index]
+        y = torch.where(assigned, treatment_y[:, index], control_y[:, index])
+        x_centered = x - x.mean()
+        variance = x_centered.square().mean()
+        theta = (
+            (x_centered * (y - y.mean())).mean() / variance
+            if float(variance) > 1e-12 else torch.zeros((), dtype=y.dtype)
+        )
+        adjusted = y - theta * x_centered
+        left, right = adjusted[~assigned], adjusted[assigned]
+        difference = float(right.mean() - left.mean())
+        standard_error = sqrt(
+            float(left.var(unbiased=True) / len(left))
+            + float(right.var(unbiased=True) / len(right))
+        )
+        raw_variance = float(y.var(unbiased=True))
+        adjusted_variance = float(adjusted.var(unbiased=True))
+        control_mean = float(control_y[~assigned, index].mean())
+        report[name] = {
+            "control_mean": control_mean,
+            "treatment_mean": float(treatment_y[assigned, index].mean()),
+            "relative_lift": (
+                difference / control_mean if abs(control_mean) > 1e-12 else None
+            ),
+            "standard_error": standard_error,
+            "confidence_interval": (
+                difference - 1.96 * standard_error,
+                difference + 1.96 * standard_error,
+            ),
+            "p_value": erfc(
+                abs(difference / max(standard_error, 1e-12)) / sqrt(2.0)
+            ),
+            "theta": float(theta),
+            "variance_reduction": (
+                1.0 - adjusted_variance / raw_variance
+                if raw_variance > 1e-12 else 0.0
+            ),
+            "estimator": "user_hash_ab_with_preperiod_cuped",
+            "preperiod_max_abs_delta": preperiod_max_abs_delta,
+        }
+    return report
 
 
 def combine_tensor_counterfactual_ab(control_report, treatment_report):

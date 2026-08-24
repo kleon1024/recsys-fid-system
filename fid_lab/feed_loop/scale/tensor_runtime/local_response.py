@@ -8,9 +8,9 @@ import torch
 from torch.nn import functional as functional
 
 from ..graph.random import uniform
+from .contracts import LOCAL_NEURAL_SIGNAL_VERSION
 
 
-LOCAL_NEURAL_SIGNAL_VERSION = "kuairand-local-neural-v4"
 LOCAL_NEURAL_INTERCEPTS = (-3.75, -0.80, -2.80, -2.40)
 
 

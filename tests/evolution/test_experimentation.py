@@ -89,6 +89,8 @@ class ExperimentationTest(unittest.TestCase):
         cohort = np.sin(2.0 * np.pi * phase)
         self.assertLess(abs(treatment.mean() - 0.5), 0.005)
         self.assertLess(abs(np.corrcoef(treatment, cohort)[0, 1]), 0.01)
+        second = assign_binary_torch(identifiers, 0x6C8E9CF5).numpy()
+        self.assertLess(abs(np.corrcoef(treatment, second)[0, 1]), 0.01)
 
     def test_two_layers_cannot_own_the_same_parameter(self):
         layers = tuple(

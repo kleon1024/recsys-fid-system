@@ -9,7 +9,10 @@ from pathlib import Path
 from ..tensor_engine import TensorFeedConfig
 from ..tensor_runtime.behavior.external import ExternalSequenceMixtureWorld
 from ..tensor_runtime.behavior.review import run_feed_behavior_review
-from ..tensor_runtime.contracts import EXTERNAL_MIXTURE_FEED_VERSION
+from ..tensor_runtime.contracts import (
+    EXTERNAL_MIXTURE_FEED_VERSION,
+    LOCAL_NEURAL_SIGNAL_VERSION,
+)
 
 
 def main():
@@ -30,6 +33,7 @@ def main():
         audit_candidates=32, catalog_items=args.catalog_items,
         batch_users=args.batch_users,
         signal_version=EXTERNAL_MIXTURE_FEED_VERSION,
+        local_signal_version=LOCAL_NEURAL_SIGNAL_VERSION,
         device=args.device, retain_paired_user_metrics=True,
     )
     world = ExternalSequenceMixtureWorld(

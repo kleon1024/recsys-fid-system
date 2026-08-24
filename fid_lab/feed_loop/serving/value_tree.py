@@ -34,10 +34,8 @@ class CompositeValueTree:
             bundle.feed_predictions, features
         )
         feed_residual = request_standardize(feed_value)
-        local_value = torch.zeros_like(feed_value)
-        for name, weight in zip(LOCAL_ORDER, self.config.local_weights, strict=True):
-            local_value += weight * bundle.local_predictions[name]
-        local_value *= candidates["is_poi"]
+        local_value = self.local_value(bundle.local_predictions, candidates)
+
         queue_value = (
             self.config.ad_value_weight * bundle.queue_values["ad"]
             + self.config.live_value_weight * bundle.queue_values["live"]
@@ -57,3 +55,10 @@ class CompositeValueTree:
             "queue_value": queue_value,
             "value_tree_score": final,
         }
+
+    def local_value(self, predictions, candidates):
+        local_value = torch.zeros_like(predictions["anchor_click"])
+        for name, weight in zip(LOCAL_ORDER, self.config.local_weights, strict=True):
+            local_value += weight * predictions[name]
+        local_value *= candidates["is_poi"]
+        return local_value

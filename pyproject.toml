@@ -93,6 +93,7 @@ entry_points = [
   "fid_lab/launches/ledger_cli.py",
   "fid_lab/feed_loop/scale/queue_value_cli.py",
   "fid_lab/feed_loop/serving/cli.py",
+  "fid_lab/feed_loop/serving/aggregate_cli.py",
   "fid_lab/value/tree.py",
   "fid_lab/simulation/local/switchback.py",
   "fid_lab/simulation/local/switchback_cli.py",

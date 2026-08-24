@@ -7,7 +7,10 @@ import json
 from pathlib import Path
 
 from ..tensor_runtime.behavior.external import ExternalSequenceMixtureWorld
-from ..tensor_runtime.contracts import EXTERNAL_MIXTURE_FEED_VERSION
+from ..tensor_runtime.contracts import (
+    EXTERNAL_MIXTURE_FEED_VERSION,
+    LOCAL_NEURAL_SIGNAL_VERSION,
+)
 from .dataset import V3LoggingConfig, build_v4_logging_dataset
 
 
@@ -28,6 +31,7 @@ def main():
         users=args.users, steps=args.steps, batch_users=args.batch_users,
         epsilon=args.epsilon, sequence_length=64, device=args.device,
         signal_version=EXTERNAL_MIXTURE_FEED_VERSION,
+        local_signal_version=LOCAL_NEURAL_SIGNAL_VERSION,
         candidates=12, route_candidates=16, route_oversample=4,
         merged_candidates=64, audit_candidates=32,
         catalog_items=200_000, catalog_creators=25_000,

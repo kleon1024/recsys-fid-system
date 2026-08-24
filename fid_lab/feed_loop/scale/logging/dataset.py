@@ -48,6 +48,7 @@ class V3LoggingConfig:
     seed: int = 20260823
     device: str = "cuda:0"
     signal_version: str = "kuairand-calibrated-v3"
+    local_signal_version: str = "legacy-local-v1"
     candidates: int = 20
     route_candidates: int = 8
     route_oversample: int = 3
@@ -301,6 +302,7 @@ def build_v3_logging_dataset(root: Path, output_dir: Path, config: V3LoggingConf
         users=config.users, steps=config.steps, batch_users=config.batch_users,
         seed=config.seed, device=config.device,
         signal_version=config.signal_version,
+        local_signal_version=config.local_signal_version,
         candidates=config.candidates, route_candidates=config.route_candidates,
         route_oversample=config.route_oversample,
         merged_candidates=config.merged_candidates,
@@ -341,6 +343,7 @@ def build_v4_logging_dataset(
         users=config.users, steps=config.steps, batch_users=config.batch_users,
         seed=config.seed, device=config.device,
         signal_version=config.signal_version,
+        local_signal_version=config.local_signal_version,
         candidates=config.candidates, route_candidates=config.route_candidates,
         route_oversample=config.route_oversample,
         merged_candidates=config.merged_candidates,

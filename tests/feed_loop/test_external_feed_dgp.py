@@ -13,6 +13,8 @@ from fid_lab.feed_loop.scale.tensor_engine import (
 )
 from fid_lab.feed_loop.scale.tensor_runtime.contracts import (
     EXTERNAL_MIXTURE_FEED_VERSION,
+    LEGACY_LOCAL_SIGNAL_VERSION,
+    LOCAL_NEURAL_SIGNAL_VERSION,
 )
 from fid_lab.feed_loop.scale.tensor_runtime.state import (
     advance_state,
@@ -39,6 +41,23 @@ def _config(users=64):
 
 
 class ExternalFeedDGPTest(unittest.TestCase):
+    def test_feed_and_local_response_authorities_are_independent(self):
+        legacy = _config(16)
+        combined = TensorFeedConfig(
+            **{
+                **legacy.__dict__,
+                "local_signal_version": LOCAL_NEURAL_SIGNAL_VERSION,
+            }
+        )
+        self.assertEqual(legacy.signal_version, EXTERNAL_MIXTURE_FEED_VERSION)
+        self.assertEqual(
+            legacy.local_signal_version, LEGACY_LOCAL_SIGNAL_VERSION
+        )
+        self.assertEqual(combined.signal_version, EXTERNAL_MIXTURE_FEED_VERSION)
+        self.assertEqual(
+            combined.local_signal_version, LOCAL_NEURAL_SIGNAL_VERSION
+        )
+
     def test_external_world_is_required_by_runtime(self):
         with self.assertRaisesRegex(ValueError, "evidence-bound behavior world"):
             run_tensor_feed(_config(16), PERSONALIZED)

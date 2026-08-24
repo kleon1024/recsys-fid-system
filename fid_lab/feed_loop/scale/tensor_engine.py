@@ -20,6 +20,7 @@ from .graph.trace import append_trace
 from .graph.random import uniform_for_items
 from .experiment.trigger import (
     combine_tensor_ab,
+    combine_tensor_cuped_ab,
     combine_tensor_counterfactual_ab,
     combine_tensor_trigger_ab,
     refresh_search_state,
@@ -41,6 +42,7 @@ from .tensor_runtime.behavior.external import ExternalSequenceMixtureWorld
 from .tensor_runtime.contracts import (
     DEFAULT_GPU_BATCH_USERS,
     EXTERNAL_MIXTURE_FEED_VERSION,
+    LOCAL_NEURAL_SIGNAL_VERSION,
     TensorFeedConfig,
 )
 from .tensor_runtime.response import (
@@ -64,6 +66,7 @@ __all__ = [
     "TensorFeedConfig",
     "TensorPolicy",
     "combine_tensor_ab",
+    "combine_tensor_cuped_ab",
     "combine_tensor_counterfactual_ab",
     "combine_tensor_trigger_ab",
     "candidate_batch",
@@ -90,9 +93,10 @@ def _user_rates(user_metrics):
 
 def _accumulate_cells(
     cell_stats, user_ids, user_metrics, cohort=None, assignment_version="legacy",
+    experiment_salt=0x1B873593,
 ):
     if assignment_version == "avalanche_v2":
-        assigned = assign_binary_torch(user_ids)
+        assigned = assign_binary_torch(user_ids, experiment_salt)
     else:
         bucket = torch.remainder(
             user_ids * 1_664_525 + 1_013_904_223, 2**31
@@ -114,12 +118,18 @@ def _accumulate_batch_cells(
 ):
     version = (
         "avalanche_v2"
-        if config.signal_version == "kuairand-local-neural-v4" else "legacy"
+        if config.local_signal_version == LOCAL_NEURAL_SIGNAL_VERSION
+        else "legacy"
     )
-    _accumulate_cells(cells, user_ids, metrics, assignment_version=version)
+    _accumulate_cells(
+        cells, user_ids, metrics, assignment_version=version,
+        experiment_salt=config.experiment_salt,
+    )
     if trigger_kind:
         _accumulate_cells(
-            trigger_cells, user_ids, metrics, trigger_cohort, version
+            trigger_cells, user_ids, metrics, trigger_cohort,
+            assignment_version=version,
+            experiment_salt=config.experiment_salt,
         )
 
 
@@ -217,7 +227,7 @@ def sample_step(
         state["user_ids"],
         step,
         config.seed,
-        config.signal_version,
+        config.local_signal_version,
         state["active"],
         response_affinity,
         *(selected[name] for name in (
@@ -314,17 +324,21 @@ def _maybe_append_trace(
 
 
 def _finalize_batch_metrics(
-    config, cells, trigger_cells, lt_exchange, paired, user_ids,
-    user_metrics, trigger_cohort, trigger_kind,
+    config, cells, trigger_cells, lt_exchange, paired, all_users,
+    preperiod_users, user_ids, user_metrics, preperiod_metrics,
+    trigger_cohort, trigger_kind,
 ):
     _accumulate_batch_cells(
         config, cells, trigger_cells, user_ids, user_metrics,
         trigger_cohort, trigger_kind,
     )
     if config.retain_paired_user_metrics:
+        rates = _user_rates(user_metrics)
         paired.append(
-            _user_rates(user_metrics)[assign_binary_torch(user_ids)].cpu()
+            rates[assign_binary_torch(user_ids, config.experiment_salt)].cpu()
         )
+        all_users.append(rates.cpu())
+        preperiod_users.append(_user_rates(preperiod_metrics).cpu())
     accumulate_lt_exchange_components(lt_exchange, user_ids, user_metrics)
 
 
@@ -368,14 +382,18 @@ def _record_step(
     return _measurement_user_values(active, values)
 
 
-def _record_return(totals, user_metrics, active, returned, return_value, first):
-    totals[8] += active.sum() * int(first) + returned.sum()
-    totals[9] += returned.sum()
-    totals[10] += return_value.sum()
+def _record_user_return(user_metrics, returned, return_value):
     user_metrics[:, 5] += return_value
     user_metrics[:, 17] += returned
     user_metrics[:, 19] += return_value
     user_metrics[:, 25] += return_value
+
+
+def _record_return(totals, user_metrics, active, returned, return_value, first):
+    totals[8] += active.sum() * int(first) + returned.sum()
+    totals[9] += returned.sum()
+    totals[10] += return_value.sum()
+    _record_user_return(user_metrics, returned, return_value)
 
 
 @torch.inference_mode()
@@ -400,6 +418,8 @@ def _simulate_batches(
     )
     trace_rows = []
     paired_user_metrics = []
+    all_user_metrics = []
+    preperiod_user_metrics = []
     for offset in range(0, config.users, config.batch_users):
         users = min(config.batch_users, config.users - offset)
         user_ids = torch.arange(offset, offset + users, device=device, dtype=torch.int64)
@@ -410,6 +430,7 @@ def _simulate_batches(
         if behavior_world is not None:
             behavior_world.initialize_state(state)
         user_metrics = torch.zeros(users, 27, device=device)
+        preperiod_metrics = torch.zeros(users, 27, device=device)
         trigger_cohort = torch.zeros(users, dtype=torch.bool, device=device)
         for step in range(config.steps):
             active_policy = (
@@ -436,6 +457,10 @@ def _simulate_batches(
                     candidates, selected, values, active_before, step, offset,
                     measurement_start_step,
                 )
+            else:
+                preperiod_metrics += _measurement_user_values(
+                    active_before, values
+                )
             return_value, returned = advance_state(
                 config, active_policy, generator, state, selected, values, step
             )
@@ -444,9 +469,14 @@ def _simulate_batches(
                     totals, user_metrics, active_before, returned, return_value,
                     step == measurement_start_step,
                 )
+            else:
+                _record_user_return(
+                    preperiod_metrics, returned, return_value
+                )
         _finalize_batch_metrics(
             config, cell_stats, trigger_cell_stats, lt_exchange_stats,
-            paired_user_metrics, user_ids, user_metrics, trigger_cohort,
+            paired_user_metrics, all_user_metrics, preperiod_user_metrics,
+            user_ids, user_metrics, preperiod_metrics, trigger_cohort,
             trigger_kind,
         )
     return (
@@ -458,6 +488,8 @@ def _simulate_batches(
         candidate_diagnostics,
         trace_rows,
         paired_user_metrics,
+        all_user_metrics,
+        preperiod_user_metrics,
     )
 
 
@@ -528,6 +560,8 @@ def run_tensor_feed(
         candidate_diagnostics,
         trace_rows,
         paired_user_metrics,
+        all_user_metrics,
+        preperiod_user_metrics,
     ) = simulation
     _sync(device)
     seconds = perf_counter() - started
@@ -549,6 +583,8 @@ def run_tensor_feed(
     )
     if paired_user_metrics:
         report["_paired_user_metrics"] = torch.cat(paired_user_metrics)
+        report["_all_user_metrics"] = torch.cat(all_user_metrics)
+        report["_preperiod_user_metrics"] = torch.cat(preperiod_user_metrics)
     if behavior_world is not None:
         report["behavior_world"] = behavior_world.describe()
     return report
