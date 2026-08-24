@@ -37,6 +37,7 @@ class TensorPolicy:
     max_ads_per_session: int = 0
     min_ad_gap: int = 4
     max_live_per_session: int = 0
+    creator_supply_weight: float = 0.0
 
     def __post_init__(self):
         validate_routes(self.enabled_routes)
@@ -45,6 +46,10 @@ class TensorPolicy:
 
 POPULAR = TensorPolicy("quality_baseline", 0.0, 1.0, 0.15)
 PERSONALIZED = TensorPolicy("personalized_rank", 1.0, 0.45, 0.10, 0.12)
+PERSONALIZED_SUPPLY = TensorPolicy(
+    "personalized_provider_aware", 1.0, 0.45, 0.10, 0.12,
+    creator_supply_weight=0.03,
+)
 PERSONALIZED_1PCT = TensorPolicy(
     "personalized_rank_1pct_trigger", 1.0, 0.45, 0.10, 0.12, 0.01
 )

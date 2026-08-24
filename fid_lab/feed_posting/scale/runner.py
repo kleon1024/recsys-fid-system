@@ -1,0 +1,136 @@
+"""Powered creator A/B for Feed Posting over bounded request partitions."""
+
+from __future__ import annotations
+
+from hashlib import sha256
+from pathlib import Path
+from time import perf_counter
+
+import torch
+
+from ...launches.statistics import CreatorClusterAccumulator
+from ...value import DEFAULT_LT_CONFIG
+from ..contracts import FeedPostingConfig
+from ..models import load_bundle
+from ..simulation.features import candidate_features, rule_score
+from ..simulation.response import simulate_response
+from ..simulation.retrieval import retrieve
+from ..simulation.world import build_world_partition
+
+
+AB_KEYS = (
+    "publish_rate", "quality_supply_per_request",
+    "feed_stay_seconds_per_request", "feed_active_day_per_request",
+    "negative_per_request", "selected_content_risk",
+    "platform_lt_per_request",
+)
+
+
+def _outcomes(response):
+    published = response["published"].float()
+    stay_rate = DEFAULT_LT_CONFIG.rates["stay_minute"].unit_value
+    active_rate = DEFAULT_LT_CONFIG.rates["active_day"].unit_value
+    return {
+        "publish_rate": published,
+        "quality_supply_per_request": published * response["quality_potential"],
+        "feed_stay_seconds_per_request": response["feed_stay_seconds"],
+        "feed_active_day_per_request": response["feed_active_day"],
+        "negative_per_request": response["negative"].float(),
+        "selected_content_risk": response["content_risk"],
+        "platform_lt_per_request": (
+            response["feed_stay_seconds"] / 60.0 * stay_rate
+            + response["feed_active_day"] * active_rate
+        ),
+    }
+
+
+def _partition_outcomes(
+    config, start, count, control_bundle, treatment_bundle,
+):
+    world = build_world_partition(config, start, count)
+    candidates = retrieve(world, ("trending", "i2i"))
+    features = candidate_features(world, candidates)
+    semantic = world.catalog.semantic[candidates.prompt_ids]
+    history = world.requests.feed_sequence
+    control_scores = (
+        rule_score(features) if control_bundle is None
+        else control_bundle.score(features, semantic, history)
+    )
+    treatment_scores = treatment_bundle.score(features, semantic, history)
+    return (
+        world.requests.creator_id,
+        _outcomes(simulate_response(world, candidates, control_scores)),
+        _outcomes(simulate_response(world, candidates, treatment_scores)),
+    )
+
+
+def run_partitioned_feed_posting_ab(
+    config: FeedPostingConfig,
+    model_path: Path,
+    partition_requests: int = 50_000,
+    control_model_path: Path | None = None,
+):
+    if config.world_version != "creator-neural-feed-supply-v4":
+        raise ValueError("partitioned Feed posting A/B requires creator V4")
+    treatment = load_bundle(model_path, config.device)
+    control = (
+        None if control_model_path is None
+        else load_bundle(control_model_path, config.device)
+    )
+    device = torch.device(config.device)
+    if device.type == "cuda":
+        torch.cuda.reset_peak_memory_stats(device)
+    accumulator = CreatorClusterAccumulator(AB_KEYS, config.creators, device)
+    started = perf_counter()
+    for start in range(0, config.requests, partition_requests):
+        count = min(partition_requests, config.requests - start)
+        creator_ids, control_values, treatment_values = _partition_outcomes(
+            config, start, count, control, treatment
+        )
+        accumulator.add(creator_ids, control_values, treatment_values)
+    metrics, randomized, observed_creators = accumulator.report()
+    gates = {
+        "publish_positive": metrics["publish_rate"]["confidence_interval"][0] > 0,
+        "platform_lt_nonnegative": metrics["platform_lt_per_request"][
+            "confidence_interval"
+        ][0] >= 0,
+        "quality_supply_nonnegative": metrics["quality_supply_per_request"][
+            "confidence_interval"
+        ][0] >= -0.0002,
+        "content_risk_guardrail": metrics["selected_content_risk"][
+            "confidence_interval"
+        ][1] <= 0.0002,
+    }
+    elapsed = perf_counter() - started
+    return {
+        "schema": "partitioned-feed-posting-v4-ab-v1",
+        "control": (
+            "trending_i2i_plus_rule" if control is None
+            else f"trending_i2i_plus_{control.name}"
+        ),
+        "treatment": f"trending_i2i_plus_{treatment.name}",
+        "requests": config.requests,
+        "creators": observed_creators,
+        "partition_requests": partition_requests,
+        "model_sha256": sha256(model_path.read_bytes()).hexdigest(),
+        "control_model_sha256": (
+            None if control_model_path is None
+            else sha256(control_model_path.read_bytes()).hexdigest()
+        ),
+        "metrics": metrics,
+        "creator_randomized_ab": randomized,
+        "gates": gates,
+        "decision": "pass" if all(gates.values()) else "hold_or_reject",
+        "performance": {
+            "seconds": elapsed,
+            "requests_per_second": config.requests / elapsed,
+            "peak_gpu_memory_bytes": (
+                int(torch.cuda.max_memory_allocated(device))
+                if device.type == "cuda" else 0
+            ),
+        },
+        "evidence_boundary": (
+            "Large-scale paired and creator-randomized A/B in synthetic Feed "
+            "Posting V4. It is simulator evidence, not production lift."
+        ),
+    }

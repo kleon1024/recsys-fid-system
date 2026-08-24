@@ -79,6 +79,7 @@
     "path": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
     "sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
   },
-  "production_readiness": "hold_external_creator_and_supply_validation",
-  "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
+  "status": "stale_retrain_required",
+  "production_readiness": "hold_retrain_required_after_risk_head",
+  "evidence_boundary": "Historical pre-risk-head Feed-posting artifact. Current code adds a risk task, so this artifact is not a serving authority and must be retrained before a new Launch Review."
 }

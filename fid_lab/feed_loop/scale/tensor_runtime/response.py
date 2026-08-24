@@ -7,7 +7,6 @@ import torch
 from ....value import BUSINESS_TREE_WEIGHTS, DEFAULT_LT_CONFIG
 from ..calibration.behavior import response_parameters
 from ..graph.random import normal, uniform
-from .local_response import sample_local_response
 
 
 def sample_response(

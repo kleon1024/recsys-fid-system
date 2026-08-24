@@ -3,8 +3,11 @@
   "epoch": "v4",
   "active_components": {
     "feed_behavior": {
-      "authority": "external_randomized_v4",
-      "artifact_sha256": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b"
+      "authority": "external_sequence_mixture_v4",
+      "policy_artifact_sha256": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b",
+      "response_world_artifact_sha256": "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6",
+      "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+      "profile_sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076"
     },
     "local_response": {
       "authority": "synthetic_neural_v4",
@@ -20,7 +23,7 @@
     }
   },
   "rollback_epoch": "v3",
-  "source_review_sha256": "f121df14695f901eeb5c8f86597cfe2bd1869ef8c3c792cc8547d01dcb577e31",
+  "source_review_sha256": "8357f8bd63e8bbe620a8782b13307e87798e7da35b4d1cbebe09487586d95d2e",
   "production_readiness": "simulator_only",
   "evidence_boundary": "This promotes an external-data-calibrated Feed kernel and a causally tested synthetic neural Local kernel inside the simulator. It is not a production deployment, live A/B, or production LT estimate."
 }

@@ -371,8 +371,6 @@ class StatefulFeedEnv(gym.Env):
 
     def _response(self, features: np.ndarray, item_id: int) -> Response:
         probability = self._behavior_probabilities(features, item_id)
-        affinity = float(self.catalog.topics[item_id] @ self.interest)
-        quality = float(features[1])
         rng = self._random(2)
         random = rng.random(12)
         play = bool(random[0] < probability["play"])

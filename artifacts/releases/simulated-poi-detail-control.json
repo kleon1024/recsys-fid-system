@@ -1,7 +1,7 @@
 {
   "schema": "simulated-poi-detail-authority-v1",
   "active_key": "quota_mix_plus_rule",
-  "active_bundle_id": "sha256:52766fc807d5ec3108cdd025d22b3f95b35e6bfc49b7f035fd21e6b5b351f1cd",
+  "active_bundle_id": "sha256:cc756086eaa87b6f5078c25aa47b233987ce84dd3ca1ab6f3a2c6553b9ad9949",
   "active_bundle": {
     "mix_policy": "fixed_quota_4_2_2",
     "fine_model": "rule",
@@ -18,7 +18,7 @@
       },
       {
         "path": "fid_lab/launches/statistics.py",
-        "sha256": "a24c44f42a9398f6053a1c16806d118804ff67f0129a48ca7f479b8e7162f636"
+        "sha256": "f6032f7b974e6ff1b7e4cea1f47c61844b2bc145a450942d001cbda58f5a162f"
       },
       {
         "path": "fid_lab/multitask.py",

@@ -8,6 +8,11 @@
       "status": "eligible_simulator_authority",
       "dataset_catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
       "artifact_sha256": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b",
+      "policy_artifact_sha256": "97a9d5db2387a555c8d30e87d75dc4181185f7563c789ff62c83a712b858c13b",
+      "response_world_artifact_sha256": "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6",
+      "response_world_challenger_sha256": "e41e8a325da3f793fdd8e061ad76827aaf08c17c904e38f14cd93e4073f534fa",
+      "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+      "profile_sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076",
       "independent_world_sha256": [
         "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6",
         "e41e8a325da3f793fdd8e061ad76827aaf08c17c904e38f14cd93e4073f534fa"
@@ -21,7 +26,12 @@
         "shadow_seed27": true,
         "million_user_power_simulation": true,
         "failed_seed_retained": true,
-        "primary_direction_agrees": true
+        "primary_direction_agrees": true,
+        "runtime_behavior_review": true,
+        "runtime_response_world_is_shadow_member": true,
+        "runtime_catalog_matches_randomized_data": true,
+        "consumer_ecosystem_launch": true,
+        "creator_retention_launch": true
       },
       "stay_norm_effects": {
         "randomized_dr_ope": {
@@ -106,7 +116,7 @@
       "artifact_sha256": "ef8e09835cffd4f8cc467a0b076654e8916205541de4931f8a26859710a359af",
       "gates": {
         "creator_panel_world": true,
-        "creator_cluster_experiment": true,
+        "powered_creator_cluster_experiment": true,
         "mature_relevance_mask": true,
         "model_artifact_bound": true,
         "end_to_end_launch": true,
@@ -166,6 +176,18 @@
       "logical_key": "core_challenger",
       "sha256": "4d75ddf32c445a63b1eb8b456bf12a6e01d5106dbd0599590577e03bbf31b41f"
     },
+    "feed_runtime_behavior": {
+      "logical_key": "feed_runtime_behavior",
+      "sha256": "d9e7173a68f0392f7c809f9a6f60ad03fceb08d5545dfe9cfaa91ea0ff8bb464"
+    },
+    "feed_ecosystem_consumer": {
+      "logical_key": "feed_ecosystem_consumer",
+      "sha256": "4d2063ffe4314fa4678e262bb74d17b1890a90a3e28ddc4d2b24bc5aa09f0815"
+    },
+    "feed_ecosystem_provider": {
+      "logical_key": "feed_ecosystem_provider",
+      "sha256": "48fd8c13c874a1d8248298cc14af73b1080d6043d5947697daf28f3f29022269"
+    },
     "local_v4_dataset": {
       "logical_key": "local_v4_dataset",
       "sha256": "8dfa992b4ef0e01528040824a33a3d3c6a7c723d52b9ad2d43fa7b2cdf13ae59"
@@ -196,7 +218,7 @@
     },
     "supply_v4_launch": {
       "logical_key": "supply_v4_launch",
-      "sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+      "sha256": "f83f8a96282c9faea2768a19546cad3300838b3a88e0205284c9773ee8bcfd9f"
     }
   },
   "rollback_epoch": "v3",

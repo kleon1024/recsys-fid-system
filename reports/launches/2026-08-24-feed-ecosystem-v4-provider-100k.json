@@ -1,0 +1,293 @@
+{
+  "schema": "feed-creator-ecosystem-v4-launch-review-v1",
+  "feed_config": {
+    "users": 100000,
+    "steps": 24,
+    "candidates": 12,
+    "route_candidates": 16,
+    "route_oversample": 4,
+    "merged_candidates": 64,
+    "audit_candidates": 32,
+    "candidate_graph_version": "multiroute-rrf-cascade-v3",
+    "trace_users": 0,
+    "trace_requests_per_user": 2,
+    "topics": 12,
+    "catalog_items": 200000,
+    "catalog_creators": 25000,
+    "batch_users": 25000,
+    "seed": 20260823,
+    "catalog_seed": null,
+    "retain_paired_user_metrics": false,
+    "device": "cuda:0",
+    "count_inactive_play_bug": false,
+    "signal_version": "external-sequence-mixture-v4",
+    "max_sessions": 6,
+    "requests_per_session": 8,
+    "search_event_rate": 0.02,
+    "search_ttl_requests": 3,
+    "behavior_sequence_length": 64
+  },
+  "ecosystem_config": {
+    "days": 3,
+    "steps_per_day": 8,
+    "max_new_items_per_day": 5000,
+    "seed": 20260824,
+    "objective": "creator_retention"
+  },
+  "control": {
+    "policy": "personalized_rank",
+    "days": [
+      {
+        "day": 0,
+        "exposures": 772640,
+        "stay_per_exposure": 7.594547630526507,
+        "long_view_rate": 0.059449420169807414,
+        "negative_rate": 0.000995288879685235,
+        "lt_per_exposure": 0.12657580222617423,
+        "returned_sessions": 19921,
+        "active_creators": 22590,
+        "creator_retention_rate": 0.9035999774932861,
+        "creators_with_distribution": 6411,
+        "creator_distribution_coverage": 0.2564399838447571,
+        "new_supply": 2411,
+        "mean_new_supply_quality": 0.5040900707244873
+      },
+      {
+        "day": 1,
+        "exposures": 725400,
+        "stay_per_exposure": 5.135806893179625,
+        "long_view_rate": 0.03885718224427902,
+        "negative_rate": 0.0017755720981527433,
+        "lt_per_exposure": 0.08559678718476443,
+        "returned_sessions": 20118,
+        "active_creators": 20038,
+        "creator_retention_rate": 0.8015199899673462,
+        "creators_with_distribution": 6513,
+        "creator_distribution_coverage": 0.26051998138427734,
+        "new_supply": 1767,
+        "mean_new_supply_quality": 0.509679913520813
+      },
+      {
+        "day": 2,
+        "exposures": 686242,
+        "stay_per_exposure": 3.879457303782776,
+        "long_view_rate": 0.028573010687191983,
+        "negative_rate": 0.0022951087225789152,
+        "lt_per_exposure": 0.06465762544152381,
+        "returned_sessions": 19722,
+        "active_creators": 17522,
+        "creator_retention_rate": 0.7008799910545349,
+        "creators_with_distribution": 6601,
+        "creator_distribution_coverage": 0.2640399932861328,
+        "new_supply": 1284,
+        "mean_new_supply_quality": 0.5156291127204895
+      }
+    ],
+    "users": 100000,
+    "creators": 25000,
+    "behavior_world": {
+      "authority": "external-sequence-mixture-v4",
+      "artifact_sha256": "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6",
+      "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+      "profile_sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076",
+      "sequence_length": 64,
+      "hidden_mixture_experts": 4,
+      "stay_sampler": {
+        "authority": "randomized-holdout-conditional-residual-bootstrap",
+        "bins": 16,
+        "quantiles": 65,
+        "source_completion_rate_given_play": 0.34663641452789307
+      }
+    }
+  },
+  "treatment": {
+    "policy": "personalized_provider_aware_0.03",
+    "days": [
+      {
+        "day": 0,
+        "exposures": 772640,
+        "stay_per_exposure": 7.594547630526507,
+        "long_view_rate": 0.059449420169807414,
+        "negative_rate": 0.000995288879685235,
+        "lt_per_exposure": 0.12657580222617423,
+        "returned_sessions": 19921,
+        "active_creators": 22590,
+        "creator_retention_rate": 0.9035999774932861,
+        "creators_with_distribution": 6411,
+        "creator_distribution_coverage": 0.2564399838447571,
+        "new_supply": 2411,
+        "mean_new_supply_quality": 0.5040900111198425
+      },
+      {
+        "day": 1,
+        "exposures": 725410,
+        "stay_per_exposure": 5.1379012816889755,
+        "long_view_rate": 0.038877324547497275,
+        "negative_rate": 0.001781061744392826,
+        "lt_per_exposure": 0.08563169368227967,
+        "returned_sessions": 20123,
+        "active_creators": 20042,
+        "creator_retention_rate": 0.8016799688339233,
+        "creators_with_distribution": 6580,
+        "creator_distribution_coverage": 0.26319998502731323,
+        "new_supply": 1767,
+        "mean_new_supply_quality": 0.5098321437835693
+      },
+      {
+        "day": 2,
+        "exposures": 686230,
+        "stay_per_exposure": 3.8834520336658263,
+        "long_view_rate": 0.028596826137009458,
+        "negative_rate": 0.0022893199073197035,
+        "lt_per_exposure": 0.06472420388162496,
+        "returned_sessions": 19732,
+        "active_creators": 17537,
+        "creator_retention_rate": 0.701479971408844,
+        "creators_with_distribution": 6670,
+        "creator_distribution_coverage": 0.2667999863624573,
+        "new_supply": 1294,
+        "mean_new_supply_quality": 0.5158268213272095
+      }
+    ],
+    "users": 100000,
+    "creators": 25000,
+    "behavior_world": {
+      "authority": "external-sequence-mixture-v4",
+      "artifact_sha256": "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6",
+      "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+      "profile_sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076",
+      "sequence_length": 64,
+      "hidden_mixture_experts": 4,
+      "stay_sampler": {
+        "authority": "randomized-holdout-conditional-residual-bootstrap",
+        "bins": 16,
+        "quantiles": 65,
+        "source_completion_rate_given_play": 0.34663641452789307
+      }
+    }
+  },
+  "user_paired_ab": {
+    "exposures": {
+      "control_mean": 21.842819213867188,
+      "treatment_mean": 21.84280014038086,
+      "absolute_delta": -2e-05,
+      "confidence_interval": [
+        -0.0006904264906390265,
+        0.0006504264906390264
+      ],
+      "p_value": 0.9533740643635937,
+      "estimator": "paired_potential_outcome"
+    },
+    "stay": {
+      "control_mean": 122.55612182617188,
+      "treatment_mean": 122.59877014160156,
+      "absolute_delta": 0.04265396078824997,
+      "confidence_interval": [
+        -0.034937107996605904,
+        0.12024502957310584
+      ],
+      "p_value": 0.2812719906598566,
+      "estimator": "paired_potential_outcome"
+    },
+    "long_view": {
+      "control_mean": 0.937279999256134,
+      "treatment_mean": 0.9375900030136108,
+      "absolute_delta": 0.00031,
+      "confidence_interval": [
+        -0.0002059669082807685,
+        0.0008259669082807685
+      ],
+      "p_value": 0.23895814384612468,
+      "estimator": "paired_potential_outcome"
+    },
+    "negative": {
+      "control_mean": 0.036320000886917114,
+      "treatment_mean": 0.036320000886917114,
+      "absolute_delta": 0.0,
+      "confidence_interval": [
+        -0.000363527662666289,
+        0.000363527662666289
+      ],
+      "p_value": 1.0,
+      "estimator": "paired_potential_outcome"
+    },
+    "lt": {
+      "control_mean": 5.309952735900879,
+      "treatment_mean": 5.3115129470825195,
+      "absolute_delta": 0.0015608993978612124,
+      "confidence_interval": [
+        -2.851365172799403e-05,
+        0.003150312447450419
+      ],
+      "p_value": 0.05424961386589248,
+      "estimator": "paired_potential_outcome"
+    },
+    "returned_days": {
+      "control_mean": 0.653469979763031,
+      "treatment_mean": 0.6536399722099304,
+      "absolute_delta": 0.00017,
+      "confidence_interval": [
+        -1.4903952560059452e-05,
+        0.0003549039525600595
+      ],
+      "p_value": 0.07154278700446856,
+      "estimator": "paired_potential_outcome"
+    }
+  },
+  "creator_paired_ab": {
+    "active": {
+      "control_mean": 0.7008799910545349,
+      "treatment_mean": 0.701479971408844,
+      "absolute_delta": 0.0006,
+      "confidence_interval": [
+        0.00020806272752759087,
+        0.000991937272472409
+      ],
+      "p_value": 0.0026955433608527746,
+      "estimator": "paired_potential_outcome"
+    },
+    "cumulative_posts": {
+      "control_mean": 8.218480110168457,
+      "treatment_mean": 8.218879699707031,
+      "absolute_delta": 0.0004,
+      "confidence_interval": [
+        3.2297481697937756e-05,
+        0.0007677025183020623
+      ],
+      "p_value": 0.032993829945932154,
+      "estimator": "paired_potential_outcome"
+    },
+    "retained_days": {
+      "control_mean": 3.4059998989105225,
+      "treatment_mean": 3.4067599773406982,
+      "absolute_delta": 0.00076,
+      "confidence_interval": [
+        0.0002459728678083086,
+        0.0012740271321916915
+      ],
+      "p_value": 0.003756685473437049,
+      "estimator": "paired_potential_outcome"
+    },
+    "quality": {
+      "control_mean": 0.4950682818889618,
+      "treatment_mean": 0.4950752258300781,
+      "absolute_delta": 6.908321976661682e-06,
+      "confidence_interval": [
+        3.7538655193984203e-06,
+        1.0062778433924944e-05
+      ],
+      "p_value": 1.767213230373704e-05,
+      "estimator": "paired_potential_outcome"
+    }
+  },
+  "gates": {
+    "creator_retention_primary_positive": true,
+    "creator_posts_noninferior": true,
+    "stay_noninferior": true,
+    "lt_noninferior": true,
+    "negative_guardrail": true,
+    "new_supply_observed": true
+  },
+  "decision": "ecosystem_v4_pass",
+  "evidence_boundary": "External consumer behavior plus synthetic neural creator response. This is ecosystem simulator evidence, not production lift."
+}

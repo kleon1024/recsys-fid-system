@@ -399,10 +399,10 @@
       "control": "synthetic_v3_feed_behavior",
       "treatment": "external_randomized_v4_feed_behavior",
       "primary_metric": "randomized_stay_with_behavior_guardrails",
-      "decision": "hold_world_authority",
+      "decision": "pass_composite_simulator_kernels",
       "evidence": {
         "report": "reports/world-model/v4/composite-launch-review.json",
-        "report_sha256": "f121df14695f901eeb5c8f86597cfe2bd1869ef8c3c792cc8547d01dcb577e31"
+        "report_sha256": "8357f8bd63e8bbe620a8782b13307e87798e7da35b4d1cbebe09487586d95d2e"
       },
       "evidence_boundary": "This promotes an external-data-calibrated Feed kernel and a causally tested synthetic neural Local kernel inside the simulator. It is not a production deployment, live A/B, or production LT estimate. Feed status: eligible_simulator_authority"
     },
@@ -450,6 +450,21 @@
         "report_sha256": "f38aa1d13d5fceae4372e3dddf348336ddec598f5e018ae2321ac0180528687f"
       },
       "evidence_boundary": "Random-exposure offline retrieval plus paired fixed-ranker shadow; not stateful LT or a live A/B test."
+    },
+    {
+      "launch_id": "L-FEED-V4-FINE-001",
+      "surface": "main_feed",
+      "stage": "fine",
+      "change_type": "request_sequence_multitask_model",
+      "control": "personalized_rank",
+      "treatment": "mmoe_guarded_0.01",
+      "primary_metric": "unified_lt_with_negative_and_duration_guardrails",
+      "decision": "pass_simulator_launch",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-v4-mmoe-guarded-010-1m.json",
+        "report_sha256": "a7858c2e309645a9b0998730c0c069042e1e5061f393b2efb3c861bbc319ca7c"
+      },
+      "evidence_boundary": "Synthetic common-random Feed A/B; not production lift evidence."
     },
     {
       "launch_id": "L-POI-RETRIEVAL-001",
@@ -1196,10 +1211,10 @@
       "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
       "decision": "reject_mean_regression",
       "evidence": {
-        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
-        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+        "report": "reports/launches/2026-08-24-poi-posting-scaled-v4.json",
+        "report_sha256": "f83f8a96282c9faea2768a19546cad3300838b3a88e0205284c9773ee8bcfd9f"
       },
-      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+      "evidence_boundary": "Training and offline metrics use 400K synthetic requests. Promotion uses a separate 10M-request, 1.25M-creator paired and randomized A/B. This is simulator launch evidence, not production lift."
     },
     {
       "launch_id": "L-POI-POST-V4-CANDIDATE-002",
@@ -1211,85 +1226,55 @@
       "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
       "decision": "reject_mean_regression",
       "evidence": {
-        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
-        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+        "report": "reports/launches/2026-08-24-poi-posting-scaled-v4.json",
+        "report_sha256": "f83f8a96282c9faea2768a19546cad3300838b3a88e0205284c9773ee8bcfd9f"
       },
-      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+      "evidence_boundary": "Training and offline metrics use 400K synthetic requests. Promotion uses a separate 10M-request, 1.25M-creator paired and randomized A/B. This is simulator launch evidence, not production lift."
     },
     {
       "launch_id": "L-POI-POST-V4-FINE-001",
       "surface": "poi_posting",
       "stage": "fine",
-      "change_type": "creator_neural_v4_fine",
+      "change_type": "creator_neural_v4_fine_scaled",
       "control": "rule",
       "treatment": "linear",
       "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
-      "decision": "pass_pooled_three_seeds",
+      "decision": "pass_powered_creator_ab",
       "evidence": {
-        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
-        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+        "report": "reports/launches/2026-08-24-poi-posting-scaled-v4.json",
+        "report_sha256": "f83f8a96282c9faea2768a19546cad3300838b3a88e0205284c9773ee8bcfd9f"
       },
-      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+      "evidence_boundary": "Training and offline metrics use 400K synthetic requests. Promotion uses a separate 10M-request, 1.25M-creator paired and randomized A/B. This is simulator launch evidence, not production lift."
     },
     {
       "launch_id": "L-POI-POST-V4-FINE-002",
       "surface": "poi_posting",
       "stage": "fine",
-      "change_type": "creator_neural_v4_fine",
-      "control": "rule",
+      "change_type": "creator_neural_v4_fine_scaled_incremental",
+      "control": "linear",
       "treatment": "wide_deep",
       "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
-      "decision": "pass_pooled_three_seeds",
+      "decision": "reject_scaled_incremental",
       "evidence": {
-        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
-        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+        "report": "reports/launches/2026-08-24-poi-posting-scaled-v4.json",
+        "report_sha256": "f83f8a96282c9faea2768a19546cad3300838b3a88e0205284c9773ee8bcfd9f"
       },
-      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+      "evidence_boundary": "Training and offline metrics use 400K synthetic requests. Promotion uses a separate 10M-request, 1.25M-creator paired and randomized A/B. This is simulator launch evidence, not production lift."
     },
     {
       "launch_id": "L-POI-POST-V4-FINE-003",
       "surface": "poi_posting",
       "stage": "fine",
-      "change_type": "creator_neural_v4_fine",
-      "control": "rule",
-      "treatment": "mmoe",
-      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
-      "decision": "pass_pooled_three_seeds",
-      "evidence": {
-        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
-        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
-      },
-      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
-    },
-    {
-      "launch_id": "L-POI-POST-V4-FINE-004",
-      "surface": "poi_posting",
-      "stage": "fine",
-      "change_type": "creator_neural_v4_fine_incremental",
-      "control": "linear",
-      "treatment": "wide_deep",
-      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
-      "decision": "reject_mean_regression",
-      "evidence": {
-        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
-        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
-      },
-      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
-    },
-    {
-      "launch_id": "L-POI-POST-V4-FINE-005",
-      "surface": "poi_posting",
-      "stage": "fine",
-      "change_type": "creator_neural_v4_fine_incremental",
+      "change_type": "creator_neural_v4_fine_scaled_incremental",
       "control": "linear",
       "treatment": "mmoe",
       "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
-      "decision": "reject_mean_regression",
+      "decision": "reject_scaled_incremental",
       "evidence": {
-        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
-        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+        "report": "reports/launches/2026-08-24-poi-posting-scaled-v4.json",
+        "report_sha256": "f83f8a96282c9faea2768a19546cad3300838b3a88e0205284c9773ee8bcfd9f"
       },
-      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+      "evidence_boundary": "Training and offline metrics use 400K synthetic requests. Promotion uses a separate 10M-request, 1.25M-creator paired and randomized A/B. This is simulator launch evidence, not production lift."
     },
     {
       "launch_id": "L-POI-POST-V4-END_TO_END-001",
@@ -1299,12 +1284,12 @@
       "control": "popular_geo_plus_rule",
       "treatment": "popular_geo_plus_linear",
       "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
-      "decision": "pass_pooled_three_seeds",
+      "decision": "pass_powered_creator_ab",
       "evidence": {
-        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
-        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+        "report": "reports/launches/2026-08-24-poi-posting-scaled-v4.json",
+        "report_sha256": "f83f8a96282c9faea2768a19546cad3300838b3a88e0205284c9773ee8bcfd9f"
       },
-      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+      "evidence_boundary": "Training and offline metrics use 400K synthetic requests. Promotion uses a separate 10M-request, 1.25M-creator paired and randomized A/B. This is simulator launch evidence, not production lift."
     }
   ],
   "coverage": {
@@ -1343,9 +1328,9 @@
     }
   },
   "summary": {
-    "records": 87,
+    "records": 86,
     "passed": 25,
-    "held": 28,
+    "held": 27,
     "rejected": 34,
     "missing_cells": 0
   },

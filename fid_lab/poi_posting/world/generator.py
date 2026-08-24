@@ -7,6 +7,9 @@ from dataclasses import dataclass
 import torch
 from torch.nn import functional as functional
 
+from ...simulation.randomness import normal as counter_normal
+from ...simulation.randomness import uniform as counter_uniform
+from ...simulation.randomness import uniform_for_items
 from .contracts import POSTING_ROUTES, PostingWorldConfig
 from .teacher import NeuralSupplyTeacher, build_neural_supply_teacher
 
@@ -72,14 +75,7 @@ def _normalize(values):
 
 
 def _uniform(request_id, item_id, stream, seed):
-    value = torch.remainder(
-        request_id.long() * 1_103_515_245
-        + item_id.long() * 48_271
-        + stream * 7_919
-        + seed * 503,
-        2**31 - 1,
-    )
-    return (value.float() + 0.5) / float(2**31 - 1)
+    return uniform_for_items(request_id, item_id, 0, stream, seed)
 
 
 def _gumbel(request_id, item_id, stream, seed):
@@ -208,72 +204,79 @@ def _build_requests(config, generator, device, category_basis, city_centers):
     )
 
 
-def _build_creator_requests(config, generator, device, category_basis, city_centers):
-    request_id = torch.arange(config.requests, device=device)
+def _build_creator_requests(
+    config, device, category_basis, city_centers,
+    request_start=0, request_count=None,
+):
+    count = config.requests if request_count is None else request_count
+    request_id = torch.arange(
+        request_start, request_start + count, device=device
+    )
     creator_id = torch.remainder(request_id, config.creators)
     request_step = torch.div(request_id, config.creators, rounding_mode="floor")
-    primary = torch.randint(
-        config.categories, (config.creators,), generator=generator, device=device
-    )
-    secondary = torch.randint(
-        config.categories, (config.creators,), generator=generator, device=device
-    )
-    city = torch.randint(
-        config.cities, (config.creators,), generator=generator, device=device
-    )
-    activity_trait = torch.randn(
-        config.creators, generator=generator, device=device
-    )
-    activity = torch.sigmoid(
+    all_creators = torch.arange(config.creators, device=device)
+    primary = torch.floor(
+        counter_uniform(all_creators, 0, 210, config.seed) * config.categories
+    ).long()
+    secondary = torch.floor(
+        counter_uniform(all_creators, 0, 212, config.seed) * config.categories
+    ).long()
+    city = torch.floor(
+        counter_uniform(all_creators, 0, 214, config.seed) * config.cities
+    ).long()
+    activity_trait = counter_normal(all_creators, 0, 216, config.seed)
+    activity_logit = (
         activity_trait[creator_id]
         + 0.18 * torch.sin(request_step.float() * 0.9)
-        + 0.18 * torch.randn(config.requests, generator=generator, device=device)
+        + 0.18 * counter_normal(request_id, 0, 218, config.seed)
     )
+    activity = torch.sigmoid(activity_logit.double()).float()
     drift = torch.sigmoid((request_step.float() - 3.0) * 0.8)[:, None]
     latent_draft = _normalize(
         category_basis[primary[creator_id]]
         + (0.18 + 0.32 * drift) * category_basis[secondary[creator_id]]
-        + 0.28 * torch.randn(
-            config.requests, config.semantic_dim, generator=generator, device=device
+        + 0.28 * counter_normal(
+            request_id, 0, 220, config.seed, config.semantic_dim
         )
     )
     observed_draft = _normalize(
-        latent_draft + 0.45 * torch.randn(
-            config.requests, config.semantic_dim, generator=generator, device=device
+        latent_draft + 0.45 * counter_normal(
+            request_id, 0, 222, config.seed, config.semantic_dim
         )
     )
     history = _normalize(
         category_basis[primary[creator_id]] + 0.35 * category_basis[secondary[creator_id]]
-        + 0.35 * torch.randn(
-            config.requests, config.semantic_dim, generator=generator, device=device
+        + 0.35 * counter_normal(
+            request_id, 0, 224, config.seed, config.semantic_dim
         )
     )
-    permission_by_creator = torch.multinomial(
-        torch.tensor([0.56, 0.29, 0.15], device=device),
-        config.creators, replacement=True, generator=generator,
+    permission_draw = counter_uniform(all_creators, 0, 226, config.seed)
+    permission_by_creator = torch.where(
+        permission_draw < 0.56, 0,
+        torch.where(permission_draw < 0.85, 1, 2),
     )
     permission = permission_by_creator[creator_id]
     latent_city = city[creator_id]
-    wrong_city = torch.randint(
-        config.cities, (config.requests,), generator=generator, device=device
-    )
+    wrong_city = torch.floor(
+        counter_uniform(request_id, 0, 228, config.seed) * config.cities
+    ).long()
     ip_wrong = (permission == 2) & (
-        torch.rand(config.requests, generator=generator, device=device) < 0.12
+        counter_uniform(request_id, 0, 230, config.seed) < 0.12
     )
     observed_city = torch.where(ip_wrong, wrong_city, latent_city)
     noise = torch.where(
         permission[:, None] == 0, 0.08,
         torch.where(permission[:, None] == 1, 0.45, 0.90),
     )
-    location = city_centers[observed_city] + noise * torch.randn(
-        config.requests, 2, generator=generator, device=device
+    location = city_centers[observed_city] + noise * counter_normal(
+        request_id, 0, 232, config.seed, 2
     )
     preference_proxy = torch.clamp(
-        activity + 0.25 * torch.randn(config.requests, generator=generator, device=device),
+        activity + 0.25 * counter_normal(request_id, 0, 234, config.seed),
         0.0, 1.0,
     )
     outside = 0.30 - 0.72 * activity + 0.10 * request_step.float() + (
-        0.30 * torch.randn(config.requests, generator=generator, device=device)
+        0.30 * counter_normal(request_id, 0, 236, config.seed)
     )
     observed_category = (observed_draft @ category_basis.T).argmax(dim=1)
     return PostingRequests(
@@ -295,9 +298,8 @@ def build_world(config: PostingWorldConfig):
         catalog, city_centers = _build_catalog(
             config, catalog_generator, device, category_basis
         )
-        request_generator = torch.Generator(device=device).manual_seed(config.seed)
         requests = _build_creator_requests(
-            config, request_generator, device, category_basis, city_centers
+            config, device, category_basis, city_centers
         )
         return PostingWorld(
             config, catalog, requests, category_basis,
@@ -315,6 +317,34 @@ def build_world(config: PostingWorldConfig):
     )
     return PostingWorld(
         config, catalog, requests, category_basis, None
+    )
+
+
+def build_world_partition(config: PostingWorldConfig, request_start, request_count):
+    """Build an exact request slice of Supply V4 without changing its random world."""
+    if config.world_version != "creator-neural-supply-v4":
+        raise ValueError("partitioned worlds require creator-neural-supply-v4")
+    if request_start < 0 or request_count < 1:
+        raise ValueError("invalid Supply V4 request partition")
+    if request_start + request_count > config.requests:
+        raise ValueError("Supply V4 request partition exceeds the configured world")
+    device = torch.device(config.device)
+    catalog_seed = config.seed if config.catalog_seed is None else config.catalog_seed
+    generator = torch.Generator(device=device).manual_seed(catalog_seed)
+    category_basis = _normalize(torch.randn(
+        config.categories, config.semantic_dim,
+        generator=generator, device=device,
+    ))
+    catalog, city_centers = _build_catalog(
+        config, generator, device, category_basis
+    )
+    requests = _build_creator_requests(
+        config, device, category_basis, city_centers,
+        request_start, request_count,
+    )
+    return PostingWorld(
+        config, catalog, requests, category_basis,
+        build_neural_supply_teacher(device),
     )
 
 

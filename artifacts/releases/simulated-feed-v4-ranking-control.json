@@ -1,0 +1,22 @@
+{
+  "schema": "simulated-feed-v4-ranking-authority-v1",
+  "epoch": "v4",
+  "active_policy": {
+    "name": "mmoe_guarded_0.01",
+    "model_name": "mmoe",
+    "artifact_uri": "external://feed-v4-ladder-policy-aware-200k-artifacts/mmoe_v4.pt",
+    "artifact_sha256": "0cdb75b50ff28ddde01b2f4e69bfa546bc4036fe29b33f7abc7dbb5658ad6030",
+    "blend_weight": 0.01,
+    "base_tolerance": 0.05,
+    "value_tree_version": "feed-predicted-value-tree-v2"
+  },
+  "training_authority": {
+    "request_dataset_manifest_sha256": "96424e3efdccc465d82cfcd24c4383b27eebf94f3fd595766cab95648361c5a6",
+    "training_report_sha256": "47bb84881093539cb954853c2d2814514008298eb9d83960055ae395f0b04228"
+  },
+  "behavior_world_authority_sha256": "01539e71f080d23c8f7c0f61cf70d2b2c7a2bb74ba797aed349dbc48135b8ca0",
+  "source_launch_review_sha256": "a7858c2e309645a9b0998730c0c069042e1e5061f393b2efb3c861bbc319ca7c",
+  "rollback_policy": "rule_personalized_v1",
+  "decision": "launch_in_simulator",
+  "production_readiness": "hold_synthetic_evidence_only"
+}

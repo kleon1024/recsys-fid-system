@@ -1,7 +1,7 @@
 {
   "schema": "simulated-poi-posting-authority-v2",
   "active_key": "popular_geo_plus_linear",
-  "active_bundle_id": "sha256:f11f5c093719980a752d32f3832bdded4f829cde2787c408614a7f5cd7a2b5d8",
+  "active_bundle_id": "sha256:3cea529721aebf76f2625f37228c9bc9bf70f2bd61e5ebe8da22d1d14439412a",
   "active_bundle": {
     "candidate_policy": "popular_geo",
     "fine_model": "linear",
@@ -18,7 +18,7 @@
       },
       {
         "path": "fid_lab/launches/statistics.py",
-        "sha256": "a24c44f42a9398f6053a1c16806d118804ff67f0129a48ca7f479b8e7162f636"
+        "sha256": "f6032f7b974e6ff1b7e4cea1f47c61844b2bc145a450942d001cbda58f5a162f"
       },
       {
         "path": "fid_lab/multitask.py",
@@ -30,7 +30,7 @@
       },
       {
         "path": "fid_lab/poi_posting/world/analysis.py",
-        "sha256": "d70418e020e82f2e8aaf43327b4a756b98c071e2011da438c5b36b193e5ab603"
+        "sha256": "f0a45ad442c06ba5ada08620580e866a06c3bde59bc3393545f8b5529adec300"
       },
       {
         "path": "fid_lab/poi_posting/world/cli.py",
@@ -42,7 +42,7 @@
       },
       {
         "path": "fid_lab/poi_posting/world/generator.py",
-        "sha256": "17a62a4333bf9603c570843b3bffcbb0ae8ef9293f37aaa0e299554254e72c34"
+        "sha256": "83325171228c7094edfb44caf633a73d7785bfd3cb30cf70b6b415a161116d8e"
       },
       {
         "path": "fid_lab/poi_posting/world/launch.py",
@@ -54,7 +54,23 @@
       },
       {
         "path": "fid_lab/poi_posting/world/release.py",
-        "sha256": "2f8388a088ca5c99409238a2627f2fd3115332fc128932fd3734b5e8aacde346"
+        "sha256": "a8ef1404f826eafaaf327a10a070609703f05360e6c1f02091b9cdd23fbff62f"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/scale/__init__.py",
+        "sha256": "62c7e7bc170e46b9a1c5591ca28e67db7d85579309e699870d4dfd717776db9f"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/scale/cli.py",
+        "sha256": "93922bf8644c1312027c6ec9f7ae45c63b6ea9a678f8a69244a79f5dd6fd1b4b"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/scale/review.py",
+        "sha256": "30825ec1e39cdd65f180622ca5a3a08f9388b325a6457f8b5d32374bd6f84cbf"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/scale/runner.py",
+        "sha256": "497072f1f6d530d836d172d371da9a4345658fff816bfdb7e84ad6a4994d0525"
       },
       {
         "path": "fid_lab/poi_posting/world/teacher.py",
@@ -68,9 +84,9 @@
   },
   "rollback_key": "popular_geo_plus_rule",
   "source_report": {
-    "path": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
-    "sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+    "path": "reports/launches/2026-08-24-poi-posting-scaled-v4.json",
+    "sha256": "f83f8a96282c9faea2768a19546cad3300838b3a88e0205284c9773ee8bcfd9f"
   },
   "production_readiness": "hold_external_creator_and_supply_validation",
-  "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+  "evidence_boundary": "Training and offline metrics use 400K synthetic requests. Promotion uses a separate 10M-request, 1.25M-creator paired and randomized A/B. This is simulator launch evidence, not production lift."
 }

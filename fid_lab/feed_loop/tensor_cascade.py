@@ -28,6 +28,10 @@ def _fine_score(policy, eligible, user_ids, state, candidates):
     candidate_index = torch.arange(score.shape[1], device=score.device)[None, :]
     collision = torch.sin(user_ids[:, None] * 0.013 + candidate_index * 12.9898)
     score += eligible * policy.uid_collision_weight * collision
+    score += (
+        eligible * policy.creator_supply_weight * candidates["creator_need"]
+        * (0.55 * quality + 0.45 * observed_affinity.clamp_min(0.0))
+    )
     local_signal = (
         0.24 * observed_affinity
         + 0.18 * candidates["commerce"]
@@ -151,8 +155,13 @@ def materialize_selected(
         "same_city", "search_match", "retarget_match", "fulfillment", "candidate_topic",
         "item_ids", "content_type", "ad_value", "live_value", "duration",
         "popularity", "author", "route_bits", "recall_score",
+        "freshness",
+        "creator_need",
     )
     selected = {name: candidates[name][batch_index, choice] for name in names}
+    for name in ("behavior_sparse", "behavior_dense"):
+        if name in candidates:
+            selected[name] = candidates[name][batch_index, choice]
     if "stay_nonlinear" in candidates:
         selected["stay_nonlinear"] = candidates["stay_nonlinear"][batch_index, choice]
     selected["fine_scores"] = fine_scores

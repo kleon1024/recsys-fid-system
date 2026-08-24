@@ -279,8 +279,17 @@ def check_simulator_world_release() -> None:
     active_feed = release.get("active_components", {}).get("feed_behavior", {})
     if feed.get("status") != "eligible_simulator_authority":
         failures.append("Feed kernel is not eligible for simulator authority")
-    if active_feed.get("artifact_sha256") != feed.get("artifact_sha256"):
-        failures.append("active Feed kernel differs from the accepted review")
+    if active_feed.get("policy_artifact_sha256") != feed.get(
+        "policy_artifact_sha256"
+    ):
+        failures.append("active Feed policy kernel differs from the accepted review")
+    if active_feed.get("response_world_artifact_sha256") != feed.get(
+        "response_world_artifact_sha256"
+    ):
+        failures.append("active Feed response world differs from the accepted review")
+    for field in ("catalog_sha256", "profile_sha256"):
+        if active_feed.get(field) != feed.get(field):
+            failures.append(f"active Feed {field} differs from the accepted review")
     local = review.get("components", {}).get("local_response", {})
     active_local = release.get("active_components", {}).get("local_response", {})
     if local.get("status") != "eligible_simulator_authority":
@@ -304,7 +313,7 @@ def check_simulator_world_release() -> None:
 
 
 def _check_simulated_surface_release(
-    relative, schema, label, expected_readiness
+    relative, schema, label, expected_readiness, allow_stale_sources=False,
 ) -> None:
     release = json.loads((ROOT / relative).read_text())
     failures = []
@@ -314,10 +323,13 @@ def _check_simulated_surface_release(
     encoded = json.dumps(bundle, sort_keys=True, separators=(",", ":")).encode()
     if release["active_bundle_id"] != f"sha256:{sha256(encoded).hexdigest()}":
         failures.append(f"{label} bundle id mismatch")
-    resources = [
-        bundle["model_artifact"], *bundle["sources"],
-        *bundle.get("evidence_reports", []), release["source_report"]
-    ]
+    stale = release.get("status") == "stale_retrain_required"
+    if stale and not allow_stale_sources:
+        failures.append(f"{label} unexpectedly declares a stale authority")
+    resources = [bundle["model_artifact"], release["source_report"]]
+    if not stale:
+        resources.extend(bundle["sources"])
+        resources.extend(bundle.get("evidence_reports", []))
     if "retrieval_artifact" in bundle:
         resources.append(bundle["retrieval_artifact"])
     if "training_dataset" in bundle:
@@ -343,7 +355,7 @@ def check_simulated_surface_releases() -> None:
     _check_simulated_surface_release(
         "artifacts/releases/simulated-feed-posting-control.json",
         "simulated-feed-posting-authority-v1", "Feed posting",
-        "hold_external_creator_and_supply_validation",
+        "hold_retrain_required_after_risk_head", True,
     )
     _check_simulated_surface_release(
         "artifacts/releases/simulated-local-search-control.json",

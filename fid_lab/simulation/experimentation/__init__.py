@@ -13,6 +13,7 @@ __all__ = [
     "ExperimentLayer",
     "FeedParameters",
     "Variant",
+    "assign_binary_torch",
     "assign_layers",
     "assign_layer_numpy",
     "validate_layer_ownership",

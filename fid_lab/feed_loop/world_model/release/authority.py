@@ -24,6 +24,15 @@ EVIDENCE_REPORTS = {
         "reports/world-model/v4/world-adapter-rejected-seed31.json"
     ),
     "core_challenger": "reports/world-model/v4/core-bridge-challenger.json",
+    "feed_runtime_behavior": (
+        "reports/launches/2026-08-24-feed-behavior-external-mixture-v4-100k.json"
+    ),
+    "feed_ecosystem_consumer": (
+        "reports/launches/2026-08-24-feed-ecosystem-v4-consumer-100k.json"
+    ),
+    "feed_ecosystem_provider": (
+        "reports/launches/2026-08-24-feed-ecosystem-v4-provider-100k.json"
+    ),
     "local_v4_dataset": (
         "reports/datasets/2026-08-24-local-neural-v4-request-log-manifest.json"
     ),
@@ -46,7 +55,7 @@ EVIDENCE_REPORTS = {
         "reports/launches/2026-08-24-shared-retrieval-v4-aligned-paired-500k.json"
     ),
     "supply_v4_launch": (
-        "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json"
+        "reports/launches/2026-08-24-poi-posting-scaled-v4.json"
     ),
 }
 
@@ -125,8 +134,13 @@ def build_world_release(review_path: Path) -> dict:
         "epoch": review["epoch"],
         "active_components": {
             "feed_behavior": {
-                "authority": "external_randomized_v4",
-                "artifact_sha256": feed["artifact_sha256"],
+                "authority": "external_sequence_mixture_v4",
+                "policy_artifact_sha256": feed["policy_artifact_sha256"],
+                "response_world_artifact_sha256": feed[
+                    "response_world_artifact_sha256"
+                ],
+                "catalog_sha256": feed["catalog_sha256"],
+                "profile_sha256": feed["profile_sha256"],
             },
             "local_response": {
                 "authority": "synthetic_neural_v4",

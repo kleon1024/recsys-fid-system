@@ -24,6 +24,7 @@ def build_posting_release(root, report_relative, artifact_relative):
     if report.get("schema") not in {
         "poi-posting-request-launch-review-v2",
         "poi-posting-request-launch-review-v3",
+        "poi-posting-scaled-launch-review-v4",
     }:
         raise ValueError("POI posting release requires the repeated launch review")
     state = report["release_state"]
@@ -32,7 +33,8 @@ def build_posting_release(root, report_relative, artifact_relative):
         raise ValueError("POI posting end-to-end proposal did not pass all seeds")
     models = (
         report["models_by_seed"][0]
-        if report["schema"].endswith("v3") else report["seed_reports"][0]["models"]
+        if report["schema"].endswith(("v3", "v4"))
+        else report["seed_reports"][0]["models"]
     )
     artifact_manifest = models[state["fine"]]["artifact"]
     active = {

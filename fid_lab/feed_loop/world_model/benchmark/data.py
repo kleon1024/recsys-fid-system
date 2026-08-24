@@ -8,7 +8,10 @@ import math
 import numpy as np
 import torch
 
-from ....evolution.models.deepctr_adapter import build_feature_bundle
+from ....evolution.models.deepctr_adapter import (
+    DeepCTRModelAdapter,
+    build_feature_bundle,
+)
 from ...models.deep_policy import DENSE_INDICES, SPARSE_SPECS
 from ..contracts import BINARY_ACTIONS, WORLD_LABEL_COUNT
 from ..data import WorldModelSplit
@@ -52,6 +55,12 @@ def deepctr_bundle(features: np.ndarray):
     sparse = np.stack(sparse_values, axis=1)
     dense = features[:, DENSE_INDICES].astype(np.float32)
     return build_feature_bundle(sparse, dense, bucket_sizes=tuple(bucket_sizes))
+
+
+def score_tabular_model(model, features: np.ndarray) -> np.ndarray:
+    if isinstance(model, DeepCTRModelAdapter):
+        return model.predict(deepctr_bundle(features).inputs)[:, 0]
+    return model.predict_proba(features)[:, 1]
 
 
 @torch.inference_mode()

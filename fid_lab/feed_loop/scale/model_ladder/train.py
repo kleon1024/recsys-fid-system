@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from time import perf_counter
 
 import numpy as np
@@ -12,7 +11,6 @@ from ...models.deep_policy import FeedDeepPolicy
 from ...models.feed_multitask import FeedMultiTaskPolicy
 from ...models.multitask_policy import FeedMMoEPolicy
 from ....simulation.policies import fit_logistic_policy, fit_xgboost_policy
-from .data import ExposedSplit
 
 
 LONG_VIEW = 5

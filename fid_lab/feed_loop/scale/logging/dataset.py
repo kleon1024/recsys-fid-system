@@ -10,6 +10,7 @@ from pathlib import Path
 import torch
 
 from ...authority import attach_dataset
+from ...world_model.contracts import WORLD_LABEL_NAMES
 from ...tensor_cascade import (
     _fine_score,
     coarse_rank,
@@ -26,21 +27,14 @@ from ..tensor_engine import (
     sample_step,
 )
 from ..tensor_runtime.state import advance_state, new_user_state
+from ..tensor_runtime.ranking_sequence import SEQUENCE_FIELDS
+from .validation import validate_request_tensors
 
 
-LABEL_NAMES = (
-    "play", "play_3s", "stay_seconds", "play_completion_ratio",
-    "complete_play", "long_view", "quality_long_view", "like",
-    "negative_feedback", "anchor_click", "poi_detail", "poi_favorite",
-    "conversion", "returned_next_session", "accepted_commercialization",
-)
+LABEL_NAMES = WORLD_LABEL_NAMES
 EVALUATION_VALUE_NAMES = (
     "lt_stay_component", "lt_active_day_component",
     "lt_accepted_commercialization_component", "lt_total_evaluation_only",
-)
-SEQUENCE_FIELDS = (
-    "topic_norm", "stay_norm", "long_view", "quality_long_view", "like",
-    "negative_feedback", "anchor_click", "conversion",
 )
 
 
@@ -54,6 +48,13 @@ class V3LoggingConfig:
     seed: int = 20260823
     device: str = "cuda:0"
     signal_version: str = "kuairand-calibrated-v3"
+    candidates: int = 20
+    route_candidates: int = 8
+    route_oversample: int = 3
+    merged_candidates: int = 48
+    audit_candidates: int = 24
+    catalog_items: int = 200_000
+    catalog_creators: int = 25_000
 
     def __post_init__(self):
         if not 0.0 < self.epsilon < 1.0:
@@ -89,7 +90,7 @@ def _choice(config, user_ids, step, scores, eligible):
 def _labels(values, selected, returned):
     conversion = values["paid"] | values["pixel"]
     completion = values["stay"] / selected["duration"].clamp_min(1.0)
-    return torch.stack((
+    labels = torch.stack((
         values["played"].float(),
         (values["stay"] >= 3.0).float(),
         values["stay"],
@@ -105,7 +106,17 @@ def _labels(values, selected, returned):
         conversion.float(),
         returned.float(),
         values["accepted_commercialization"],
+        torch.zeros_like(values["stay"]),
+        values["comment"].float(),
+        values["share"].float(),
+        values["follow"].float(),
+        values["played"].float(),
+        values["long_view"].float(),
     ), dim=1)
+    masks = torch.ones_like(labels)
+    masks[:, 15] = 0.0
+    masks[:, 14] = values["ad_selected"].float()
+    return labels, masks
 
 
 def _evaluation_values(values, return_value):
@@ -119,37 +130,21 @@ def _evaluation_values(values, return_value):
     ), dim=1)
 
 
-def _sequence_event(selected, values, config):
-    conversion = values["paid"] | values["pixel"]
-    return torch.stack((
-        selected["candidate_topic"].float() / 11.0,
-        torch.log1p(values["stay"]) / torch.log(
-            torch.tensor(181.0, device=values["stay"].device)
-        ),
-        values["long_view"].float(),
-        values["quality_view"].float(),
-        values["like"].float(),
-        values["negative"].float(),
-        values["anchor"].float(),
-        conversion.float(),
-    ), dim=1)
-
-
 def _append(storage, name, value, mask, dtype=None):
     selected = value[mask].detach().to("cpu")
     storage.setdefault(name, []).append(selected.to(dtype) if dtype else selected)
 
 
-def _capture_step(storage, config, state, candidates, selected, features, labels,
-                  evaluation_values, sequence, propensity, session_id, active, step):
+def _capture_step(
+    storage, config, state, candidates, selected, features, labels, label_masks,
+    evaluation_values, sequence, propensity, session_id, active, audit_utility,
+    step,
+):
     split = _split(step, config.steps)
     bucket = storage.setdefault(split, {})
     users = state["user_ids"]
     request_id = users * config.steps + step
     impression = 1_650_000_000_000 + step * 60_000 + torch.remainder(users, 60_000)
-    audit_utility = torch.einsum(
-        "bkd,bd->bk", candidates["topics"], state["interest"]
-    ) + 0.45 * candidates["quality"]
     fields = {
         "request_id": (request_id, torch.int64),
         "user_id": (users, torch.int32),
@@ -176,7 +171,7 @@ def _capture_step(storage, config, state, candidates, selected, features, labels
         "exposure_propensity": (propensity, torch.float32),
         "behavior_sequence": (sequence, torch.float16),
         "labels": (labels, torch.float32),
-        "label_masks": (torch.ones_like(labels), torch.uint8),
+        "label_masks": (label_masks, torch.uint8),
         "evaluation_values": (evaluation_values, torch.float32),
         "candidate_label_mask": (
             torch.nn.functional.one_hot(
@@ -190,15 +185,22 @@ def _capture_step(storage, config, state, candidates, selected, features, labels
         _append(bucket, name, value, active, dtype)
 
 
-def _simulate_batch(storage, config, tensor_config, catalog, generator, device, offset):
+def _simulate_batch(
+    storage, config, tensor_config, catalog, generator, device, offset,
+    behavior_world=None,
+):
     users = min(config.batch_users, config.users - offset)
     user_ids = torch.arange(offset, offset + users, device=device)
     state = new_user_state(
         tensor_config, PERSONALIZED, generator, device, user_ids
     )
-    sequence = torch.zeros(
-        users, config.sequence_length, len(SEQUENCE_FIELDS), device=device
-    )
+    if behavior_world is not None:
+        behavior_world.initialize_state(state)
+    else:
+        state["ranking_behavior_sequence"] = torch.zeros(
+            users, config.sequence_length, len(SEQUENCE_FIELDS), device=device
+        )
+    sequence = state["ranking_behavior_sequence"]
     for step in range(config.steps):
         refresh_search_state(tensor_config, state, step)
         candidates = candidate_batch(
@@ -223,27 +225,40 @@ def _simulate_batch(storage, config, tensor_config, catalog, generator, device, 
         )
         active = state["active"].clone()
         session_id = state["sessions"].clone()
+        sequence = sequence.clone()
+        audit_utility = (
+            behavior_world.score_candidates(state, candidates, step)["utility"]
+            if behavior_world is not None else torch.einsum(
+                "bkd,bd->bk", candidates["topics"], state["interest"]
+            ) + 0.45 * candidates["quality"]
+        )
         values = sample_step(
-            tensor_config, PERSONALIZED, generator, device, state, selected, step
+            tensor_config, PERSONALIZED, generator, device, state, selected, step,
+            behavior_world,
         )
         return_value, returned = advance_state(
             tensor_config, PERSONALIZED, generator, state, selected, values, step
         )
+        labels, label_masks = _labels(values, selected, returned)
         _capture_step(
             storage, config, state, candidates, selected, features,
-            _labels(values, selected, returned),
+            labels, label_masks,
             _evaluation_values(values, return_value), sequence, propensity,
-            session_id, active, step,
+            session_id, active, audit_utility, step,
         )
-        sequence = torch.roll(sequence, shifts=-1, dims=1)
-        sequence[:, -1] = _sequence_event(selected, values, config)
+        sequence = state["ranking_behavior_sequence"]
 
 
-def _save(storage, output_dir, config, authority_bundle_id, storage_root):
+def _save(
+    storage, output_dir, config, authority_bundle_id, storage_root,
+    behavior_world=None,
+):
     output_dir.mkdir(parents=True, exist_ok=True)
     tables = {}
+    validation = {}
     for split, values in storage.items():
         tensors = {name: torch.cat(parts) for name, parts in values.items()}
+        validation[split] = validate_request_tensors(tensors, config)
         path = output_dir / f"{split}.pt"
         torch.save({"tensors": tensors}, path)
         tables[split] = {
@@ -252,7 +267,10 @@ def _save(storage, output_dir, config, authority_bundle_id, storage_root):
             "sha256": sha256(path.read_bytes()).hexdigest(),
         }
     return {
-        "schema": "v3-request-candidate-log-v1",
+        "schema": (
+            "v3-request-candidate-log-v1" if behavior_world is None
+            else "v4-request-candidate-log-v1"
+        ),
         "storage_root": storage_root,
         "config": asdict(config),
         "authority_bundle_id": authority_bundle_id,
@@ -266,7 +284,11 @@ def _save(storage, output_dir, config, authority_bundle_id, storage_root):
         },
         "sequence_fields": SEQUENCE_FIELDS,
         "candidate_label_contract": "only exposed candidate has mask=1",
+        "behavior_world": (
+            None if behavior_world is None else behavior_world.describe()
+        ),
         "tables": tables,
+        "validation": validation,
     }
 
 
@@ -279,6 +301,13 @@ def build_v3_logging_dataset(root: Path, output_dir: Path, config: V3LoggingConf
         users=config.users, steps=config.steps, batch_users=config.batch_users,
         seed=config.seed, device=config.device,
         signal_version=config.signal_version,
+        candidates=config.candidates, route_candidates=config.route_candidates,
+        route_oversample=config.route_oversample,
+        merged_candidates=config.merged_candidates,
+        audit_candidates=config.audit_candidates,
+        catalog_items=config.catalog_items,
+        catalog_creators=config.catalog_creators,
+        behavior_sequence_length=config.sequence_length,
     )
     device, generator, catalog = prepare_run(tensor_config, None, 0, None)
     storage = {}
@@ -295,4 +324,50 @@ def build_v3_logging_dataset(root: Path, output_dir: Path, config: V3LoggingConf
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
     manifest["manifest_sha256"] = sha256(manifest_path.read_bytes()).hexdigest()
     attach_dataset(root, manifest)
+    return manifest
+
+
+@torch.inference_mode()
+def build_v4_logging_dataset(
+    root: Path, output_dir: Path, config: V3LoggingConfig, behavior_world,
+):
+    release_path = root / "artifacts/releases/simulator-world.json"
+    release_hash = sha256(release_path.read_bytes()).hexdigest()
+    release = json.loads(release_path.read_text())
+    active = release["active_components"]["feed_behavior"]
+    if active["response_world_artifact_sha256"] != behavior_world.artifact_sha256:
+        raise ValueError("V4 logging world differs from simulator authority")
+    tensor_config = TensorFeedConfig(
+        users=config.users, steps=config.steps, batch_users=config.batch_users,
+        seed=config.seed, device=config.device,
+        signal_version=config.signal_version,
+        candidates=config.candidates, route_candidates=config.route_candidates,
+        route_oversample=config.route_oversample,
+        merged_candidates=config.merged_candidates,
+        audit_candidates=config.audit_candidates,
+        catalog_items=config.catalog_items,
+        catalog_creators=config.catalog_creators,
+        behavior_sequence_length=config.sequence_length,
+    )
+    device, generator, catalog = prepare_run(
+        tensor_config, None, 0, None, behavior_world
+    )
+    storage = {}
+    for offset in range(0, config.users, config.batch_users):
+        _simulate_batch(
+            storage, config, tensor_config, catalog, generator, device, offset,
+            behavior_world,
+        )
+    try:
+        storage_root = str(output_dir.resolve().relative_to(root.resolve()))
+    except ValueError:
+        storage_root = "external://v4-request-log"
+    authority_id = f"sha256:{release_hash}"
+    manifest = _save(
+        storage, output_dir, config, authority_id, storage_root, behavior_world
+    )
+    manifest["simulator_world_release_sha256"] = release_hash
+    manifest_path = output_dir / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+    manifest["manifest_sha256"] = sha256(manifest_path.read_bytes()).hexdigest()
     return manifest

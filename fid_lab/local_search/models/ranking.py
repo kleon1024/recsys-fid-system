@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from hashlib import sha256
-from pathlib import Path
-
 import numpy as np
 from sklearn.metrics import average_precision_score, ndcg_score, roc_auc_score
 import torch

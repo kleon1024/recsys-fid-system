@@ -11,8 +11,12 @@ from torch import nn
 
 from .architectures import build_ranker
 from .evaluation import calibration_biases, metrics
-from .objectives import multi_task_loss, positive_weights, task_probabilities
-from ..contracts import MODEL_NAMES, TASK_LABELS, PoiDistributionTrainingConfig
+from .objectives import (
+    multi_task_loss,
+    positive_weights as compute_positive_weights,
+    task_probabilities,
+)
+from ..contracts import MODEL_NAMES, TASK_LABELS
 from ..data import PoiDistributionSplit
 
 
@@ -77,8 +81,9 @@ def train_rankers(config, train: PoiDistributionSplit, validation):
     device = torch.device(config.device)
     mean = train.features.mean(0).to(device)
     scale = train.features.std(0).clamp_min(1e-4).to(device)
-    positive_weights = {
-        task: value.to(device) for task, value in positive_weights(train.labels).items()
+    positive_weight_by_task = {
+        task: value.to(device)
+        for task, value in compute_positive_weights(train.labels).items()
     }
     bundles = {}
     for offset, name in enumerate(MODEL_NAMES):
@@ -97,7 +102,9 @@ def train_rankers(config, train: PoiDistributionSplit, validation):
                 labels = train.labels[index].to(device)
                 weights = train.weights[index].to(device)
                 outputs = model((features - mean) / scale)
-                loss = multi_task_loss(outputs, labels, weights, positive_weights)
+                loss = multi_task_loss(
+                    outputs, labels, weights, positive_weight_by_task
+                )
                 optimizer.zero_grad(set_to_none=True)
                 loss.backward()
                 optimizer.step()

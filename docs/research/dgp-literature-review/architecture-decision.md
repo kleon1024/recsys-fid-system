@@ -112,6 +112,18 @@ Additional negative controls are mandatory: shuffled treatment, impossible futur
 
 ## Decision and next step / 决策与下一步
 
-Do not add another nonlinear formula and call it V4. Preserve V1–V3 as historical control epochs. The neural-SCM research challenger is now implemented on the frozen request-level dataset. It passes distribution, free-running sequence, ensemble uncertainty, frozen-V3 intervention recovery, and synthetic policy-order gates. External randomized intervention recovery and real frozen-policy ordering are still unavailable, so it has not replaced V3 as the experiment authority.
+Do not add another nonlinear formula and call it V4. V1–V3 remain historical
+control epochs. The universal neural-SCM challenger is still held, but the Feed
+component has now advanced independently: an external randomized-sequence
+adapter, hidden population mixture, empirical conditional stay sampler,
+state/session drift, and creator ecosystem pass the component authority gates.
+The new request-level ladder proves sequence capacity and executes published
+artifacts in common-random A/B. Local, posting, ads/live, retention exchange,
+and commercialization remain separate authorities wherever external evidence
+is missing.
 
-不要继续给 V3 加公式。V1–V3 保留为历史 control。受控 neural-SCM prototype 已完成并通过合成世界门禁；下一步必须接入内部随机实验与历史 A/B。只有恢复外部 held-out intervention 并正确排列真实 frozen policy，才允许升级为新的 experiment authority。
+不要继续给 V3 加公式。V1–V3 保留为历史 control。统一 neural-SCM 仍然 Hold，但
+Feed component 已独立升级：外部随机序列 adapter、隐藏人群 mixture、条件 stay
+经验分布、跨 session drift 和 creator ecosystem 均通过组件门禁。新的 request-level
+模型阶梯已经证明序列容量，并把同一 artifact 接入 common-random A/B。Local、投稿、
+广告/直播、留存兑换和商业化在缺少外部证据时仍保持独立 authority。

@@ -26,7 +26,7 @@ def _route_items(world):
     trending_category = torch.remainder(rank[None, :] * 5 + 2, config.categories)
     trending = category_prompt(
         config, trending_category, rank[None, :]
-    ).expand(config.requests, -1)
+    ).expand(len(requests.request_id), -1)
     i2i = category_prompt(
         config, requests.recent_category[:, None],
         request * 17 + rank[None, :] * 11,

@@ -10,6 +10,19 @@ meanings in recommendation engineering, so this document always writes either
 
 ## Conclusion / 结论
 
+> Current update: the diagnosis below explains the legacy V1–V3 path. The
+> external-mixture V4 Feed loop now removes the 24-feature/20k-row ceiling. It
+> trains on 200k frozen requests with a 64-candidate slate and 64-step sequence;
+> Transformer, MMoE, and PLE reach long-view AUC 0.676, 0.668, and 0.667 versus
+> logistic regression at 0.620. Launch is still decided by the separate
+> stateful LT A/B, not by these AUCs. See
+> [L-FEED-V4-010](../launch-reviews/2026-08-24-feed-v4-request-aware-loop.md).
+
+> 当前更新：下文主要解释历史 V1–V3。external-mixture V4 已解除 24 特征和 2 万
+> 样本上限，统一使用 64 候选、64 步序列和 20 万训练请求。Transformer、MMoE、
+> PLE 的 long-view AUC 分别为 0.676、0.668、0.667，高于逻辑回归 0.620；但上线
+> 仍由独立的有状态 LT A/B 决定，不能用 AUC 替代。
+
 Logistic regression remains the stateful Feed authority for four evidenced
 reasons: the original data-generating process is almost linear after known
 crosses are exposed; the actual policy model receives only 24 dense features;

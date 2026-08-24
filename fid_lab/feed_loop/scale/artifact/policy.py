@@ -36,9 +36,14 @@ def _selected_candidate(
         "topics", "quality", "is_poi", "commerce", "poi_quality",
         "inventory", "same_city", "search_match", "retarget_match",
         "fulfillment", "candidate_topic", "item_ids", "content_type",
-        "ad_value", "live_value", "duration",
+        "ad_value", "live_value", "duration", "freshness", "popularity",
+        "author",
+        "creator_need",
     )
     selected = {name: candidates[name][batch, choice] for name in names}
+    for name in ("behavior_sparse", "behavior_dense"):
+        if name in candidates:
+            selected[name] = candidates[name][batch, choice]
     selected["fine_scores"] = scores
     selected["mix_scores"] = scores
     selected["coarse_scores"] = coarse_scores

@@ -14,10 +14,11 @@ from fid_lab.feed_posting.models import (
     save_bundle,
     train_models,
 )
+from fid_lab.feed_posting.scale import run_partitioned_feed_posting_ab
 from fid_lab.feed_posting.simulation.features import candidate_features, rule_score
 from fid_lab.feed_posting.simulation.response import simulate_response
 from fid_lab.feed_posting.simulation.retrieval import retrieve
-from fid_lab.feed_posting.simulation.world import build_world
+from fid_lab.feed_posting.simulation.world import build_world, build_world_partition
 
 
 def _config(requests=600):
@@ -37,6 +38,110 @@ def _config(requests=600):
 
 
 class FeedPostingTest(unittest.TestCase):
+    def test_partitioned_creator_ab_uses_fixed_feed_model_artifact(self):
+        config = FeedPostingConfig(
+            **{
+                **_config(800).__dict__,
+                "creators": 100,
+                "catalog_seed": 20260824,
+                "world_version": "creator-neural-feed-supply-v4",
+            }
+        )
+        world = build_world(config)
+        candidates = retrieve(world, ("trending", "i2i"))
+        features = candidate_features(world, candidates)
+        semantic = world.catalog.semantic[candidates.prompt_ids]
+        response = simulate_response(world, candidates, rule_score(features))
+        bundle = train_models(
+            config, features, semantic, world.requests.feed_sequence,
+            response["top_indices"], response["labels"],
+            response["label_masks"], model_names=("linear",),
+        )["linear"]
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "linear.pt"
+            save_bundle(bundle, path, config)
+            report = run_partitioned_feed_posting_ab(
+                config, path, partition_requests=317
+            )
+        self.assertEqual(report["requests"], 800)
+        self.assertEqual(report["creators"], 100)
+        self.assertEqual(
+            report["creator_randomized_ab"]["publish_rate"]["estimator"],
+            "cluster_randomized_ab_from_means",
+        )
+
+    def test_creator_v4_is_invariant_to_request_partition_boundaries(self):
+        config = FeedPostingConfig(
+            **{
+                **_config(800).__dict__,
+                "creators": 100,
+                "catalog_seed": 20260824,
+                "world_version": "creator-neural-feed-supply-v4",
+            }
+        )
+        full = build_world(config)
+        parts = (
+            build_world_partition(config, 0, 317),
+            build_world_partition(config, 317, 483),
+        )
+        self.assertTrue(torch.equal(
+            full.requests.feed_sequence,
+            torch.cat([part.requests.feed_sequence for part in parts]),
+        ))
+        full_candidates = retrieve(full, ("trending", "i2i"))
+        part_candidates = [retrieve(part, ("trending", "i2i")) for part in parts]
+        self.assertTrue(torch.equal(
+            full_candidates.prompt_ids,
+            torch.cat([part.prompt_ids for part in part_candidates]),
+        ))
+        full_features = candidate_features(full, full_candidates)
+        part_features = [
+            candidate_features(world, candidates)
+            for world, candidates in zip(parts, part_candidates, strict=True)
+        ]
+        self.assertTrue(torch.equal(full_features, torch.cat(part_features)))
+
+    def test_creator_neural_v4_uses_panels_and_mature_post_publish_labels(self):
+        config = FeedPostingConfig(
+            **{
+                **_config(800).__dict__,
+                "creators": 100,
+                "catalog_seed": 20260824,
+                "world_version": "creator-neural-feed-supply-v4",
+            }
+        )
+        world = build_world(config)
+        counts = torch.bincount(world.requests.creator_id)
+        self.assertTrue(torch.equal(counts, torch.full_like(counts, 8)))
+        candidates = retrieve(world, ("trending", "i2i"))
+        features = candidate_features(world, candidates)
+        response = simulate_response(world, candidates, rule_score(features))
+        quality_mask = response["label_masks"][:, :, 3]
+        quality_label = response["labels"][:, :, 3]
+        risk_mask = response["label_masks"][:, :, 4]
+        risk_label = response["labels"][:, :, 4]
+        self.assertEqual(int(quality_mask.sum()), int(response["published"].sum()))
+        self.assertTrue(torch.all(quality_label <= quality_mask))
+        self.assertEqual(int(risk_mask.sum()), int(response["published"].sum()))
+        self.assertTrue(torch.all(risk_label <= risk_mask))
+        self.assertTrue(torch.all(response["negative"] <= response["published"]))
+
+    def test_creator_v4_candidate_launch_reports_creator_randomized_ab(self):
+        config = FeedPostingConfig(
+            **{
+                **_config(800).__dict__,
+                "creators": 100,
+                "catalog_seed": 20260824,
+                "world_version": "creator-neural-feed-supply-v4",
+            }
+        )
+        report = run_feed_posting_launch(config, candidate_only=True)
+        for row in report["launches"]:
+            self.assertEqual(
+                row["creator_online_ab"]["publish_rate"]["estimator"],
+                "creator_cluster_randomized_ab",
+            )
+
     def test_candidate_phase_stops_before_fine_rank_training(self):
         report = run_feed_posting_launch(_config(400), candidate_only=True)
         self.assertEqual(report["schema"], "feed-posting-candidate-phase-v1")

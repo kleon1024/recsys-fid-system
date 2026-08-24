@@ -1,0 +1,227 @@
+{
+  "schema": "partitioned-supply-v4-ab-v1",
+  "control": "popular_geo_plus_linear",
+  "treatment": "popular_geo_plus_wide_deep",
+  "requests": 10000000,
+  "creators": 1250000,
+  "partition_requests": 200000,
+  "model_sha256": "f2bf5ea5d609399408ad14c8741e8f200b587e4ad9cbdcdaa97cbd4f8de1ab95",
+  "control_model_sha256": "ef8e09835cffd4f8cc467a0b076654e8916205541de4931f8a26859710a359af",
+  "metrics": {
+    "publish_rate": {
+      "control_mean": 0.1747445,
+      "treatment_mean": 0.1746328,
+      "absolute_effect": -0.0001117,
+      "relative_effect": -0.0006392189739877364,
+      "standard_error": 6.703777751192897e-05,
+      "confidence_interval": [
+        -0.0002430940439233808,
+        1.969404392338078e-05
+      ],
+      "p_value": 0.09566867024385932
+    },
+    "relevant_supply_per_request": {
+      "control_mean": 0.09749783242312669,
+      "treatment_mean": 0.09745874344013333,
+      "absolute_effect": -3.9088982993364335e-05,
+      "relative_effect": -0.00040092155919655445,
+      "standard_error": 3.733978806718257e-05,
+      "confidence_interval": [
+        -0.00011227496760504218,
+        3.409700161831351e-05
+      ],
+      "p_value": 0.29517091687608643
+    },
+    "quality_supply_per_request": {
+      "control_mean": 0.09919374004562496,
+      "treatment_mean": 0.0991349936933577,
+      "absolute_effect": -5.874635226726532e-05,
+      "relative_effect": -0.0005922385045693858,
+      "standard_error": 3.8072033365662044e-05,
+      "confidence_interval": [
+        -0.00013336753766396292,
+        1.5874833129432282e-05
+      ],
+      "p_value": 0.12282309810096231
+    },
+    "feed_stay_seconds_per_request": {
+      "control_mean": 0.42343911615772245,
+      "treatment_mean": 0.42324608214292525,
+      "absolute_effect": -0.0001930340147972107,
+      "relative_effect": -0.0004558719481298687,
+      "standard_error": 0.00016240857881800048,
+      "confidence_interval": [
+        -0.0005113548292804916,
+        0.00012528679968607022
+      ],
+      "p_value": 0.2346087971037374
+    },
+    "feed_active_day_per_request": {
+      "control_mean": 0.000226788875324151,
+      "treatment_mean": 0.000226669484612823,
+      "absolute_effect": -1.1939071132801472e-07,
+      "relative_effect": -0.0005264398933032703,
+      "standard_error": 8.69715369943627e-08,
+      "confidence_interval": [
+        -2.8985492383696557e-07,
+        5.107350118093615e-08
+      ],
+      "p_value": 0.1698281703239834
+    },
+    "negative_per_request": {
+      "control_mean": 0.002670961307947617,
+      "treatment_mean": 0.0026663167208216152,
+      "absolute_effect": -4.644587126001716e-06,
+      "relative_effect": -0.0017389196586942118,
+      "standard_error": 1.0216744457618736e-06,
+      "confidence_interval": [
+        -6.6470690396949874e-06,
+        -2.6421052123084436e-06
+      ],
+      "p_value": 5.466103691552463e-06
+    },
+    "selected_content_negative_risk": {
+      "control_mean": 0.015301841765743493,
+      "treatment_mean": 0.01528546217525797,
+      "absolute_effect": -1.6379590485524385e-05,
+      "relative_effect": -0.0010704326143401684,
+      "standard_error": 1.1355031884211969e-07,
+      "confidence_interval": [
+        -1.660214911045494e-05,
+        -1.6157031860593832e-05
+      ],
+      "p_value": 0.0
+    },
+    "platform_lt_per_request": {
+      "control_mean": 0.008191263343284278,
+      "treatment_mean": 0.008187449156174809,
+      "absolute_effect": -3.8141871094703675e-06,
+      "relative_effect": -0.00046564088463807993,
+      "standard_error": 3.1416545173182934e-06,
+      "confidence_interval": [
+        -9.971829963414223e-06,
+        2.3434557444734877e-06
+      ],
+      "p_value": 0.22472116375757673
+    }
+  },
+  "creator_randomized_ab": {
+    "publish_rate": {
+      "control_mean": 0.17475182652162163,
+      "treatment_mean": 0.17467292689603942,
+      "absolute_effect": -7.88996255822183e-05,
+      "standard_error": 0.00024044933190114115,
+      "confidence_interval": [
+        -0.0005501803161084549,
+        0.00039238106494401834
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "relevant_supply_per_request": {
+      "control_mean": 0.09750164790368365,
+      "treatment_mean": 0.09748124232613034,
+      "absolute_effect": -2.040557755331185e-05,
+      "standard_error": 0.00013425403209025037,
+      "confidence_interval": [
+        -0.00028354348045020255,
+        0.00024273232534357885
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "quality_supply_per_request": {
+      "control_mean": 0.09919658424229727,
+      "treatment_mean": 0.09916011643377266,
+      "absolute_effect": -3.646780852460674e-05,
+      "standard_error": 0.00013654881161577953,
+      "confidence_interval": [
+        -0.0003041034792915346,
+        0.0002311678622423211
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "feed_stay_seconds_per_request": {
+      "control_mean": 0.4234557697914513,
+      "treatment_mean": 0.4233461661804539,
+      "absolute_effect": -0.00010960361099737748,
+      "standard_error": 0.0005828148231145897,
+      "confidence_interval": [
+        -0.0012519206643019734,
+        0.0010327134423072184
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "feed_active_day_per_request": {
+      "control_mean": 0.0002267961940070838,
+      "treatment_mean": 0.000226725167829559,
+      "absolute_effect": -7.10261775248083e-08,
+      "standard_error": 3.121641929066397e-07,
+      "confidence_interval": [
+        -6.82867995621822e-07,
+        5.408156405722054e-07
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "negative_per_request": {
+      "control_mean": 0.0026708413120884243,
+      "treatment_mean": 0.002667184387899973,
+      "absolute_effect": -3.656924188451347e-06,
+      "standard_error": 3.6894498827172197e-06,
+      "confidence_interval": [
+        -1.0888245958577098e-05,
+        3.574397581674403e-06
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "selected_content_negative_risk": {
+      "control_mean": 0.015300652443730137,
+      "treatment_mean": 0.015286871808323724,
+      "absolute_effect": -1.3780635406412944e-05,
+      "standard_error": 1.5939346265876811e-06,
+      "confidence_interval": [
+        -1.69047472745248e-05,
+        -1.065652353830109e-05
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    },
+    "platform_lt_per_request": {
+      "control_mean": 0.008191577497309307,
+      "treatment_mean": 0.008189395639529263,
+      "absolute_effect": -2.1818577800435807e-06,
+      "standard_error": 1.1274350691284559e-05,
+      "confidence_interval": [
+        -2.4279585134961316e-05,
+        1.9915869574874155e-05
+      ],
+      "control_clusters": 625369,
+      "treatment_clusters": 624631,
+      "estimator": "cluster_randomized_ab_from_means"
+    }
+  },
+  "gates": {
+    "publish_positive": false,
+    "platform_lt_nonnegative": false,
+    "relevant_supply_nonnegative": true,
+    "negative_guardrail": true
+  },
+  "decision": "hold_or_reject",
+  "performance": {
+    "seconds": 4.5397853379981825,
+    "requests_per_second": 2202747.3229404935,
+    "peak_gpu_memory_bytes": 3879923712
+  },
+  "evidence_boundary": "Large-scale paired and creator-randomized A/B in synthetic Supply V4. It provides simulator launch evidence, not production lift."
+}

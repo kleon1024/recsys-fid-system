@@ -37,12 +37,17 @@ from ..tensor_policies import (
     TensorPolicy,
 )
 from ..tensor_cascade import select_candidate
-from .tensor_runtime.contracts import DEFAULT_GPU_BATCH_USERS, TensorFeedConfig
+from .tensor_runtime.behavior.external import ExternalSequenceMixtureWorld
+from .tensor_runtime.contracts import (
+    DEFAULT_GPU_BATCH_USERS,
+    EXTERNAL_MIXTURE_FEED_VERSION,
+    TensorFeedConfig,
+)
 from .tensor_runtime.response import (
     business_and_lt_values,
-    sample_local_response,
     sample_response,
 )
+from .tensor_runtime.local_response import sample_local_response
 from .tensor_runtime.state import advance_state, new_user_state
 
 
@@ -156,7 +161,11 @@ def candidate_batch(config, generator, device, state, catalog, step, policy=None
         "popularity": catalog.popularity[item_ids],
         "duration": catalog.duration_seconds[item_ids],
         "author": catalog.author[item_ids],
+        "creator_need": catalog.creator_need[item_ids],
     }
+    if catalog.behavior_sparse is not None:
+        batch["behavior_sparse"] = catalog.behavior_sparse[item_ids]
+        batch["behavior_dense"] = catalog.behavior_dense[item_ids]
     batch.update(graph)
     if config.signal_version.startswith("kuairand-"):
         features = build_tensor_features(
@@ -166,26 +175,44 @@ def candidate_batch(config, generator, device, state, catalog, step, policy=None
     return batch
 
 
-def sample_step(config, policy, generator, device, state, selected, step):
+def sample_step(
+    config, policy, generator, device, state, selected, step,
+    behavior_world: ExternalSequenceMixtureWorld | None = None,
+):
     del generator, device
     affinity = (selected["topics"] * state["interest"]).sum(dim=1)
     is_live = selected["content_type"] == 1 if policy.multi_queue else torch.zeros_like(affinity).bool()
     is_ad = selected["content_type"] == 2 if policy.multi_queue else torch.zeros_like(affinity).bool()
     response_affinity = affinity + 0.03 * is_live.float() - 0.10 * is_ad.float()
-    feed = sample_response(
-        state["user_ids"],
-        step,
-        config.seed,
-        config.signal_version,
-        state["active"],
-        state["fatigue"],
-        state["satisfaction"],
-        response_affinity,
-        selected["quality"],
-        selected.get("duration"),
-        selected.get("stay_nonlinear"),
-    )
-    stay, long_view, quality_view, like, negative, played, play_draw = feed
+    if behavior_world is None:
+        feed = sample_response(
+            state["user_ids"],
+            step,
+            config.seed,
+            config.signal_version,
+            state["active"],
+            state["fatigue"],
+            state["satisfaction"],
+            response_affinity,
+            selected["quality"],
+            selected.get("duration"),
+            selected.get("stay_nonlinear"),
+        )
+        stay, long_view, quality_view, like, negative, played, play_draw = feed
+        feed_events = {
+            "comment": torch.zeros_like(played),
+            "share": torch.zeros_like(played),
+            "follow": torch.zeros_like(played),
+        }
+    else:
+        feed_events = behavior_world.sample(config, state, selected, step)
+        stay = feed_events["stay"]
+        long_view = feed_events["long_view"]
+        quality_view = feed_events["quality_view"]
+        like = feed_events["like"]
+        negative = feed_events["negative"]
+        played = feed_events["played"]
+        play_draw = feed_events["play_draw"]
     local = sample_local_response(
         state["user_ids"],
         step,
@@ -246,6 +273,12 @@ def sample_step(config, policy, generator, device, state, selected, step):
         "route_valid_counts": selected["route_valid_counts"],
         "unique_recall_count": selected["unique_recall_count"],
     }
+    values.update({
+        name: feed_events[name] for name in ("comment", "share", "follow")
+    })
+    if "history_item" in feed_events:
+        values["history_item"] = feed_events["history_item"]
+        values["history_feedback"] = feed_events["history_feedback"]
     return values
 
 
@@ -295,6 +328,56 @@ def _finalize_batch_metrics(
     accumulate_lt_exchange_components(lt_exchange, user_ids, user_metrics)
 
 
+def _measurement_user_values(active, values):
+    return torch.stack((
+        active, values["stay"], values["long_view"], values["quality_view"],
+        values["negative"], values["lt_value"], values["local_value_tree"],
+        values["anchor"], values["paid"] | values["pixel"],
+        values["ad_selected"], values["effective_ad"],
+        values["ad_contribution"], values["organic_opportunity_cost"],
+        values["feed_value_tree"], values["ads_live_value_tree"],
+        values["accepted_commercialization"],
+        values["local_commercialization"], torch.zeros_like(values["stay"]),
+        values["accepted_commercialization"], values["lt_value"],
+        values["coarse_oracle_survives"], values["coarse_pass_fraction"],
+        values["oracle_regret"], values["poi_candidate_fraction"],
+        values["stay"] / 60.0
+        * DEFAULT_LT_CONFIG.rates["stay_minute"].unit_value,
+        torch.zeros_like(values["stay"]), values["selected_duration"],
+    ), dim=1).float()
+
+
+def _record_step(
+    totals, diagnostics, trace_rows, config, state, candidates, selected,
+    values, active, step, offset, measurement_start,
+):
+    totals += _step_totals(config, {**state, "active": active}, values)
+    attribution = values["stage_attribution"][active]
+    diagnostics[:5] += torch.bincount(
+        attribution, minlength=5
+    ).to(torch.float64)
+    diagnostics[5 : 5 + len(ROUTE_NAMES)] += (
+        values["route_valid_counts"][active].sum(dim=0).to(torch.float64)
+    )
+    diagnostics[-2] += values["unique_recall_count"][active].sum()
+    diagnostics[-1] += active.sum()
+    _maybe_append_trace(
+        trace_rows, config, state, candidates, selected, values,
+        step, offset, measurement_start,
+    )
+    return _measurement_user_values(active, values)
+
+
+def _record_return(totals, user_metrics, active, returned, return_value, first):
+    totals[8] += active.sum() * int(first) + returned.sum()
+    totals[9] += returned.sum()
+    totals[10] += return_value.sum()
+    user_metrics[:, 5] += return_value
+    user_metrics[:, 17] += returned
+    user_metrics[:, 19] += return_value
+    user_metrics[:, 25] += return_value
+
+
 @torch.inference_mode()
 def _simulate_batches(
     config,
@@ -305,6 +388,7 @@ def _simulate_batches(
     policy_schedule,
     measurement_start_step,
     trigger_kind,
+    behavior_world,
 ):
     totals = torch.zeros(29, dtype=torch.float64, device=device)
     cell_stats = torch.zeros(2, 26, 3, dtype=torch.float64, device=device)
@@ -323,6 +407,8 @@ def _simulate_batches(
         state = new_user_state(
             config, initial_policy, generator, device, user_ids
         )
+        if behavior_world is not None:
+            behavior_world.initialize_state(state)
         user_metrics = torch.zeros(users, 27, device=device)
         trigger_cohort = torch.zeros(users, dtype=torch.bool, device=device)
         for step in range(config.steps):
@@ -340,66 +426,24 @@ def _simulate_batches(
             )
             active_before = state["active"].clone()
             values = sample_step(
-                config, active_policy, generator, device, state, selected, step
+                config, active_policy, generator, device, state, selected, step,
+                behavior_world,
             )
             measured = step >= measurement_start_step
             if measured:
-                totals += _step_totals(
-                    config, {**state, "active": active_before}, values
+                user_metrics += _record_step(
+                    totals, candidate_diagnostics, trace_rows, config, state,
+                    candidates, selected, values, active_before, step, offset,
+                    measurement_start_step,
                 )
-                active_attribution = values["stage_attribution"][active_before]
-                candidate_diagnostics[:5] += torch.bincount(
-                    active_attribution, minlength=5
-                ).to(torch.float64)
-                candidate_diagnostics[5 : 5 + len(ROUTE_NAMES)] += (
-                    values["route_valid_counts"][active_before]
-                    .sum(dim=0)
-                    .to(torch.float64)
-                )
-                candidate_diagnostics[-2] += values["unique_recall_count"][
-                    active_before
-                ].sum()
-                candidate_diagnostics[-1] += active_before.sum()
-                _maybe_append_trace(
-                    trace_rows, config, state, candidates, selected, values,
-                    step, offset, measurement_start_step,
-                )
-                user_metrics += torch.stack((
-                    active_before, values["stay"], values["long_view"], values["quality_view"],
-                    values["negative"], values["lt_value"], values["local_value_tree"],
-                    values["anchor"], values["paid"] | values["pixel"],
-                    values["ad_selected"], values["effective_ad"],
-                    values["ad_contribution"], values["organic_opportunity_cost"],
-                    values["feed_value_tree"], values["ads_live_value_tree"],
-                    values["accepted_commercialization"],
-                    values["local_commercialization"],
-                    torch.zeros_like(values["stay"]),
-                    values["accepted_commercialization"],
-                    values["lt_value"],
-                    values["coarse_oracle_survives"],
-                    values["coarse_pass_fraction"],
-                    values["oracle_regret"],
-                    values["poi_candidate_fraction"],
-                    values["stay"]
-                    / 60.0
-                    * DEFAULT_LT_CONFIG.rates["stay_minute"].unit_value,
-                    torch.zeros_like(values["stay"]),
-                    values["selected_duration"],
-                ), dim=1).float()
             return_value, returned = advance_state(
                 config, active_policy, generator, state, selected, values, step
             )
             if measured:
-                totals[8] += active_before.sum() * int(
-                    step == measurement_start_step
+                _record_return(
+                    totals, user_metrics, active_before, returned, return_value,
+                    step == measurement_start_step,
                 )
-                totals[8] += returned.sum()
-                totals[9] += returned.sum()
-                totals[10] += return_value.sum()
-                user_metrics[:, 5] += return_value
-                user_metrics[:, 17] += returned
-                user_metrics[:, 19] += return_value
-                user_metrics[:, 25] += return_value
         _finalize_batch_metrics(
             config, cell_stats, trigger_cell_stats, lt_exchange_stats,
             paired_user_metrics, user_ids, user_metrics, trigger_cohort,
@@ -417,7 +461,10 @@ def _simulate_batches(
     )
 
 
-def prepare_run(config, policy_schedule, measurement_start_step, trigger_kind):
+def prepare_run(
+    config, policy_schedule, measurement_start_step, trigger_kind,
+    behavior_world: ExternalSequenceMixtureWorld | None = None,
+):
     if policy_schedule is not None and len(policy_schedule) != config.steps:
         raise ValueError("policy schedule must contain one policy per step")
     if not 0 <= measurement_start_step < config.steps:
@@ -434,6 +481,8 @@ def prepare_run(config, policy_schedule, measurement_start_step, trigger_kind):
     catalog_seed = config.seed if config.catalog_seed is None else config.catalog_seed
     catalog_generator = torch.Generator(device=device).manual_seed(catalog_seed)
     catalog = build_tensor_catalog(config, catalog_generator, device)
+    if behavior_world is not None:
+        catalog = behavior_world.attach_catalog(catalog, config)
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device.index or 0)
     return device, generator, catalog
@@ -446,9 +495,16 @@ def run_tensor_feed(
     policy_schedule: tuple[TensorPolicy, ...] | None = None,
     measurement_start_step: int = 0,
     trigger_kind: str | None = None,
+    behavior_world: ExternalSequenceMixtureWorld | None = None,
 ) -> dict[str, object]:
+    if (
+        config.signal_version == EXTERNAL_MIXTURE_FEED_VERSION
+        and behavior_world is None
+    ):
+        raise ValueError("external Feed V4 requires an evidence-bound behavior world")
     device, generator, catalog = prepare_run(
-        config, policy_schedule, measurement_start_step, trigger_kind
+        config, policy_schedule, measurement_start_step, trigger_kind,
+        behavior_world,
     )
     _sync(device)
     started = perf_counter()
@@ -461,6 +517,7 @@ def run_tensor_feed(
         policy_schedule,
         measurement_start_step,
         trigger_kind,
+        behavior_world,
     )
     (
         totals,
@@ -492,4 +549,6 @@ def run_tensor_feed(
     )
     if paired_user_metrics:
         report["_paired_user_metrics"] = torch.cat(paired_user_metrics)
+    if behavior_world is not None:
+        report["behavior_world"] = behavior_world.describe()
     return report

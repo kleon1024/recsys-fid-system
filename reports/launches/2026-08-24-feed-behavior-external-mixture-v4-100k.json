@@ -1,0 +1,1302 @@
+{
+  "schema": "external-mixture-feed-v4-launch-review-v1",
+  "config": {
+    "users": 100000,
+    "steps": 8,
+    "candidates": 12,
+    "route_candidates": 16,
+    "route_oversample": 4,
+    "merged_candidates": 64,
+    "audit_candidates": 32,
+    "candidate_graph_version": "multiroute-rrf-cascade-v3",
+    "trace_users": 0,
+    "trace_requests_per_user": 2,
+    "topics": 12,
+    "catalog_items": 200000,
+    "catalog_creators": 25000,
+    "batch_users": 25000,
+    "seed": 20260823,
+    "catalog_seed": null,
+    "retain_paired_user_metrics": true,
+    "device": "cuda:0",
+    "count_inactive_play_bug": false,
+    "signal_version": "external-sequence-mixture-v4",
+    "max_sessions": 4,
+    "requests_per_session": 8,
+    "search_event_rate": 0.02,
+    "search_ttl_requests": 3,
+    "behavior_sequence_length": 64
+  },
+  "behavior_world": {
+    "authority": "external-sequence-mixture-v4",
+    "artifact_sha256": "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6",
+    "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+    "profile_sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076",
+    "sequence_length": 64,
+    "hidden_mixture_experts": 4,
+    "stay_sampler": {
+      "authority": "randomized-holdout-conditional-residual-bootstrap",
+      "bins": 16,
+      "quantiles": 65,
+      "source_completion_rate_given_play": 0.34663641452789307
+    }
+  },
+  "capacity": {
+    "requests": 20000,
+    "history_permutation_mean_absolute_probability_delta": 0.026914408430457115,
+    "history_permutation_long_view_delta": 0.05965443700551987,
+    "history_permutation_stay_delta": 0.044402092695236206,
+    "mixture_response_means": {
+      "0": {
+        "users": 4967,
+        "play": 0.18405987322330475,
+        "long_view": 0.06661304086446762,
+        "like": 0.003335900604724884,
+        "negative": 0.0006715886411257088
+      },
+      "1": {
+        "users": 4987,
+        "play": 0.17622239887714386,
+        "long_view": 0.07245327532291412,
+        "like": 0.0032741790637373924,
+        "negative": 0.0007718915585428476
+      },
+      "2": {
+        "users": 5027,
+        "play": 0.1781577318906784,
+        "long_view": 0.0753173679113388,
+        "like": 0.003908779472112656,
+        "negative": 0.0007359668961726129
+      },
+      "3": {
+        "users": 5019,
+        "play": 0.1713707596063614,
+        "long_view": 0.08893869817256927,
+        "like": 0.00401385547593236,
+        "negative": 0.0005337067414075136
+      }
+    }
+  },
+  "control": {
+    "config": {
+      "users": 100000,
+      "steps": 8,
+      "candidates": 12,
+      "route_candidates": 16,
+      "route_oversample": 4,
+      "merged_candidates": 64,
+      "audit_candidates": 32,
+      "candidate_graph_version": "multiroute-rrf-cascade-v3",
+      "trace_users": 0,
+      "trace_requests_per_user": 2,
+      "topics": 12,
+      "catalog_items": 200000,
+      "catalog_creators": 25000,
+      "batch_users": 25000,
+      "seed": 20260823,
+      "catalog_seed": null,
+      "retain_paired_user_metrics": true,
+      "device": "cuda:0",
+      "count_inactive_play_bug": false,
+      "signal_version": "external-sequence-mixture-v4",
+      "max_sessions": 4,
+      "requests_per_session": 8,
+      "search_event_rate": 0.02,
+      "search_ttl_requests": 3,
+      "behavior_sequence_length": 64
+    },
+    "policy": {
+      "name": "quality_baseline",
+      "affinity_weight": 0.0,
+      "quality_weight": 1.0,
+      "freshness_weight": 0.15,
+      "fatigue_match_penalty": 0.0,
+      "eligible_fraction": 1.0,
+      "observation_noise": 0.12,
+      "local_observation_noise": 0.12,
+      "realtime_interest_rate": 0.06,
+      "uid_collision_weight": 0.0,
+      "local_weight": 0.0,
+      "search_weight": 0.0,
+      "retarget_weight": 0.0,
+      "local_intent_quality_weight": 0.0,
+      "local_embedding_correction_weight": 0.0,
+      "mix_local_weight": 0.0,
+      "enabled_routes": [
+        "ann",
+        "graph",
+        "geo",
+        "fresh",
+        "long_tail",
+        "popular",
+        "post_search",
+        "retarget"
+      ],
+      "coarse_model": "lr_v1",
+      "coarse_keep": 0,
+      "coarse_affinity_weight": 1.0,
+      "coarse_quality_weight": 0.35,
+      "coarse_local_weight": 0.05,
+      "multi_queue": false,
+      "ad_weight": 0.0,
+      "live_weight": 0.0,
+      "max_ads_per_session": 0,
+      "min_ad_gap": 4,
+      "max_live_per_session": 0,
+      "creator_supply_weight": 0.0
+    },
+    "policy_schedule": null,
+    "measurement_start_step": 0,
+    "experiment_cells": {
+      "control": {
+        "stay_per_exposure": {
+          "users": 50293,
+          "mean": 7.085628529318195,
+          "variance": 107.32957320549083
+        },
+        "long_view_rate": {
+          "users": 50293,
+          "mean": 0.059186380699724615,
+          "variance": 0.010302048153451402
+        },
+        "quality_long_view_rate": {
+          "users": 50293,
+          "mean": 0.03470550695483063,
+          "variance": 0.005595279081401172
+        },
+        "negative_rate": {
+          "users": 50293,
+          "mean": 0.0009594727047936591,
+          "variance": 0.00033668178003454685
+        },
+        "lt_value_per_exposure": {
+          "users": 50293,
+          "mean": 0.24387128536153144,
+          "variance": 0.11017815818757859
+        },
+        "local_value_tree_score_per_exposure": {
+          "users": 50293,
+          "mean": 0.00684852805649713,
+          "variance": 0.00400332250171271
+        },
+        "anchor_click_rate": {
+          "users": 50293,
+          "mean": 0.004755797636567488,
+          "variance": 0.000752513905612462
+        },
+        "conversion_rate": {
+          "users": 50293,
+          "mean": 0.00015097244629730885,
+          "variance": 2.4445254876940263e-05
+        },
+        "ad_load": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "effective_ad_load": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "ad_contribution_per_exposure": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "users": 50293,
+          "mean": 0.03484712337169033,
+          "variance": 0.012284182061656075
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "users": 50293,
+          "mean": 0.0007111360303681462,
+          "variance": 0.0006516180132127927
+        },
+        "active_days_per_user": {
+          "users": 50293,
+          "mean": 0.19758216849263316,
+          "variance": 0.19322409114150768
+        },
+        "accepted_platform_commercialization_per_user": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "lt_value_per_user": {
+          "users": 50293,
+          "mean": 1.8973774618237131,
+          "variance": 6.551021124870908
+        },
+        "coarse_feed_oracle_recall": {
+          "users": 50293,
+          "mean": 0.834178627306484,
+          "variance": 0.0205090677968724
+        },
+        "coarse_pass_fraction": {
+          "users": 50293,
+          "mean": 0.1875,
+          "variance": 0.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "users": 50293,
+          "mean": 0.06712662091161418,
+          "variance": 0.0008554212190930193
+        },
+        "poi_candidate_fraction": {
+          "users": 50293,
+          "mean": 0.29287824034750115,
+          "variance": 0.00044034491225068494
+        },
+        "lt_stay_per_user": {
+          "users": 50293,
+          "mean": 0.9094666387780108,
+          "variance": 1.6735791265876414
+        },
+        "lt_active_days_per_user": {
+          "users": 50293,
+          "mean": 0.9879108424631659,
+          "variance": 4.830602278537691
+        },
+        "selected_duration_per_exposure": {
+          "users": 50293,
+          "mean": 95.19335195752888,
+          "variance": 5362.533271638174
+        }
+      },
+      "treatment": {
+        "stay_per_exposure": {
+          "users": 49707,
+          "mean": 7.099757390810147,
+          "variance": 105.94693789883084
+        },
+        "long_view_rate": {
+          "users": 49707,
+          "mean": 0.05966758171635786,
+          "variance": 0.010529911367238725
+        },
+        "quality_long_view_rate": {
+          "users": 49707,
+          "mean": 0.0350467079370266,
+          "variance": 0.0056982699276144615
+        },
+        "negative_rate": {
+          "users": 49707,
+          "mean": 0.0010320478231317356,
+          "variance": 0.00040778151643841706
+        },
+        "lt_value_per_exposure": {
+          "users": 49707,
+          "mean": 0.24234687632809515,
+          "variance": 0.10796103694225231
+        },
+        "local_value_tree_score_per_exposure": {
+          "users": 49707,
+          "mean": 0.007228882399542963,
+          "variance": 0.003931066536888227
+        },
+        "anchor_click_rate": {
+          "users": 49707,
+          "mean": 0.0048741578101286825,
+          "variance": 0.000781748347502074
+        },
+        "conversion_rate": {
+          "users": 49707,
+          "mean": 0.0001542371647079793,
+          "variance": 2.0024651069922523e-05
+        },
+        "ad_load": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "effective_ad_load": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "ad_contribution_per_exposure": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "users": 49707,
+          "mean": 0.03500702839341667,
+          "variance": 0.013654089037399822
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "users": 49707,
+          "mean": 0.0007890917749447308,
+          "variance": 0.0006297794664661718
+        },
+        "active_days_per_user": {
+          "users": 49707,
+          "mean": 0.19510330536946507,
+          "variance": 0.1926505481134456
+        },
+        "accepted_platform_commercialization_per_user": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "lt_value_per_user": {
+          "users": 49707,
+          "mean": 1.8896820131596153,
+          "variance": 6.485134316853757
+        },
+        "coarse_feed_oracle_recall": {
+          "users": 49707,
+          "mean": 0.8350101909690788,
+          "variance": 0.02011677380799369
+        },
+        "coarse_pass_fraction": {
+          "users": 49707,
+          "mean": 0.1875,
+          "variance": 0.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "users": 49707,
+          "mean": 0.06674635581303312,
+          "variance": 0.0008456743166133936
+        },
+        "poi_candidate_fraction": {
+          "users": 49707,
+          "mean": 0.29280131865701764,
+          "variance": 0.0004407194988684291
+        },
+        "lt_stay_per_user": {
+          "users": 49707,
+          "mean": 0.9141655256050456,
+          "variance": 1.660565012600924
+        },
+        "lt_active_days_per_user": {
+          "users": 49707,
+          "mean": 0.9755165268473254,
+          "variance": 4.816263702836141
+        },
+        "selected_duration_per_exposure": {
+          "users": 49707,
+          "mean": 94.38012251795521,
+          "variance": 4813.578414679393
+        }
+      }
+    },
+    "lt_exchange_components": {
+      "control": {
+        "users": 50293,
+        "noncommercial_mean": 1.8973774750470938,
+        "noncommercial_variance": 6.55102098665166,
+        "accepted_commercialization_mean": 0.0,
+        "accepted_commercialization_variance": 0.0,
+        "covariance": 0.0
+      },
+      "treatment": {
+        "users": 49707,
+        "noncommercial_mean": 1.8896820442896443,
+        "noncommercial_variance": 6.4851341798751765,
+        "accepted_commercialization_mean": 0.0,
+        "accepted_commercialization_variance": 0.0,
+        "covariance": 0.0
+      }
+    },
+    "candidate_graph": {
+      "version": "multiroute-rrf-cascade-v3",
+      "stage_attribution": {
+        "recall_miss": 127397,
+        "coarse_miss": 144,
+        "fine_rank_miss": 488018,
+        "mix_rank_miss": 0,
+        "served_audit_oracle": 157450
+      },
+      "stage_attribution_rate": {
+        "recall_miss": 0.1648066193278474,
+        "coarse_miss": 0.000186285023848364,
+        "fine_rank_miss": 0.6313225331141035,
+        "mix_rank_miss": 0.0,
+        "served_audit_oracle": 0.20368456253420075
+      },
+      "mean_route_hits": {
+        "ann": 16.0,
+        "graph": 16.0,
+        "geo": 16.0,
+        "fresh": 16.0,
+        "long_tail": 16.0,
+        "popular": 16.0,
+        "post_search": 0.3202446543313209,
+        "retarget": 0.24428176127315465
+      },
+      "mean_unique_recalled": 96.56121080090918,
+      "requests": 773009
+    },
+    "request_candidate_trace": {
+      "schema": "gpu-request-candidate-trace-v1",
+      "requests": 0,
+      "candidate_rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "rows": []
+    },
+    "metrics": {
+      "exposures": 773009,
+      "stay_per_exposure": 7.077296076112956,
+      "long_view_rate": 0.05937576405966813,
+      "quality_long_view_rate": 0.034950433953550346,
+      "like_rate": 0.003248345103355847,
+      "negative_rate": 0.0009831709591996988,
+      "play_rate": 0.14356236473314024,
+      "play_3s_rate": 0.14066589134149796,
+      "sessions_per_user": 1.19635,
+      "returned_sessions_per_user": 0.19635,
+      "active_days_per_user": 0.19635,
+      "lt_value_per_exposure": 0.24495863595974868,
+      "lt_value_per_user": 1.8935523022460938,
+      "lt_stay_per_user": 0.9118022604166667,
+      "lt_active_days_per_user": 0.98175,
+      "local_value_tree_score_per_exposure": 0.0069907914720742205,
+      "anchor_click_rate": 0.004807188532086949,
+      "poi_detail_rate": 0.0018382709645036474,
+      "closed_loop_payment_rate": 0.00011901543190312143,
+      "open_loop_conversion_rate": 2.9753857975780358e-05,
+      "conversion_rate": 0.0001487692898789018,
+      "ad_load": 0.0,
+      "effective_ad_load": 0.0,
+      "ad_contribution_per_exposure": 0.0,
+      "organic_opportunity_cost_per_exposure": 0.0,
+      "feed_value_tree_score_per_exposure": 0.03507818149594636,
+      "ads_live_value_tree_score_per_exposure": 0.0,
+      "accepted_platform_commercialization_per_exposure": 0.0,
+      "accepted_platform_commercialization_per_user": 0.0,
+      "local_commercialization_value_per_exposure": 0.0007311619347653603,
+      "coarse_feed_oracle_recall": 0.8350070956483042,
+      "coarse_pass_fraction": 0.1875,
+      "fine_oracle_regret_per_exposure": 0.06693088203932417,
+      "poi_candidate_fraction": 0.29283021365210493,
+      "selected_duration_per_exposure": 86.45898252801713
+    },
+    "performance": {
+      "seconds": 3.345878129999619,
+      "users_per_second": 29887.520141091147,
+      "requests_per_second": 231033.22056744728,
+      "peak_gpu_memory_bytes": 1546574848
+    },
+    "behavior_world": {
+      "authority": "external-sequence-mixture-v4",
+      "artifact_sha256": "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6",
+      "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+      "profile_sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076",
+      "sequence_length": 64,
+      "hidden_mixture_experts": 4,
+      "stay_sampler": {
+        "authority": "randomized-holdout-conditional-residual-bootstrap",
+        "bins": 16,
+        "quantiles": 65,
+        "source_completion_rate_given_play": 0.34663641452789307
+      }
+    }
+  },
+  "treatment": {
+    "config": {
+      "users": 100000,
+      "steps": 8,
+      "candidates": 12,
+      "route_candidates": 16,
+      "route_oversample": 4,
+      "merged_candidates": 64,
+      "audit_candidates": 32,
+      "candidate_graph_version": "multiroute-rrf-cascade-v3",
+      "trace_users": 0,
+      "trace_requests_per_user": 2,
+      "topics": 12,
+      "catalog_items": 200000,
+      "catalog_creators": 25000,
+      "batch_users": 25000,
+      "seed": 20260823,
+      "catalog_seed": null,
+      "retain_paired_user_metrics": true,
+      "device": "cuda:0",
+      "count_inactive_play_bug": false,
+      "signal_version": "external-sequence-mixture-v4",
+      "max_sessions": 4,
+      "requests_per_session": 8,
+      "search_event_rate": 0.02,
+      "search_ttl_requests": 3,
+      "behavior_sequence_length": 64
+    },
+    "policy": {
+      "name": "personalized_rank",
+      "affinity_weight": 1.0,
+      "quality_weight": 0.45,
+      "freshness_weight": 0.1,
+      "fatigue_match_penalty": 0.12,
+      "eligible_fraction": 1.0,
+      "observation_noise": 0.12,
+      "local_observation_noise": 0.12,
+      "realtime_interest_rate": 0.06,
+      "uid_collision_weight": 0.0,
+      "local_weight": 0.0,
+      "search_weight": 0.0,
+      "retarget_weight": 0.0,
+      "local_intent_quality_weight": 0.0,
+      "local_embedding_correction_weight": 0.0,
+      "mix_local_weight": 0.0,
+      "enabled_routes": [
+        "ann",
+        "graph",
+        "geo",
+        "fresh",
+        "long_tail",
+        "popular",
+        "post_search",
+        "retarget"
+      ],
+      "coarse_model": "lr_v1",
+      "coarse_keep": 0,
+      "coarse_affinity_weight": 1.0,
+      "coarse_quality_weight": 0.35,
+      "coarse_local_weight": 0.05,
+      "multi_queue": false,
+      "ad_weight": 0.0,
+      "live_weight": 0.0,
+      "max_ads_per_session": 0,
+      "min_ad_gap": 4,
+      "max_live_per_session": 0,
+      "creator_supply_weight": 0.0
+    },
+    "policy_schedule": null,
+    "measurement_start_step": 0,
+    "experiment_cells": {
+      "control": {
+        "stay_per_exposure": {
+          "users": 50293,
+          "mean": 7.6017329076611055,
+          "variance": 123.10282334112149
+        },
+        "long_view_rate": {
+          "users": 50293,
+          "mean": 0.059196986275659016,
+          "variance": 0.010365238324216444
+        },
+        "quality_long_view_rate": {
+          "users": 50293,
+          "mean": 0.03675438068174404,
+          "variance": 0.005900430834421514
+        },
+        "negative_rate": {
+          "users": 50293,
+          "mean": 0.0010262007617842354,
+          "variance": 0.00036096673978766987
+        },
+        "lt_value_per_exposure": {
+          "users": 50293,
+          "mean": 0.2542723517142669,
+          "variance": 0.11605522276222541
+        },
+        "local_value_tree_score_per_exposure": {
+          "users": 50293,
+          "mean": 0.007248198469566,
+          "variance": 0.004052383801029596
+        },
+        "anchor_click_rate": {
+          "users": 50293,
+          "mean": 0.005107214818089822,
+          "variance": 0.0007912779111807441
+        },
+        "conversion_rate": {
+          "users": 50293,
+          "mean": 0.00014316107704220697,
+          "variance": 2.2522851779530378e-05
+        },
+        "ad_load": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "effective_ad_load": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "ad_contribution_per_exposure": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "users": 50293,
+          "mean": 0.036286539953023715,
+          "variance": 0.012930436360141573
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "users": 50293,
+          "mean": 0.0006731448145932705,
+          "variance": 0.0006433868438728902
+        },
+        "active_days_per_user": {
+          "users": 50293,
+          "mean": 0.20032608911776986,
+          "variance": 0.1956715710677338
+        },
+        "accepted_platform_commercialization_per_user": {
+          "users": 50293,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "lt_value_per_user": {
+          "users": 50293,
+          "mean": 1.977270383055296,
+          "variance": 6.863760040890794
+        },
+        "coarse_feed_oracle_recall": {
+          "users": 50293,
+          "mean": 0.8333188414329529,
+          "variance": 0.020623421852358628
+        },
+        "coarse_pass_fraction": {
+          "users": 50293,
+          "mean": 0.1875,
+          "variance": 0.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "users": 50293,
+          "mean": 0.0187097353405528,
+          "variance": 0.00015153894600576865
+        },
+        "poi_candidate_fraction": {
+          "users": 50293,
+          "mean": 0.2929966140603563,
+          "variance": 0.0004457743453538643
+        },
+        "lt_stay_per_user": {
+          "users": 50293,
+          "mean": 0.9756399568839103,
+          "variance": 1.8958714948145992
+        },
+        "lt_active_days_per_user": {
+          "users": 50293,
+          "mean": 1.0016304455888494,
+          "variance": 4.891789276693345
+        },
+        "selected_duration_per_exposure": {
+          "users": 50293,
+          "mean": 103.60703278786312,
+          "variance": 6276.935051151335
+        }
+      },
+      "treatment": {
+        "stay_per_exposure": {
+          "users": 49707,
+          "mean": 7.614868127225542,
+          "variance": 119.8399414901737
+        },
+        "long_view_rate": {
+          "users": 49707,
+          "mean": 0.0597357902562925,
+          "variance": 0.010534143419786675
+        },
+        "quality_long_view_rate": {
+          "users": 49707,
+          "mean": 0.03707914106645411,
+          "variance": 0.0061312030169978155
+        },
+        "negative_rate": {
+          "users": 49707,
+          "mean": 0.00098886619756814,
+          "variance": 0.00036499498824483443
+        },
+        "lt_value_per_exposure": {
+          "users": 49707,
+          "mean": 0.25275452039576923,
+          "variance": 0.1132619578997142
+        },
+        "local_value_tree_score_per_exposure": {
+          "users": 49707,
+          "mean": 0.00758270967257779,
+          "variance": 0.003713572426175651
+        },
+        "anchor_click_rate": {
+          "users": 49707,
+          "mean": 0.005250961061507937,
+          "variance": 0.0008360198135456267
+        },
+        "conversion_rate": {
+          "users": 49707,
+          "mean": 0.00014908794070622622,
+          "variance": 1.871678446748306e-05
+        },
+        "ad_load": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "effective_ad_load": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "ad_contribution_per_exposure": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "organic_opportunity_cost_per_exposure": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "feed_value_tree_score_per_exposure": {
+          "users": 49707,
+          "mean": 0.03703489926555553,
+          "variance": 0.013513925548198786
+        },
+        "ads_live_value_tree_score_per_exposure": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "accepted_platform_commercialization_per_exposure": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "local_commercialization_value_per_exposure": {
+          "users": 49707,
+          "mean": 0.0007057797943077783,
+          "variance": 0.000521486520837615
+        },
+        "active_days_per_user": {
+          "users": 49707,
+          "mean": 0.1979399279779508,
+          "variance": 0.19574033413722572
+        },
+        "accepted_platform_commercialization_per_user": {
+          "users": 49707,
+          "mean": 0.0,
+          "variance": 0.0
+        },
+        "lt_value_per_user": {
+          "users": 49707,
+          "mean": 1.9700032424381877,
+          "variance": 6.80983903969923
+        },
+        "coarse_feed_oracle_recall": {
+          "users": 49707,
+          "mean": 0.8344910157900296,
+          "variance": 0.020239217190902006
+        },
+        "coarse_pass_fraction": {
+          "users": 49707,
+          "mean": 0.1875,
+          "variance": 0.0
+        },
+        "fine_oracle_regret_per_exposure": {
+          "users": 49707,
+          "mean": 0.01867540896587597,
+          "variance": 0.0001510166108823264
+        },
+        "poi_candidate_fraction": {
+          "users": 49707,
+          "mean": 0.2929594916444741,
+          "variance": 0.00044515553817530296
+        },
+        "lt_stay_per_user": {
+          "users": 49707,
+          "mean": 0.9803035829020561,
+          "variance": 1.8979732745757498
+        },
+        "lt_active_days_per_user": {
+          "users": 49707,
+          "mean": 0.989699639889754,
+          "variance": 4.893508353430644
+        },
+        "selected_duration_per_exposure": {
+          "users": 49707,
+          "mean": 102.78477125958115,
+          "variance": 5738.456678312965
+        }
+      }
+    },
+    "lt_exchange_components": {
+      "control": {
+        "users": 50293,
+        "noncommercial_mean": 1.9772703905699487,
+        "noncommercial_variance": 6.863760027125566,
+        "accepted_commercialization_mean": 0.0,
+        "accepted_commercialization_variance": 0.0,
+        "covariance": 0.0
+      },
+      "treatment": {
+        "users": 49707,
+        "noncommercial_mean": 1.9700032294867953,
+        "noncommercial_variance": 6.809839186775411,
+        "accepted_commercialization_mean": 0.0,
+        "accepted_commercialization_variance": 0.0,
+        "covariance": 0.0
+      }
+    },
+    "candidate_graph": {
+      "version": "multiroute-rrf-cascade-v3",
+      "stage_attribution": {
+        "recall_miss": 127936,
+        "coarse_miss": 121,
+        "fine_rank_miss": 264030,
+        "mix_rank_miss": 0,
+        "served_audit_oracle": 380547
+      },
+      "stage_attribution_rate": {
+        "recall_miss": 0.16558422228377215,
+        "coarse_miss": 0.00015660713869697682,
+        "fine_rank_miss": 0.34172713082779166,
+        "mix_rank_miss": 0.0,
+        "served_audit_oracle": 0.4925320397497392
+      },
+      "mean_route_hits": {
+        "ann": 16.0,
+        "graph": 16.0,
+        "geo": 16.0,
+        "fresh": 16.0,
+        "long_tail": 16.0,
+        "popular": 16.0,
+        "post_search": 0.3204622110857146,
+        "retarget": 0.26148473921675724
+      },
+      "mean_unique_recalled": 96.57823109001157,
+      "requests": 772634
+    },
+    "request_candidate_trace": {
+      "schema": "gpu-request-candidate-trace-v1",
+      "requests": 0,
+      "candidate_rows": 0,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "rows": []
+    },
+    "metrics": {
+      "exposures": 772634,
+      "stay_per_exposure": 7.594473236195922,
+      "long_view_rate": 0.05944988183279535,
+      "quality_long_view_rate": 0.037014938509048266,
+      "like_rate": 0.0030311894118042956,
+      "negative_rate": 0.0009952966087435967,
+      "play_rate": 0.14357638933828953,
+      "play_3s_rate": 0.14109008922724084,
+      "sessions_per_user": 1.19914,
+      "returned_sessions_per_user": 0.19914,
+      "active_days_per_user": 0.19914,
+      "lt_value_per_exposure": 0.2554454118026574,
+      "lt_value_per_user": 1.9736581030273437,
+      "lt_stay_per_user": 0.9779580390625,
+      "lt_active_days_per_user": 0.9957,
+      "local_value_tree_score_per_exposure": 0.00745145898908823,
+      "anchor_click_rate": 0.005218512258067856,
+      "poi_detail_rate": 0.0020333042553136414,
+      "closed_loop_payment_rate": 0.00011519037474405735,
+      "open_loop_conversion_rate": 3.106257296468962e-05,
+      "conversion_rate": 0.00014625294770874696,
+      "ad_load": 0.0,
+      "effective_ad_load": 0.0,
+      "ad_contribution_per_exposure": 0.0,
+      "organic_opportunity_cost_per_exposure": 0.0,
+      "feed_value_tree_score_per_exposure": 0.03682273883882925,
+      "ads_live_value_tree_score_per_exposure": 0.0,
+      "accepted_platform_commercialization_per_exposure": 0.0,
+      "accepted_platform_commercialization_per_user": 0.0,
+      "local_commercialization_value_per_exposure": 0.0006840245311962802,
+      "coarse_feed_oracle_recall": 0.8342591705775309,
+      "coarse_pass_fraction": 0.1875,
+      "fine_oracle_regret_per_exposure": 0.01867853186984343,
+      "poi_candidate_fraction": 0.29297324962401344,
+      "selected_duration_per_exposure": 94.0543012603639
+    },
+    "performance": {
+      "seconds": 3.3333456390100764,
+      "users_per_second": 29999.88924931817,
+      "requests_per_second": 231789.34430257697,
+      "peak_gpu_memory_bytes": 1547223040
+    },
+    "behavior_world": {
+      "authority": "external-sequence-mixture-v4",
+      "artifact_sha256": "d40e4f1d3c501c167bb63fed49116dad4fb9afb249bed6967b4606ec88bb0ab6",
+      "catalog_sha256": "ab949198bcac27930f68209960ce4783ccc24e2837e07ff9a2e418104e8d8202",
+      "profile_sha256": "0ae4236568bbf261d9bd63f0b36cc523e642867c8ed332bab7b0ba7f93e42076",
+      "sequence_length": 64,
+      "hidden_mixture_experts": 4,
+      "stay_sampler": {
+        "authority": "randomized-holdout-conditional-residual-bootstrap",
+        "bins": 16,
+        "quantiles": 65,
+        "source_completion_rate_given_play": 0.34663641452789307
+      }
+    }
+  },
+  "paired_ab": {
+    "stay_per_exposure": {
+      "control_mean": 7.09871116068798,
+      "treatment_mean": 7.600743588102337,
+      "relative_lift": 0.07072163045519689,
+      "standard_error": 0.029882912846172578,
+      "confidence_interval": [
+        0.4434619182358588,
+        0.5606029365928553
+      ],
+      "p_value": 2.441140162696627e-63,
+      "estimator": "same_user_paired_difference"
+    },
+    "long_view_rate": {
+      "control_mean": 0.05948507453455309,
+      "treatment_mean": 0.059468344242304974,
+      "relative_lift": -0.00028125193385102667,
+      "standard_error": 0.0001859692068605615,
+      "confidence_interval": [
+        -0.0003812299376948161,
+        0.000347769353198585
+      ],
+      "p_value": 0.9283168544794811,
+      "estimator": "same_user_paired_difference"
+    },
+    "quality_long_view_rate": {
+      "control_mean": 0.03500326017175446,
+      "treatment_mean": 0.03695891463288863,
+      "relative_lift": 0.05587063752170918,
+      "standard_error": 0.00024259812752255186,
+      "confidence_interval": [
+        0.0014801621311899716,
+        0.002431146791078375
+      ],
+      "p_value": 7.549196330765449e-16,
+      "estimator": "same_user_paired_difference"
+    },
+    "negative_rate": {
+      "control_mean": 0.00095699192830883,
+      "treatment_mean": 0.0009561327406361158,
+      "relative_lift": -0.0008978003338362053,
+      "standard_error": 4.9967809917678894e-05,
+      "confidence_interval": [
+        -9.879609511136485e-05,
+        9.707771976593642e-05
+      ],
+      "p_value": 0.9862811918206047,
+      "estimator": "same_user_paired_difference"
+    },
+    "lt_value_per_exposure": {
+      "control_mean": 0.24134479671786235,
+      "treatment_mean": 0.2513941029503028,
+      "relative_lift": 0.041638793829842986,
+      "standard_error": 0.0005425945646660499,
+      "confidence_interval": [
+        0.00898582088569498,
+        0.011112791579185896
+      ],
+      "p_value": 1.402361973218323e-76,
+      "estimator": "same_user_paired_difference"
+    },
+    "local_value_tree_score_per_exposure": {
+      "control_mean": 0.006653747357354436,
+      "treatment_mean": 0.007370126524989835,
+      "relative_lift": 0.10766551976813185,
+      "standard_error": 0.00029125438521106944,
+      "confidence_interval": [
+        0.000145520572621703,
+        0.0012872377626490952
+      ],
+      "p_value": 0.013907879529568026,
+      "estimator": "same_user_paired_difference"
+    },
+    "anchor_click_rate": {
+      "control_mean": 0.004654625633356984,
+      "treatment_mean": 0.005159589352738883,
+      "relative_lift": 0.10848643030776084,
+      "standard_error": 0.00012143090452246094,
+      "confidence_interval": [
+        0.00026695914651787616,
+        0.0007429682922459231
+      ],
+      "p_value": 3.204215707694439e-05,
+      "estimator": "same_user_paired_difference"
+    },
+    "conversion_rate": {
+      "control_mean": 0.00013615738801615285,
+      "treatment_mean": 0.00015071584670001313,
+      "relative_lift": 0.10692375122628786,
+      "standard_error": 2.2565487413492327e-05,
+      "confidence_interval": [
+        -2.966989664658469e-05,
+        5.878681401430524e-05
+      ],
+      "p_value": 0.5188203798604247,
+      "estimator": "same_user_paired_difference"
+    },
+    "ad_load": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0,
+      "estimator": "same_user_paired_difference"
+    },
+    "effective_ad_load": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0,
+      "estimator": "same_user_paired_difference"
+    },
+    "ad_contribution_per_exposure": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0,
+      "estimator": "same_user_paired_difference"
+    },
+    "organic_opportunity_cost_per_exposure": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0,
+      "estimator": "same_user_paired_difference"
+    },
+    "feed_value_tree_score_per_exposure": {
+      "control_mean": 0.03522340911616898,
+      "treatment_mean": 0.036946999360167106,
+      "relative_lift": 0.04893308987536167,
+      "standard_error": 0.00032267339364510896,
+      "confidence_interval": [
+        0.0010911503924537168,
+        0.0023560300955425438
+      ],
+      "p_value": 9.213285036930662e-08,
+      "estimator": "same_user_paired_difference"
+    },
+    "ads_live_value_tree_score_per_exposure": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0,
+      "estimator": "same_user_paired_difference"
+    },
+    "accepted_platform_commercialization_per_exposure": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0,
+      "estimator": "same_user_paired_difference"
+    },
+    "local_commercialization_value_per_exposure": {
+      "control_mean": 0.0006630728765672389,
+      "treatment_mean": 0.0006925672742603073,
+      "relative_lift": 0.0444813816631474,
+      "standard_error": 0.00012147568841179617,
+      "confidence_interval": [
+        -0.0002085979515940521,
+        0.00026758674698018885
+      ],
+      "p_value": 0.8081596943357423,
+      "estimator": "same_user_paired_difference"
+    },
+    "active_days_per_user": {
+      "control_mean": 0.19366091297287544,
+      "treatment_mean": 0.19628716344900865,
+      "relative_lift": 0.013561076604554866,
+      "standard_error": 0.0003417895805309519,
+      "confidence_interval": [
+        0.0019563428982925313,
+        0.003296158053973863
+      ],
+      "p_value": 1.5441054636879857e-14,
+      "estimator": "same_user_paired_difference"
+    },
+    "accepted_platform_commercialization_per_user": {
+      "control_mean": 0.0,
+      "treatment_mean": 0.0,
+      "relative_lift": null,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0,
+      "estimator": "same_user_paired_difference"
+    },
+    "lt_value_per_user": {
+      "control_mean": 1.8813586463728453,
+      "treatment_mean": 1.9591432661433679,
+      "relative_lift": 0.0413449184292889,
+      "standard_error": 0.004103908843427584,
+      "confidence_interval": [
+        0.0697409584374046,
+        0.08582828110364074
+      ],
+      "p_value": 4.109086282205183e-80,
+      "estimator": "same_user_paired_difference"
+    },
+    "coarse_feed_oracle_recall": {
+      "control_mean": 0.8344567930887673,
+      "treatment_mean": 0.8339323305889024,
+      "relative_lift": -0.0006285076761417024,
+      "standard_error": 0.0002374305491001691,
+      "confidence_interval": [
+        -0.00098982637610121,
+        -5.909862362854707e-05
+      ],
+      "p_value": 0.027180964318136585,
+      "estimator": "same_user_paired_difference"
+    },
+    "coarse_pass_fraction": {
+      "control_mean": 0.1875,
+      "treatment_mean": 0.1875,
+      "relative_lift": 0.0,
+      "standard_error": 0.0,
+      "confidence_interval": [
+        0.0,
+        0.0
+      ],
+      "p_value": 1.0,
+      "estimator": "same_user_paired_difference"
+    },
+    "fine_oracle_regret_per_exposure": {
+      "control_mean": 0.06703914547291513,
+      "treatment_mean": 0.018753044215441588,
+      "relative_lift": -0.7202672545547569,
+      "standard_error": 0.00013507672271093293,
+      "confidence_interval": [
+        -0.048550851633986966,
+        -0.048021350880960115
+      ],
+      "p_value": 0.0,
+      "estimator": "same_user_paired_difference"
+    },
+    "poi_candidate_fraction": {
+      "control_mean": 0.29272499987110023,
+      "treatment_mean": 0.292889943397054,
+      "relative_lift": 0.0005634760475748889,
+      "standard_error": 4.033794027790739e-05,
+      "confidence_interval": [
+        8.588116300902894e-05,
+        0.00024400588889842591
+      ],
+      "p_value": 4.331587052477028e-05,
+      "estimator": "same_user_paired_difference"
+    },
+    "lt_stay_per_user": {
+      "control_mean": 0.9130540807384993,
+      "treatment_mean": 0.9777074483728886,
+      "relative_lift": 0.0708100089559823,
+      "standard_error": 0.0037054481664619615,
+      "confidence_interval": [
+        0.057390689228123876,
+        0.07191604604065477
+      ],
+      "p_value": 3.553080171069369e-68,
+      "estimator": "same_user_paired_difference"
+    },
+    "lt_active_days_per_user": {
+      "control_mean": 0.9683045648643772,
+      "treatment_mean": 0.9814358172450433,
+      "relative_lift": 0.013561076604554865,
+      "standard_error": 0.0017089479026544659,
+      "confidence_interval": [
+        0.009781714491463232,
+        0.016480790269868737
+      ],
+      "p_value": 1.544105463672081e-14,
+      "estimator": "same_user_paired_difference"
+    },
+    "selected_duration_per_exposure": {
+      "control_mean": 94.65685715798385,
+      "treatment_mean": 103.05889285309308,
+      "relative_lift": 0.08876309595918763,
+      "standard_error": 0.1586126686944037,
+      "confidence_interval": [
+        8.091154864468207,
+        8.712916525750268
+      ],
+      "p_value": 0.0,
+      "estimator": "same_user_paired_difference"
+    }
+  },
+  "gates": {
+    "artifact_lineage_bound": true,
+    "sequence_context_material": true,
+    "mixture_response_heterogeneous": true,
+    "behavior_rates_supported": true,
+    "personalization_stay_positive": true,
+    "personalization_lt_positive": true,
+    "quality_view_nonnegative": true,
+    "negative_guardrail": true
+  },
+  "decision": "feed_v4_behavior_pass",
+  "evidence_boundary": "External randomized-sequence calibration plus synthetic hidden population mixtures. This validates simulator behavior and policy effect recovery; it is not production lift."
+}

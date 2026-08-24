@@ -3,11 +3,61 @@
 from __future__ import annotations
 
 from math import erfc, sqrt
+from dataclasses import dataclass
 
 import numpy as np
 import torch
 
 from ..simulation.experimentation.assignment import assign_binary_torch
+
+
+@dataclass
+class CreatorClusterAccumulator:
+    """Streaming request outcomes reduced to one mean per creator."""
+
+    metric_names: tuple[str, ...]
+    creators: int
+    device: torch.device
+
+    def __post_init__(self):
+        self.control_sum = torch.zeros(
+            len(self.metric_names), self.creators,
+            dtype=torch.float64, device=self.device,
+        )
+        self.treatment_sum = torch.zeros_like(self.control_sum)
+        self.counts = torch.zeros(
+            self.creators, dtype=torch.float64, device=self.device
+        )
+
+    def add(self, creator_ids, control, treatment):
+        self.counts.scatter_add_(
+            0, creator_ids,
+            torch.ones_like(creator_ids, dtype=torch.float64),
+        )
+        for index, name in enumerate(self.metric_names):
+            self.control_sum[index].scatter_add_(
+                0, creator_ids, control[name].double()
+            )
+            self.treatment_sum[index].scatter_add_(
+                0, creator_ids, treatment[name].double()
+            )
+
+    def report(self):
+        valid = self.counts > 0
+        control = self.control_sum[:, valid] / self.counts[valid]
+        treatment = self.treatment_sum[:, valid] / self.counts[valid]
+        creator_ids = torch.arange(self.creators, device=self.device)[valid]
+        paired = {
+            name: paired_metric(control[index], treatment[index])
+            for index, name in enumerate(self.metric_names)
+        }
+        randomized = {
+            name: randomized_cluster_means_metric(
+                control[index], treatment[index], creator_ids
+            )
+            for index, name in enumerate(self.metric_names)
+        }
+        return paired, randomized, int(valid.sum())
 
 
 def paired_metric(control, treatment):
@@ -87,6 +137,30 @@ def cluster_randomized_metric(control, treatment, cluster_ids):
     }
 
 
+def randomized_cluster_means_metric(control_cluster, treatment_cluster, cluster_ids):
+    """Randomized A/B when callers already hold one mean per cluster."""
+    assigned = assign_binary_torch(cluster_ids.long())
+    left = control_cluster[~assigned].double().cpu().numpy()
+    right = treatment_cluster[assigned].double().cpu().numpy()
+    effect = float(right.mean() - left.mean())
+    standard_error = float(np.sqrt(
+        left.var(ddof=1) / len(left) + right.var(ddof=1) / len(right)
+    ))
+    return {
+        "control_mean": float(left.mean()),
+        "treatment_mean": float(right.mean()),
+        "absolute_effect": effect,
+        "standard_error": standard_error,
+        "confidence_interval": [
+            effect - 1.96 * standard_error,
+            effect + 1.96 * standard_error,
+        ],
+        "control_clusters": len(left),
+        "treatment_clusters": len(right),
+        "estimator": "cluster_randomized_ab_from_means",
+    }
+
+
 def aggregate_launch_rows(rows, primary_metric, value_metric):
     """Require identical comparisons and stable wins across repeated seeds."""
     controls = {row["control"] for row in rows}
@@ -127,3 +201,33 @@ def aggregate_launch_rows(rows, primary_metric, value_metric):
         "seed_decisions": [row["decision"] for row in rows],
         "metrics": metrics,
     }
+
+
+def pooled_cluster_metrics(rows):
+    """Pool identical cluster-level comparisons by inverse variance."""
+    controls = {row["control"] for row in rows}
+    treatments = {row["treatment"] for row in rows}
+    if len(controls) != 1 or len(treatments) != 1:
+        raise ValueError("cluster launch seeds must share one comparison")
+    metrics = {}
+    for name in rows[0]["metrics"]:
+        effects = np.asarray([
+            row["metrics"][name]["absolute_effect"] for row in rows
+        ])
+        errors = np.asarray([
+            row["metrics"][name]["standard_error"] for row in rows
+        ]).clip(1e-12)
+        precision = errors ** -2
+        effect = float((effects * precision).sum() / precision.sum())
+        error = float(precision.sum() ** -0.5)
+        metrics[name] = {
+            "mean_effect": float(effects.mean()),
+            "seed_std": float(effects.std(ddof=1)),
+            "per_seed": effects.tolist(),
+            "pooled_effect": effect,
+            "pooled_standard_error": error,
+            "pooled_confidence_interval": [
+                effect - 1.96 * error, effect + 1.96 * error
+            ],
+        }
+    return metrics

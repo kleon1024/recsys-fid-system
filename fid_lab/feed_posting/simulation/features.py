@@ -10,6 +10,8 @@ FEATURE_NAMES = (
     "same_recent_category", "trend", "quality", "difficulty_match",
     "saturation", "experience", "fatigue", "activity", "country_match",
     "route_history", "route_semantic",
+    "cohort_norm", "request_step_norm",
+    "sequence_feedback_mean", "sequence_feedback_std",
 )
 
 
@@ -39,6 +41,10 @@ def candidate_features(world, candidates):
         (catalog.country[prompt_ids] == requests.country[:, None]).float(),
         ((candidates.route_bits & (1 << 2)) > 0).float(),
         ((candidates.route_bits & (1 << 3)) > 0).float(),
+        (requests.cohort[:, None].float() / 7.0).expand_as(profile),
+        (requests.request_step[:, None].float() / 8.0).expand_as(profile),
+        requests.sequence_feedback.mean(1)[:, None].expand_as(profile),
+        requests.sequence_feedback.std(1)[:, None].expand_as(profile),
     ), dim=2)
 
 

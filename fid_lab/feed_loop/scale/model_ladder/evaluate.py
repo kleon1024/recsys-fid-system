@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import torch
-
 from ....evolution.evaluation.metrics import binary_metrics, grouped_auc
 from ...models.multitask_policy import FeedMMoEPolicy
 from ...models.feed_multitask import FeedMultiTaskPolicy

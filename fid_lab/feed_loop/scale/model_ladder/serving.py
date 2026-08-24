@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
-from pathlib import Path
-
 import joblib
 import torch
 from xgboost import Booster

@@ -1,7 +1,7 @@
 {
   "schema": "simulated-local-search-authority-v1",
   "active_key": "lexical_geo_plus_linear",
-  "active_bundle_id": "sha256:6823caf42d5d1d8aad728038ab74124a1f1bae7b3da6ac31e6cfe1752598e47e",
+  "active_bundle_id": "sha256:51ce73faeae2190a03ec9c75a5d65016dcee20a56b84b74780362618571dd507",
   "active_bundle": {
     "retrieval_policy": "lexical_geo",
     "fine_model": "linear",
@@ -18,7 +18,7 @@
       },
       {
         "path": "fid_lab/launches/statistics.py",
-        "sha256": "a24c44f42a9398f6053a1c16806d118804ff67f0129a48ca7f479b8e7162f636"
+        "sha256": "f6032f7b974e6ff1b7e4cea1f47c61844b2bc145a450942d001cbda58f5a162f"
       },
       {
         "path": "fid_lab/local_search/__init__.py",
@@ -46,11 +46,11 @@
       },
       {
         "path": "fid_lab/local_search/models/ranking.py",
-        "sha256": "aa90554518d6e3eabf2b41d762fb3aada2157c8d283eeef2bfec6e77650e0203"
+        "sha256": "8a1faa03426c14378aae1b9d9ba96676202960273405de23ead1b143856274ed"
       },
       {
         "path": "fid_lab/local_search/models/retrieval.py",
-        "sha256": "ad6050c74cc4fbe7873c6698fc8d8a902c2c39556ce97d498f4a9d4600b4ac81"
+        "sha256": "7a9d54dcc5db40970db133faf7350821db3353618d77c79eb844ede0b4428627"
       },
       {
         "path": "fid_lab/local_search/release.py",

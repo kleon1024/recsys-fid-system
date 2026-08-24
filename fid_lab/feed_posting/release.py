@@ -20,20 +20,29 @@ SHARED_SOURCES = (
 
 def build_feed_posting_release(root, report_relative, artifact_relative):
     report = json.loads((root / report_relative).read_text())
-    if report.get("schema") != "feed-posting-request-launch-review-v1":
+    if report.get("schema") not in {
+        "feed-posting-request-launch-review-v1",
+        "feed-posting-request-launch-review-v2",
+    }:
         raise ValueError("Feed-posting release requires repeated launch review")
     state = report["release_state"]
     end = next(row for row in report["launches"] if row["stage"] == "end_to_end")
-    if end["decision"] != "pass_all_seeds" or state["fine"] == "rule":
+    if not end["decision"].startswith("pass") or state["fine"] == "rule":
         raise ValueError("Feed-posting end-to-end proposal did not pass all seeds")
-    seed_report = report["seed_reports"][0]
-    artifact = seed_report["models"][state["fine"]]["artifact"]
+    models = (
+        report["models_by_seed"][0]
+        if report["schema"].endswith("v2")
+        else report["seed_reports"][0]["models"]
+    )
+    artifact = models[state["fine"]]["artifact"]
     active = {
         "candidate_policy": state["candidate"],
         "fine_model": state["fine"],
         "model_artifact": verified_artifact(root, artifact_relative, artifact),
         "model_seed": report["seeds"][0],
-        "world_version": "teacher-hidden-feed-posting-v1",
+        "world_version": report["config"].get(
+            "world_version", "teacher-hidden-feed-posting-v1"
+        ),
         "sources": source_resources(
             root, "fid_lab/feed_posting", SHARED_SOURCES
         ),

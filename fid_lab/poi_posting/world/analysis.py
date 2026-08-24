@@ -2,27 +2,7 @@
 
 from __future__ import annotations
 
-import numpy as np
-
-
-def _pooled(rows, metric):
-    effects = np.asarray([
-        row["metrics"][metric]["absolute_effect"] for row in rows
-    ])
-    errors = np.asarray([
-        row["metrics"][metric]["standard_error"] for row in rows
-    ]).clip(1e-12)
-    precision = errors ** -2
-    effect = float((effects * precision).sum() / precision.sum())
-    error = float(precision.sum() ** -0.5)
-    return {
-        "mean_effect": float(effects.mean()),
-        "seed_std": float(effects.std(ddof=1)),
-        "per_seed": effects.tolist(),
-        "pooled_effect": effect,
-        "pooled_standard_error": error,
-        "pooled_confidence_interval": [effect - 1.96 * error, effect + 1.96 * error],
-    }
+from ...launches.statistics import pooled_cluster_metrics
 
 
 def aggregate_creator_launch(rows):
@@ -30,9 +10,7 @@ def aggregate_creator_launch(rows):
     treatments = {row["treatment"] for row in rows}
     if len(controls) != 1 or len(treatments) != 1:
         raise ValueError("creator launch seeds must share one comparison")
-    metrics = {
-        name: _pooled(rows, name) for name in rows[0]["metrics"]
-    }
+    metrics = pooled_cluster_metrics(rows)
     gates = {
         "publish_positive": metrics["publish_rate"]["pooled_confidence_interval"][0] > 0,
         "platform_lt_nonnegative": (

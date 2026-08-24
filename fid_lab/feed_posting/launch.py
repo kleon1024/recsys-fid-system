@@ -8,8 +8,14 @@ from time import perf_counter
 
 import torch
 
-from ..launches.statistics import aggregate_launch_rows, paired_metric
+from ..launches.statistics import (
+    aggregate_launch_rows,
+    cluster_paired_metric,
+    cluster_randomized_metric,
+    paired_metric,
+)
 from ..value import DEFAULT_LT_CONFIG
+from .analysis import aggregate_creator_feed_launch
 from .contracts import FeedPostingConfig
 from .simulation.features import FEATURE_NAMES, candidate_features, rule_score
 from .simulation.response import simulate_response
@@ -35,7 +41,7 @@ def _outcomes(response):
         "create_start_rate": response["created"].float(),
         "publish_rate": published,
         "quality_supply_per_request": published * response["quality_potential"],
-        "negative_per_request": published * response["content_risk"],
+        "negative_per_request": response["negative"].float(),
         "selected_content_risk": response["content_risk"],
         "feed_stay_seconds_per_request": response["feed_stay_seconds"],
         "feed_active_day_per_request": response["feed_active_day"],
@@ -50,9 +56,13 @@ def _slice(values, start):
     return {name: value[start:] for name, value in values.items()}
 
 
-def _evaluate(control, treatment, recall=None):
+def _evaluate(control, treatment, recall=None, creator_ids=None):
+    estimator = (
+        paired_metric if creator_ids is None else
+        lambda left, right: cluster_paired_metric(left, right, creator_ids)
+    )
     metrics = {
-        name: paired_metric(control[name], treatment[name]) for name in control
+        name: estimator(control[name], treatment[name]) for name in control
     }
     gates = {
         "publish_positive": metrics["publish_rate"]["confidence_interval"][0] > 0,
@@ -69,23 +79,34 @@ def _evaluate(control, treatment, recall=None):
         ),
     }
     if recall is not None:
-        metrics["audit_oracle_recall"] = paired_metric(*recall)
+        metrics["audit_oracle_recall"] = estimator(*recall)
         gates["recall_nonnegative"] = (
             metrics["audit_oracle_recall"]["confidence_interval"][0] >= 0
         )
     decision = "pass" if all(gates.values()) else "hold_or_reject"
-    return metrics, gates, decision
+    online = None if creator_ids is None else {
+        name: cluster_randomized_metric(
+            control[name], treatment[name], creator_ids
+        )
+        for name in ("publish_rate", "platform_lt_per_request")
+    }
+    return metrics, gates, decision, online
 
 
-def _campaign(stage, order, worlds, start, recalls=None, fixed_control=False):
+def _campaign(
+    stage, order, worlds, start, recalls=None, fixed_control=False,
+    creator_ids=None,
+):
     active, rows = order[0], []
     for treatment in order[1:]:
         control = order[0] if fixed_control else active
         recall = None if recalls is None else (
             recalls[control][start:].float(), recalls[treatment][start:].float()
         )
-        metrics, gates, decision = _evaluate(
-            _slice(worlds[control], start), _slice(worlds[treatment], start), recall
+        sliced_creators = None if creator_ids is None else creator_ids[start:]
+        metrics, gates, decision, online = _evaluate(
+            _slice(worlds[control], start), _slice(worlds[treatment], start),
+            recall, sliced_creators,
         )
         promoted = decision == "pass"
         rows.append({
@@ -96,6 +117,7 @@ def _campaign(stage, order, worlds, start, recalls=None, fixed_control=False):
             "gates": gates,
             "decision": decision,
             "promoted": promoted,
+            "creator_online_ab": online,
         })
         if promoted:
             active = treatment
@@ -136,17 +158,22 @@ def _train_for_policy(config, world, candidates, features, response, model_names
     semantic = world.catalog.semantic[candidates.prompt_ids]
     arguments = (
         config, features, semantic, world.requests.feed_sequence,
-        response["top_indices"], response["labels"],
+        response["top_indices"], response["labels"], response["label_masks"],
     )
     return train_models(*arguments) if model_names is None else train_models(
         *arguments, model_names=model_names
     )
 
 
-def _end_to_end_rows(control, candidate_name, fine_worlds, start, selected):
+def _end_to_end_rows(
+    control, candidate_name, fine_worlds, start, selected, creator_ids=None,
+):
     rows = []
     for model_name, values in fine_worlds.items():
-        metrics, gates, decision = _evaluate(control, _slice(values, start))
+        sliced_creators = None if creator_ids is None else creator_ids[start:]
+        metrics, gates, decision, online = _evaluate(
+            control, _slice(values, start), creator_ids=sliced_creators
+        )
         rows.append({
             "stage": "end_to_end",
             "control": "trending_i2i_plus_rule",
@@ -157,6 +184,7 @@ def _end_to_end_rows(control, candidate_name, fine_worlds, start, selected):
             "promoted": decision == "pass" and (
                 f"{candidate_name}_plus_{model_name}" == selected
             ),
+            "creator_online_ab": online,
         })
     return rows
 
@@ -176,6 +204,54 @@ def _candidate_phase_report(config, rows, active, started):
                 if config.device.startswith("cuda") else 0
             ),
         },
+    }
+
+
+def _feed_seed_report(
+    config, started, candidate_active, fine_active, evidence,
+    candidate_rows, fine_rows, incremental_rows, end_rows,
+):
+    elapsed = perf_counter() - started
+    is_v4 = config.world_version == "creator-neural-feed-supply-v4"
+    return {
+        "schema": "feed-posting-request-launch-ladder-v1",
+        "config": asdict(config),
+        "feature_names": FEATURE_NAMES,
+        "logging_policy": "trending_i2i_plus_rule",
+        "fine_training_policy": f"{candidate_active}_plus_rule",
+        "logging_contract": {
+            "oracle_forced_into_candidates": False,
+            "training_rows_are_exposed_candidates_only": True,
+            "labels_follow_click_create_publish_cascade": True,
+            "quality_is_observed_only_after_publish": is_v4,
+            "unmatured_quality_uses_label_mask_zero": is_v4,
+            "risk_is_observed_only_after_publish": is_v4,
+            "unmatured_risk_uses_label_mask_zero": is_v4,
+            "teacher_uses_hidden_creator_intent": True,
+            "models_use_noisy_observed_state": True,
+            "experiment_unit": "creator_id" if is_v4 else "request_id",
+            "time_split": [0.70, 0.15, 0.15],
+        },
+        "models": evidence,
+        "launches": [*candidate_rows, *fine_rows, *incremental_rows],
+        "end_to_end_candidates": end_rows,
+        "release_state": {"candidate": candidate_active, "fine": fine_active},
+        "performance": {
+            "seconds": elapsed,
+            "requests_per_second": config.requests / elapsed,
+            "peak_gpu_memory_bytes": (
+                int(torch.cuda.max_memory_allocated())
+                if config.device.startswith("cuda") else 0
+            ),
+        },
+        "evidence_boundary": (
+            "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster "
+            "randomized A/B and mature post-publish quality labels. It remains "
+            "simulator-only until external creator logs and interventions exist."
+            if is_v4 else
+            "Teacher-hidden synthetic Feed-to-creation world for request closure, "
+            "sequence-aware training, and stage-isolated effect recovery only."
+        ),
     }
 
 
@@ -214,6 +290,10 @@ def run_feed_posting_launch(
         "candidate", tuple(CANDIDATE_VARIANTS), candidate_worlds, test_start,
         {name: value.audit_oracle_recalled for name, value in candidates.items()},
         fixed_control=True,
+        creator_ids=(
+            world.requests.creator_id
+            if config.world_version == "creator-neural-feed-supply-v4" else None
+        ),
     )
     if forced_candidate is not None:
         if forced_candidate not in CANDIDATE_VARIANTS:
@@ -240,8 +320,22 @@ def run_feed_posting_launch(
         world, candidates[candidate_active], features[candidate_active], bundles
     )
     fine_rows, fine_active = _campaign(
-        "fine", MODEL_ORDER, fine_worlds, test_start, fixed_control=True
+        "fine", MODEL_ORDER, fine_worlds, test_start, fixed_control=True,
+        creator_ids=(
+            world.requests.creator_id
+            if config.world_version == "creator-neural-feed-supply-v4" else None
+        ),
     )
+    incremental_rows = []
+    if config.world_version == "creator-neural-feed-supply-v4":
+        incremental_rows, _ = _campaign(
+            "fine_incremental",
+            ("linear", "wide_deep", "din", "transformer_mmoe"),
+            fine_worlds,
+            test_start,
+            fixed_control=True,
+            creator_ids=world.requests.creator_id,
+        )
     control = _slice(_outcomes(logging), test_start)
     selected = f"{candidate_active}_plus_{fine_active}"
     end_rows = []
@@ -252,42 +346,17 @@ def run_feed_posting_launch(
             )
         )
         end_rows.extend(_end_to_end_rows(
-            control, candidate_name, candidate_fine_worlds, test_start, selected
-        ))
-    elapsed = perf_counter() - started
-    return {
-        "schema": "feed-posting-request-launch-ladder-v1",
-        "config": asdict(config),
-        "feature_names": FEATURE_NAMES,
-        "logging_policy": "trending_i2i_plus_rule",
-        "fine_training_policy": f"{candidate_active}_plus_rule",
-        "logging_contract": {
-            "oracle_forced_into_candidates": False,
-            "training_rows_are_exposed_candidates_only": True,
-            "labels_follow_click_create_publish_cascade": True,
-            "teacher_uses_hidden_creator_intent": True,
-            "models_use_noisy_observed_state": True,
-            "time_split": [0.70, 0.15, 0.15],
-        },
-        "models": evidence,
-        "launches": [*candidate_rows, *fine_rows],
-        "end_to_end_candidates": end_rows,
-        "release_state": {"candidate": candidate_active, "fine": fine_active},
-        "performance": {
-            "seconds": elapsed,
-            "requests_per_second": config.requests / elapsed,
-            "peak_gpu_memory_bytes": (
-                int(torch.cuda.max_memory_allocated())
-                if config.device.startswith("cuda") else 0
+            control, candidate_name, candidate_fine_worlds, test_start, selected,
+            (
+                world.requests.creator_id
+                if config.world_version == "creator-neural-feed-supply-v4"
+                else None
             ),
-        },
-        "evidence_boundary": (
-            "Teacher-hidden multi-agent synthetic Feed-to-creation world. It "
-            "validates request closure, sequence-aware training, stage-isolated "
-            "A/B effects, and supply-to-Feed outcomes; production readiness still "
-            "requires creator logs and randomized supply interventions."
-        ),
-    }
+        ))
+    return _feed_seed_report(
+        config, started, candidate_active, fine_active, evidence,
+        candidate_rows, fine_rows, incremental_rows, end_rows,
+    )
 
 
 def run_repeated_feed_posting_ladder(
@@ -301,16 +370,25 @@ def run_repeated_feed_posting_ladder(
     candidate_count = len(CANDIDATE_VARIANTS) - 1
     candidate_rows = []
     for index in range(candidate_count):
-        candidate_rows.append(aggregate_launch_rows(
-            [report["launches"][index] for report in candidate_reports],
-            "publish_rate", "platform_lt_per_request",
-        ))
+        seed_rows = [report["launches"][index] for report in candidate_reports]
+        candidate_rows.append(
+            aggregate_creator_feed_launch(seed_rows)
+            if config.world_version == "creator-neural-feed-supply-v4"
+            else aggregate_launch_rows(
+                seed_rows, "publish_rate", "platform_lt_per_request",
+            )
+        )
     candidate_options = [
-        row for row in candidate_rows if row["decision"] == "pass_all_seeds"
+        row for row in candidate_rows if row["decision"].startswith("pass")
     ]
+    effect_key = (
+        "pooled_effect"
+        if config.world_version == "creator-neural-feed-supply-v4"
+        else "mean_effect"
+    )
     candidate_active = max(
         candidate_options,
-        key=lambda row: row["metrics"]["platform_lt_per_request"]["mean_effect"],
+        key=lambda row: row["metrics"]["platform_lt_per_request"][effect_key],
         default={"treatment": "trending_i2i"},
     )["treatment"]
     reports = [
@@ -320,16 +398,21 @@ def run_repeated_feed_posting_ladder(
     ]
     fine_rows = []
     for index in range(candidate_count, len(reports[0]["launches"])):
-        fine_rows.append(aggregate_launch_rows(
-            [report["launches"][index] for report in reports],
-            "publish_rate", "platform_lt_per_request",
-        ))
+        seed_rows = [report["launches"][index] for report in reports]
+        fine_rows.append(
+            aggregate_creator_feed_launch(seed_rows)
+            if config.world_version == "creator-neural-feed-supply-v4"
+            else aggregate_launch_rows(
+                seed_rows, "publish_rate", "platform_lt_per_request",
+            )
+        )
     fine_options = [
-        row for row in fine_rows if row["decision"] == "pass_all_seeds"
+        row for row in fine_rows
+        if row["stage"] == "fine" and row["decision"].startswith("pass")
     ]
     fine_active = max(
         fine_options,
-        key=lambda row: row["metrics"]["platform_lt_per_request"]["mean_effect"],
+        key=lambda row: row["metrics"]["platform_lt_per_request"][effect_key],
         default={"treatment": "rule"},
     )["treatment"]
     end_name = f"{candidate_active}_plus_{fine_active}"
@@ -338,11 +421,19 @@ def run_repeated_feed_posting_ladder(
              if row["treatment"] == end_name)
         for report in reports
     ]
-    end_to_end = aggregate_launch_rows(
-        end_rows, "publish_rate", "platform_lt_per_request"
+    end_to_end = (
+        aggregate_creator_feed_launch(end_rows)
+        if config.world_version == "creator-neural-feed-supply-v4"
+        else aggregate_launch_rows(
+            end_rows, "publish_rate", "platform_lt_per_request"
+        )
     )
-    return {
-        "schema": "feed-posting-request-launch-review-v1",
+    result = {
+        "schema": (
+            "feed-posting-request-launch-review-v2"
+            if config.world_version == "creator-neural-feed-supply-v4"
+            else "feed-posting-request-launch-review-v1"
+        ),
         "seeds": list(seeds),
         "config": asdict(config),
         "launches": [*candidate_rows, *fine_rows, end_to_end],
@@ -350,11 +441,27 @@ def run_repeated_feed_posting_ladder(
             "candidate": candidate_active,
             "fine": fine_active,
             "end_to_end": (
-                end_name if end_to_end["decision"] == "pass_all_seeds"
+                end_name if end_to_end["decision"].startswith("pass")
                 else "trending_i2i_plus_rule"
             ),
         },
-        "seed_reports": reports,
-        "candidate_seed_reports": candidate_reports,
         "evidence_boundary": reports[0]["evidence_boundary"],
     }
+    if config.world_version == "creator-neural-feed-supply-v4":
+        result.update({
+            "models_by_seed": [report["models"] for report in reports],
+            "seed_diagnostics": [
+                {
+                    "config": report["config"],
+                    "performance": report["performance"],
+                    "logging_contract": report["logging_contract"],
+                }
+                for report in reports
+            ],
+        })
+    else:
+        result.update({
+            "seed_reports": reports,
+            "candidate_seed_reports": candidate_reports,
+        })
+    return result

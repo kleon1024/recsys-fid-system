@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 
 FEED_POSTING_ROUTES = ("trending", "i2i", "creator_history", "semantic")
-FEED_POSTING_TASKS = ("click", "create", "publish", "quality")
+FEED_POSTING_TASKS = ("click", "create", "publish", "quality", "risk")
 
 
 @dataclass(frozen=True)
@@ -24,6 +24,9 @@ class FeedPostingConfig:
     train_batch_requests: int = 1_024
     learning_rate: float = 1.5e-3
     seed: int = 20260824
+    catalog_seed: int | None = None
+    creators: int = 25_000
+    world_version: str = "teacher-hidden-feed-posting-v1"
     device: str = "cuda:0"
 
     def __post_init__(self):
@@ -37,3 +40,12 @@ class FeedPostingConfig:
             raise ValueError("Feed-posting prompts must partition by category")
         if self.requests < 100:
             raise ValueError("Feed-posting world is too small")
+        if self.world_version not in {
+            "teacher-hidden-feed-posting-v1",
+            "creator-neural-feed-supply-v4",
+        }:
+            raise ValueError("unsupported Feed-posting world version")
+        if self.world_version == "creator-neural-feed-supply-v4" and (
+            self.creators < 100 or self.requests % self.creators
+        ):
+            raise ValueError("Feed Supply V4 requires complete creator panels")

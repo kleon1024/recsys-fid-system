@@ -13,6 +13,8 @@ from ..data import WorldModelSplit
 
 
 class DINRequestRanker(nn.Module):
+    task_count = 1
+
     def __init__(self, feature_dim=28, sequence_dim=8, width=64) -> None:
         super().__init__()
         self.candidate = nn.Sequential(
@@ -25,7 +27,7 @@ class DINRequestRanker(nn.Module):
             nn.Linear(width * 3, width), nn.SiLU(), nn.Linear(width, 1)
         )
 
-    def forward(self, slate, sequence):
+    def representation(self, slate, sequence):
         candidate = self.candidate(slate)
         history = self.history(sequence)
         attention = torch.einsum("bkd,bld->bkl", candidate, history) / math.sqrt(
@@ -34,12 +36,15 @@ class DINRequestRanker(nn.Module):
         mask = sequence.abs().sum(dim=2) > 0
         attention = attention.masked_fill(~mask[:, None], -1e4).softmax(dim=2)
         interest = torch.einsum("bkl,bld->bkd", attention, history)
-        return self.head(
-            torch.cat((candidate, interest, candidate * interest), dim=2)
-        ).squeeze(2)
+        return torch.cat((candidate, interest, candidate * interest), dim=2)
+
+    def forward(self, slate, sequence):
+        return self.head(self.representation(slate, sequence)).squeeze(2)
 
 
 class SlateTransformerRanker(nn.Module):
+    task_count = 1
+
     def __init__(self, feature_dim=28, sequence_dim=8, width=64) -> None:
         super().__init__()
         self.candidate = nn.Linear(feature_dim, width)

@@ -1,7 +1,7 @@
 {
   "schema": "simulated-poi-distribution-v4-authority-v1",
   "active_key": "two_tower_ann_linear_coarse_linear_fine_feed_guarded_mix",
-  "active_bundle_id": "sha256:29f20105c61223cacc8ceb9c46d2cef420356a4788ea6066d14a985bf6f9ea27",
+  "active_bundle_id": "sha256:56dd459c2a1a1ab05028c21ecbfe7cd7fb3a5fabfe1313b1730134b33506a731",
   "active_bundle": {
     "retrieval_policy": "shared_two_tower_ann_graph_geo_fresh_tail_popular_search_retarget",
     "retrieval_artifact": {
@@ -61,7 +61,7 @@
       },
       {
         "path": "fid_lab/feed_loop/scale/graph/random.py",
-        "sha256": "d3ea4a9f51d746c3298d698d85c0534acf566e46540b184e04d3fc3d2b1f9d2a"
+        "sha256": "5f3b44ffb12de4aa3c5f5bb5022c6eca63494c1f8257e3c13914c39da631d4b8"
       },
       {
         "path": "fid_lab/feed_loop/scale/graph/reporting.py",
@@ -73,15 +73,15 @@
       },
       {
         "path": "fid_lab/feed_loop/scale/tensor_catalog.py",
-        "sha256": "1471d09594b619b7b27fd7c29843ddacc838e78a72c6b3f0960d39d5a320f59d"
+        "sha256": "917c51ae003539c2d7af2fb05c17f9ebffdcd4cfb12d775f84e0a5525ec7bee7"
       },
       {
         "path": "fid_lab/feed_loop/scale/tensor_engine.py",
-        "sha256": "8b9fd8146cf5bacc0ff4e0e54cfd70f526961048a99fc38e7561ff9ef7c38313"
+        "sha256": "7ef6e97b68c3c1c8c356d892aa58c51c36a54431b5514eec9dfe8db103f864e2"
       },
       {
         "path": "fid_lab/feed_loop/scale/tensor_runtime/contracts.py",
-        "sha256": "8b8d6dda3b48dda1a0c0bee0d6a74800295ba71e1c0c58617f3e7a9c8f42d19e"
+        "sha256": "483e6fad2867a05dac48e249a60e2623f68e6aabf1438f540c5f7328b7a64f97"
       },
       {
         "path": "fid_lab/feed_loop/scale/tensor_runtime/local_response.py",
@@ -89,7 +89,7 @@
       },
       {
         "path": "fid_lab/feed_loop/tensor_cascade.py",
-        "sha256": "d0ef2404a4c8d21a07206d54dcb2eb1d823e3b56ec957fa0ad5a9d577ead34a6"
+        "sha256": "2368468610863eef4fa87dd7692e06bca17eed8f28abb35c74945496a2fc40c8"
       },
       {
         "path": "fid_lab/launches/release_resources.py",
@@ -137,7 +137,7 @@
       },
       {
         "path": "fid_lab/poi_distribution/models/training.py",
-        "sha256": "0468415b98989d60fc998cf9f52e91f1688334d81d6373d25e43faad3ea9fccb"
+        "sha256": "668bf5cf2cbae4e401e2f4c9a117b37f25872d0aebe50370e3b382bacccc9cdd"
       },
       {
         "path": "fid_lab/poi_distribution/policy.py",

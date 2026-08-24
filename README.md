@@ -6,6 +6,47 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
+## Current Feed V4 result
+
+The active Feed simulator is now an external sequence world with a hidden
+four-group user mixture, 64-step online behavior state, conditional watch-time
+distribution, temporal drift, and a consumer-to-creator-to-new-supply loop. The
+same request state feeds logging and online serving. The frozen dataset contains
+279,903 train, 83,430 validation, and 63,135 test requests; every row retains 64
+candidates, coarse/fine decisions, exact exposure propensity, point-in-time
+sequence, 21 labels, and maturity masks.
+
+The equal-data ladder now gives request context to models that can use it.
+Long-view AUC is 0.620 for logistic regression, 0.608 for XGBoost, 0.646 for
+DIN, 0.676 for Transformer, 0.668 for MMoE, and 0.667 for PLE. This proves the
+new DGP contains learnable sequence and multi-task structure. It does not make
+AUC a launch metric: the published MMoE artifact is separately evaluated in a
+common-random stateful A/B with LT, negative-feedback, and duration guardrails.
+The predeclared guarded 0.010 MMoE candidate passes at one million users: LT per
+user +1.62%, stay per exposure +2.94%, quality-long-view +2.85%, neutral
+long-view, and no negative-feedback regression. Selected duration rises 3.76%
+and remains inside the 5% reward-hacking guard. This changes the simulator
+ranking control only; production serving and production LT remain unclaimed.
+
+```mermaid
+flowchart LR
+    U["External users + hidden mixture"] --> R["64-candidate Feed request"]
+    H["64-step online history"] --> R
+    R --> M["Recall, coarse, request-aware fine rank, mix"]
+    M --> B["Play, stay distribution, engagement, negative"]
+    B --> H
+    B --> C["Creator response and retention"]
+    C --> S["New supply"]
+    S --> R
+    B --> J["Point-in-time Joiner"]
+    J --> T["Retrain, replay, powered A/B"]
+    T --> M
+```
+
+See the bilingual [Feed V4 Launch Review](docs/launch-reviews/2026-08-24-feed-v4-request-aware-loop.md),
+the [request dataset manifest](reports/datasets/2026-08-24-feed-v4-request-candidate-log-manifest.json),
+and the [model report](reports/training/2026-08-24-feed-v4-request-aware-model-ladder-200k.json).
+
 The external world-model lane follows explicit
 [data, modeling, evaluation, and launch boundaries](docs/architecture/external-world-model-boundaries.md).
 Artifact and dataset identities fail closed before scoring, and V3 remains the
@@ -112,8 +153,8 @@ all stage-attribution counts identical and changes checked metrics by at most
 200K batch uses 2.67GB; 400K uses 5.30GB but is slower, so additional memory is
 not treated as a goal by itself.
 
-The current executable simulator authority is the externally calibrated V3
-behavior kernel; it is not accepted as a real-user fidelity authority. A public
+The historical V3 executable behavior kernel below is retained as rollback
+evidence and is superseded by the composite V4 authority described above. A public
 KuaiRand-Pure snapshot contributes 1,436,609 standard-policy
 interactions; raw data stays outside Git and exact input hashes are retained in
 the calibration report. V3 fixes a counter-RNG defect that correlated event

@@ -42,7 +42,6 @@ def run_ladder(training_report, artifact_dir, config, model_order=MODEL_ORDER,
         )
     worlds = {"rule_personalized_v1": run_tensor_feed(config, PERSONALIZED)}
     active_key = "rule_personalized_v1"
-    active_policy = PERSONALIZED
     launches = []
     order = (*model_order, *(name for name, _, _ in guarded))
     for index, name in enumerate(order, start=1):
@@ -82,7 +81,6 @@ def run_ladder(training_report, artifact_dir, config, model_order=MODEL_ORDER,
         })
         if promoted:
             active_key = name
-            active_policy = candidate
     active_manifest = (
         None if active_key == "rule_personalized_v1" else policies[active_key].manifest
     )

@@ -20,6 +20,7 @@ from .data import (
     deepctr_bundle,
     information_ceiling,
     materialize_target,
+    score_tabular_model,
 )
 from .contracts import capacity_gates
 from .neural import (
@@ -93,18 +94,12 @@ def _fit_deepctr(train, train_target, validation, validation_target,
     return models
 
 
-def _tabular_scores(model, features):
-    if isinstance(model, DeepCTRModelAdapter):
-        return model.predict(deepctr_bundle(features).inputs)[:, 0]
-    return model.predict_proba(features)[:, 1]
-
-
 def _evaluate_tabular(models, test, target, candidate_features, oracle_candidates):
     results = {}
     flat_candidates = candidate_features.reshape(-1, candidate_features.shape[-1])
     for name, (model, seconds) in models.items():
-        exposed = _tabular_scores(model, test.selected_features.numpy())
-        candidates = _tabular_scores(model, flat_candidates).reshape(
+        exposed = score_tabular_model(model, test.selected_features.numpy())
+        candidates = score_tabular_model(model, flat_candidates).reshape(
             candidate_features.shape[:2]
         )
         parameters = model.parameters if isinstance(model, DeepCTRModelAdapter) else None

@@ -6,6 +6,8 @@ from dataclasses import dataclass
 
 import torch
 
+from .tensor_runtime.contracts import EXTERNAL_MIXTURE_FEED_VERSION
+
 
 @dataclass(frozen=True)
 class TensorCatalog:
@@ -25,6 +27,9 @@ class TensorCatalog:
     popularity: torch.Tensor
     duration_seconds: torch.Tensor
     author: torch.Tensor
+    creator_need: torch.Tensor
+    behavior_sparse: torch.Tensor | None = None
+    behavior_dense: torch.Tensor | None = None
 
     @property
     def size(self) -> int:
@@ -98,6 +103,14 @@ def build_tensor_catalog(config, generator, device: torch.device) -> TensorCatal
     content_type = torch.zeros(config.catalog_items, device=device, dtype=torch.long)
     content_type[stream_draw >= 0.84] = 1
     content_type[stream_draw >= 0.94] = 2
+    author = torch.remainder(item_ids * 2_654_435_761, 1024)
+    if config.signal_version == EXTERNAL_MIXTURE_FEED_VERSION:
+        author_draw = torch.remainder(
+            item_ids * 48_271 + config.seed * 7_919 + 29, 2**31
+        ).float() / float(2**31)
+        author = torch.floor(
+            author_draw.pow(2.4) * config.catalog_creators
+        ).long().clamp_max(config.catalog_creators - 1)
     return TensorCatalog(
         topics=topics,
         category=category,
@@ -134,5 +147,6 @@ def build_tensor_catalog(config, generator, device: torch.device) -> TensorCatal
             if config.signal_version == "heterogeneous-nonlinear-v2"
             else 3.0 + 177.0 * torch.remainder(hashed * 1.618, 1.0)
         ),
-        author=torch.remainder(item_ids * 2_654_435_761, 1024),
+        author=author,
+        creator_need=torch.zeros(config.catalog_items, device=device),
     )

@@ -51,6 +51,10 @@ def build_feed_component(reports: dict) -> dict:
         and all(report["simulated_ab"]["gates"].values())
         for report in shadows
     )
+    runtime = reports["feed_runtime_behavior"]
+    consumer = reports["feed_ecosystem_consumer"]
+    provider = reports["feed_ecosystem_provider"]
+    runtime_world = runtime["behavior_world"]
     gates = {
         "one_dataset_catalog": len(catalog_hashes) == 1,
         "one_treatment_artifact": len(treatment_hashes) == 1,
@@ -68,6 +72,18 @@ def build_feed_component(reports: dict) -> dict:
             metric["confidence_interval_95"][0] > 0
             for metric in effects.values()
         ),
+        "runtime_behavior_review": runtime["decision"] == "feed_v4_behavior_pass"
+        and _all_gates(runtime),
+        "runtime_response_world_is_shadow_member": runtime_world[
+            "artifact_sha256"
+        ] in world_hashes,
+        "runtime_catalog_matches_randomized_data": runtime_world[
+            "catalog_sha256"
+        ] == _dataset_catalog_hash(ope),
+        "consumer_ecosystem_launch": consumer["decision"] == "ecosystem_v4_pass"
+        and _all_gates(consumer),
+        "creator_retention_launch": provider["decision"] == "ecosystem_v4_pass"
+        and _all_gates(provider),
     }
     ope_effect = effects["randomized_dr_ope"]["absolute_delta"]
     shadow_effects = [
@@ -80,6 +96,14 @@ def build_feed_component(reports: dict) -> dict:
         else "hold_research_challenger",
         "dataset_catalog_sha256": next(iter(catalog_hashes)),
         "artifact_sha256": next(iter(treatment_hashes)),
+        "policy_artifact_sha256": next(iter(treatment_hashes)),
+        "response_world_artifact_sha256": runtime_world["artifact_sha256"],
+        "response_world_challenger_sha256": next(
+            value for value in world_hashes
+            if value != runtime_world["artifact_sha256"]
+        ),
+        "catalog_sha256": runtime_world["catalog_sha256"],
+        "profile_sha256": runtime_world["profile_sha256"],
         "independent_world_sha256": sorted(world_hashes),
         "gates": gates,
         "stay_norm_effects": effects,
@@ -159,10 +183,12 @@ def build_supply_component(root: Path, reports: dict) -> dict:
     gates = {
         "creator_panel_world": report["config"]["world_version"]
         == "creator-neural-supply-v4",
-        "creator_cluster_experiment": all(
-            row["creator_online_by_seed"][0]["publish_rate"]["estimator"]
-            == "creator_cluster_randomized_ab"
+        "powered_creator_cluster_experiment": all(
+            row["creator_online_ab"]["publish_rate"]["estimator"]
+            == "cluster_randomized_ab_from_means"
+            and row["requests"] >= 10_000_000
             for row in report["launches"]
+            if row["stage"] in {"fine_scaled", "fine_scaled_incremental", "end_to_end"}
         ),
         "mature_relevance_mask": all(
             value["logging_contract"]["unmatured_relevance_uses_label_mask_zero"]
@@ -173,9 +199,9 @@ def build_supply_component(root: Path, reports: dict) -> dict:
         "end_to_end_launch": end["decision"].startswith("pass"),
         "complex_challengers_retained": all(
             any(
-                row["stage"] == "fine_incremental"
+                row["stage"] == "fine_scaled_incremental"
                 and row["treatment"] == treatment
-                and row["decision"].startswith("reject")
+                and not row["decision"].startswith("pass")
                 for row in report["launches"]
             )
             for treatment in ("wide_deep", "mmoe")

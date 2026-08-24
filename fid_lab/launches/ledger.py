@@ -186,9 +186,11 @@ def _world_records(root: Path) -> list[dict]:
     report, evidence = _load(root, relative)
     feed = report["components"]["feed_behavior"]
     decision = (
-        "pass_feed_kernel_only"
-        if report["decision"] == "promote_feed_kernel_only"
-        else "hold_world_authority"
+        "pass_composite_simulator_kernels"
+        if report["decision"] in {
+            "promote_feed_kernel_only",
+            "promote_feed_local_and_supply_kernels",
+        } else "hold_world_authority"
     )
     return [_record(
         launch_id="L-SIMULATOR-009",
@@ -224,6 +226,27 @@ def _retrieval_records(root: Path) -> list[dict]:
         )
         for index, row in enumerate(report["launches"], 1)
     ]
+
+
+def _feed_v4_request_model_record(root: Path) -> list[dict]:
+    relative = "reports/launches/2026-08-24-feed-v4-mmoe-guarded-010-1m.json"
+    report, evidence = _load(root, relative)
+    treatment = report["treatment"]
+    return [_record(
+        launch_id="L-FEED-V4-FINE-001",
+        surface="main_feed",
+        stage="fine",
+        change_type="request_sequence_multitask_model",
+        control=report["control"],
+        treatment=treatment["name"],
+        decision=(
+            "pass_simulator_launch"
+            if report["decision"] == "launch" else "hold_simulator_launch"
+        ),
+        evidence=evidence,
+        primary_metric="unified_lt_with_negative_and_duration_guardrails",
+        evidence_boundary=report["evidence_boundary"],
+    )]
 
 
 def _poi_distribution_stage_records(root: Path) -> list[dict]:
@@ -298,12 +321,16 @@ def _feed_posting_stage_records(root: Path) -> list[dict]:
 
 
 def _poi_posting_v4_records(root: Path) -> list[dict]:
-    relative = "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json"
+    relative = "reports/launches/2026-08-24-poi-posting-scaled-v4.json"
     report, evidence = _load(root, relative)
     counters = {"candidate": 0, "fine": 0, "end_to_end": 0}
     records = []
     for row in report["launches"]:
-        stage = "fine" if row["stage"] == "fine_incremental" else row["stage"]
+        stage = (
+            "fine" if row["stage"] in {
+                "fine_incremental", "fine_scaled", "fine_scaled_incremental",
+            } else row["stage"]
+        )
         counters[stage] += 1
         records.append(_record(
             launch_id=f"L-POI-POST-V4-{stage.upper()}-{counters[stage]:03d}",
@@ -421,6 +448,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_local_records(root),
         *_world_records(root),
         *_retrieval_records(root),
+        *_feed_v4_request_model_record(root),
         *_poi_distribution_stage_records(root),
         *_poi_posting_stage_records(root),
         *_feed_posting_stage_records(root),

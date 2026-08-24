@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 from math import sqrt
-from pathlib import Path
 
 import numpy as np
 from sklearn.metrics import average_precision_score, roc_auc_score
@@ -16,7 +15,7 @@ from torch.nn import functional as functional
 from ..multitask import MultiGateMixtureOfExperts
 from ..training.common.request_rankers import RequestLinearRanker
 from ..training.common.tensor_ops import gather_candidates
-from .contracts import FEED_POSTING_TASKS, FeedPostingConfig
+from .contracts import FEED_POSTING_TASKS
 
 
 class LinearRanker(RequestLinearRanker):
@@ -33,10 +32,10 @@ class WideDeepRanker(nn.Module):
             task: nn.Linear(width, 1) for task in FEED_POSTING_TASKS
         })
         self.deep = nn.Sequential(
-            nn.Linear(width, 64), nn.ReLU(), nn.Linear(64, 32), nn.ReLU()
+            nn.Linear(width, 128), nn.ReLU(), nn.Linear(128, 64), nn.ReLU()
         )
         self.heads = nn.ModuleDict({
-            task: nn.Linear(32, 1) for task in FEED_POSTING_TASKS
+            task: nn.Linear(64, 1) for task in FEED_POSTING_TASKS
         })
 
     def forward(self, features, candidate_semantic, history):
@@ -58,11 +57,11 @@ class DINRanker(nn.Module):
         self.query = nn.Linear(semantic_dim, semantic_dim)
         self.key = nn.Linear(semantic_dim, semantic_dim)
         self.shared = nn.Sequential(
-            nn.Linear(width + 2 * semantic_dim, 64),
-            nn.ReLU(), nn.Linear(64, 32), nn.ReLU(),
+            nn.Linear(width + 2 * semantic_dim, 128),
+            nn.ReLU(), nn.Linear(128, 64), nn.ReLU(),
         )
         self.heads = nn.ModuleDict({
-            task: nn.Linear(32, 1) for task in FEED_POSTING_TASKS
+            task: nn.Linear(64, 1) for task in FEED_POSTING_TASKS
         })
         self.scale = sqrt(semantic_dim)
 
@@ -84,13 +83,13 @@ class TransformerMMoERanker(nn.Module):
     def __init__(self, width, semantic_dim):
         super().__init__()
         layer = nn.TransformerEncoderLayer(
-            semantic_dim, 4, semantic_dim * 2, batch_first=True,
+            semantic_dim, 4, semantic_dim * 4, batch_first=True,
             norm_first=True,
         )
-        self.encoder = nn.TransformerEncoder(layer, 1)
+        self.encoder = nn.TransformerEncoder(layer, 2)
         self.query = nn.Linear(semantic_dim, semantic_dim)
         self.mmoe = MultiGateMixtureOfExperts(
-            width + 2 * semantic_dim, FEED_POSTING_TASKS, 4, 32
+            width + 2 * semantic_dim, FEED_POSTING_TASKS, 8, 64
         )
         self.scale = sqrt(semantic_dim)
 
@@ -154,6 +153,9 @@ class FeedPostingBundle:
                     + 0.15 * torch.sigmoid(
                         outputs["quality"] - self.logit_offsets["quality"]
                     )
+                    - 0.25 * torch.sigmoid(
+                        outputs["risk"] - self.logit_offsets["risk"]
+                    )
                 )
                 observable_guardrail = (
                     0.10 * features[start : start + chunk, :, 5]
@@ -163,26 +165,33 @@ class FeedPostingBundle:
         return torch.cat(values)
 
 
-def _loss(outputs, labels, positive_weight):
+def _loss(outputs, labels, masks, positive_weight):
     losses = []
     for index, task in enumerate(FEED_POSTING_TASKS):
         point = functional.binary_cross_entropy_with_logits(
             outputs[task], labels[:, :, index],
             pos_weight=positive_weight[index],
+            reduction="none",
         )
+        point = (
+            point * masks[:, :, index]
+        ).sum() / masks[:, :, index].sum().clamp_min(1)
         positive = labels[:, :, index].sum(1) > 0
         listwise = torch.zeros((), device=labels.device)
         if positive.any():
+            observed_logits = outputs[task][positive].masked_fill(
+                masks[positive, :, index] == 0, -1e9
+            )
             listwise = -(
                 labels[positive, :, index]
-                * functional.log_softmax(outputs[task][positive], dim=1)
+                * functional.log_softmax(observed_logits, dim=1)
             ).sum(1).mean()
         losses.append(point + 0.25 * listwise)
-    weights = (0.30, 0.25, 0.30, 0.15)
+    weights = (0.22, 0.18, 0.25, 0.20, 0.15)
     return sum(weight * loss for weight, loss in zip(weights, losses))
 
 
-def _offline(model, features, semantic, history, labels, mean, scale):
+def _offline(model, features, semantic, history, labels, masks, mean, scale):
     predictions = {task: [] for task in FEED_POSTING_TASKS}
     model.eval()
     with torch.inference_mode():
@@ -194,30 +203,54 @@ def _offline(model, features, semantic, history, labels, mean, scale):
             for task in FEED_POSTING_TASKS:
                 predictions[task].append(torch.sigmoid(outputs[task]).flatten().cpu())
     target = labels.flatten(0, 1).cpu().numpy()
+    observed = masks.flatten(0, 1).cpu().numpy()
     report = {}
     for index, task in enumerate(FEED_POSTING_TASKS):
-        score = torch.cat(predictions[task]).numpy()
+        mask = observed[:, index] > 0
+        score = torch.cat(predictions[task]).numpy()[mask]
+        task_target = target[mask, index]
+        if not mask.any():
+            report[task] = {
+                "auc": None,
+                "pr_auc": None,
+                "positive_rate": None,
+                "observed_rows": 0,
+            }
+            continue
         report[task] = {
-            "auc": float(roc_auc_score(target[:, index], score)),
-            "pr_auc": float(average_precision_score(target[:, index], score)),
-            "positive_rate": float(target[:, index].mean()),
+            "auc": (
+                float(roc_auc_score(task_target, score))
+                if np.unique(task_target).size == 2 else None
+            ),
+            "pr_auc": (
+                float(average_precision_score(task_target, score))
+                if task_target.sum() else None
+            ),
+            "positive_rate": float(task_target.mean()),
+            "observed_rows": int(mask.sum()),
         }
     return report
 
 
 def train_models(
-    config, features, semantic, history, top, labels,
+    config, features, semantic, history, top, labels, label_masks=None,
     model_names=tuple(MODEL_FACTORIES),
 ):
     exposed_features = gather_candidates(features, top)
     exposed_semantic = gather_candidates(semantic, top)
     exposed_labels = gather_candidates(labels, top)
+    exposed_masks = (
+        torch.ones_like(exposed_labels)
+        if label_masks is None else gather_candidates(label_masks, top)
+    )
     first, second = int(config.requests * 0.70), int(config.requests * 0.85)
     mean = exposed_features[:first].flatten(0, 1).mean(0)
     scale = exposed_features[:first].flatten(0, 1).std(0).clamp_min(1e-4)
     flat_labels = exposed_labels[:first].flatten(0, 1)
-    positives = flat_labels.sum(0).clamp_min(1.0)
-    positive_weight = ((len(flat_labels) - positives) / positives).clamp(max=30.0)
+    flat_masks = exposed_masks[:first].flatten(0, 1)
+    positives = (flat_labels * flat_masks).sum(0).clamp_min(1.0)
+    observed = flat_masks.sum(0)
+    positive_weight = ((observed - positives) / positives).clamp(max=30.0)
     bundles = {}
     for offset, (name, factory) in enumerate(MODEL_FACTORIES.items()):
         if name not in model_names:
@@ -239,7 +272,10 @@ def train_models(
                     (exposed_features[request] - mean) / scale,
                     exposed_semantic[request], history[request],
                 )
-                loss = _loss(outputs, exposed_labels[request], positive_weight)
+                loss = _loss(
+                    outputs, exposed_labels[request],
+                    exposed_masks[request], positive_weight,
+                )
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -249,7 +285,8 @@ def train_models(
             "final_loss": float(np.mean(losses[-max(first // config.train_batch_requests, 1):])),
             "metrics": _offline(
                 model, exposed_features[first:second], exposed_semantic[first:second],
-                history[first:second], exposed_labels[first:second], mean, scale,
+                history[first:second], exposed_labels[first:second],
+                exposed_masks[first:second], mean, scale,
             ),
         }
         offsets = {
