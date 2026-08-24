@@ -9,9 +9,11 @@ An executable reference architecture and public outsourcing RFP for an industria
 The external world-model lane follows explicit
 [data, modeling, evaluation, and launch boundaries](docs/architecture/external-world-model-boundaries.md).
 Artifact and dataset identities fail closed before scoring, and V3 remains the
-rollback epoch. V4 now promotes only the external-data-calibrated Feed behavior
-kernel; Local, supply, retention, commercialization, and the unified neural SCM
-remain held or synthetic. The serving policy is a separate authority.
+rollback epoch. Composite V4 now promotes three simulator-only kernels: the
+external-data-calibrated Feed behavior kernel, the causally tested synthetic
+Local response kernel, and the repeated-creator synthetic Supply response
+kernel. Retention, commercialization, and the unified neural SCM remain held or
+measurement-only. The serving policy is a separate authority.
 
 The [scale and orchestration decision](docs/architecture/simulation-scale-and-orchestration.md)
 keeps a future asset DAG outside the GPU request hot path. The refactored tensor
@@ -45,7 +47,8 @@ flowchart LR
     OPE --> Authority["Composite simulator authority"]
     W1 --> Authority
     W2 --> Authority
-    Local["Local and supply V3 synthetic kernels"] --> Authority
+    Local["Local neural V4 kernel"] --> Authority
+    Supply["Repeated-creator Supply V4 kernel"] --> Authority
     Measure["Retention and commercialization measurement"] --> Authority
     Authority --> AB["Stage-specific replay and simulated A/B"]
 ```
@@ -488,6 +491,11 @@ Linear coarse and fine stack produces positive pooled simulator lift.
 The [request-level Retrieval V4 Launch Review](docs/launch-reviews/2026-08-24-request-retrieval-v4.md)
 records the POI-only corpus failure, training-serving query skew, paired-estimator
 repair, Two-Tower promotion, and Multi-interest rejection.
+
+The [POI Posting / Supply V4 Launch Review](docs/launch-reviews/2026-08-24-poi-posting-neural-v4.md)
+records repeated-creator panels, post-publication label maturity, creator-cluster
+A/B, recall failures, Linear promotion, and the direct rejection of W&D and MMoE
+despite their higher offline AUC.
 
 ## Run
 

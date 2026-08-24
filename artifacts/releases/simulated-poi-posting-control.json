@@ -1,16 +1,16 @@
 {
-  "schema": "simulated-poi-posting-authority-v1",
-  "active_key": "history_recall_plus_wide_deep",
-  "active_bundle_id": "sha256:edcae7518dab6f0f3dd78791d350ebc401ea1aa6c862ec544017e6f35ea6da02",
+  "schema": "simulated-poi-posting-authority-v2",
+  "active_key": "popular_geo_plus_linear",
+  "active_bundle_id": "sha256:f11f5c093719980a752d32f3832bdded4f829cde2787c408614a7f5cd7a2b5d8",
   "active_bundle": {
-    "candidate_policy": "history_recall",
-    "fine_model": "wide_deep",
+    "candidate_policy": "popular_geo",
+    "fine_model": "linear",
     "model_artifact": {
-      "path": "artifacts/models/poi-posting-request-v1/seed-20260824-wide_deep.pt",
-      "sha256": "a9c499aa7cd14e900d269f3620a3f26601ed89c170c0f2f79fb33ea7a6e4750e"
+      "path": "artifacts/models/poi-posting-v4/seed-20260824-linear.pt",
+      "sha256": "ef8e09835cffd4f8cc467a0b076654e8916205541de4931f8a26859710a359af"
     },
     "model_seed": 20260824,
-    "world_version": "teacher-hidden-posting-v1",
+    "world_version": "creator-neural-supply-v4",
     "sources": [
       {
         "path": "fid_lab/launches/release_resources.py",
@@ -18,7 +18,7 @@
       },
       {
         "path": "fid_lab/launches/statistics.py",
-        "sha256": "178ddd48d2aca9415f88cd1c95360fd3c239fa517e2809ade1022bb3b1fce10c"
+        "sha256": "a24c44f42a9398f6053a1c16806d118804ff67f0129a48ca7f479b8e7162f636"
       },
       {
         "path": "fid_lab/multitask.py",
@@ -29,28 +29,36 @@
         "sha256": "accd58a3edbf9507773074c83482dcf85694d8d66beb1b624dd69bcf03477d89"
       },
       {
+        "path": "fid_lab/poi_posting/world/analysis.py",
+        "sha256": "d70418e020e82f2e8aaf43327b4a756b98c071e2011da438c5b36b193e5ab603"
+      },
+      {
         "path": "fid_lab/poi_posting/world/cli.py",
-        "sha256": "0f3bbc2a0c2772ca4243ab8ed98913a46b7550109154171d2ef767fc907e781f"
+        "sha256": "ce5789e001b2137a399e3dda64b263a8d70d7b873848f05d6089ad1f8fe34c7e"
       },
       {
         "path": "fid_lab/poi_posting/world/contracts.py",
-        "sha256": "3b53a9a1a6eec88cc8322298cf0aa8a8943e4dd5c267ab0b951fc7337b5b40c6"
+        "sha256": "26fd9df2c5b8527e40968d2183e91420d05d4088d291e76d376c9ff2be59cb62"
       },
       {
         "path": "fid_lab/poi_posting/world/generator.py",
-        "sha256": "7d5f607ec663e0ca46caaa360f08d9a42c5f3f61d50ef51903f999c5f9115bfe"
+        "sha256": "17a62a4333bf9603c570843b3bffcbb0ae8ef9293f37aaa0e299554254e72c34"
       },
       {
         "path": "fid_lab/poi_posting/world/launch.py",
-        "sha256": "1d1070580e2319b19b98cdb2ebee4222d1c6b4e4b6d87cb50212d158b6f61b40"
+        "sha256": "ad8e39783005735b125acd3c3a31abd0505c461489549bc5ec913c82dfd3a5f8"
       },
       {
         "path": "fid_lab/poi_posting/world/models.py",
-        "sha256": "ef9d4d4e3feffba56da727b94b6d6f85af9d19cdbaaa3aa2c3010c9d331ac06e"
+        "sha256": "06965eda78ded9c34f38e01a84b11826dd8f98f5e4c08039aac4f096de31f8e0"
       },
       {
         "path": "fid_lab/poi_posting/world/release.py",
-        "sha256": "7f080bfb003d1a894739700f632a5330f88d4f7175e25f7dd9ee98a54f695cdd"
+        "sha256": "2f8388a088ca5c99409238a2627f2fd3115332fc128932fd3734b5e8aacde346"
+      },
+      {
+        "path": "fid_lab/poi_posting/world/teacher.py",
+        "sha256": "126e2b6d6db26e9b1cf5fb82c00b0f2638851d299d8741e091cf1a7290757864"
       },
       {
         "path": "fid_lab/training/common/tensor_ops.py",
@@ -60,9 +68,9 @@
   },
   "rollback_key": "popular_geo_plus_rule",
   "source_report": {
-    "path": "reports/launches/2026-08-24-poi-posting-request-launch-review.json",
-    "sha256": "1a2aa027264760fda8f9fe1415054d4cf0043db7f5d614cf2633d9b79c148bb9"
+    "path": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
+    "sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
   },
   "production_readiness": "hold_external_creator_and_supply_validation",
-  "evidence_boundary": "Teacher-hidden multi-agent synthetic posting world. It validates request closure, model training, stage isolation, and effect recovery; supply remains outside external V4 authority until creator logs and randomized supply interventions are available."
+  "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
 }

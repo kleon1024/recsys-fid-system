@@ -9,18 +9,20 @@ example. It is not the Launch Review authority because its candidate generator
 forces the latent target into every slate and its trained model does not feed
 the supply switchback.
 
-The current simulated authority is `fid_lab.poi_posting.world`. It generates a
-closed request-level candidate dataset with a hidden teacher, trains actual
-Linear, Wide & Deep, and MMoE artifacts, replays the serialized models, and
-evaluates candidate, fine-rank, and end-to-end supply effects across three
-seeds. See the [posting Launch Review](../launch-reviews/2026-08-24-poi-posting-request-ladder.md).
+The current simulated authority is Supply V4 in `fid_lab.poi_posting.world`. It
+generates a closed request-level candidate dataset over repeated creator panels
+with a hidden neural teacher, trains actual Linear, Wide & Deep, and MMoE
+artifacts, replays the serialized models, and evaluates candidate, fine-rank,
+and end-to-end effects with creator-cluster inference across three seeds. See
+the [Supply V4 Launch Review](../launch-reviews/2026-08-24-poi-posting-neural-v4.md).
 
 ```bash
 python3 -m fid_lab.poi_posting.world.cli \
-  --requests 200000 --epochs 3 --device cuda:0 \
+  --requests 400000 --creators 50000 --epochs 3 --device cuda:0 \
+  --world-version creator-neural-supply-v4 --catalog-seed 20260824 \
   --seeds 20260824 20260825 20260826 \
-  --artifact-dir artifacts/models/poi-posting-request-v1 \
-  --output reports/launches/2026-08-24-poi-posting-request-launch-review.json
+  --artifact-dir artifacts/models/poi-posting-v4 \
+  --output reports/launches/2026-08-24-poi-posting-neural-v4-400k.json
 ```
 
 ## What is actually modeled

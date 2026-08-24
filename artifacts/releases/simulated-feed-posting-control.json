@@ -1,7 +1,7 @@
 {
   "schema": "simulated-feed-posting-authority-v1",
   "active_key": "trending_i2i_plus_linear",
-  "active_bundle_id": "sha256:a3c3d3e44f6aaf2593015101675592af0156e70fbcbffa2e1be30a7fd0085431",
+  "active_bundle_id": "sha256:fbf5c2f9db1eb943c59c779d0fed21358eec72e424bd83ff9a13d35ca803886f",
   "active_bundle": {
     "candidate_policy": "trending_i2i",
     "fine_model": "linear",
@@ -62,7 +62,7 @@
       },
       {
         "path": "fid_lab/launches/statistics.py",
-        "sha256": "178ddd48d2aca9415f88cd1c95360fd3c239fa517e2809ade1022bb3b1fce10c"
+        "sha256": "a24c44f42a9398f6053a1c16806d118804ff67f0129a48ca7f479b8e7162f636"
       },
       {
         "path": "fid_lab/multitask.py",

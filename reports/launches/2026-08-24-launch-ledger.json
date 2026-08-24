@@ -402,7 +402,7 @@
       "decision": "hold_world_authority",
       "evidence": {
         "report": "reports/world-model/v4/composite-launch-review.json",
-        "report_sha256": "b6a81ee1bd08c51cd25e143ec4e734f48f5ca9a82244790f87bb3830cf9463f8"
+        "report_sha256": "f121df14695f901eeb5c8f86597cfe2bd1869ef8c3c792cc8547d01dcb577e31"
       },
       "evidence_boundary": "This promotes an external-data-calibrated Feed kernel and a causally tested synthetic neural Local kernel inside the simulator. It is not a production deployment, live A/B, or production LT estimate. Feed status: eligible_simulator_authority"
     },
@@ -1185,6 +1185,126 @@
         "report_sha256": "0037115e5f4b72192b10b1a704aa1e8667fbd7c558c3796f18a5ceb7c40a6beb"
       },
       "evidence_boundary": "Synthetic Neural Local V4 simulator evidence only."
+    },
+    {
+      "launch_id": "L-POI-POST-V4-CANDIDATE-001",
+      "surface": "poi_posting",
+      "stage": "candidate",
+      "change_type": "creator_neural_v4_candidate",
+      "control": "popular_geo",
+      "treatment": "semantic_recall",
+      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
+        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+    },
+    {
+      "launch_id": "L-POI-POST-V4-CANDIDATE-002",
+      "surface": "poi_posting",
+      "stage": "candidate",
+      "change_type": "creator_neural_v4_candidate",
+      "control": "popular_geo",
+      "treatment": "history_recall",
+      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
+        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+    },
+    {
+      "launch_id": "L-POI-POST-V4-FINE-001",
+      "surface": "poi_posting",
+      "stage": "fine",
+      "change_type": "creator_neural_v4_fine",
+      "control": "rule",
+      "treatment": "linear",
+      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
+      "decision": "pass_pooled_three_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
+        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+    },
+    {
+      "launch_id": "L-POI-POST-V4-FINE-002",
+      "surface": "poi_posting",
+      "stage": "fine",
+      "change_type": "creator_neural_v4_fine",
+      "control": "rule",
+      "treatment": "wide_deep",
+      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
+      "decision": "pass_pooled_three_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
+        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+    },
+    {
+      "launch_id": "L-POI-POST-V4-FINE-003",
+      "surface": "poi_posting",
+      "stage": "fine",
+      "change_type": "creator_neural_v4_fine",
+      "control": "rule",
+      "treatment": "mmoe",
+      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
+      "decision": "pass_pooled_three_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
+        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+    },
+    {
+      "launch_id": "L-POI-POST-V4-FINE-004",
+      "surface": "poi_posting",
+      "stage": "fine",
+      "change_type": "creator_neural_v4_fine_incremental",
+      "control": "linear",
+      "treatment": "wide_deep",
+      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
+        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+    },
+    {
+      "launch_id": "L-POI-POST-V4-FINE-005",
+      "surface": "poi_posting",
+      "stage": "fine",
+      "change_type": "creator_neural_v4_fine_incremental",
+      "control": "linear",
+      "treatment": "mmoe",
+      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
+        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
+    },
+    {
+      "launch_id": "L-POI-POST-V4-END_TO_END-001",
+      "surface": "poi_posting",
+      "stage": "end_to_end",
+      "change_type": "creator_neural_v4_end_to_end",
+      "control": "popular_geo_plus_rule",
+      "treatment": "popular_geo_plus_linear",
+      "primary_metric": "creator_publish_with_platform_lt_and_supply_quality",
+      "decision": "pass_pooled_three_seeds",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-poi-posting-neural-v4-400k.json",
+        "report_sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural synthetic Supply V4 with creator-cluster randomized A/B and mature post-publish labels. It remains simulator-only until external creator logs and randomized supply interventions exist."
     }
   ],
   "coverage": {
@@ -1223,10 +1343,10 @@
     }
   },
   "summary": {
-    "records": 79,
-    "passed": 21,
+    "records": 87,
+    "passed": 25,
     "held": 28,
-    "rejected": 30,
+    "rejected": 34,
     "missing_cells": 0
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."

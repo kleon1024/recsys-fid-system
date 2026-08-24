@@ -1,7 +1,7 @@
 {
   "schema": "simulated-local-search-authority-v1",
   "active_key": "lexical_geo_plus_linear",
-  "active_bundle_id": "sha256:00c6cf117618f467e42dbdc6941d8cae0cdb6e2fc3be91f10ed754c4af93db77",
+  "active_bundle_id": "sha256:6823caf42d5d1d8aad728038ab74124a1f1bae7b3da6ac31e6cfe1752598e47e",
   "active_bundle": {
     "retrieval_policy": "lexical_geo",
     "fine_model": "linear",
@@ -18,7 +18,7 @@
       },
       {
         "path": "fid_lab/launches/statistics.py",
-        "sha256": "178ddd48d2aca9415f88cd1c95360fd3c239fa517e2809ade1022bb3b1fce10c"
+        "sha256": "a24c44f42a9398f6053a1c16806d118804ff67f0129a48ca7f479b8e7162f636"
       },
       {
         "path": "fid_lab/local_search/__init__.py",

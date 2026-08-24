@@ -1,7 +1,7 @@
 {
   "schema": "composite-recommendation-world-review-v1",
   "epoch": "v4",
-  "decision": "promote_feed_and_local_kernels",
+  "decision": "promote_feed_local_and_supply_kernels",
   "components": {
     "feed_behavior": {
       "scope": "feed_behavior_only",
@@ -100,8 +100,24 @@
       ]
     },
     "supply_response": {
-      "status": "synthetic_v3_authority",
-      "external_validation": "missing"
+      "scope": "poi_posting_and_supply_to_feed",
+      "status": "eligible_simulator_authority",
+      "world_version": "creator-neural-supply-v4",
+      "artifact_sha256": "ef8e09835cffd4f8cc467a0b076654e8916205541de4931f8a26859710a359af",
+      "gates": {
+        "creator_panel_world": true,
+        "creator_cluster_experiment": true,
+        "mature_relevance_mask": true,
+        "model_artifact_bound": true,
+        "end_to_end_launch": true,
+        "complex_challengers_retained": true
+      },
+      "external_validation": "missing",
+      "not_authorized": [
+        "production_creator_lift",
+        "production_supply_lift",
+        "production_feed_distribution_lift"
+      ]
     },
     "retention_and_commercialization": {
       "status": "measurement_only",
@@ -177,6 +193,10 @@
     "request_retrieval_launch": {
       "logical_key": "request_retrieval_launch",
       "sha256": "0037115e5f4b72192b10b1a704aa1e8667fbd7c558c3796f18a5ceb7c40a6beb"
+    },
+    "supply_v4_launch": {
+      "logical_key": "supply_v4_launch",
+      "sha256": "7106bc944a22423510bcf944bf44aef4f21a5eae8952ee20b24af286cdb8a444"
     }
   },
   "rollback_epoch": "v3",
