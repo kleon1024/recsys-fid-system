@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fid_lab.simulation.digital_twin.experiments.retrieval_ladder import (
     RetrievalLadderConfig,
+    _decision,
     run_retrieval_ladder,
 )
 
@@ -43,3 +44,22 @@ def test_empty_or_nonfinite_launch_cannot_promote():
     ))
     assert all(review["decision"] == "hold" for review in result["reviews"])
     assert result["final_active_routes"] == ["popular"]
+
+
+def test_significant_primary_regression_rejects_before_promotion():
+    metric = {
+        "control_mean": 1.0,
+        "treatment_mean": 0.8,
+        "absolute_delta": -0.2,
+        "relative_delta": -0.2,
+        "ci95_low": -0.3,
+        "ci95_high": -0.1,
+    }
+    neutral = {**metric, "ci95_low": -0.1, "ci95_high": 0.1}
+    decision, reason = _decision(
+        {"dwell_seconds": metric, "negative": neutral},
+        {"control_triggered_users": 2_000, "treatment_triggered_users": 2_000},
+        1_500,
+    )
+    assert decision == "reject"
+    assert reason == "stay significantly decreases"

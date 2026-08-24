@@ -162,6 +162,8 @@ def _decision(
     negative = metrics["negative"]
     if not all(math.isfinite(value) for metric in metrics.values() for value in metric.values()):
         return "hold", "non-finite experiment metric"
+    if dwell["ci95_high"] < 0.0:
+        return "reject", "stay significantly decreases"
     if dwell["ci95_low"] <= 0.0:
         return "hold", "stay confidence interval crosses zero"
     if negative["ci95_low"] > 0.0:
