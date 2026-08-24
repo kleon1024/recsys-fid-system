@@ -73,9 +73,33 @@ DIGITAL_TWIN_ASSETS = AssetGraph((
     AssetSpec(
         "projection.online_state", ("events.observable",), "platform"
     ),
-    AssetSpec("samples.recall", ("events.observable",), "samples"),
-    AssetSpec("samples.coarse", ("events.observable",), "samples"),
-    AssetSpec("samples.fine", ("events.observable",), "samples"),
+    AssetSpec(
+        "samples.recall",
+        (
+            "events.observable",
+            "platform.rendered_slates",
+            "projection.online_state",
+        ),
+        "samples",
+    ),
+    AssetSpec(
+        "samples.coarse",
+        (
+            "events.observable",
+            "platform.rendered_slates",
+            "projection.online_state",
+        ),
+        "samples",
+    ),
+    AssetSpec(
+        "samples.fine",
+        (
+            "events.observable",
+            "platform.rendered_slates",
+            "projection.online_state",
+        ),
+        "samples",
+    ),
     AssetSpec(
         "models.candidate",
         ("samples.recall", "samples.coarse", "samples.fine"),

@@ -25,12 +25,16 @@ Status: design authority; implementation is not complete.
   时间和平台 ingest 时间分离，重复 schedule 在 acknowledge 前保持幂等。
 - Point-in-time platform projection 只消费已交付事件，维护用户行为 counter、surface
   counter、ring sequence、item/creator counter、publish/inventory/bid 状态和双 watermark。
+- RequestCandidateTrace 强制 coarse⊆recall、fine⊆coarse、exposed⊆fine；Recall、Coarse、
+  Fine 三套样本由同一 watermark-aware Joiner 生成，但保留不同的观测边界。未曝光候选
+  只能携带 route/sampling probability/teacher score，不能伪造行为负标签。
 - RTX 4090 已验证 500K 用户、2M item、16M candidate 的单 event-time 微批；报告见
   `reports/benchmarks/2026-08-24-digital-twin-v4-world-kernel-4090.json`。
 
-尚未落地：request-level Joiner、真实多路召回与新模型 ladder。当前 projection 已经接收
-supply 和 delayed events，但还没有成为召回索引与训练样本的唯一 authority。因此当前证据
-只证明因果边界、用户/供给行为执行、迟到语义和吞吐，不证明推荐质量或业务增量。
+尚未落地：真实多路召回与新模型 ladder。Request-level trace 和 Joiner contract 已落地，
+但当前 throughput platform 尚未产生真实 recall/coarse/fine trace，因此它还不能作为模型
+训练 authority。当前证据只证明因果边界、用户/供给行为、迟到与样本语义，不证明推荐质量
+或业务增量。
 
 ## 1. 决策
 

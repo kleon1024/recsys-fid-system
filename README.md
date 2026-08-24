@@ -177,8 +177,11 @@ agents now evolve from factual events in the same world. This is throughput
 evidence only. Delayed order, payment, refund and Pixel outcomes now retain
 separate occurrence and ingestion times, and a point-in-time projection updates
 user counters, sequences, item/creator statistics and supply state only after
-delivery. The request-level Joiner, real retrieval and frozen model ladder
-remain open migration phases.
+delivery. A watermark-aware request-level Joiner now materializes separate
+Recall, Coarse and Fine authorities and refuses to label unexposed candidates
+as behavioral negatives. The throughput platform does not yet emit real stage
+traces, so real retrieval and the frozen model ladder remain open migration
+phases.
 
 ```mermaid
 flowchart LR
