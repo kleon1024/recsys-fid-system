@@ -24,8 +24,8 @@ AUC a launch metric: the published MMoE artifact is separately evaluated in a
 common-random stateful A/B with LT, negative-feedback, and duration guardrails.
 The predeclared guarded 0.010 MMoE candidate passes at one million users: LT per
 user +1.62%, stay per exposure +2.94%, quality-long-view +2.85%, neutral
-long-view, and no negative-feedback regression. Selected duration rises 3.76%
-and remains inside the 5% reward-hacking guard. This changes the simulator
+long-view, and negative feedback remains inside its declared guardrail. Selected
+duration rises 3.76% and remains inside the 5% reward-hacking guard. This changes the simulator
 ranking control only; production serving and production LT remain unclaimed.
 
 ```mermaid
@@ -46,6 +46,16 @@ flowchart LR
 See the bilingual [Feed V4 Launch Review](docs/launch-reviews/2026-08-24-feed-v4-request-aware-loop.md),
 the [request dataset manifest](reports/datasets/2026-08-24-feed-v4-request-candidate-log-manifest.json),
 and the [model report](reports/training/2026-08-24-feed-v4-request-aware-model-ladder-200k.json).
+
+The main Feed and POI/Local models now also have one typed serving graph rather
+than exchanging anonymous scalar scores. Eight recall routes feed independent
+coarse and fine stages; the active Feed MMoE and POI Linear model emit primitive
+probabilities into a versioned score bundle, then a central Value Tree and
+eligibility-aware mixer produce the served score. A one-million-user candidate
+raises paired anchor click by 5.14%, paired LT by 0.027%, and paired stay by
+0.063%. The disjoint randomized A/B confirms anchor growth but is underpowered
+for LT and guardrails, so the candidate is explicitly not active. See
+[L-SERVING-UNIFIED-001](docs/launch-reviews/2026-08-24-unified-feed-local-serving.md).
 
 The external world-model lane follows explicit
 [data, modeling, evaluation, and launch boundaries](docs/architecture/external-world-model-boundaries.md).
@@ -113,9 +123,9 @@ coverage is much larger, but coverage is not accepted as business impact. See
 `LR` is ambiguous in recommendation work. This repository writes **logistic
 regression** for the model and **Launch Review** for the release record.
 
-The legacy stateful Feed control still serves logistic regression. That is not
-a current V3 model-selection result and does not claim that neural ranking
-cannot work: the original simulator
+The historical stateful Feed control served logistic regression. The active V4
+simulator control is now the guarded MMoE described above. The old LR result did
+not show that neural ranking could not work: the original simulator
 was nearly linear, the actual policy consumed only 24 dense features, and the
 training split contained about 20,000 rows. A versioned nonlinear DGP run on an
 RTX 4090 shows the missing capacity effect: at ten million main impressions and

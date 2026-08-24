@@ -1485,6 +1485,21 @@
         "report_sha256": "f83f8a96282c9faea2768a19546cad3300838b3a88e0205284c9773ee8bcfd9f"
       },
       "evidence_boundary": "Training and offline metrics use 400K synthetic requests. Promotion uses a separate 10M-request, 1.25M-creator paired and randomized A/B. This is simulator launch evidence, not production lift."
+    },
+    {
+      "launch_id": "L-SERVING-UNIFIED-001",
+      "surface": "main_feed",
+      "stage": "end_to_end",
+      "change_type": "typed_feed_local_value_composition",
+      "control": "mmoe_guarded_0.01",
+      "treatment": "unified_mmoe_guarded_0.01_linear_local_0.2",
+      "primary_metric": "local_anchor_with_platform_lt_and_feed_guardrails",
+      "decision": "continue_powered_online_experiment",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-unified-feed-local-serving-v1-1m.json",
+        "report_sha256": "a5cc1af40c27f618ed90332a627ec6959647473eb53b7cc6985bf5d5d72c4dad"
+      },
+      "evidence_boundary": "Unified main-Feed and Local model composition in the external V4 simulator. This is synthetic Launch Review evidence only."
     }
   ],
   "coverage": {
@@ -1523,10 +1538,11 @@
     }
   },
   "summary": {
-    "records": 99,
+    "records": 100,
     "passed": 27,
     "held": 34,
     "rejected": 38,
+    "continued": 1,
     "missing_cells": 0
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -78,9 +79,9 @@ class TensorV4RequestPolicy:
             "value_tree": self.value_config.manifest(),
         }
 
-    def _value(self, logits, features):
+    def _predictions(self, logits):
         if self.model.task_count == 1:
-            return torch.sigmoid(logits[:, :, 0])
+            return {"long_view": torch.sigmoid(logits[:, :, 0])}
         tasks = {}
         for index, task in enumerate(TASKS):
             value = logits[:, :, index]
@@ -88,11 +89,44 @@ class TensorV4RequestPolicy:
                 torch.sigmoid(value) if task.kind == "binary"
                 else value.clamp(0.0, 1.0)
             )
-            tasks["stay_norm" if task.name == "stay" else task.name] = value.flatten()
+            tasks["stay_norm" if task.name == "stay" else task.name] = value
+        return tasks
+
+    def _value(self, tasks, features, value_config=None):
+        if self.model.task_count == 1:
+            return tasks["long_view"]
         flat_features = features.flatten(0, 1)
         return predicted_feed_value(
-            tasks, flat_features, self.value_config
+            {name: value.flatten() for name, value in tasks.items()},
+            flat_features, value_config or self.value_config,
         ).reshape(features.shape[:2])
+
+    @torch.inference_mode()
+    def predict_tasks(self, features, sequence, chunk=2_048):
+        output = {}
+        for start in range(0, len(features), chunk):
+            stop = min(start + chunk, len(features))
+            with torch.autocast(
+                device_type=self.device.type, dtype=torch.bfloat16,
+                enabled=self.device.type == "cuda",
+            ):
+                logits = self.model(features[start:stop], sequence[start:stop])
+                predictions = self._predictions(logits)
+            for name, value in predictions.items():
+                output.setdefault(name, []).append(value.float())
+        return {name: torch.cat(parts) for name, parts in output.items()}
+
+    def value(self, predictions, features):
+        return self._value(predictions, features)
+
+    def platform_value(self, predictions, features):
+        """Feed-only value; business heads belong to the composite tree."""
+        config = replace(
+            self.value_config,
+            local_anchor_weight=0.0,
+            local_conversion_weight=0.0,
+        )
+        return self._value(predictions, features, config)
 
     @torch.inference_mode()
     def _scores(self, features, sequence, chunk=2_048):
@@ -104,7 +138,8 @@ class TensorV4RequestPolicy:
                 enabled=self.device.type == "cuda",
             ):
                 logits = self.model(features[start:stop], sequence[start:stop])
-                output.append(self._value(logits, features[start:stop]).float())
+                tasks = self._predictions(logits)
+                output.append(self._value(tasks, features[start:stop]).float())
         return torch.cat(output)
 
     def select_candidate(self, user_ids, state, candidates, device, step, config):

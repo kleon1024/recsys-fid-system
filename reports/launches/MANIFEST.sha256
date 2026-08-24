@@ -42,7 +42,7 @@ c93cb7d2ade7c7e14aea894a4b8c08552e4858fb6b248ef1428c451243dd0a80  reports/launch
 235a0acd86f80289565b8e34490ad6fb932b1c13d6cae93d075f15f4f3fe7e45  reports/launches/2026-08-24-feed-retrieval-20260826.json
 f38aa1d13d5fceae4372e3dddf348336ddec598f5e018ae2321ac0180528687f  reports/launches/2026-08-24-feed-retrieval-launch-review.json
 a7858c2e309645a9b0998730c0c069042e1e5061f393b2efb3c861bbc319ca7c  reports/launches/2026-08-24-feed-v4-mmoe-guarded-010-1m.json
-1ed0070eaa8e1289c0346d22354842d7dc30cb0288c20c014f306bcee6507427  reports/launches/2026-08-24-launch-ledger.json
+5e5b3013a37d46a212917a2b7444d4a9cf38de731d0149a1fba539ebea8376fb  reports/launches/2026-08-24-launch-ledger.json
 8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7  reports/launches/2026-08-24-local-search-request-launch-review.json
 9adedfdba75c8cd07f9e193d87a18e22d80a5b8d013b43921ae10deabaab5d6b  reports/launches/2026-08-24-poi-detail-request-launch-review.json
 c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521  reports/launches/2026-08-24-poi-distribution-stage-ladder.json
@@ -61,3 +61,4 @@ a31a82e10488924462e81d486d906e7d1b5e5dd35dabb5094f7deae4e3ac733e  reports/launch
 44ee9b9b92d618fbed86190baefaa8fe26455a48caa53c066c2a9f3a41c745f7  reports/launches/2026-08-24-shared-retrieval-v4-aligned-500k.json
 0037115e5f4b72192b10b1a704aa1e8667fbd7c558c3796f18a5ceb7c40a6beb  reports/launches/2026-08-24-shared-retrieval-v4-aligned-paired-500k.json
 89594ca1dfde18ad79a6012c03890d41d0faa83840b03c5e5fb385cfaaaaa16c  reports/launches/2026-08-24-shared-retrieval-v4-sequence-skew-500k.json
+a5cc1af40c27f618ed90332a627ec6959647473eb53b7cc6985bf5d5d72c4dad  reports/launches/2026-08-24-unified-feed-local-serving-v1-1m.json

@@ -1,0 +1,20 @@
+{
+  "schema": "simulated-serving-candidate-v1",
+  "candidate_key": "mmoe_guarded_001_local_linear_coarse_010_fine_020",
+  "status": "continue_powered_online_experiment",
+  "active_release_changed": false,
+  "feed_model": "mmoe_guarded_0.01",
+  "local_model": "linear",
+  "value_tree": {
+    "version": "composite-feed-business-value-tree-v1",
+    "local_coarse_weight": 0.1,
+    "local_fine_weight": 0.2,
+    "local_coarse_keep": 20
+  },
+  "source_report": {
+    "path": "reports/launches/2026-08-24-unified-feed-local-serving-v1-1m.json",
+    "sha256": "a5cc1af40c27f618ed90332a627ec6959647473eb53b7cc6985bf5d5d72c4dad"
+  },
+  "reason": "Paired replay passes; disjoint randomized A/B proves Local anchor lift but remains underpowered for platform LT and guardrails.",
+  "evidence_boundary": "Synthetic V4 simulator evidence only; not a production release or production lift claim."
+}

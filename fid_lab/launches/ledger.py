@@ -498,6 +498,26 @@ def _request_retrieval_v4_records(root: Path) -> list[dict]:
     return records
 
 
+def _unified_feed_local_serving_record(root: Path) -> list[dict]:
+    relative = (
+        "reports/launches/"
+        "2026-08-24-unified-feed-local-serving-v1-1m.json"
+    )
+    report, evidence = _load(root, relative)
+    return [_record(
+        launch_id="L-SERVING-UNIFIED-001",
+        surface="main_feed",
+        stage="end_to_end",
+        change_type="typed_feed_local_value_composition",
+        control=report["control"]["name"],
+        treatment=report["treatment"]["name"],
+        decision=report["decision"],
+        evidence=evidence,
+        primary_metric="local_anchor_with_platform_lt_and_feed_guardrails",
+        evidence_boundary=report["evidence_boundary"],
+    )]
+
+
 def build_launch_ledger(root: Path) -> dict:
     records = [
         *_main_feed_policy_records(root),
@@ -517,6 +537,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_poi_distribution_v4_records(root),
         *_request_retrieval_v4_records(root),
         *_poi_posting_v4_records(root),
+        *_unified_feed_local_serving_record(root),
     ]
     identifiers = [record["launch_id"] for record in records]
     if len(identifiers) != len(set(identifiers)):
@@ -539,6 +560,10 @@ def build_launch_ledger(root: Path) -> dict:
             "held": sum(record["decision"].startswith("hold") for record in records),
             "rejected": sum(
                 record["decision"].startswith("reject") for record in records
+            ),
+            "continued": sum(
+                record["decision"].startswith("continue")
+                for record in records
             ),
             "missing_cells": sum(
                 value == "missing"

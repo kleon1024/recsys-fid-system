@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-SERVING-UNIFIED-001](2026-08-24-unified-feed-local-serving.md) | Main Feed + Local typed score composition and Value Tree | Continue powered online experiment; active release unchanged |
 | [L-LOCAL-SEARCH-REQUEST-001](2026-08-24-local-search-request-ladder.md) | Local Search retrieval/fine/end-to-end ladder | Retain Lexical+Geo; promote calibrated Linear |
 | [L-FEED-POST-REQUEST-001](2026-08-24-feed-posting-request-ladder.md) | Feed posting candidate/fine/end-to-end ladder | Promote calibrated Linear; hold new routes and deeper models |
 | [L-POI-POST-REQUEST-001](2026-08-24-poi-posting-request-ladder.md) | POI posting candidate/fine/end-to-end ladder | Promote History recall + W&D in simulator; external supply hold |
