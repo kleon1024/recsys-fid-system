@@ -72,9 +72,27 @@ class NeuralSCM(nn.Module):
             selected_hidden, attended[:, 0], sequence_hidden[-1], cohort,
         ), dim=1))
 
+    def encode_slate_context(self, slate, sequence, lifecycle, region):
+        """Encode every selected alternative without repeating the slate K times."""
+        slate_hidden = self.feature_encoder(slate)
+        attended, _ = self.slate_attention(
+            slate_hidden, slate_hidden, slate_hidden, need_weights=False
+        )
+        _, sequence_hidden = self.sequence_encoder(sequence)
+        cohort = torch.cat((
+            self.lifecycle_embedding(lifecycle.clamp(0, 3)),
+            self.region_embedding(region.clamp(0, 9)),
+        ), dim=1)
+        width = slate.shape[1]
+        sequence_context = sequence_hidden[-1, :, None].expand(-1, width, -1)
+        cohort_context = cohort[:, None].expand(-1, width, -1)
+        return self.context_projection(torch.cat((
+            slate_hidden, attended, sequence_context, cohort_context,
+        ), dim=2))
+
     @staticmethod
     def _latent(parameters, noise):
-        mean, log_var = parameters.chunk(2, dim=1)
+        mean, log_var = parameters.chunk(2, dim=-1)
         log_var = log_var.clamp(-6.0, 3.0)
         return mean + torch.exp(0.5 * log_var) * noise, mean, log_var
 
@@ -186,4 +204,81 @@ class NeuralSCM(nn.Module):
             "completion": completion,
             "event": event,
             "next_hidden": self.next_hidden(context, event),
+        }
+
+    def sample_slate(
+        self, batch, latent_noise, mixture_uniform, stay_noise, action_uniforms,
+    ):
+        """Vectorized potential response for every item in one rendered slate."""
+        context = self.encode_slate_context(
+            batch["slate_features"], batch["sequence"],
+            batch["lifecycle"], batch["region"],
+        )
+        latent, _, _ = self._latent(self.prior(context), latent_noise)
+        hidden = self.decoder_init(torch.cat((context, latent), dim=2))
+        stay_parameters = self.stay_head(hidden).reshape(
+            *hidden.shape[:2], self.config.stay_mixture_components, 3
+        )
+        mixture_probability = torch.softmax(stay_parameters[..., 0], dim=2)
+        mixture_choice = (
+            mixture_uniform[:, :, None] > mixture_probability.cumsum(dim=2)
+        ).sum(dim=2).clamp_max(self.config.stay_mixture_components - 1)
+        gather_index = mixture_choice[:, :, None, None].expand(-1, -1, 1, 3)
+        selected_stay = torch.gather(
+            stay_parameters, 2, gather_index,
+        ).squeeze(2)
+        stay_mean = (
+            torch.sigmoid(selected_stay[:, :, 1]) * self.stay_calibration_scale
+            + self.stay_calibration_shift
+        ).clamp(0.0, 1.0)
+        stay_scale = torch.exp(
+            selected_stay[:, :, 2].clamp(-4.0, 0.5)
+        ) * self.stay_calibration_scale
+        normalized_stay = (stay_mean + stay_scale * stay_noise).clamp(0.0, 1.0)
+        log_181 = torch.log(torch.tensor(181.0, device=context.device))
+        duration = torch.expm1(
+            batch["slate_features"][:, :, 12].clamp(0.0, 1.0) * log_181
+        ).clamp(1.0, 180.0)
+        stay = torch.minimum(torch.expm1(normalized_stay * log_181), duration)
+        flat_hidden = hidden.reshape(-1, hidden.shape[-1])
+        actions = {}
+        probabilities = {}
+        for index, action in enumerate(STOCHASTIC_ACTIONS):
+            logit = self.action_heads[action.name](flat_hidden).reshape(
+                *hidden.shape[:2]
+            )
+            probability = torch.sigmoid(logit)
+            sampled = action_uniforms[:, :, index] < probability
+            if action.requires is not None:
+                sampled &= actions[action.requires]
+            actions[action.name] = sampled
+            probabilities[action.name] = probability
+            transition = torch.stack((sampled.float(), probability), dim=2)
+            flat_hidden = self.action_transition(
+                transition.reshape(-1, 2), flat_hidden,
+            )
+        stay *= actions["play"].float()
+        completion = (stay / duration).clamp(0.0, 1.0)
+        actions["play_3s"] = actions["play"] & (stay >= 3.0)
+        actions["complete_play"] = actions["play"] & (completion >= 0.95)
+        actions["long_view"] = actions["play"] & (
+            stay >= torch.minimum(torch.full_like(stay, 18.0), duration)
+        )
+        actions["quality_long_view"] = actions["play"] & (
+            stay >= torch.minimum(torch.full_like(stay, 30.0), duration)
+        )
+        event = torch.stack((
+            batch["slate_features"][:, :, 17],
+            torch.log1p(stay) / log_181,
+            actions["long_view"].float(), actions["quality_long_view"].float(),
+            actions["like"].float(), actions["negative_feedback"].float(),
+            actions["anchor_click"].float(), actions["conversion"].float(),
+        ), dim=2)
+        return {
+            "actions": actions,
+            "probabilities": probabilities,
+            "stay_seconds": stay,
+            "completion": completion,
+            "event": event,
+            "context": context,
         }

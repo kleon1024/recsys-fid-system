@@ -176,6 +176,7 @@ def run_world_benchmark(config: WorldBenchmarkConfig) -> dict[str, object]:
         "observable_events": events,
         "delayed_events": delayed_counts,
         "pending_delayed_events": world.delayed.pending_events,
+        "world_authorities": world.manifest(),
         "event_watermark": event_log.watermark,
         "ingest_watermark": event_log.ingest_watermark,
         "elapsed_seconds": elapsed,

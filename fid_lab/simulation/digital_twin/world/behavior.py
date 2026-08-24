@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import torch
 
-from ...randomness.counter import uniform, uniform_for_item_channels
+from ...randomness.counter import uniform_for_item_channels
 from ..catalog import PublicCatalog
 from ..contracts import (
     AppEventBatch,
@@ -26,6 +26,7 @@ class ResponseTensors:
     utility: torch.Tensor
     dwell_ms: torch.Tensor
     action: dict[EventType, torch.Tensor]
+    session_end: torch.Tensor | None = None
 
 
 def _event_draws(
@@ -110,27 +111,10 @@ def _latent_utility(
     event_time = slate.event_time[:, None]
     age = (event_time - snapshot.item_publish_time[item]).clamp_min(0).float()
     freshness = torch.exp(-age / (2.0 * snapshot.ticks_per_day))
-    day = torch.div(
-        event_time, snapshot.ticks_per_day, rounding_mode="floor",
-    )
-    trend_key = (
-        catalog.topic_id[item]
-        + users.country[row, None] * 1_009
-    )
-    trend_shock = uniform(
-        trend_key,
-        day,
-        1_181,
-        snapshot.environment_seed,
-    )
     trend = torch.sigmoid(
-        2.4 * (trend_shock - 0.5)
-        + 0.8 * torch.sin(
-            2.0 * torch.pi * (
-                event_time.float() / (3.0 * snapshot.ticks_per_day)
-                + catalog.topic_id[item].float() / 17.0
-            )
-        )
+        snapshot.trend_strength[
+            users.region[row, None], catalog.topic_id[item]
+        ]
     )
     interaction = torch.sin(
         1.7 * affinity + 0.35 * style[:, 2, None]
@@ -324,13 +308,13 @@ def _events_for_mask(
     )
 
 
-def response_events(
+def materialize_response_events(
+    sampled: ResponseTensors,
     snapshot: UserWorldSnapshot,
     catalog: PublicCatalog,
     slate: RenderedSlateBatch,
     seed: int,
 ) -> AppEventBatch:
-    sampled = sample_response_tensors(snapshot, catalog, slate, seed)
     batches = [
         _events_for_mask(
             EventType.IMPRESSION, slate.valid, slate, catalog, snapshot,
@@ -356,27 +340,31 @@ def response_events(
         snapshot,
         duration_ms=sampled.dwell_ms,
     ))
+    missing = torch.zeros_like(sampled.examined)
     positive = torch.stack((
         sampled.action[EventType.LONG_VIEW],
         sampled.action[EventType.LIKE],
         sampled.action[EventType.SHARE],
         sampled.action[EventType.CLICK],
-        sampled.action[EventType.PUBLISH],
+        sampled.action.get(EventType.PUBLISH, missing),
     )).any(dim=0)
     request_value = (
         sampled.dwell_ms.float().sum(dim=1) / 1_000.0
         + 8.0 * positive.float().sum(dim=1)
     )
     users = snapshot.users
-    leave_probability = torch.sigmoid(
-        -2.4
-        + 1.8 * users.fatigue[slate.user_id]
-        + 0.10 * users.session_depth[slate.user_id].float()
-        - 0.014 * request_value
-        - 0.8 * users.satisfaction[slate.user_id]
-    )
-    leave_draw = _event_draws(slate, 24, seed)[:, 0, 23]
-    leave = leave_draw < leave_probability
+    if sampled.session_end is None:
+        leave_probability = torch.sigmoid(
+            -2.4
+            + 1.8 * users.fatigue[slate.user_id]
+            + 0.10 * users.session_depth[slate.user_id].float()
+            - 0.014 * request_value
+            - 0.8 * users.satisfaction[slate.user_id]
+        )
+        leave_draw = _event_draws(slate, 24, seed)[:, 0, 23]
+        leave = leave_draw < leave_probability
+    else:
+        leave = sampled.session_end
     batches.append(make_app_events(
         EventType.SESSION_END,
         event_time=slate.event_time[leave],
@@ -387,3 +375,13 @@ def response_events(
         assignment_probability=slate.assignment_probability[leave],
     ))
     return AppEventBatch.concatenate(batches)
+
+
+def response_events(
+    snapshot: UserWorldSnapshot,
+    catalog: PublicCatalog,
+    slate: RenderedSlateBatch,
+    seed: int,
+) -> AppEventBatch:
+    sampled = sample_response_tensors(snapshot, catalog, slate, seed)
+    return materialize_response_events(sampled, snapshot, catalog, slate, seed)

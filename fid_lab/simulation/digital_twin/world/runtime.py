@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import fields
+
 import torch
 
 from ...randomness.counter import uniform
@@ -13,9 +15,16 @@ from ..contracts import (
     Surface,
     make_app_events,
 )
-from .behavior import response_events
+from .authority import FormulaResponseAuthority, ResponseAuthority
+from .dynamics.calendar import (
+    CALENDAR_VERSION,
+    arrival_hazard,
+    sample_return_outcome,
+)
+from .dynamics.population import POPULATION_VERSION
 from .delayed import DelayedOutcomeQueue
 from .state import (
+    HiddenUserState,
     UserWorldConfig,
     UserWorldSnapshot,
     build_hidden_catalog_truth,
@@ -23,23 +32,39 @@ from .state import (
     topic_prototypes,
 )
 from .supply import SupplyEcosystem
+from .dynamics.trends import TREND_VERSION, TrendProcess
 
 
 class UserEcosystemWorld:
     """Owns hidden state; the platform sees only emitted app events."""
 
-    def __init__(self, config: UserWorldConfig, catalog: PublicCatalog):
+    def __init__(
+        self,
+        config: UserWorldConfig,
+        catalog: PublicCatalog,
+        response_authority: ResponseAuthority | None = None,
+    ):
         if catalog.content_embedding.shape[1] != config.embedding_dim:
             raise ValueError("catalog and world embedding dimensions differ")
         if int(catalog.topic_id.max()) >= config.topics:
             raise ValueError("catalog topic IDs exceed world topic count")
         self.config = config
         self.catalog = catalog
+        self.response_authority = (
+            FormulaResponseAuthority()
+            if response_authority is None else response_authority
+        )
         self.users = build_hidden_users(config, catalog)
         self.catalog_truth = build_hidden_catalog_truth(
             catalog, config.environment_seed,
         )
         self._topic_prototypes = topic_prototypes(catalog, config.topics)
+        self.trends = TrendProcess(
+            config.countries * config.regions_per_country,
+            config.topics,
+            config.environment_seed,
+            catalog.item_id.device,
+        )
         self.supply = SupplyEcosystem(
             catalog, config.environment_seed, config.ticks_per_day,
         )
@@ -50,6 +75,14 @@ class UserEcosystemWorld:
     @property
     def max_reporting_lag(self) -> int:
         return 2 * self.config.ticks_per_day
+
+    def manifest(self) -> dict[str, str]:
+        return {
+            "population": POPULATION_VERSION,
+            "calendar_survival": CALENDAR_VERSION,
+            "trends": TREND_VERSION,
+            "response": self.response_authority.version,
+        }
 
     def snapshot(self) -> UserWorldSnapshot:
         return UserWorldSnapshot(
@@ -63,6 +96,7 @@ class UserEcosystemWorld:
             self.supply.state.item_country.clone(),
             self.supply.state.item_region.clone(),
             self.supply.state.item_publish_time.clone(),
+            self.trends.snapshot(),
         )
 
     def _surface(self, user: torch.Tensor, logical_time: int) -> torch.Tensor:
@@ -90,29 +124,22 @@ class UserEcosystemWorld:
         return torch.argmax(logits + 0.42 * gumbel, dim=1)
 
     def schedule(self, logical_time: int) -> AppEventBatch:
+        self.trends.advance(logical_time)
         state = self.users
         user = state.user_id
         registration = (~state.registered) & (state.signup_time <= logical_time)
         eligible = state.registered | registration
-        local_hour = (
-            logical_time * 24.0 / self.config.ticks_per_day
-            + state.timezone_offset.float()
-        ).remainder(24.0)
-        circadian = (
-            0.25
-            + 0.45 * torch.exp(-((local_hour - 12.0) / 4.5).square())
-            + 0.70 * torch.exp(-((local_hour - 21.0) / 3.5).square())
+        arrival_probability = arrival_hazard(
+            state, logical_time, self.config.ticks_per_day,
         )
-        arrival_probability = (
-            state.activity
-            * circadian
-            * (0.45 + 0.55 * state.habit)
-            * (0.55 + 0.45 * state.satisfaction)
-            / self.config.ticks_per_day
-        ).clamp(0.0, 0.45)
+        reactivation = (
+            state.churned
+            & (state.reactivation_time <= logical_time)
+        )
         arrival = (
             eligible
             & ~state.active
+            & ~state.churned
             & (state.next_return_time <= logical_time)
             & (
                 uniform(
@@ -123,7 +150,7 @@ class UserEcosystemWorld:
                 ) < arrival_probability
             )
         )
-        arrival |= registration
+        arrival |= registration | reactivation
         requesting = state.active | arrival
         request_user = user[requesting]
         request_id = logical_time * self.config.users + request_user + 1
@@ -199,7 +226,7 @@ class UserEcosystemWorld:
         snapshot: UserWorldSnapshot,
         slate: RenderedSlateBatch,
     ) -> AppEventBatch:
-        events = response_events(
+        events = self.response_authority.respond(
             snapshot,
             self.catalog,
             slate,
@@ -213,7 +240,9 @@ class UserEcosystemWorld:
         self.delayed.acknowledge(events)
         self._commit_lifecycle(events)
         self._commit_engagement(events)
+        self._commit_sequence(events)
         self.supply.commit(events)
+        self.trends.commit(events)
         self.delayed.schedule_from(
             events,
             self.users,
@@ -228,6 +257,8 @@ class UserEcosystemWorld:
         start = events.event(EventType.SESSION_START)
         start_user = events.user_id[start]
         state.active[start_user] = True
+        state.churned[start_user] = False
+        state.reactivation_time[start_user] = torch.iinfo(torch.long).max // 4
         state.session_depth[start_user] = 0
         state.session_count[start_user] += 1
         state.fatigue[start_user] *= 0.72
@@ -239,23 +270,22 @@ class UserEcosystemWorld:
         if not len(end_user):
             return
         state.active[end_user] = False
-        return_noise = uniform(
+        selected_users = HiddenUserState(**{
+            field.name: getattr(state, field.name)[end_user]
+            for field in fields(HiddenUserState)
+        })
+        outcome = sample_return_outcome(
+            selected_users,
             events.event_id[end],
-            0,
-            1_337,
+            events.event_time[end],
+            self.config.ticks_per_day,
             self.config.environment_seed,
         )
-        expected_days = torch.exp(
-            1.4
-            + 1.8 * state.fatigue[end_user]
-            - 1.5 * state.satisfaction[end_user]
-            - 1.2 * state.habit[end_user]
-            + 0.35 * (return_noise - 0.5)
-        ).clamp(0.01, 45.0)
-        delay = torch.ceil(
-            expected_days * self.config.ticks_per_day,
-        ).long().clamp_min(1)
-        state.next_return_time[end_user] = events.event_time[end] + delay
+        state.churned[end_user] = outcome.churned
+        state.reactivation_time[end_user] = outcome.reactivation_time
+        state.next_return_time[end_user] = (
+            events.event_time[end] + outcome.delay_ticks
+        )
 
     def _drift_short_interest(
         self, user: torch.Tensor, event_time: torch.Tensor,
@@ -263,13 +293,8 @@ class UserEcosystemWorld:
         if not len(user):
             return
         state = self.users
-        day = torch.div(
-            event_time, self.config.ticks_per_day, rounding_mode="floor",
-        )
-        trend_topic = torch.remainder(
-            state.country[user] * 31 + day * 17 + state.segment[user] * 7,
-            self.config.topics,
-        )
+        del event_time
+        trend_topic = self.trends.top_topic(state.region[user])
         strength = (
             0.025
             + 0.055 * state.novelty[user]
@@ -369,3 +394,60 @@ class UserEcosystemWorld:
             (1.0 - rate) * state.short_interest[touched] + rate * target,
             dim=1,
         )
+
+    def _commit_sequence(self, events: AppEventBatch) -> None:
+        impression = events.event(EventType.IMPRESSION)
+        if not impression.any():
+            return
+        request_ids = torch.unique(events.request_id[impression], sorted=True)
+        request_location = torch.searchsorted(request_ids, events.request_id)
+        valid_request = (
+            (request_location < len(request_ids))
+            & (request_ids[request_location.clamp_max(len(request_ids) - 1)]
+               == events.request_id)
+        )
+        rows = len(request_ids)
+        event_row = request_location[valid_request]
+        request_user = torch.full(
+            (rows,), -1, device=events.event_id.device, dtype=torch.long,
+        )
+        impression_row = request_location[impression]
+        request_user.scatter_(0, impression_row, events.user_id[impression])
+        token = torch.zeros(rows, 8, device=events.event_id.device)
+        topic = torch.zeros(rows, device=events.event_id.device)
+        first_position = impression & (events.position == 0)
+        topic.scatter_(
+            0,
+            request_location[first_position],
+            events.topic_id[first_position].float() / max(self.config.topics - 1, 1),
+        )
+        token[:, 0] = topic
+        dwell = events.event(EventType.DWELL) & valid_request
+        token[:, 1].index_add_(
+            0,
+            request_location[dwell],
+            torch.log1p(events.duration_ms[dwell].float() / 1_000.0)
+            / torch.log(torch.tensor(181.0, device=events.event_id.device)),
+        )
+        event_channels = (
+            EventType.LONG_VIEW,
+            EventType.COMPLETE,
+            EventType.LIKE,
+            EventType.NEGATIVE,
+            EventType.CLICK,
+            EventType.PAYMENT,
+        )
+        for channel, event_type in enumerate(event_channels, start=2):
+            selected = events.event(event_type) & valid_request
+            token[:, channel].index_add_(
+                0,
+                request_location[selected],
+                torch.ones_like(events.value[selected]),
+            )
+        token[:, 1:] = token[:, 1:].clamp(0.0, 1.0)
+        valid_user = request_user >= 0
+        users = request_user[valid_user]
+        sequence = self.users.behavior_sequence[users]
+        sequence = torch.roll(sequence, shifts=-1, dims=1)
+        sequence[:, -1] = token[valid_user].to(sequence.dtype)
+        self.users.behavior_sequence[users] = sequence

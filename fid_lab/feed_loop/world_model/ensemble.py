@@ -99,6 +99,15 @@ class WorldModelEnsemble(nn.Module):
         ]
 
     @torch.inference_mode()
+    def sample_slate_members(self, batch, noise: StructuralNoise):
+        return [
+            member.sample_slate(
+                batch, noise.latent, noise.mixture, noise.stay, noise.actions
+            )
+            for member in self.members
+        ]
+
+    @torch.inference_mode()
     def rollout(self, batch, steps: int, seed: int):
         sequence = batch["sequence"].clone()
         events = []

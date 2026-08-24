@@ -102,6 +102,40 @@ def test_paired_structural_noise_is_repeatable_and_respects_funnel_masks():
     ).any()
 
 
+def test_vectorized_slate_sampling_matches_scalar_candidate_semantics():
+    config = _config()
+    ensemble = WorldModelEnsemble(config)
+    split = _split(rows=4)
+    batch = split.batch(torch.arange(len(split)), torch.device("cpu"))
+    rows, width = batch["slate_features"].shape[:2]
+    generator = torch.Generator().manual_seed(99)
+    slate_noise = StructuralNoise(
+        latent=torch.randn(rows, width, config.latent_dim, generator=generator),
+        mixture=torch.rand(rows, width, generator=generator),
+        stay=torch.randn(rows, width, generator=generator),
+        actions=torch.rand(
+            rows, width, len(ensemble.members[0].action_heads), generator=generator,
+        ),
+    )
+    vectorized = ensemble.sample_slate_members(batch, slate_noise)[0]
+    scalar_batch = {
+        **batch,
+        "selected_features": batch["slate_features"][:, 0],
+    }
+    scalar_noise = StructuralNoise(
+        latent=slate_noise.latent[:, 0],
+        mixture=slate_noise.mixture[:, 0],
+        stay=slate_noise.stay[:, 0],
+        actions=slate_noise.actions[:, 0],
+    )
+    scalar = ensemble.sample_members(scalar_batch, scalar_noise)[0]
+    torch.testing.assert_close(
+        vectorized["stay_seconds"][:, 0], scalar["stay_seconds"],
+    )
+    for name in scalar["actions"]:
+        assert torch.equal(vectorized["actions"][name][:, 0], scalar["actions"][name])
+
+
 def test_evaluation_fails_closed_without_randomized_causal_evidence():
     config = _config()
     ensemble = WorldModelEnsemble(config)
