@@ -3,7 +3,7 @@
   "environment": "externally_calibrated_synthetic_simulator",
   "epoch": "v3",
   "active_control_key": "mmoe_multitask_guarded_a015_t008",
-  "active_bundle_id": "sha256:d30f91725ae3fe6e2b5651486d3764ecbbf26bc356c83b59a28418f4bfc30db8",
+  "active_bundle_id": "sha256:51825e7701cdac23ea23fb73b2ed4e237ebf42e5f07b5cbee7009daf159701c2",
   "active_bundle": {
     "model": {
       "kind": "guarded_learned_residual_rerank",
@@ -245,7 +245,7 @@
     },
     "behavior": {
       "signal_version": "kuairand-calibrated-v3",
-      "artifact_id": "sha256:a1b17e9f523542d3483ec97e3f45c80bfd1b7923d25a3b32df03424da7456009",
+      "artifact_id": "sha256:c8da7f6327094cd169579313f035afbd9df464faad3c43e8dbab5fbd4794c594",
       "sources": [
         {
           "path": "fid_lab/feed_loop/scale/tensor_engine.py",
@@ -261,7 +261,7 @@
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_runtime/state.py",
-          "sha256": "e3d513f3361b8b183805c0578081088cf387f1a075967132c8a2e064bf308368"
+          "sha256": "5986df6ebbba26966ac069eede2af274c3ce9efbba41e6d036cb22f608a438ef"
         },
         {
           "path": "fid_lab/feed_loop/scale/calibration/behavior.py",
@@ -332,7 +332,7 @@
     },
     "behavior": {
       "signal_version": "kuairand-calibrated-v3",
-      "artifact_id": "sha256:a1b17e9f523542d3483ec97e3f45c80bfd1b7923d25a3b32df03424da7456009",
+      "artifact_id": "sha256:c8da7f6327094cd169579313f035afbd9df464faad3c43e8dbab5fbd4794c594",
       "sources": [
         {
           "path": "fid_lab/feed_loop/scale/tensor_engine.py",
@@ -348,7 +348,7 @@
         },
         {
           "path": "fid_lab/feed_loop/scale/tensor_runtime/state.py",
-          "sha256": "e3d513f3361b8b183805c0578081088cf387f1a075967132c8a2e064bf308368"
+          "sha256": "5986df6ebbba26966ac069eede2af274c3ce9efbba41e6d036cb22f608a438ef"
         },
         {
           "path": "fid_lab/feed_loop/scale/calibration/behavior.py",
@@ -520,5 +520,5 @@
   "production_readiness": "synthetic_research_only",
   "evidence_boundary": "V3 is the current simulator authority; it is not a production deployment.",
   "rollback_key": "rule_personalized_v1",
-  "rollback_bundle_id": "sha256:a23f0f47d2a18aededf0d3d230473ee10e6dcdbc43088698f053d5136f8cb756"
+  "rollback_bundle_id": "sha256:c454f12e10223e24e2d64a1ff60bcaa54442da953da3ba0c7eebb86925635721"
 }
