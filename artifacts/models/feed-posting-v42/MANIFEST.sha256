@@ -1,0 +1,12 @@
+69649f456a53421115eed5a1f7bfa7e01572684e4ee0131724fa562e091d21bd  artifacts/models/feed-posting-v42/seed-20260824-din.pt
+d136d0a33bb04fd17e7fca9e15dde99f02a51f6a2dc9b60f88b14aec49a92b9b  artifacts/models/feed-posting-v42/seed-20260824-linear.pt
+bd84cc5224f2c5a752bf323cb960b86b684ae6f9030d52c85bf49defe70158ae  artifacts/models/feed-posting-v42/seed-20260824-transformer_mmoe.pt
+ee28b73f814d9b72d540bc38a1908b966396baaa9afc228d332e69e822420167  artifacts/models/feed-posting-v42/seed-20260824-wide_deep.pt
+72aa60f29e7568a49445c59b83afc73b062a0c12332834dbbea76a1a6abfe426  artifacts/models/feed-posting-v42/seed-20260825-din.pt
+91239f00890af0d8512019e064edf4a8e875a0f7678421b31c5562c1391a65ce  artifacts/models/feed-posting-v42/seed-20260825-linear.pt
+340ab3669deb7c035643e8cd4866d33a43fe12633711811527c5077102888c14  artifacts/models/feed-posting-v42/seed-20260825-transformer_mmoe.pt
+27cdb35b3c8b03e1a569fe920bdb615e970535120fd69a3946a041fdfcddc0f1  artifacts/models/feed-posting-v42/seed-20260825-wide_deep.pt
+f96eaa1b36e0e2c5c2c754390ea510a0d822db05d23c548b20c1e01258bffb04  artifacts/models/feed-posting-v42/seed-20260826-din.pt
+14b71b4ed3a0a4ce909ffc8c273d77d2fb3a1c161ec8691e858fa7b31f0b48fe  artifacts/models/feed-posting-v42/seed-20260826-linear.pt
+c1c7a81ad2c0a673842eaeeb0dea89f3d1b7258a6a2578dc238a973127171557  artifacts/models/feed-posting-v42/seed-20260826-transformer_mmoe.pt
+a70ebdc8e6425ede0274bd10ad524f419c1eb1c7026ecc648ad4aad88d6e5ef5  artifacts/models/feed-posting-v42/seed-20260826-wide_deep.pt

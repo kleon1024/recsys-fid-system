@@ -1,40 +1,57 @@
 {
-  "schema": "simulated-feed-posting-authority-v1",
-  "active_key": "trending_i2i_plus_linear",
-  "active_bundle_id": "sha256:fbf5c2f9db1eb943c59c779d0fed21358eec72e424bd83ff9a13d35ca803886f",
+  "schema": "simulated-feed-posting-authority-v2",
+  "active_key": "trending_i2i_plus_din_blend_0.20",
+  "active_bundle_id": "sha256:6c363ad7ce567aa4cea53b916a6578de560bb837fc17d02d1dec7e7e29a1bd8e",
   "active_bundle": {
     "candidate_policy": "trending_i2i",
-    "fine_model": "linear",
+    "fine_model": "din",
+    "model_blend": 0.2,
     "model_artifact": {
-      "path": "artifacts/models/feed-posting-request-v1/seed-20260824-linear.pt",
-      "sha256": "978cd460b501b57b804493d4e656bd862d6f9ed8841e4755760e75ad1382b7a1"
+      "path": "artifacts/models/feed-posting-v42/seed-20260824-din.pt",
+      "sha256": "69649f456a53421115eed5a1f7bfa7e01572684e4ee0131724fa562e091d21bd"
     },
     "model_seed": 20260824,
-    "world_version": "teacher-hidden-feed-posting-v1",
+    "world_version": "creator-neural-feed-supply-v4",
     "sources": [
       {
         "path": "fid_lab/feed_posting/__init__.py",
         "sha256": "cf5157ff2387062ee372e5417e71af2e28db92e3fea114118d0d527686963d5d"
       },
       {
+        "path": "fid_lab/feed_posting/analysis.py",
+        "sha256": "8b41c55a2d3b99870e3cead9961e4002b1ddfa997b0ccd280aceda8914e16d4f"
+      },
+      {
         "path": "fid_lab/feed_posting/cli.py",
-        "sha256": "dc535e873a9348c004f583dc54833f0804be9cc96aa657ae56681efc395113f6"
+        "sha256": "8381b7fec69da318f3d6bb403c58adbd29b272afeb3b5dd82d62986c98770246"
       },
       {
         "path": "fid_lab/feed_posting/contracts.py",
-        "sha256": "f8cf72039db20690ed49dcd1839fa2fb79c38ecebfad4fc8ea4e553c6483b198"
+        "sha256": "6b1cdb4976a28f0a4e9f479995336a4b49352879330def6db2c5a835bee404e1"
       },
       {
         "path": "fid_lab/feed_posting/launch.py",
-        "sha256": "848af072c2f42b7b45ed65d494516ee4d136e5ee22829c0dab381e79f3b5af95"
+        "sha256": "4e0a1c0d43e4406bc70763acd38ed34fdd5b0e6c274288ee338b45b043359fcc"
       },
       {
         "path": "fid_lab/feed_posting/models.py",
-        "sha256": "fa1ab3dc636adb28dbd7478c86637c24ec0b3e4853a62ba7b0cdd15d3d55c77e"
+        "sha256": "036f8e95930e97980beca92c57b000d0120a3dc45038cef86a5826714e77c4b3"
       },
       {
         "path": "fid_lab/feed_posting/release.py",
-        "sha256": "de2bb42e5fece5e3ba54d23a0baec1f07dfa54ac6130937f9dd25b5fe0357e12"
+        "sha256": "7b3e552506ec814ffd1084b31f10f6b7b58c2cad67ed6d52dfed84b467cdd059"
+      },
+      {
+        "path": "fid_lab/feed_posting/scale/__init__.py",
+        "sha256": "3e5c89582da4f306764fd565088040df4fe05f44cab04d719648ae4e0e74ed4e"
+      },
+      {
+        "path": "fid_lab/feed_posting/scale/cli.py",
+        "sha256": "d41e8d8f81a946f47c6ddea6d41be597630aa70b2f146e5e699b3da3c208ebb8"
+      },
+      {
+        "path": "fid_lab/feed_posting/scale/runner.py",
+        "sha256": "b8cd44aa5adad8eb5ca2acc9a61871f6d236cacabed1d81f91af0e00bfb33129"
       },
       {
         "path": "fid_lab/feed_posting/simulation/__init__.py",
@@ -42,19 +59,23 @@
       },
       {
         "path": "fid_lab/feed_posting/simulation/features.py",
-        "sha256": "49f0966dd6d4a81518f723e3461548248c3f3dcab85c61097c44eccb0e9c06f8"
+        "sha256": "505fa3a59bd5fb18c69d7fc755654c6c9e7384bb846d807dbbcafd5d8faa7187"
       },
       {
         "path": "fid_lab/feed_posting/simulation/response.py",
-        "sha256": "9cdc1fd0cd65fd1e513847169ece1bc0aa52b7343644d8e2db8d372f71ca8337"
+        "sha256": "dfcd50ef5f47f784cc44c853ca6bd432300ada2de7928768859bfb2844468240"
       },
       {
         "path": "fid_lab/feed_posting/simulation/retrieval.py",
-        "sha256": "d73a49dd8dec461fea139b6f3334d9808fd1a2838bbdf5840ca7a992eb62556a"
+        "sha256": "4fc8498528c211e48e2a1ff043f2797937e4f12b796cc704b9a16df0ad0efde8"
+      },
+      {
+        "path": "fid_lab/feed_posting/simulation/teacher.py",
+        "sha256": "81ee8fe12377e9f5df2834d1a5863b5ffd1d6fa125b8463bd94d6d5d1e8d7570"
       },
       {
         "path": "fid_lab/feed_posting/simulation/world.py",
-        "sha256": "22b05c1ee27c5fdd0686644dcad0cd43a4138a7c5d4a2dea6d42bbfe8fcd603d"
+        "sha256": "af61d1bb9dc1a1de9e4b18ee3d9b9112c5006dc30eeef532e3cbd0adf4bb6aa9"
       },
       {
         "path": "fid_lab/launches/release_resources.py",
@@ -62,7 +83,7 @@
       },
       {
         "path": "fid_lab/launches/statistics.py",
-        "sha256": "a24c44f42a9398f6053a1c16806d118804ff67f0129a48ca7f479b8e7162f636"
+        "sha256": "f6032f7b974e6ff1b7e4cea1f47c61844b2bc145a450942d001cbda58f5a162f"
       },
       {
         "path": "fid_lab/multitask.py",
@@ -76,10 +97,13 @@
   },
   "rollback_key": "trending_i2i_plus_rule",
   "source_report": {
-    "path": "reports/launches/2026-08-24-feed-posting-request-launch-review.json",
-    "sha256": "79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac"
+    "path": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+    "sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
   },
-  "status": "stale_retrain_required",
-  "production_readiness": "hold_retrain_required_after_risk_head",
-  "evidence_boundary": "Historical pre-risk-head Feed-posting artifact. Current code adds a risk task, so this artifact is not a serving authority and must be retrained before a new Launch Review."
+  "powered_ab_report": {
+    "path": "reports/launches/2026-08-24-feed-posting-v4-din-020-ab-10m.json",
+    "sha256": "09c1b2f6e64875daebdeb60a44f1371f6c4d0c05b967ec74699fb2c8323b2192"
+  },
+  "production_readiness": "hold_external_creator_and_supply_validation",
+  "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
 }

@@ -125,7 +125,7 @@ def _sequence_state(config, generator, device, basis, primary, secondary):
         )
     )
     feedback = torch.sigmoid(
-        1.3 * torch.einsum("bld,bd->bl", sequence, basis[primary])
+        1.3 * (sequence * basis[primary, None, :]).sum(dim=2)
         + 0.8 * torch.randn(
             config.requests, config.sequence_length,
             generator=generator, device=device,
@@ -218,7 +218,7 @@ def _creator_traits(config, device):
     return primary, secondary, country, experience, fatigue, cohort
 
 
-def _creator_sequence(config, request_id, basis, primary, secondary):
+def _creator_sequence_chunk(config, request_id, basis, primary, secondary):
     positions = torch.arange(config.sequence_length, device=request_id.device)
     switch = counter_uniform(
         request_id, 0, 320, config.seed, config.sequence_length
@@ -241,7 +241,7 @@ def _creator_sequence(config, request_id, basis, primary, secondary):
     ).reshape(-1, config.sequence_length, config.semantic_dim)
     sequence = normalize(basis[categories] + 0.42 * noise)
     feedback = torch.sigmoid(
-        1.3 * torch.einsum("bld,bd->bl", sequence, basis[primary])
+        1.3 * (sequence * basis[primary, None, :]).sum(dim=2)
         + 0.8 * counter_normal(
             request_id, 0, 326, config.seed, config.sequence_length
         )
@@ -255,6 +255,22 @@ def _creator_sequence(config, request_id, basis, primary, secondary):
         / weight.sum(dim=1, keepdim=True).clamp_min(1e-6)
     )
     return sequence, feedback, summary, categories[:, -1]
+
+
+def _creator_sequence(config, request_id, basis, primary, secondary):
+    outputs = ([], [], [], [])
+    batch = config.generation_batch_requests
+    for start in range(0, len(request_id), batch):
+        values = _creator_sequence_chunk(
+            config,
+            request_id[start : start + batch],
+            basis,
+            primary[start : start + batch],
+            secondary[start : start + batch],
+        )
+        for destination, value in zip(outputs, values, strict=True):
+            destination.append(value)
+    return tuple(torch.cat(values) for values in outputs)
 
 
 def _build_creator_requests_v4(

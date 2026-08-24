@@ -1,5 +1,10 @@
 # L-FEED-POST-REQUEST-001 — Feed posting request and model ladder
 
+Historical V1 record. The active authority is the
+[creator-neural Feed Posting V4 review](2026-08-24-feed-posting-neural-v4.md),
+which corrects cascade label spaces, adds the risk head, and uses randomized
+creator A/B rather than paired simulator outcomes for launch decisions.
+
 Change type: Feed-to-creation candidate retrieval, multi-task rank, and supply value  
 Scale: 150,000 requests × 3 seeds × two materialization phases  
 Decision: promote calibrated Linear ranker; hold new candidate routes and deeper models  

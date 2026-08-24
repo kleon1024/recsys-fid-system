@@ -782,6 +782,186 @@
       "evidence_boundary": "Teacher-hidden multi-agent synthetic Feed-to-creation world. It validates request closure, sequence-aware training, stage-isolated A/B effects, and supply-to-Feed outcomes; production readiness still requires creator logs and randomized supply interventions."
     },
     {
+      "launch_id": "L-FEED-POST-V4-CANDIDATE-001",
+      "surface": "feed_posting",
+      "stage": "candidate",
+      "change_type": "cascade_v4_candidate",
+      "control": "trending_i2i",
+      "treatment": "creator_history",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-CANDIDATE-002",
+      "surface": "feed_posting",
+      "stage": "candidate",
+      "change_type": "cascade_v4_candidate",
+      "control": "trending_i2i",
+      "treatment": "semantic_full",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-FINE-001",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "cascade_v4_fine",
+      "control": "rule",
+      "treatment": "linear",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "hold_uncertainty",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-FINE-002",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "cascade_v4_fine",
+      "control": "rule",
+      "treatment": "wide_deep",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "hold_uncertainty",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-FINE-003",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "cascade_v4_fine",
+      "control": "rule",
+      "treatment": "din",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "hold_uncertainty",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-FINE-004",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "cascade_v4_fine",
+      "control": "rule",
+      "treatment": "transformer_mmoe",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "hold_uncertainty",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-FINE-005",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "cascade_v4_fine_incremental",
+      "control": "linear",
+      "treatment": "wide_deep",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-FINE-006",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "cascade_v4_fine_incremental",
+      "control": "linear",
+      "treatment": "din",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "hold_uncertainty",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-FINE-007",
+      "surface": "feed_posting",
+      "stage": "fine",
+      "change_type": "cascade_v4_fine_incremental",
+      "control": "linear",
+      "treatment": "transformer_mmoe",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "reject_mean_regression",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-END_TO_END-001",
+      "surface": "feed_posting",
+      "stage": "end_to_end",
+      "change_type": "cascade_v4_end_to_end",
+      "control": "trending_i2i_plus_rule",
+      "treatment": "trending_i2i_plus_rule",
+      "primary_metric": "creator_publish_with_platform_lt_and_content_risk",
+      "decision": "hold_uncertainty",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json",
+        "report_sha256": "47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05"
+      },
+      "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-POWERED-001",
+      "surface": "feed_posting",
+      "stage": "end_to_end",
+      "change_type": "creator_randomized_dose_ab",
+      "control": "trending_i2i_plus_rule_blend_0.00",
+      "treatment": "trending_i2i_plus_din_blend_0.05",
+      "primary_metric": "creator_randomized_publish_and_platform_lt",
+      "decision": "hold_or_reject",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-din-005-ab-10m.json",
+        "report_sha256": "1d84b925a7f1cc96292d42cad28962b858fddbfb96508145b99bfce783fa004f"
+      },
+      "evidence_boundary": "Large-scale paired and creator-randomized A/B in synthetic Feed Posting V4. It is simulator evidence, not production lift."
+    },
+    {
+      "launch_id": "L-FEED-POST-V4-POWERED-002",
+      "surface": "feed_posting",
+      "stage": "end_to_end",
+      "change_type": "creator_randomized_dose_ab",
+      "control": "trending_i2i_plus_rule_blend_0.00",
+      "treatment": "trending_i2i_plus_din_blend_0.20",
+      "primary_metric": "creator_randomized_publish_and_platform_lt",
+      "decision": "pass",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-v4-din-020-ab-10m.json",
+        "report_sha256": "09c1b2f6e64875daebdeb60a44f1371f6c4d0c05b967ec74699fb2c8323b2192"
+      },
+      "evidence_boundary": "Large-scale paired and creator-randomized A/B in synthetic Feed Posting V4. It is simulator evidence, not production lift."
+    },
+    {
       "launch_id": "L-LOCAL-SEARCH-RETRIEVAL-001",
       "surface": "local_search",
       "stage": "retrieval",
@@ -1328,10 +1508,10 @@
     }
   },
   "summary": {
-    "records": 86,
-    "passed": 25,
-    "held": 27,
-    "rejected": 34,
+    "records": 98,
+    "passed": 26,
+    "held": 34,
+    "rejected": 38,
     "missing_cells": 0
   },
   "evidence_boundary": "The ledger indexes synthetic launch evidence. Missing cells remain missing and no record is company production evidence."

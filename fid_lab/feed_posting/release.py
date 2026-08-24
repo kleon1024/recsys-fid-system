@@ -18,7 +18,9 @@ SHARED_SOURCES = (
 )
 
 
-def build_feed_posting_release(root, report_relative, artifact_relative):
+def build_feed_posting_release(
+    root, report_relative, artifact_relative, powered_ab_relative=None,
+):
     report = json.loads((root / report_relative).read_text())
     if report.get("schema") not in {
         "feed-posting-request-launch-review-v1",
@@ -26,19 +28,50 @@ def build_feed_posting_release(root, report_relative, artifact_relative):
     }:
         raise ValueError("Feed-posting release requires repeated launch review")
     state = report["release_state"]
-    end = next(row for row in report["launches"] if row["stage"] == "end_to_end")
-    if not end["decision"].startswith("pass") or state["fine"] == "rule":
-        raise ValueError("Feed-posting end-to-end proposal did not pass all seeds")
+    powered = (
+        None if powered_ab_relative is None
+        else json.loads((root / powered_ab_relative).read_text())
+    )
+    if powered is None:
+        end = next(
+            row for row in report["launches"] if row["stage"] == "end_to_end"
+        )
+        if not end["decision"].startswith("pass") or state["fine"] == "rule":
+            raise ValueError(
+                "Feed-posting end-to-end proposal did not pass all seeds"
+            )
+        fine_model = state["fine"]
+        active_key = state["end_to_end"]
+    else:
+        if (
+            powered.get("schema") != "partitioned-feed-posting-v4-ab-v2"
+            or powered.get("decision") != "pass"
+            or powered.get("decision_estimator")
+            != "creator_cluster_randomized_ab"
+            or not all(powered.get("gates", {}).values())
+        ):
+            raise ValueError("Feed-posting powered creator A/B did not pass")
+        fine_model = powered["treatment"].removeprefix(
+            "trending_i2i_plus_"
+        )
+        active_key = (
+            f"trending_i2i_plus_{fine_model}_blend_"
+            f"{powered['treatment_blend']:.2f}"
+        )
     models = (
         report["models_by_seed"][0]
         if report["schema"].endswith("v2")
         else report["seed_reports"][0]["models"]
     )
-    artifact = models[state["fine"]]["artifact"]
+    artifact = models[fine_model]["artifact"]
+    model_artifact = verified_artifact(root, artifact_relative, artifact)
+    if powered is not None and model_artifact["sha256"] != powered["model_sha256"]:
+        raise ValueError("Feed-posting powered A/B model hash mismatch")
     active = {
         "candidate_policy": state["candidate"],
-        "fine_model": state["fine"],
-        "model_artifact": verified_artifact(root, artifact_relative, artifact),
+        "fine_model": fine_model,
+        "model_blend": 1.0 if powered is None else powered["treatment_blend"],
+        "model_artifact": model_artifact,
         "model_seed": report["seeds"][0],
         "world_version": report["config"].get(
             "world_version", "teacher-hidden-feed-posting-v1"
@@ -48,12 +81,16 @@ def build_feed_posting_release(root, report_relative, artifact_relative):
         ),
     }
     return {
-        "schema": "simulated-feed-posting-authority-v1",
-        "active_key": state["end_to_end"],
+        "schema": "simulated-feed-posting-authority-v2",
+        "active_key": active_key,
         "active_bundle_id": bundle_identifier(active),
         "active_bundle": active,
         "rollback_key": "trending_i2i_plus_rule",
         "source_report": resource(root, report_relative),
+        "powered_ab_report": (
+            None if powered_ab_relative is None
+            else resource(root, powered_ab_relative)
+        ),
         "production_readiness": "hold_external_creator_and_supply_validation",
         "evidence_boundary": report["evidence_boundary"],
     }
@@ -63,10 +100,13 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--report", required=True)
     parser.add_argument("--artifact-dir", required=True)
+    parser.add_argument("--powered-ab")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
-    release = build_feed_posting_release(root, args.report, args.artifact_dir)
+    release = build_feed_posting_release(
+        root, args.report, args.artifact_dir, args.powered_ab
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(release, indent=2) + "\n")
     print(json.dumps({

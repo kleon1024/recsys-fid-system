@@ -66,8 +66,11 @@ class FeedPostingTest(unittest.TestCase):
         self.assertEqual(report["requests"], 800)
         self.assertEqual(report["creators"], 100)
         self.assertEqual(
-            report["creator_randomized_ab"]["publish_rate"]["estimator"],
+            report["metrics"]["publish_rate"]["estimator"],
             "cluster_randomized_ab_from_means",
+        )
+        self.assertEqual(
+            report["decision_estimator"], "creator_cluster_randomized_ab"
         )
 
     def test_creator_v4_is_invariant_to_request_partition_boundaries(self):
@@ -77,6 +80,7 @@ class FeedPostingTest(unittest.TestCase):
                 "creators": 100,
                 "catalog_seed": 20260824,
                 "world_version": "creator-neural-feed-supply-v4",
+                "generation_batch_requests": 137,
             }
         )
         full = build_world(config)
@@ -99,7 +103,9 @@ class FeedPostingTest(unittest.TestCase):
             candidate_features(world, candidates)
             for world, candidates in zip(parts, part_candidates, strict=True)
         ]
-        self.assertTrue(torch.equal(full_features, torch.cat(part_features)))
+        self.assertTrue(torch.allclose(
+            full_features, torch.cat(part_features), rtol=0.0, atol=1e-7
+        ))
 
     def test_creator_neural_v4_uses_panels_and_mature_post_publish_labels(self):
         config = FeedPostingConfig(
@@ -120,6 +126,14 @@ class FeedPostingTest(unittest.TestCase):
         quality_label = response["labels"][:, :, 3]
         risk_mask = response["label_masks"][:, :, 4]
         risk_label = response["labels"][:, :, 4]
+        click_mask = response["label_masks"][:, :, 0]
+        create_mask = response["label_masks"][:, :, 1]
+        publish_mask = response["label_masks"][:, :, 2]
+        self.assertEqual(
+            int(click_mask.sum()), config.requests * config.exposed_candidates
+        )
+        self.assertEqual(int(create_mask.sum()), int(response["clicked"].sum()))
+        self.assertEqual(int(publish_mask.sum()), int(response["created"].sum()))
         self.assertEqual(int(quality_mask.sum()), int(response["published"].sum()))
         self.assertTrue(torch.all(quality_label <= quality_mask))
         self.assertEqual(int(risk_mask.sum()), int(response["published"].sum()))

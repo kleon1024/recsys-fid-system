@@ -320,6 +320,46 @@ def _feed_posting_stage_records(root: Path) -> list[dict]:
     )
 
 
+def _feed_posting_v4_records(root: Path) -> list[dict]:
+    ladder_relative = (
+        "reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json"
+    )
+    ladder, ladder_evidence = _load(root, ladder_relative)
+    counters = {"candidate": 0, "fine": 0, "end_to_end": 0}
+    records = []
+    for row in ladder["launches"]:
+        stage = "fine" if row["stage"] == "fine_incremental" else row["stage"]
+        counters[stage] += 1
+        records.append(_record(
+            launch_id=f"L-FEED-POST-V4-{stage.upper()}-{counters[stage]:03d}",
+            surface="feed_posting", stage=stage,
+            change_type=f"cascade_v4_{row['stage']}",
+            control=row["control"], treatment=row["treatment"],
+            decision=row["decision"], evidence=ladder_evidence,
+            primary_metric="creator_publish_with_platform_lt_and_content_risk",
+            evidence_boundary=ladder["evidence_boundary"],
+        ))
+    powered_reports = (
+        "reports/launches/2026-08-24-feed-posting-v4-din-005-ab-10m.json",
+        "reports/launches/2026-08-24-feed-posting-v4-din-020-ab-10m.json",
+    )
+    for index, relative in enumerate(powered_reports, 1):
+        report, evidence = _load(root, relative)
+        records.append(_record(
+            launch_id=f"L-FEED-POST-V4-POWERED-{index:03d}",
+            surface="feed_posting", stage="end_to_end",
+            change_type="creator_randomized_dose_ab",
+            control=f"{report['control']}_blend_{report['control_blend']:.2f}",
+            treatment=(
+                f"{report['treatment']}_blend_{report['treatment_blend']:.2f}"
+            ),
+            decision=report["decision"], evidence=evidence,
+            primary_metric="creator_randomized_publish_and_platform_lt",
+            evidence_boundary=report["evidence_boundary"],
+        ))
+    return records
+
+
 def _poi_posting_v4_records(root: Path) -> list[dict]:
     relative = "reports/launches/2026-08-24-poi-posting-scaled-v4.json"
     report, evidence = _load(root, relative)
@@ -452,6 +492,7 @@ def build_launch_ledger(root: Path) -> dict:
         *_poi_distribution_stage_records(root),
         *_poi_posting_stage_records(root),
         *_feed_posting_stage_records(root),
+        *_feed_posting_v4_records(root),
         *_local_search_stage_records(root),
         *_poi_detail_stage_records(root),
         *_poi_distribution_v4_records(root),

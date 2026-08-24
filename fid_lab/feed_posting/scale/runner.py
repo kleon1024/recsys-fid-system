@@ -46,17 +46,20 @@ def _outcomes(response):
 
 def _partition_outcomes(
     config, start, count, control_bundle, treatment_bundle,
+    control_blend, treatment_blend,
 ):
     world = build_world_partition(config, start, count)
     candidates = retrieve(world, ("trending", "i2i"))
     features = candidate_features(world, candidates)
     semantic = world.catalog.semantic[candidates.prompt_ids]
     history = world.requests.feed_sequence
-    control_scores = (
-        rule_score(features) if control_bundle is None
-        else control_bundle.score(features, semantic, history)
+    baseline = rule_score(features)
+    control_scores = _blended_score(
+        control_bundle, features, semantic, history, baseline, control_blend
     )
-    treatment_scores = treatment_bundle.score(features, semantic, history)
+    treatment_scores = _blended_score(
+        treatment_bundle, features, semantic, history, baseline, treatment_blend
+    )
     return (
         world.requests.creator_id,
         _outcomes(simulate_response(world, candidates, control_scores)),
@@ -64,14 +67,25 @@ def _partition_outcomes(
     )
 
 
+def _blended_score(bundle, features, semantic, history, baseline, blend):
+    if bundle is None:
+        return baseline
+    learned = bundle.score(features, semantic, history)
+    return baseline + blend * (learned - baseline)
+
+
 def run_partitioned_feed_posting_ab(
     config: FeedPostingConfig,
     model_path: Path,
     partition_requests: int = 50_000,
     control_model_path: Path | None = None,
+    treatment_blend: float = 1.0,
+    control_blend: float = 1.0,
 ):
     if config.world_version != "creator-neural-feed-supply-v4":
         raise ValueError("partitioned Feed posting A/B requires creator V4")
+    if not 0.0 <= treatment_blend <= 1.0 or not 0.0 <= control_blend <= 1.0:
+        raise ValueError("Feed posting blend must be between zero and one")
     treatment = load_bundle(model_path, config.device)
     control = (
         None if control_model_path is None
@@ -85,30 +99,36 @@ def run_partitioned_feed_posting_ab(
     for start in range(0, config.requests, partition_requests):
         count = min(partition_requests, config.requests - start)
         creator_ids, control_values, treatment_values = _partition_outcomes(
-            config, start, count, control, treatment
+            config, start, count, control, treatment,
+            control_blend, treatment_blend,
         )
         accumulator.add(creator_ids, control_values, treatment_values)
-    metrics, randomized, observed_creators = accumulator.report()
+    paired_replay, randomized, observed_creators = accumulator.report()
     gates = {
-        "publish_positive": metrics["publish_rate"]["confidence_interval"][0] > 0,
-        "platform_lt_nonnegative": metrics["platform_lt_per_request"][
+        "publish_positive": randomized["publish_rate"][
+            "confidence_interval"
+        ][0] > 0,
+        "platform_lt_nonnegative": randomized["platform_lt_per_request"][
             "confidence_interval"
         ][0] >= 0,
-        "quality_supply_nonnegative": metrics["quality_supply_per_request"][
+        "quality_supply_nonnegative": randomized["quality_supply_per_request"][
             "confidence_interval"
         ][0] >= -0.0002,
-        "content_risk_guardrail": metrics["selected_content_risk"][
+        "content_risk_guardrail": randomized["selected_content_risk"][
             "confidence_interval"
         ][1] <= 0.0002,
     }
     elapsed = perf_counter() - started
     return {
-        "schema": "partitioned-feed-posting-v4-ab-v1",
+        "schema": "partitioned-feed-posting-v4-ab-v2",
+        "decision_estimator": "creator_cluster_randomized_ab",
         "control": (
             "trending_i2i_plus_rule" if control is None
             else f"trending_i2i_plus_{control.name}"
         ),
         "treatment": f"trending_i2i_plus_{treatment.name}",
+        "control_blend": 0.0 if control is None else control_blend,
+        "treatment_blend": treatment_blend,
         "requests": config.requests,
         "creators": observed_creators,
         "partition_requests": partition_requests,
@@ -117,8 +137,8 @@ def run_partitioned_feed_posting_ab(
             None if control_model_path is None
             else sha256(control_model_path.read_bytes()).hexdigest()
         ),
-        "metrics": metrics,
-        "creator_randomized_ab": randomized,
+        "metrics": randomized,
+        "paired_counterfactual_replay": paired_replay,
         "gates": gates,
         "decision": "pass" if all(gates.values()) else "hold_or_reject",
         "performance": {

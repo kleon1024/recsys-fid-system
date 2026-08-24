@@ -330,12 +330,14 @@ adds a teacher-hidden creator world, non-oracle candidate sets, actual
 LR/W&D/MMoE artifacts, and a supply-to-Feed LT review. History recall and W&D
 pass all three seeds; MMoE is held because its incremental effect is unstable.
 
-The [Feed posting request ladder](docs/launch-reviews/2026-08-24-feed-posting-request-ladder.md)
-separates Feed-to-creation prompts from POI posting and enforces a two-phase
-candidate-then-retrain DAG. It found and fixed candidate-shape, training-candidate
-skew, and weighted-logit calibration failures. Calibrated Linear passes all three
-seeds; W&D, DIN, and Transformer+MMoE have higher offline AUC but remain held
-because incremental publish/LT is not stable.
+The historical [Feed posting request ladder](docs/launch-reviews/2026-08-24-feed-posting-request-ladder.md)
+separates Feed-to-creation prompts from POI posting. It is superseded by the
+[creator-neural Feed Posting V4 review](docs/launch-reviews/2026-08-24-feed-posting-neural-v4.md),
+which repairs the click/create/publish label spaces, runs 64-step sequence models,
+and makes creator-randomized A/B the launch authority. Full neural replacements
+are rejected on content risk; a 5% DIN dose is held for insufficient power; a
+20% residual passes the 10m-request simulator review with publish +1.21%, Feed
+stay +1.62%, and LT +1.60%. These are synthetic effects, not production claims.
 
 The [Local Search request ladder](docs/launch-reviews/2026-08-24-local-search-request-ladder.md)
 adds a joint Search/Recommendation journey with Lexical, Geo, learned Two-Tower,

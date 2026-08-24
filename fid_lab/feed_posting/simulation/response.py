@@ -84,8 +84,19 @@ def _training_labels(world, candidates, top, selected_rank, states, quality):
             _candidate_quality_labels(world, candidates.prompt_ids) > 0.65
         ).float()
     else:
-        masks[:, :, 3] = 0.0
-        masks[:, :, 4] = 0.0
+        # V4 follows the real cascade's probability spaces. A non-clicked
+        # impression is not a create negative; a non-created click is not a
+        # publish negative; quality and risk mature only after publication.
+        masks.zero_()
+        masks.scatter_(
+            1,
+            top[:, :, None].expand(-1, -1, labels.shape[2]),
+            torch.nn.functional.one_hot(
+                torch.zeros_like(top), labels.shape[2]
+            ).float(),
+        )
+        masks[batch[clicked], selected_index[clicked], 1] = 1.0
+        masks[batch[created], selected_index[created], 2] = 1.0
         labels[batch[published], selected_index[published], 3] = (
             quality[published] > 0.55
         ).float()

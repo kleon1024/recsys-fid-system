@@ -100,9 +100,10 @@ The hash-bound evidence is
   current failure cannot be blamed on insufficient neural capacity alone.
 - Candidate audit utility is simulator-only evaluation truth. It never enters
   training or serving.
-- Feed Posting prompt ranking is still a separate surface. Creator supply
-  response is closed, but the posting-page model is not silently treated as the
-  same model as Feed consumption ranking.
+- Feed Posting prompt ranking now has its own creator-neural V4 authority and
+  powered creator A/B. It remains a separate model from Feed consumption, and
+  its intervention has not yet been wired into this runner's cross-day catalog
+  refresh. That causal mediation estimate is still pending.
 - Local, ads/live, and commercialization keep separate response authorities and
   experiment units. They do not borrow missing Feed labels.
 

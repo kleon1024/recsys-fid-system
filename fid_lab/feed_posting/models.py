@@ -305,7 +305,7 @@ def train_models(
 def save_bundle(bundle, path, config):
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save({
-        "schema": "feed-posting-model-v1", "name": bundle.name,
+        "schema": "feed-posting-model-v2", "name": bundle.name,
         "feature_width": len(bundle.mean), "semantic_dim": config.semantic_dim,
         "state_dict": bundle.model.state_dict(), "mean": bundle.mean,
         "scale": bundle.scale, "logit_offsets": bundle.logit_offsets,
@@ -316,7 +316,7 @@ def save_bundle(bundle, path, config):
 
 def load_bundle(path, device="cpu"):
     payload = torch.load(path, map_location=device, weights_only=False)
-    if payload.get("schema") != "feed-posting-model-v1":
+    if payload.get("schema") != "feed-posting-model-v2":
         raise ValueError("unsupported Feed-posting artifact")
     model = MODEL_FACTORIES[payload["name"]](
         payload["feature_width"], payload["semantic_dim"]

@@ -21,6 +21,7 @@ def main():
     parser.add_argument("--merged-candidates", type=int, default=20)
     parser.add_argument("--exposed-candidates", type=int, default=6)
     parser.add_argument("--epochs", type=int, default=3)
+    parser.add_argument("--generation-batch-requests", type=int, default=50_000)
     parser.add_argument("--creators", type=int, default=25_000)
     parser.add_argument("--catalog-seed", type=int)
     parser.add_argument(
@@ -40,6 +41,7 @@ def main():
         route_candidates=args.route_candidates,
         merged_candidates=args.merged_candidates,
         exposed_candidates=args.exposed_candidates,
+        generation_batch_requests=args.generation_batch_requests,
         creators=args.creators, catalog_seed=args.catalog_seed,
         world_version=args.world_version,
         device=args.device, seed=args.seeds[0],

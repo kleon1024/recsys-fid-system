@@ -22,6 +22,7 @@ class FeedPostingConfig:
     exposed_candidates: int = 6
     train_epochs: int = 3
     train_batch_requests: int = 1_024
+    generation_batch_requests: int = 50_000
     learning_rate: float = 1.5e-3
     seed: int = 20260824
     catalog_seed: int | None = None
@@ -40,6 +41,8 @@ class FeedPostingConfig:
             raise ValueError("Feed-posting prompts must partition by category")
         if self.requests < 100:
             raise ValueError("Feed-posting world is too small")
+        if self.generation_batch_requests < 1:
+            raise ValueError("Feed-posting generation batch must be positive")
         if self.world_version not in {
             "teacher-hidden-feed-posting-v1",
             "creator-neural-feed-supply-v4",

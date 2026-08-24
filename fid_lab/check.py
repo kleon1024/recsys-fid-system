@@ -166,6 +166,7 @@ def check_model_artifacts() -> None:
         "artifacts/models/poi-posting-request-v1/MANIFEST.sha256",
         "artifacts/models/poi-posting-v4/MANIFEST.sha256",
         "artifacts/models/feed-posting-request-v1/MANIFEST.sha256",
+        "artifacts/models/feed-posting-v42/MANIFEST.sha256",
         "artifacts/models/local-search-request-v1/MANIFEST.sha256",
         "artifacts/models/poi-detail-request-v1/MANIFEST.sha256",
         "artifacts/models/poi-distribution-v4/MANIFEST.sha256",
@@ -327,6 +328,8 @@ def _check_simulated_surface_release(
     if stale and not allow_stale_sources:
         failures.append(f"{label} unexpectedly declares a stale authority")
     resources = [bundle["model_artifact"], release["source_report"]]
+    if release.get("powered_ab_report") is not None:
+        resources.append(release["powered_ab_report"])
     if not stale:
         resources.extend(bundle["sources"])
         resources.extend(bundle.get("evidence_reports", []))
@@ -354,8 +357,8 @@ def check_simulated_surface_releases() -> None:
     )
     _check_simulated_surface_release(
         "artifacts/releases/simulated-feed-posting-control.json",
-        "simulated-feed-posting-authority-v1", "Feed posting",
-        "hold_retrain_required_after_risk_head", True,
+        "simulated-feed-posting-authority-v2", "Feed posting",
+        "hold_external_creator_and_supply_validation",
     )
     _check_simulated_surface_release(
         "artifacts/releases/simulated-local-search-control.json",
