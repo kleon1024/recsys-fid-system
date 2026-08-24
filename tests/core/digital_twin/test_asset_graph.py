@@ -1,0 +1,32 @@
+from __future__ import annotations
+
+import pytest
+
+from fid_lab.simulation.digital_twin.assets import (
+    DIGITAL_TWIN_ASSETS,
+    AssetGraph,
+    AssetSpec,
+)
+
+
+def test_default_asset_graph_declares_training_and_factual_closure():
+    order = DIGITAL_TWIN_ASSETS.order()
+    assert order.index("events.observable") < order.index("samples.fine")
+    assert order.index("samples.fine") < order.index("models.candidate")
+    assert order.index("experiment.mixed_ab") < order.index(
+        "world.factual_successor"
+    )
+    successor = DIGITAL_TWIN_ASSETS.spec("world.factual_successor")
+    assert successor.inputs == (
+        "experiment.mixed_ab", "release.decision"
+    )
+
+
+def test_asset_graph_rejects_unknown_inputs_and_cycles():
+    with pytest.raises(ValueError, match="unknown inputs"):
+        AssetGraph((AssetSpec("output", ("missing",), "test"),))
+    with pytest.raises(ValueError, match="cycle"):
+        AssetGraph((
+            AssetSpec("left", ("right",), "test"),
+            AssetSpec("right", ("left",), "test"),
+        ))

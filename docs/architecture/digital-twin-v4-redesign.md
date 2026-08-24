@@ -206,6 +206,11 @@ control/treatment 执行顺序、GPU microbatch 大小、user shard 数量和 ca
 不得改变结果。共享供给影响在 Phase B 合并，不能让后执行的 arm 看到先执行 arm 的
 同 tick 变化。
 
+实验默认不是 100% 流量。eligibility 之后只按预注册 ramp 分配 control/treatment；其余
+请求进入 `default_cell`，继续使用 last accepted active policy，并参与真实世界状态与后续
+样本演进，但不进入该实验的 effect estimator。GPU 可以按 cell 串行计算，前提是所有
+cell 读取同一不可变 snapshot，且任何状态都只能在 Phase B 统一提交。
+
 ## 7. Hidden ecosystem / DGP
 
 ### 7.1 Hierarchical population

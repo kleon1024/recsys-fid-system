@@ -1,0 +1,201 @@
+from __future__ import annotations
+
+from dataclasses import fields
+
+import torch
+
+from fid_lab.simulation.digital_twin import (
+    AppEventBatch,
+    AtomicSimulationKernel,
+    EventType,
+    ExperimentPlan,
+    ObservableEventLog,
+    PlatformRequestBatch,
+    RenderedSlateBatch,
+)
+from fid_lab.simulation.digital_twin.contracts import deterministic_event_id
+
+
+def event_batch(
+    event_type, request_id, user_id, item_id, logical_time, cell,
+):
+    rows = len(request_id)
+    event_types = torch.full((rows,), int(event_type), dtype=torch.long)
+    ordinal = torch.zeros(rows, dtype=torch.long)
+    integer_missing = torch.full((rows,), -1, dtype=torch.long)
+    return AppEventBatch(
+        event_id=deterministic_event_id(
+            request_id, event_types, item_id, ordinal
+        ),
+        event_type=event_types,
+        event_time=torch.full((rows,), logical_time, dtype=torch.long),
+        ingest_time=torch.full((rows,), logical_time, dtype=torch.long),
+        request_id=request_id,
+        user_id=user_id,
+        surface=torch.remainder(user_id, 6),
+        item_id=item_id,
+        creator_id=integer_missing.clone(),
+        product_id=integer_missing.clone(),
+        poi_id=integer_missing.clone(),
+        order_id=integer_missing.clone(),
+        position=ordinal,
+        value=torch.ones(rows),
+        experiment_cell=cell,
+    )
+
+
+class FakeWorld:
+    def __init__(self, users=6):
+        self.user_id = torch.arange(users)
+        self.market_budget = torch.tensor(100.0)
+        self.impressions = torch.zeros(users)
+
+    def schedule(self, logical_time):
+        request_id = self.user_id * 1_000 + logical_time
+        return event_batch(
+            EventType.SESSION_START,
+            request_id,
+            self.user_id,
+            torch.full_like(self.user_id, -1),
+            logical_time,
+            torch.full_like(self.user_id, -1),
+        )
+
+    def snapshot(self):
+        return {"market_budget": self.market_budget.clone()}
+
+    def respond(self, snapshot, slate):
+        assert float(snapshot["market_budget"]) == 100.0
+        return event_batch(
+            EventType.IMPRESSION,
+            slate.request_id,
+            slate.user_id,
+            slate.item_ids[:, 0],
+            int(slate.event_time[0]),
+            slate.ui_variant,
+        )
+
+    def commit(self, events):
+        impression = events.event(EventType.IMPRESSION)
+        if impression.any():
+            self.market_budget -= events.value[impression].sum()
+            self.impressions.scatter_add_(
+                0, events.user_id[impression], events.value[impression]
+            )
+
+
+class FakePlatform:
+    def __init__(self):
+        self.ingested: list[int] = []
+
+    def ingest(self, events):
+        self.ingested.extend(int(value) for value in events.event_id)
+
+    def snapshot(self):
+        return {"ingested": tuple(self.ingested)}
+
+    def open_requests(self, entry_events):
+        session = entry_events.event(EventType.SESSION_START)
+        return PlatformRequestBatch(
+            request_id=entry_events.request_id[session],
+            user_id=entry_events.user_id[session],
+            surface=entry_events.surface[session],
+            event_time=entry_events.event_time[session],
+        )
+
+    def render(self, snapshot, requests, policy, experiment_cell):
+        assert len(snapshot["ingested"]) == 6
+        item = requests.user_id + int(policy) * 100
+        return RenderedSlateBatch(
+            request_id=requests.request_id,
+            user_id=requests.user_id,
+            surface=requests.surface,
+            event_time=requests.event_time,
+            item_ids=item[:, None],
+            positions=torch.zeros(len(item), 1, dtype=torch.long),
+            valid=torch.ones(len(item), 1, dtype=torch.bool),
+            ui_variant=torch.full(
+                (len(item),), experiment_cell, dtype=torch.long
+            ),
+        )
+
+
+def run(order):
+    world = FakeWorld()
+    platform = FakePlatform()
+    log = ObservableEventLog()
+    result = AtomicSimulationKernel(world, platform, log).step(
+        7,
+        ExperimentPlan(
+            cell_by_request=torch.tensor([0, 1, 0, 1, 0, 1]),
+            policies={0: 10, 1: 20},
+        ),
+        cell_order=order,
+    )
+    return world, platform, log, result
+
+
+def test_atomic_tick_is_invariant_to_experiment_cell_order():
+    left = run((0, 1))
+    right = run((1, 0))
+    torch.testing.assert_close(left[0].market_budget, right[0].market_budget)
+    torch.testing.assert_close(left[0].impressions, right[0].impressions)
+    left_events, right_events = left[2].read(), right[2].read()
+    for field in fields(AppEventBatch):
+        assert torch.equal(
+            getattr(left_events, field.name), getattr(right_events, field.name)
+        ), field.name
+    assert left[3].cell_counts == right[3].cell_counts == {0: 3, 1: 3}
+
+
+def test_boundary_payloads_exclude_model_scores_and_hidden_state():
+    _, _, log, result = run((0, 1))
+    slate_fields = {field.name for field in fields(RenderedSlateBatch)}
+    event_fields = {field.name for field in fields(AppEventBatch)}
+    assert "score" not in " ".join(slate_fields)
+    assert "feature" not in " ".join(slate_fields)
+    assert "latent" not in " ".join(event_fields)
+    assert result.rendered_requests == 6
+    assert log.manifest()["events"] == 12
+
+
+def test_event_log_rejects_duplicate_delivery():
+    world = FakeWorld(users=2)
+    events = world.schedule(3)
+    log = ObservableEventLog()
+    log.append(events)
+    try:
+        log.append(events)
+    except ValueError as error:
+        assert "duplicate" in str(error)
+    else:
+        raise AssertionError("duplicate event delivery must fail closed")
+
+
+def test_ramped_user_ab_leaves_unallocated_traffic_on_active_policy():
+    users = torch.arange(5_000).repeat_interleave(2)
+    requests = PlatformRequestBatch(
+        request_id=torch.arange(len(users)),
+        user_id=users,
+        surface=torch.zeros_like(users),
+        event_time=torch.zeros_like(users),
+    )
+    eligible = users.remainder(2) == 0
+    active, treatment = object(), object()
+    plan = ExperimentPlan.ramped_user_ab(
+        requests,
+        active_policy=active,
+        treatment_policy=treatment,
+        experiment_seed=20260824,
+        control_fraction=0.05,
+        treatment_fraction=0.05,
+        eligible=eligible,
+    )
+    assert torch.equal(
+        plan.cell_by_request[0::2], plan.cell_by_request[1::2]
+    )
+    assert (plan.cell_by_request[~eligible] == -1).all()
+    assert 350 <= int(plan.experiment_mask.sum()) <= 650
+    assert plan.policies[-1] is active
+    assert plan.policies[0] is active
+    assert plan.policies[1] is treatment
