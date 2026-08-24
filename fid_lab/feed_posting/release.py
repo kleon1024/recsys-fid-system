@@ -18,8 +18,29 @@ SHARED_SOURCES = (
 )
 
 
+def _ecosystem_evidence(root, relative, fine_model, blend):
+    if relative is None:
+        return None
+    report = json.loads((root / relative).read_text())
+    expected_treatment = f"{fine_model}_blend_{blend:.2f}"
+    if (
+        report.get("schema") != "feed-creator-ecosystem-v4-launch-review-v1"
+        or report.get("decision") != "ecosystem_v4_pass"
+        or report.get("ecosystem_config", {}).get("objective")
+        != "posting_mediation"
+        or report.get("control", {}).get("posting_policy")
+        != f"{fine_model}_blend_0.00"
+        or report.get("treatment", {}).get("posting_policy")
+        != expected_treatment
+        or not all(report.get("gates", {}).values())
+    ):
+        raise ValueError("Feed-posting ecosystem mediation did not pass")
+    return resource(root, relative)
+
+
 def build_feed_posting_release(
     root, report_relative, artifact_relative, powered_ab_relative=None,
+    ecosystem_relative=None,
 ):
     report = json.loads((root / report_relative).read_text())
     if report.get("schema") not in {
@@ -67,17 +88,26 @@ def build_feed_posting_release(
     model_artifact = verified_artifact(root, artifact_relative, artifact)
     if powered is not None and model_artifact["sha256"] != powered["model_sha256"]:
         raise ValueError("Feed-posting powered A/B model hash mismatch")
+    blend = 1.0 if powered is None else powered["treatment_blend"]
+    ecosystem_evidence = _ecosystem_evidence(
+        root, ecosystem_relative, fine_model, blend
+    )
+    source_packages = (
+        "fid_lab/feed_posting",
+        *(("fid_lab/feed_loop/ecosystem",) if ecosystem_evidence else ()),
+    )
     active = {
         "candidate_policy": state["candidate"],
         "fine_model": fine_model,
-        "model_blend": 1.0 if powered is None else powered["treatment_blend"],
+        "model_blend": blend,
         "model_artifact": model_artifact,
         "model_seed": report["seeds"][0],
         "world_version": report["config"].get(
             "world_version", "teacher-hidden-feed-posting-v1"
         ),
-        "sources": source_resources(
-            root, "fid_lab/feed_posting", SHARED_SOURCES
+        "sources": source_resources(root, source_packages, SHARED_SOURCES),
+        "evidence_reports": (
+            [] if ecosystem_evidence is None else [ecosystem_evidence]
         ),
     }
     return {
@@ -91,6 +121,7 @@ def build_feed_posting_release(
             None if powered_ab_relative is None
             else resource(root, powered_ab_relative)
         ),
+        "ecosystem_report": ecosystem_evidence,
         "production_readiness": "hold_external_creator_and_supply_validation",
         "evidence_boundary": report["evidence_boundary"],
     }
@@ -101,11 +132,13 @@ def main():
     parser.add_argument("--report", required=True)
     parser.add_argument("--artifact-dir", required=True)
     parser.add_argument("--powered-ab")
+    parser.add_argument("--ecosystem-report")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     release = build_feed_posting_release(
-        root, args.report, args.artifact_dir, args.powered_ab
+        root, args.report, args.artifact_dir, args.powered_ab,
+        args.ecosystem_report,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(release, indent=2) + "\n")

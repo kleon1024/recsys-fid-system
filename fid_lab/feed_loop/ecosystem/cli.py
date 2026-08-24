@@ -7,11 +7,13 @@ from dataclasses import replace
 import json
 from pathlib import Path
 
+from ...feed_posting.contracts import FeedPostingConfig
 from ..scale.tensor_engine import TensorFeedConfig
 from ..scale.tensor_runtime.behavior.external import ExternalSequenceMixtureWorld
 from ..scale.tensor_runtime.contracts import EXTERNAL_MIXTURE_FEED_VERSION
 from ..tensor_policies import PERSONALIZED, PERSONALIZED_SUPPLY, POPULAR
 from .contracts import EcosystemConfig
+from .posting import FeedPostingIntervention
 from .runner import run_ecosystem
 
 
@@ -25,6 +27,10 @@ def main():
     parser.add_argument("--days", type=int, default=3)
     parser.add_argument("--steps-per-day", type=int, default=8)
     parser.add_argument("--batch-users", type=int, default=25_000)
+    parser.add_argument("--creators", type=int, default=25_000)
+    parser.add_argument("--catalog-items", type=int, default=200_000)
+    parser.add_argument("--posting-batch-creators", type=int, default=25_000)
+    parser.add_argument("--max-new-items-per-day", type=int, default=5_000)
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument(
         "--control", choices=("popular", "personalized"), default="popular"
@@ -34,22 +40,31 @@ def main():
         default="personalized",
     )
     parser.add_argument("--supply-weight", type=float, default=0.03)
+    parser.add_argument(
+        "--experiment-surface", choices=("feed", "feed_posting"),
+        default="feed",
+    )
+    parser.add_argument("--posting-model", type=Path)
+    parser.add_argument("--posting-blend", type=float, default=0.20)
     args = parser.parse_args()
     total_steps = args.days * args.steps_per_day
     feed = TensorFeedConfig(
         users=args.users, steps=total_steps, candidates=12,
         route_candidates=16, route_oversample=4, merged_candidates=64,
-        audit_candidates=32, catalog_items=200_000, catalog_creators=25_000,
+        audit_candidates=32, catalog_items=args.catalog_items,
+        catalog_creators=args.creators,
         batch_users=args.batch_users,
         signal_version=EXTERNAL_MIXTURE_FEED_VERSION,
         device=args.device, max_sessions=max(args.days * 2, 4),
     )
     objective = (
-        "creator_retention"
+        "posting_mediation" if args.experiment_surface == "feed_posting"
+        else "creator_retention"
         if args.treatment == "provider_aware" else "consumer"
     )
     ecosystem = EcosystemConfig(
         days=args.days, steps_per_day=args.steps_per_day, objective=objective,
+        max_new_items_per_day=args.max_new_items_per_day,
     )
     world = ExternalSequenceMixtureWorld(
         args.artifact, args.calibration_report, args.dataset_dir,
@@ -64,7 +79,32 @@ def main():
             name=f"personalized_provider_aware_{args.supply_weight:g}",
         )
     )
-    report = run_ecosystem(feed, ecosystem, control, treatment, world)
+    control_posting = treatment_posting = None
+    if args.experiment_surface == "feed_posting":
+        if args.posting_model is None:
+            parser.error("--posting-model is required for Feed Posting mediation")
+        control = treatment = PERSONALIZED
+        posting_config = FeedPostingConfig(
+            requests=args.days * feed.catalog_creators,
+            creators=feed.catalog_creators,
+            prompts=65_536, categories=64, semantic_dim=32,
+            sequence_length=64, route_candidates=20,
+            merged_candidates=32, exposed_candidates=8,
+            world_version="creator-neural-feed-supply-v4",
+            device=args.device, catalog_seed=20260824,
+        )
+        control_posting = FeedPostingIntervention(
+            posting_config, args.posting_model, 0.0,
+            args.posting_batch_creators,
+        )
+        treatment_posting = FeedPostingIntervention(
+            posting_config, args.posting_model, args.posting_blend,
+            args.posting_batch_creators,
+        )
+    report = run_ecosystem(
+        feed, ecosystem, control, treatment, world,
+        control_posting, treatment_posting,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({

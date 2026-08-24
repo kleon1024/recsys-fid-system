@@ -16,6 +16,12 @@ CREATOR_RETENTION_GUARDRAILS = {
     "creator_posts_absolute": -0.0001,
     "negative_events_per_user": 0.01,
 }
+POSTING_MEDIATION_GUARDRAILS = {
+    "stay_seconds_per_user": -0.10,
+    "lt_per_user": -0.005,
+    "creator_active_absolute": -0.001,
+    "negative_events_per_user": 0.01,
+}
 
 
 @dataclass(frozen=True)
@@ -31,7 +37,9 @@ class EcosystemConfig:
             raise ValueError("ecosystem rollout requires multiple days and requests")
         if self.max_new_items_per_day < 1:
             raise ValueError("daily supply budget must be positive")
-        if self.objective not in {"consumer", "creator_retention"}:
+        if self.objective not in {
+            "consumer", "creator_retention", "posting_mediation",
+        }:
             raise ValueError(
-                "ecosystem objective must be consumer or creator_retention"
+                "unsupported ecosystem objective"
             )

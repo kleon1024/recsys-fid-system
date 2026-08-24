@@ -337,7 +337,10 @@ which repairs the click/create/publish label spaces, runs 64-step sequence model
 and makes creator-randomized A/B the launch authority. Full neural replacements
 are rejected on content risk; a 5% DIN dose is held for insufficient power; a
 20% residual passes the 10m-request simulator review with publish +1.21%, Feed
-stay +1.62%, and LT +1.60%. These are synthetic effects, not production claims.
+stay +1.62%, and LT +1.60%. A separate 1.25m-creator cross-day mediation run
+then inserts the new supply into later Feed days: creator posts and Feed stay
+increase, while the three-day LT interval still crosses zero. These are
+synthetic effects, not production claims.
 
 The [Local Search request ladder](docs/launch-reviews/2026-08-24-local-search-request-ladder.md)
 adds a joint Search/Recommendation journey with Lexical, Geo, learned Two-Tower,

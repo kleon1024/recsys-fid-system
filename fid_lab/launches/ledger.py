@@ -357,6 +357,25 @@ def _feed_posting_v4_records(root: Path) -> list[dict]:
             primary_metric="creator_randomized_publish_and_platform_lt",
             evidence_boundary=report["evidence_boundary"],
         ))
+    mediation_relative = (
+        "reports/launches/2026-08-24-feed-posting-cross-day-mediation-v4.json"
+    )
+    mediation, evidence = _load(root, mediation_relative)
+    records.append(_record(
+        launch_id="L-FEED-POST-V4-MEDIATION-001",
+        surface="feed_posting", stage="end_to_end",
+        change_type="cross_day_supply_to_feed_mediation",
+        control=mediation["control"]["posting_policy"],
+        treatment=mediation["treatment"]["posting_policy"],
+        decision=(
+            "pass_supply_primary_consumer_noninferior"
+            if mediation["decision"] == "ecosystem_v4_pass"
+            else "hold_cross_day_mediation"
+        ),
+        evidence=evidence,
+        primary_metric="creator_posts_with_cross_day_feed_noninferiority",
+        evidence_boundary=mediation["evidence_boundary"],
+    ))
     return records
 
 

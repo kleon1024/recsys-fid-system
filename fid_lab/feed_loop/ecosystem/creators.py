@@ -125,7 +125,10 @@ class CreatorResponseWorld:
         rows = torch.arange(len(inputs), device=inputs.device)
         return expert[rows, population.mixture], surprise, engagement, negative
 
-    def advance(self, population, feedback, day, seed, max_new_items):
+    def advance(
+        self, population, feedback, day, seed, max_new_items,
+        posting_response=None,
+    ):
         outputs, surprise, engagement, negative = self._outputs(
             population, feedback, day
         )
@@ -138,11 +141,19 @@ class CreatorResponseWorld:
             + 0.4 * surprise - 0.8 * negative + outputs[:, 1]
         )
         published = (
-            uniform(population.creator_ids, day, 421, seed) < publish_probability
-        ) & population.active
+            (
+                uniform(population.creator_ids, day, 421, seed)
+                < publish_probability
+            ) & population.active
+            if posting_response is None else posting_response["published"]
+        )
+        posting_negative = (
+            torch.zeros_like(negative) if posting_response is None
+            else posting_response["negative"].float()
+        )
         retained = (
             uniform(population.creator_ids, day, 423, seed) < retain_probability
-        ) & population.active
+        ) & population.active & (posting_negative < 0.5)
         population.active = retained
         population.motivation = torch.clamp(
             0.82 * population.motivation + 0.10 * engagement
@@ -153,10 +164,18 @@ class CreatorResponseWorld:
             0.78 * population.fatigue + 0.08 * published.float()
             + 0.12 * negative - 0.04 * surprise, 0.0, 1.0,
         )
-        population.quality = torch.sigmoid(
+        updated_quality = torch.sigmoid(
             torch.logit(population.quality.clamp(0.02, 0.98))
             + 0.08 * outputs[:, 3] + 0.05 * engagement
         )
+        if posting_response is not None:
+            prompt_quality = posting_response["quality_potential"]
+            updated_quality = torch.where(
+                published,
+                0.75 * updated_quality + 0.25 * prompt_quality,
+                updated_quality,
+            )
+        population.quality = updated_quality
         population.expected_exposure = (
             0.85 * population.expected_exposure + 0.15 * feedback.exposures
         ).clamp_min(1.0)

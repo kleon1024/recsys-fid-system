@@ -13,7 +13,11 @@ from ..scale.experiment.trigger import refresh_search_state
 from ..scale.tensor_engine import candidate_batch, prepare_run, sample_step
 from ..scale.tensor_runtime.state import advance_state, new_user_state
 from ..tensor_cascade import select_candidate
-from .contracts import CONSUMER_GUARDRAILS, CREATOR_RETENTION_GUARDRAILS
+from .contracts import (
+    CONSUMER_GUARDRAILS,
+    CREATOR_RETENTION_GUARDRAILS,
+    POSTING_MEDIATION_GUARDRAILS,
+)
 from .creators import (
     CreatorFeedback,
     CreatorResponseWorld,
@@ -122,11 +126,13 @@ def _simulate_partition(
     return day_values
 
 
-def _daily_report(day, values, feedback, population, publishers):
+def _daily_report(
+    day, values, feedback, population, publishers, posting_response=None,
+):
     exposures = values[0].clamp_min(1.0)
     active_creators = population.active.sum().clamp_min(1)
     creator_exposed = (feedback.exposures > 0).sum()
-    return {
+    report = {
         "day": day,
         "exposures": int(values[0]),
         "stay_per_exposure": float(values[1] / exposures),
@@ -145,9 +151,19 @@ def _daily_report(day, values, feedback, population, publishers):
             float(population.quality[publishers].mean()) if len(publishers) else 0.0
         ),
     }
+    if posting_response is not None:
+        report["posting_funnel"] = {
+            "clicks": int(posting_response["clicked"].sum()),
+            "creates": int(posting_response["created"].sum()),
+            "publishes": int(posting_response["published"].sum()),
+            "negative_posts": int(posting_response["negative"].sum()),
+        }
+    return report
 
 
-def _run_arm(feed_config, ecosystem, policy, behavior_world):
+def _run_arm(
+    feed_config, ecosystem, policy, behavior_world, posting_intervention=None,
+):
     device, generator, catalog = prepare_run(
         feed_config, None, 0, None, behavior_world
     )
@@ -167,14 +183,20 @@ def _run_arm(feed_config, ecosystem, policy, behavior_world):
                 partition, feed_config, ecosystem, policy, generator, device,
                 catalog, behavior_world, feedback, day,
             )
+        posting_response = (
+            None if posting_intervention is None
+            else posting_intervention.respond(population, feedback, day)
+        )
         publishers = creator_world.advance(
             population, feedback, day, ecosystem.seed,
-            ecosystem.max_new_items_per_day,
+            ecosystem.max_new_items_per_day, posting_response,
         )
         catalog = refresh_catalog(
             catalog, population, publishers, day, ecosystem.seed, behavior_world
         )
-        days.append(_daily_report(day, values, feedback, population, publishers))
+        days.append(_daily_report(
+            day, values, feedback, population, publishers, posting_response
+        ))
     user_totals = torch.cat(tuple(partition.totals for partition in partitions))
     creator_totals = torch.stack((
         population.active.float(), population.cumulative_posts,
@@ -186,6 +208,10 @@ def _run_arm(feed_config, ecosystem, policy, behavior_world):
         "users": feed_config.users,
         "creators": feed_config.catalog_creators,
         "behavior_world": behavior_world.describe(),
+        "posting_policy": (
+            "organic_creator_response"
+            if posting_intervention is None else posting_intervention.name
+        ),
     }, user_totals, creator_totals
 
 
@@ -208,12 +234,15 @@ def _paired(control, treatment, names):
     return output
 
 
-def run_ecosystem(feed_config, ecosystem, control_policy, treatment_policy, world):
+def run_ecosystem(
+    feed_config, ecosystem, control_policy, treatment_policy, world,
+    control_posting=None, treatment_posting=None,
+):
     control, control_users, control_creators = _run_arm(
-        feed_config, ecosystem, control_policy, world
+        feed_config, ecosystem, control_policy, world, control_posting
     )
     treatment, treatment_users, treatment_creators = _run_arm(
-        feed_config, ecosystem, treatment_policy, world
+        feed_config, ecosystem, treatment_policy, world, treatment_posting
     )
     user_ab = _paired(control_users, treatment_users, USER_METRICS)
     creator_ab = _paired(
@@ -232,7 +261,7 @@ def run_ecosystem(feed_config, ecosystem, control_policy, treatment_policy, worl
                 "confidence_interval"
             ][0] >= threshold["creator_active_absolute"],
         }
-    else:
+    elif ecosystem.objective == "creator_retention":
         threshold = CREATOR_RETENTION_GUARDRAILS
         gates = {
             "creator_retention_primary_positive": creator_ab["active"][
@@ -241,6 +270,20 @@ def run_ecosystem(feed_config, ecosystem, control_policy, treatment_policy, worl
             "creator_posts_noninferior": creator_ab["cumulative_posts"][
                 "confidence_interval"
             ][0] >= threshold["creator_posts_absolute"],
+            "stay_noninferior": user_ab["stay"]["confidence_interval"][0]
+            >= threshold["stay_seconds_per_user"],
+            "lt_noninferior": user_ab["lt"]["confidence_interval"][0]
+            >= threshold["lt_per_user"],
+        }
+    else:
+        threshold = POSTING_MEDIATION_GUARDRAILS
+        gates = {
+            "creator_posts_primary_positive": creator_ab["cumulative_posts"][
+                "confidence_interval"
+            ][0] > 0.0,
+            "creator_retention_noninferior": creator_ab["active"][
+                "confidence_interval"
+            ][0] >= threshold["creator_active_absolute"],
             "stay_noninferior": user_ab["stay"]["confidence_interval"][0]
             >= threshold["stay_seconds_per_user"],
             "lt_noninferior": user_ab["lt"]["confidence_interval"][0]

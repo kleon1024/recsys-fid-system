@@ -31,6 +31,7 @@ d9e7173a68f0392f7c809f9a6f60ad03fceb08d5545dfe9cfaa91ea0ff8bb464  reports/launch
 3dc0aba31102d5c51881994e42bdf7dc3cbc9910266ecae178ff153f992d6204  reports/launches/2026-08-24-feed-digital-twin-cascade-v3-1m-gpu.json
 4d2063ffe4314fa4678e262bb74d17b1890a90a3e28ddc4d2b24bc5aa09f0815  reports/launches/2026-08-24-feed-ecosystem-v4-consumer-100k.json
 48fd8c13c874a1d8248298cc14af73b1080d6043d5947697daf28f3f29022269  reports/launches/2026-08-24-feed-ecosystem-v4-provider-100k.json
+079d5f87a52c249703d7d0cd872f8f487f3f7ba06979a98271f6ed37768614b7  reports/launches/2026-08-24-feed-posting-cross-day-mediation-v4.json
 79f147618c5b9662d8da042aea8682c75347364536812962625b2bafa4739eac  reports/launches/2026-08-24-feed-posting-request-launch-review.json
 47ebfac0832dd96d8b4ca256989b1b82f285e02df6613ed2c400f91323dddd05  reports/launches/2026-08-24-feed-posting-v4-cascade-400k.json
 1d84b925a7f1cc96292d42cad28962b858fddbfb96508145b99bfce783fa004f  reports/launches/2026-08-24-feed-posting-v4-din-005-ab-10m.json
@@ -41,7 +42,7 @@ c93cb7d2ade7c7e14aea894a4b8c08552e4858fb6b248ef1428c451243dd0a80  reports/launch
 235a0acd86f80289565b8e34490ad6fb932b1c13d6cae93d075f15f4f3fe7e45  reports/launches/2026-08-24-feed-retrieval-20260826.json
 f38aa1d13d5fceae4372e3dddf348336ddec598f5e018ae2321ac0180528687f  reports/launches/2026-08-24-feed-retrieval-launch-review.json
 a7858c2e309645a9b0998730c0c069042e1e5061f393b2efb3c861bbc319ca7c  reports/launches/2026-08-24-feed-v4-mmoe-guarded-010-1m.json
-607dfaa1b94e39f767cf93f48c2383dd44cd2417eb574c3bdf9764f17bc2d8a3  reports/launches/2026-08-24-launch-ledger.json
+1ed0070eaa8e1289c0346d22354842d7dc30cb0288c20c014f306bcee6507427  reports/launches/2026-08-24-launch-ledger.json
 8637a7847df3923b4b50bd2ec45ac2d79992fc1a26963d7cbcdaf9426266b2d7  reports/launches/2026-08-24-local-search-request-launch-review.json
 9adedfdba75c8cd07f9e193d87a18e22d80a5b8d013b43921ae10deabaab5d6b  reports/launches/2026-08-24-poi-detail-request-launch-review.json
 c8ba52715f38e6c52e34fd6d8cbffacbb39f5cbf91d923bff17a8a5d44607521  reports/launches/2026-08-24-poi-distribution-stage-ladder.json

@@ -1,7 +1,7 @@
 {
   "schema": "simulated-feed-posting-authority-v2",
   "active_key": "trending_i2i_plus_din_blend_0.20",
-  "active_bundle_id": "sha256:6c363ad7ce567aa4cea53b916a6578de560bb837fc17d02d1dec7e7e29a1bd8e",
+  "active_bundle_id": "sha256:41c8e9a2ebc7054d039526f0b28322907943ed9657598d29821d01654c63bd1d",
   "active_bundle": {
     "candidate_policy": "trending_i2i",
     "fine_model": "din",
@@ -13,6 +13,30 @@
     "model_seed": 20260824,
     "world_version": "creator-neural-feed-supply-v4",
     "sources": [
+      {
+        "path": "fid_lab/feed_loop/ecosystem/__init__.py",
+        "sha256": "bae84c00546edaf148c1ec9c15d200e4e3bd5083ae725f5150b82fd3be15e26b"
+      },
+      {
+        "path": "fid_lab/feed_loop/ecosystem/cli.py",
+        "sha256": "e6c0354d354b2988fa904582e3201b4600095468bde98fa2008153150280bfaa"
+      },
+      {
+        "path": "fid_lab/feed_loop/ecosystem/contracts.py",
+        "sha256": "c9671e9906370d4c57c7e4bcef2955cb6e13eb60c0ed0362b9693b6b47ef1203"
+      },
+      {
+        "path": "fid_lab/feed_loop/ecosystem/creators.py",
+        "sha256": "03006f20301b0f5a7de8359ea282d6c633b4e2013075443df9ec0e8fa35eb26d"
+      },
+      {
+        "path": "fid_lab/feed_loop/ecosystem/posting.py",
+        "sha256": "95a7f136055904ad052f3f4c72dd4450d179295c2e3ba86ccb6ac0e8a4706cde"
+      },
+      {
+        "path": "fid_lab/feed_loop/ecosystem/runner.py",
+        "sha256": "3c667eae4c3a6e668239817a45a7a3b30b52a613db2d9ebf6e5cf1d6bacb97d4"
+      },
       {
         "path": "fid_lab/feed_posting/__init__.py",
         "sha256": "cf5157ff2387062ee372e5417e71af2e28db92e3fea114118d0d527686963d5d"
@@ -39,7 +63,7 @@
       },
       {
         "path": "fid_lab/feed_posting/release.py",
-        "sha256": "7b3e552506ec814ffd1084b31f10f6b7b58c2cad67ed6d52dfed84b467cdd059"
+        "sha256": "8068a4726c643a9452292d1a9328b416f481e54a8ef3309ad1b6a688ed659cd6"
       },
       {
         "path": "fid_lab/feed_posting/scale/__init__.py",
@@ -93,6 +117,12 @@
         "path": "fid_lab/training/common/tensor_ops.py",
         "sha256": "2a61b8fa8c7c9eecd930f5d314e7d935df1a3367ae2c8de565bacfe29c282bf0"
       }
+    ],
+    "evidence_reports": [
+      {
+        "path": "reports/launches/2026-08-24-feed-posting-cross-day-mediation-v4.json",
+        "sha256": "079d5f87a52c249703d7d0cd872f8f487f3f7ba06979a98271f6ed37768614b7"
+      }
     ]
   },
   "rollback_key": "trending_i2i_plus_rule",
@@ -103,6 +133,10 @@
   "powered_ab_report": {
     "path": "reports/launches/2026-08-24-feed-posting-v4-din-020-ab-10m.json",
     "sha256": "09c1b2f6e64875daebdeb60a44f1371f6c4d0c05b967ec74699fb2c8323b2192"
+  },
+  "ecosystem_report": {
+    "path": "reports/launches/2026-08-24-feed-posting-cross-day-mediation-v4.json",
+    "sha256": "079d5f87a52c249703d7d0cd872f8f487f3f7ba06979a98271f6ed37768614b7"
   },
   "production_readiness": "hold_external_creator_and_supply_validation",
   "evidence_boundary": "Repeated-creator hidden-neural Feed Supply V4 with creator-cluster randomized A/B and mature post-publish quality labels. It remains simulator-only until external creator logs and interventions exist."

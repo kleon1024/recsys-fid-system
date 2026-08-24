@@ -102,6 +102,7 @@ allocation. This is simulator throughput, not an online P99 claim.
 - [200k dose screen](../../reports/launches/2026-08-24-feed-posting-v4-dose-screen-200k.json)
 - [5% powered hold](../../reports/launches/2026-08-24-feed-posting-v4-din-005-ab-10m.json)
 - [20% powered pass](../../reports/launches/2026-08-24-feed-posting-v4-din-020-ab-10m.json)
+- [Cross-day supply mediation](../../reports/launches/2026-08-24-feed-posting-cross-day-mediation-v4.json)
 - [Hash-bound simulator authority](../../artifacts/releases/simulated-feed-posting-control.json)
 
 The user-response and provider-state abstraction follows
@@ -109,11 +110,24 @@ The user-response and provider-state abstraction follows
 testing follows [SARDINE](https://arxiv.org/abs/2311.16586), and the provider
 utility boundary follows [Google's provider-aware simulation study](https://research.google/pubs/towards-content-provider-aware-recommendation-systems-a-simulation-study-on-interplays-among-user-and-provider-utilities/).
 
-## Remaining boundary / 尚未完成
+## Cross-day mediation and remaining boundary / 跨天传导与边界
 
-The separate ecosystem runner already inserts creator supply into later Feed
-days, but this Feed Posting policy has not yet been used as the intervention
-inside that cross-day runner. The current powered result proves the posting
-request and downstream-value contract, not a full cross-day causal mediation
-estimate. External creator logs, real moderation outcomes, and a randomized
-supply experiment remain mandatory before production use.
+The accepted posting artifact is also injected into the three-day ecosystem:
+same-day Feed feedback updates creator motivation and fatigue; the posting
+ranker changes prompt click/create/publish; up to 20k new items enter the next
+catalog; later Feed requests consume that changed supply. The run covers 100k
+users, 1.25m creators, and a 1.5m-item corpus.
+
+Cumulative posts rise by `0.000370` per creator with 95% interval
+`[0.000200, 0.000539]`; creator quality rises significantly. Feed stay rises by
+`0.119` seconds per user with interval `[0.0119, 0.2258]`. Three-day LT changes
+by `+0.00143`, but its interval crosses zero. The mediation gate therefore means
+positive supply with consumer non-inferiority, not proven cross-day LT lift.
+
+这个实验已经把投稿模型真正接入次日 Feed。作者发帖和供给质量显著增加，stay 有正向
+证据，但三天 LT 仍不显著。因此不能把直接投稿 A/B 的 LT 增量偷换成跨天长期收益。
+
+The mediation runner observes both potential worlds and is a simulator stress
+test. Only the separate 1.25m-creator randomized report is launch authority.
+External creator logs, real moderation outcomes, interference-aware supply
+experiments, and production latency evidence remain mandatory.

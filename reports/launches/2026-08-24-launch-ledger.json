@@ -962,6 +962,21 @@
       "evidence_boundary": "Large-scale paired and creator-randomized A/B in synthetic Feed Posting V4. It is simulator evidence, not production lift."
     },
     {
+      "launch_id": "L-FEED-POST-V4-MEDIATION-001",
+      "surface": "feed_posting",
+      "stage": "end_to_end",
+      "change_type": "cross_day_supply_to_feed_mediation",
+      "control": "din_blend_0.00",
+      "treatment": "din_blend_0.20",
+      "primary_metric": "creator_posts_with_cross_day_feed_noninferiority",
+      "decision": "pass_supply_primary_consumer_noninferior",
+      "evidence": {
+        "report": "reports/launches/2026-08-24-feed-posting-cross-day-mediation-v4.json",
+        "report_sha256": "079d5f87a52c249703d7d0cd872f8f487f3f7ba06979a98271f6ed37768614b7"
+      },
+      "evidence_boundary": "External consumer behavior plus synthetic neural creator response. This is ecosystem simulator evidence, not production lift."
+    },
+    {
       "launch_id": "L-LOCAL-SEARCH-RETRIEVAL-001",
       "surface": "local_search",
       "stage": "retrieval",
@@ -1508,8 +1523,8 @@
     }
   },
   "summary": {
-    "records": 98,
-    "passed": 26,
+    "records": 99,
+    "passed": 27,
     "held": 34,
     "rejected": 38,
     "missing_cells": 0
