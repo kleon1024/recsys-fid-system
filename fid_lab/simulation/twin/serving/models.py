@@ -10,12 +10,30 @@ import torch
 from ..contracts import TwinPolicy
 
 
+@dataclass(frozen=True)
+class CandidateScoringContext:
+    user_id: torch.Tensor
+    item_ids: torch.Tensor
+    item_kinds: torch.Tensor
+    route: torch.Tensor
+    step: torch.Tensor
+    sparse_fids: torch.Tensor
+    sparse_buckets: torch.Tensor
+    history_item_ids: torch.Tensor
+    history_kinds: torch.Tensor
+    history_surfaces: torch.Tensor
+    history_steps: torch.Tensor
+
+
 class CandidateScorer(Protocol):
     model_id: str
     architecture: str
 
     def score(
-        self, features: torch.Tensor, surface: torch.Tensor,
+        self,
+        features: torch.Tensor,
+        surface: torch.Tensor,
+        context: CandidateScoringContext | None = None,
     ) -> torch.Tensor: ...
 
     def manifest(self) -> dict[str, object]: ...
@@ -55,6 +73,7 @@ class ServingStack:
             ),
             "coarse_model_weight": self.coarse_model_weight,
             "fine_model_weight": self.fine_model_weight,
+            "score_composition": "baseline_plus_request_standardized_residual",
         }
 
 

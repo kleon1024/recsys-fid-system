@@ -12,8 +12,9 @@ from ....evolution.evaluation.metrics import binary_metrics, grouped_auc
 from ..contracts import Surface
 from ..exchange import TASKS
 from ..serving.surfaces import CANDIDATE_FEATURES
+from ..serving.models import CandidateScoringContext
 from .contracts import FineRankExampleBatch
-from .networks import build_network
+from .networks import SPARSE_ARCHITECTURES, build_network
 
 
 RANK_VALUE_WEIGHTS = (
@@ -31,14 +32,23 @@ class MultiTaskRanker(nn.Module):
         )
         self.architecture = architecture
         self.hidden = hidden
+        self.requires_sparse = architecture in SPARSE_ARCHITECTURES
 
     def forward(
         self, features: torch.Tensor, surface: torch.Tensor,
+        sparse_buckets: torch.Tensor | None = None,
     ) -> torch.Tensor:
         surface_one_hot = torch.nn.functional.one_hot(
             surface.long(), len(Surface)
         ).to(features.dtype)
-        return self.network(torch.cat((features, surface_one_hot), dim=-1))
+        dense = torch.cat((features, surface_one_hot), dim=-1)
+        if self.requires_sparse:
+            if sparse_buckets is None:
+                raise ValueError(
+                    f"{self.architecture} requires logged sparse FID buckets"
+                )
+            return self.network(dense, sparse_buckets.long())
+        return self.network(dense)
 
 
 @dataclass
@@ -51,7 +61,10 @@ class RankerArtifact:
 
     @torch.inference_mode()
     def score(
-        self, features: torch.Tensor, surface: torch.Tensor,
+        self,
+        features: torch.Tensor,
+        surface: torch.Tensor,
+        context: CandidateScoringContext | None = None,
     ) -> torch.Tensor:
         original_shape = features.shape[:2]
         parameter = next(self.model.parameters())
@@ -61,7 +74,18 @@ class RankerArtifact:
         flat_surface = surface[:, None].expand(original_shape).reshape(-1).to(
             parameter.device
         )
-        logits = self.model(flat_features, flat_surface)
+        sparse_buckets = None
+        if self.model.requires_sparse:
+            if context is None:
+                raise ValueError(
+                    f"{self.architecture} serving requires scoring context"
+                )
+            if context.sparse_buckets.shape[:2] != original_shape:
+                raise ValueError("sparse FID candidates do not match features")
+            sparse_buckets = context.sparse_buckets.reshape(
+                -1, context.sparse_buckets.shape[-1]
+            ).to(parameter.device)
+        logits = self.model(flat_features, flat_surface, sparse_buckets)
         weights = torch.tensor(
             self.serving_task_weights,
             device=logits.device,
@@ -76,6 +100,7 @@ class RankerArtifact:
             "architecture": self.architecture,
             "tasks": list(TASKS),
             "features": list(CANDIDATE_FEATURES),
+            "requires_sparse_fids": self.model.requires_sparse,
             "training": self.training_report,
             "serving_task_weights": list(self.serving_task_weights),
         }
@@ -126,16 +151,38 @@ def _task_weights(batch: FineRankExampleBatch, device, selection):
     return values * reliable, mature_count, positive_count, reliable
 
 
+def scoring_context_from_examples(
+    batch: FineRankExampleBatch,
+    selection: slice | torch.Tensor = slice(None),
+) -> CandidateScoringContext:
+    """Reconstruct the exact point-in-time serving context from logged rows."""
+    return CandidateScoringContext(
+        user_id=batch.user_id[selection],
+        item_ids=batch.item_ids[selection],
+        item_kinds=batch.item_kinds[selection],
+        route=batch.route[selection],
+        step=batch.step[selection],
+        sparse_fids=batch.sparse_fids[selection],
+        sparse_buckets=batch.sparse_buckets[selection],
+        history_item_ids=batch.history_item_ids[selection],
+        history_kinds=batch.history_kinds[selection],
+        history_surfaces=batch.history_surfaces[selection],
+        history_steps=batch.history_steps[selection],
+    )
+
+
 @torch.inference_mode()
 def _offline_metrics(model, batch, start, device):
     if start >= len(batch.request_id):
         return {"requests": 0, "tasks": {}}
     features = batch.features[start:].to(device, dtype=torch.float32)
+    sparse_buckets = batch.sparse_buckets[start:].to(device)
     surface = batch.surface[start:].to(device)
     requests, items = features.shape[:2]
     flat_surface = surface[:, None].expand(requests, items).reshape(-1)
     probability = torch.sigmoid(model(
-        features.reshape(-1, features.shape[-1]), flat_surface
+        features.reshape(-1, features.shape[-1]), flat_surface,
+        sparse_buckets.reshape(-1, sparse_buckets.shape[-1]),
     )).reshape(requests, items, len(TASKS)).cpu().numpy()
     labels = batch.labels[start:].cpu().numpy()
     masks = batch.label_mask[start:].cpu().numpy()
@@ -167,12 +214,15 @@ def _offline_metrics(model, batch, start, device):
 
 
 def _request_loss(
-    model, features, surface, labels, masks, propensity, selected, valid,
-    task_weights,
+    model, features, sparse_buckets, surface, labels, masks, propensity,
+    selected, valid, task_weights,
 ):
     requests, items = features.shape[:2]
     flat_surface = surface[:, None].expand(requests, items).reshape(-1)
-    logits = model(features.reshape(-1, features.shape[-1]), flat_surface)
+    flat_sparse = sparse_buckets.reshape(-1, sparse_buckets.shape[-1])
+    logits = model(
+        features.reshape(-1, features.shape[-1]), flat_surface, flat_sparse
+    )
     logits = logits.reshape(requests, items, len(TASKS))
     loss_values = torch.nn.functional.binary_cross_entropy_with_logits(
         logits, labels, reduction="none"
@@ -206,6 +256,22 @@ def _request_loss(
     )
 
 
+def _chronological_train_requests(batch, request_count):
+    unique_steps = torch.unique_consecutive(batch.step)
+    if len(unique_steps) > 1:
+        test_step_index = min(
+            max(int(len(unique_steps) * 0.80), 1), len(unique_steps) - 1
+        )
+        train_requests = int(torch.searchsorted(
+            batch.step, unique_steps[test_step_index], right=False
+        ))
+    else:
+        train_requests = max(int(request_count * 0.80), 1)
+        if request_count > 1:
+            train_requests = min(train_requests, request_count - 1)
+    return train_requests, unique_steps
+
+
 def train_fine_ranker(
     batch: FineRankExampleBatch,
     *,
@@ -219,6 +285,7 @@ def train_fine_ranker(
 ) -> RankerArtifact:
     target_device = torch.device(device or batch.features.device)
     features = batch.features.to(target_device, dtype=torch.float32)
+    sparse_buckets = batch.sparse_buckets.to(target_device)
     surface = batch.surface.to(target_device)
     labels = batch.labels.to(target_device)
     masks = batch.label_mask.to(target_device)
@@ -232,20 +299,9 @@ def train_fine_ranker(
         raise ValueError("no mature labels are available for ranker training")
     if not torch.all(batch.step[1:] >= batch.step[:-1]):
         raise ValueError("fine-rank requests must be chronological")
-    unique_steps = torch.unique_consecutive(batch.step)
-    if len(unique_steps) > 1:
-        test_step_index = min(
-            max(int(len(unique_steps) * 0.80), 1),
-            len(unique_steps) - 1,
-        )
-        test_step = unique_steps[test_step_index]
-        train_requests = int(torch.searchsorted(
-            batch.step, test_step, right=False
-        ))
-    else:
-        train_requests = max(int(len(features) * 0.80), 1)
-        if len(features) > 1:
-            train_requests = min(train_requests, len(features) - 1)
+    train_requests, unique_steps = _chronological_train_requests(
+        batch, len(features)
+    )
     training_selection = slice(0, train_requests)
     task_weights, mature_count, positive_count, reliable = _task_weights(
         batch, target_device, training_selection
@@ -267,7 +323,8 @@ def train_fine_ranker(
                 start, min(start + request_batch, train_requests)
             )
             loss, parts = _request_loss(
-                model, features[selection], surface[selection],
+                model, features[selection], sparse_buckets[selection],
+                surface[selection],
                 labels[selection], masks[selection], propensity[selection],
                 selected[selection], valid[selection], task_weights,
             )
@@ -294,6 +351,7 @@ def train_fine_ranker(
         "training_device": str(target_device),
         "training_seed": seed,
         "architecture": architecture,
+        "requires_sparse_fids": model.requires_sparse,
         "parameters": sum(parameter.numel() for parameter in model.parameters()),
         "chronological_split": {
             "train_requests": train_requests,

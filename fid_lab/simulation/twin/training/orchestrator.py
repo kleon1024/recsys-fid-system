@@ -24,7 +24,7 @@ class ContinuousLearningConfig:
     logging_steps: int = 4
     sample_lookback_steps: int = 32
     architectures: tuple[str, ...] = (
-        "lr", "wide_deep", "dcnv2", "mmoe"
+        "lr", "wide_deep", "deepfm", "dcnv2", "mmoe"
     )
     fine_model_weights: tuple[float, ...] = (0.10, 0.20, 0.30)
     train_epochs: int = 3

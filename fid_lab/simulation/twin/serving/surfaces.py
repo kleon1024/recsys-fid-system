@@ -6,6 +6,7 @@ from dataclasses import dataclass
 
 import torch
 
+from ....scoring import request_standardize
 from ...randomness.counter import uniform, uniform_for_items
 from ..contracts import (
     SURFACE_CONTRACTS,
@@ -15,9 +16,10 @@ from ..contracts import (
     TwinPolicy,
 )
 from ..ledger import candidate_history_signals, within_request_unique
+from ..platform.fids import TwinFidEncoder
 from ..platform.state import CatalogState, UserState
 from ..world.context import ContextState
-from .models import ServingStack, as_serving_stack
+from .models import CandidateScoringContext, ServingStack, as_serving_stack
 
 
 CANDIDATE_FEATURES = (
@@ -52,6 +54,8 @@ class CandidateBatch:
     exposed_propensity: torch.Tensor
     history_signals: dict[str, torch.Tensor]
     feature_values: torch.Tensor
+    sparse_fids: torch.Tensor
+    sparse_buckets: torch.Tensor
 
 
 def _allowed_kind_table(device):
@@ -264,6 +268,7 @@ def _business_eligible(catalog, item_ids, features):
 
 def _rank_scores(
     stack, policy, features, history, route, kind, feature_values, surface,
+    scoring_context,
 ):
     route_weight = torch.tensor(
         policy.route_weights, device=route.device
@@ -287,10 +292,11 @@ def _rank_scores(
     )
     coarse = rule_coarse
     if stack.coarse_model is not None:
-        learned_coarse = stack.coarse_model.score(feature_values, surface)
-        coarse = (
-            (1.0 - stack.coarse_model_weight) * rule_coarse
-            + stack.coarse_model_weight * learned_coarse
+        learned_coarse = stack.coarse_model.score(
+            feature_values, surface, scoring_context
+        )
+        coarse = rule_coarse + stack.coarse_model_weight * request_standardize(
+            learned_coarse
         )
     business = (
         (kind == int(ItemKind.AD)) * policy.ad_value_weight
@@ -312,12 +318,39 @@ def _rank_scores(
     )
     relevance = rule_relevance
     if stack.fine_model is not None:
-        learned_fine = stack.fine_model.score(feature_values, surface)
+        learned_fine = stack.fine_model.score(
+            feature_values, surface, scoring_context
+        )
         relevance = (
-            (1.0 - stack.fine_model_weight) * rule_relevance
-            + stack.fine_model_weight * learned_fine
+            rule_relevance
+            + stack.fine_model_weight * request_standardize(learned_fine)
         )
     return recall, coarse, relevance + business
+
+
+def _scoring_context(users, item_ids, kind, route, surface, step):
+    step_tensor = torch.full_like(users.user_id, step)
+    sparse_fids, sparse_buckets = TwinFidEncoder().encode_candidates(
+        user_id=users.user_id,
+        item_id=item_ids,
+        item_kind=kind,
+        surface=surface,
+        route=route,
+        step=step_tensor,
+    )
+    return CandidateScoringContext(
+        user_id=users.user_id,
+        item_ids=item_ids,
+        item_kinds=kind,
+        route=route,
+        step=step_tensor,
+        sparse_fids=sparse_fids,
+        sparse_buckets=sparse_buckets,
+        history_item_ids=users.ledger.item,
+        history_kinds=users.ledger.kind,
+        history_surfaces=users.ledger.surface,
+        history_steps=users.ledger.step,
+    )
 
 
 def build_slate(
@@ -343,8 +376,14 @@ def build_slate(
         for name in CANDIDATE_FEATURES
     ), dim=2)
     kind = catalog.kind[item_ids]
+    scoring_context = _scoring_context(
+        users, item_ids, kind, route, surface, step
+    )
+    sparse_fids = scoring_context.sparse_fids
+    sparse_buckets = scoring_context.sparse_buckets
     recall, coarse, fine = _rank_scores(
-        stack, policy, features, history, route, kind, feature_values, surface
+        stack, policy, features, history, route, kind, feature_values, surface,
+        scoring_context,
     )
     eligible = within_request_unique(item_ids) & _ad_eligible(
         users, catalog, item_ids, policy
@@ -417,4 +456,6 @@ def build_slate(
         exposed_propensity=exposed_propensity,
         history_signals=history,
         feature_values=feature_values,
+        sparse_fids=sparse_fids,
+        sparse_buckets=sparse_buckets,
     )

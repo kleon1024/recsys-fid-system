@@ -24,7 +24,7 @@ def main():
     parser.add_argument("--environment-seed", type=int)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    ladder = ("lr", "wide_deep", "dcnv2", "mmoe")
+    ladder = ("lr", "wide_deep", "deepfm", "dcnv2", "mmoe")
     architectures = tuple(
         ladder[min(index, len(ladder) - 1)]
         for index in range(args.iterations)

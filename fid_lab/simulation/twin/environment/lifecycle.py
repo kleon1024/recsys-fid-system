@@ -58,8 +58,8 @@ def start_step_population(
         ) < query_probability
     )
     query_interest = (
-        users.cold_start_confidence[:, None] * latent_users.short_interest
-        + (1.0 - users.cold_start_confidence[:, None]) * country_prior
+        latent_users.habit_strength[:, None] * latent_users.short_interest
+        + (1.0 - latent_users.habit_strength[:, None]) * country_prior
     )
     users.query_topic = torch.where(
         query_event, query_interest.argmax(dim=1), users.query_topic

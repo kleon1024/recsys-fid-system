@@ -6,7 +6,12 @@ from math import sqrt
 
 import torch
 
-from ...randomness.counter import normal, uniform, uniform_for_items
+from ...randomness.counter import (
+    normal,
+    uniform,
+    uniform_for_item_channels,
+    uniform_for_items,
+)
 from ..contracts import ItemKind, Surface, TwinConfig
 from .latent import LatentCatalogState, LatentUserState
 from ..exchange import (
@@ -133,7 +138,7 @@ class LatentBehaviorWorld:
             users.socioeconomic.float() / 4.0,
             latent_users.spending_power,
             users.activity_tier.float() / 3.0,
-            users.cold_start_confidence,
+            latent_users.habit_strength,
             latent_users.conformity,
             torch.sin(2.0 * torch.pi * local_hour / 24.0),
             torch.cos(2.0 * torch.pi * local_hour / 24.0),
@@ -210,9 +215,16 @@ class LatentBehaviorWorld:
         output = torch.einsum("be,bek->bk", gate, expert)
         probability = torch.sigmoid(output[:, : len(TASKS)] + self.base_logit)
         probability = torch.round(probability * 100_000.0) / 100_000.0
-        draws = uniform_for_items(
-            users.user_id, item[:, None].expand(-1, len(TASKS)),
-            step, 307, self.config.environment_seed,
+        task_channel = torch.arange(
+            len(TASKS), device=item.device
+        )[None].expand(len(item), -1)
+        draws = uniform_for_item_channels(
+            users.user_id,
+            item[:, None].expand(-1, len(TASKS)),
+            task_channel,
+            step,
+            307,
+            self.config.environment_seed,
         )
         task = draws < probability
         kind = catalog.kind[item]
@@ -262,9 +274,13 @@ def advance_hidden_state(
     negative = response.event("negative")
     latent_embedding = latent_catalog.semantic_embedding[item]
     rate = (0.03 + 0.12 * positive.float())[:, None]
-    latent_users.short_interest = torch.nn.functional.normalize(
+    next_short_interest = torch.nn.functional.normalize(
         (1.0 - rate) * latent_users.short_interest
         + rate * latent_embedding, dim=1
+    )
+    latent_users.short_interest = torch.where(
+        response.active[:, None], next_short_interest,
+        latent_users.short_interest,
     )
     satisfaction_delta = (
         0.012 * torch.log1p(response.stay_seconds)
@@ -284,23 +300,36 @@ def advance_hidden_state(
     latent_users.fatigue = torch.where(
         response.active, next_fatigue, latent_users.fatigue
     )
-    latent_users.commerce_intent = (
+    next_commerce_intent = (
         0.95 * latent_users.commerce_intent
         + 0.10 * response.event("add_cart").float()
         + 0.15 * response.event("order").float()
     ).clamp(0.0, 1.0)
-    latent_users.local_intent = (
+    latent_users.commerce_intent = torch.where(
+        response.active, next_commerce_intent, latent_users.commerce_intent
+    )
+    next_local_intent = (
         0.96 * latent_users.local_intent
         + 0.10 * ((surface == int(Surface.LOCAL)) & positive).float()
     ).clamp(0.0, 1.0)
-    latent_users.creator_intent = (
+    latent_users.local_intent = torch.where(
+        response.active, next_local_intent, latent_users.local_intent
+    )
+    next_creator_intent = (
         0.97 * latent_users.creator_intent
         + 0.18 * response.event("publish").float()
     ).clamp(0.0, 1.0)
-    latent_users.activity_propensity = (
+    latent_users.creator_intent = torch.where(
+        response.active, next_creator_intent, latent_users.creator_intent
+    )
+    next_activity_propensity = (
         0.995 * latent_users.activity_propensity
         + 0.005 * (0.20 + 0.75 * latent_users.satisfaction)
     ).clamp(0.02, 0.95)
+    latent_users.activity_propensity = torch.where(
+        response.active, next_activity_propensity,
+        latent_users.activity_propensity,
+    )
     leave_probability = torch.sigmoid(
         -3.2 + 2.4 * latent_users.fatigue
         - 1.7 * latent_users.satisfaction

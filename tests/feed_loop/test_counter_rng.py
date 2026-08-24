@@ -4,7 +4,11 @@ import unittest
 
 import torch
 
-from fid_lab.simulation.randomness import uniform, uniform_for_items
+from fid_lab.simulation.randomness import (
+    uniform,
+    uniform_for_item_channels,
+    uniform_for_items,
+)
 
 
 class CounterRngTest(unittest.TestCase):
@@ -33,6 +37,18 @@ class CounterRngTest(unittest.TestCase):
             entity_ids, item_ids, 0, 203, 20260824
         )
         correlation = torch.corrcoef(torch.stack((first, second)))[0, 1]
+        self.assertLess(abs(float(correlation)), 0.02)
+
+    def test_task_channels_do_not_share_the_same_random_draw(self):
+        entity_ids = torch.arange(100_000)
+        item = torch.remainder(entity_ids * 17 + 5, 32_768)
+        items = item[:, None].expand(-1, 2)
+        channels = torch.tensor([0, 1])[None].expand_as(items)
+        values = uniform_for_item_channels(
+            entity_ids, items, channels, 0, 307, 20260824
+        )
+        self.assertFalse(torch.equal(values[:, 0], values[:, 1]))
+        correlation = torch.corrcoef(values.T)[0, 1]
         self.assertLess(abs(float(correlation)), 0.02)
 
 

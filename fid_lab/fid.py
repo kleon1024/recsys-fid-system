@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from enum import Enum
 import hashlib
 
+import torch
+
 
 class FidVersion(str, Enum):
     V1 = "v1"
@@ -68,6 +70,29 @@ class FidCodec:
 
     def encode(self, slot: int, namespace: str, raw_value: object) -> int:
         return self.pack(slot, self.signature(namespace, raw_value))
+
+    def encode_numeric_tensor(
+        self,
+        slot: int,
+        namespace: str,
+        raw_values: torch.Tensor,
+    ) -> torch.Tensor:
+        """Vectorized stable FIDs for integer-valued online tensors."""
+        if not 0 <= slot <= self.layout.max_slot:
+            raise ValueError(
+                f"slot must be in [0, {self.layout.max_slot}], got {slot}"
+            )
+        if raw_values.dtype == torch.bool or raw_values.is_floating_point():
+            raise TypeError("numeric tensor FIDs require an integer tensor")
+        salt = self.signature(f"tensor:{namespace}", slot)
+        mask = self.layout.signature_mask
+        values = torch.bitwise_xor(raw_values.long(), salt) & mask
+        values = torch.bitwise_xor(values, values >> 16)
+        values = (values * 0x045D9F3B) & mask
+        values = torch.bitwise_xor(values, values >> 16)
+        values = (values * 0x045D9F3B) & mask
+        signature = torch.bitwise_xor(values, values >> 16) & mask
+        return (slot << self.layout.signature_bits) | signature
 
     @staticmethod
     def convert_v1_to_v2(fid_v1: int) -> int:

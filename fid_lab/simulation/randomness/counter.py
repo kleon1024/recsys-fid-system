@@ -44,6 +44,25 @@ def uniform_for_items(entity_ids, item_ids, step, stream, seed):
     return result.clamp_(max=1.0 - torch.finfo(result.dtype).eps)
 
 
+def uniform_for_item_channels(
+    entity_ids, item_ids, channel_ids, step, stream, seed,
+):
+    """Partition-invariant independent streams for item-level task channels."""
+    entities = entity_ids.long()
+    while entities.ndim < item_ids.ndim:
+        entities = entities.unsqueeze(-1)
+    values = _mix(
+        entities * 1_103_515_245
+        + item_ids.long() * 48_271
+        + channel_ids.long() * 12_345
+        + step * 7_919
+        + stream * 104_729
+        + seed * 503
+    )
+    result = (values.float() + 0.5) / (MASK + 1.0)
+    return result.clamp_(max=1.0 - torch.finfo(result.dtype).eps)
+
+
 def normal(entity_ids, step, stream, seed, width=None):
     first = uniform(entity_ids, step, stream, seed, width).clamp_min(1e-7)
     second = uniform(entity_ids, step, stream + 1, seed, width)

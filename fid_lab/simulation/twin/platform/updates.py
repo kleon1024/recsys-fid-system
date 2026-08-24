@@ -24,12 +24,19 @@ def apply_response_events(
     )
     negative = response.event("negative")
     embedding = catalog.topic_embedding[item]
+    active = response.active[:, None]
     rate = (0.03 + 0.12 * positive.float())[:, None]
-    users.short_interest = torch.nn.functional.normalize(
+    updated_short = torch.nn.functional.normalize(
         (1.0 - rate) * users.short_interest + rate * embedding, dim=1
     )
-    users.observed_interest = torch.nn.functional.normalize(
-        0.97 * users.observed_interest + 0.03 * users.short_interest, dim=1
+    users.short_interest = torch.where(
+        active, updated_short, users.short_interest
+    )
+    updated_observed = torch.nn.functional.normalize(
+        0.97 * users.observed_interest + 0.03 * updated_short, dim=1
+    )
+    users.observed_interest = torch.where(
+        active, updated_observed, users.observed_interest
     )
     observed_reward = (
         0.015 * torch.log1p(response.stay_seconds)

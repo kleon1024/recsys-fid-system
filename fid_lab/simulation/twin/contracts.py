@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass
 from enum import IntEnum
 
 
-TWIN_VERSION = "multi-surface-digital-twin-v2-hidden-environment"
+TWIN_VERSION = "multi-surface-digital-twin-v3-causal-feature-lineage"
 
 
 class Surface(IntEnum):

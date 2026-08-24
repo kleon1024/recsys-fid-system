@@ -45,13 +45,11 @@ class TwinSnapshot:
 @dataclass(frozen=True)
 class _UserSeeds:
     user_id: torch.Tensor
-    long_interest: torch.Tensor
     lifecycle: torch.Tensor
     country: torch.Tensor
     activity_tier: torch.Tensor
     socioeconomic: torch.Tensor
     activity_rates: torch.Tensor
-    signup_step: torch.Tensor
     registered: torch.Tensor
 
 
@@ -73,11 +71,6 @@ def _initialize_user_seeds(
     config: TwinConfig, start: int, count: int, device,
 ) -> _UserSeeds:
     user_id = torch.arange(start, start + count, device=device, dtype=torch.long)
-    long_interest = functional.softmax(
-        normal(
-            user_id, 0, 101, config.environment_seed, config.topics
-        ), dim=1
-    )
     lifecycle = torch.floor(
         uniform(user_id, 0, 139, config.seed) * 4
     ).long()
@@ -94,19 +87,12 @@ def _initialize_user_seeds(
         [0.08, 0.24, 0.52, 0.82], device=device
     )
     initially_registered = (
-        uniform(user_id, 0, 199, config.environment_seed)
+        uniform(user_id, 0, 199, config.seed)
         < config.initial_registered_fraction
     )
-    horizon = config.preperiod_steps + config.measurement_steps * 10
-    signup_step = 1 + torch.floor(
-        uniform(user_id, 0, 211, config.environment_seed) * horizon
-    ).long()
-    signup_step = torch.where(
-        initially_registered, torch.zeros_like(signup_step), signup_step
-    )
     return _UserSeeds(
-        user_id, long_interest, lifecycle, country, activity_tier,
-        socioeconomic, activity_rates, signup_step, signup_step == 0,
+        user_id, lifecycle, country, activity_tier, socioeconomic,
+        activity_rates, initially_registered,
     )
 
 
@@ -133,9 +119,21 @@ def _initialize_latent_users(
     true_surface = uniform(
         user_id, 0, 107, config.environment_seed, len(Surface)
     )
+    long_interest = functional.softmax(
+        normal(
+            user_id, 0, 101, config.environment_seed, config.topics
+        ), dim=1
+    )
+    horizon = config.preperiod_steps + config.measurement_steps * 10
+    signup_step = 1 + torch.floor(
+        uniform(user_id, 0, 211, config.environment_seed) * horizon
+    ).long()
+    signup_step = torch.where(
+        seeds.registered, torch.zeros_like(signup_step), signup_step
+    )
     return LatentUserState(
-        long_interest=seeds.long_interest,
-        short_interest=seeds.long_interest.clone(),
+        long_interest=long_interest,
+        short_interest=long_interest.clone(),
         satisfaction=true_satisfaction,
         fatigue=true_fatigue,
         conformity=true_conformity,
@@ -148,7 +146,7 @@ def _initialize_latent_users(
             + 0.08 * normal(user_id, 0, 397, config.environment_seed)
         ).clamp(0.02, 0.98),
         surface_intent=true_surface,
-        signup_step=seeds.signup_step,
+        signup_step=signup_step,
         retained=torch.ones(
             len(user_id), device=device, dtype=torch.bool
         ),
@@ -165,11 +163,11 @@ def _initialize_platform_users(
 ) -> UserState:
     user_id = seeds.user_id
     count = len(user_id)
-    observed_noise = normal(user_id, 0, 103, config.seed, config.topics)
-    observed = functional.softmax(
-        torch.log(seeds.long_interest.clamp_min(1e-8))
-        + 0.35 * observed_noise,
-        dim=1,
+    # The platform starts without privileged knowledge of latent preference.
+    # Existing and new users acquire interest state only through observable
+    # events compiled by platform/updates.py during the pre-period and later.
+    observed = torch.full(
+        (count, config.topics), 1.0 / config.topics, device=device,
     )
     estimate_noise = 0.10 * normal(user_id, 0, 401, config.seed)
     return UserState(
@@ -219,15 +217,15 @@ def _initialize_platform_users(
             uniform(user_id, 0, 239, config.seed) * 5
         ).long(),
         signup_step=torch.where(
-            seeds.registered, torch.zeros_like(seeds.signup_step),
-            torch.full_like(seeds.signup_step, -1),
+            seeds.registered, torch.zeros_like(user_id),
+            torch.full_like(user_id, -1),
         ),
         tenure_days=torch.where(
             seeds.registered,
             torch.floor(1.0 + 1_200.0 * uniform(
                 user_id, 0, 241, config.seed
             )).long(),
-            torch.zeros_like(seeds.signup_step),
+            torch.zeros_like(user_id),
         ),
         cold_start_confidence=torch.where(
             seeds.registered,
@@ -265,28 +263,42 @@ def initialize_catalog_pair(config: TwinConfig, device):
     kind = torch.remainder(item_id, len(ItemKind))
     topic = torch.remainder(item_id * 69_697 + 29, config.topics)
     basis = torch.eye(config.topics, device=device)[topic]
-    noise = normal(
-        item_id, 0, 151, config.environment_seed, config.topics
-    )
-    semantic_embedding = functional.normalize(basis + 0.18 * noise, dim=1)
     content_noise = normal(item_id, 0, 353, config.seed, config.topics)
     embedding = functional.normalize(
-        semantic_embedding + 0.22 * content_noise, dim=1
+        basis + 0.22 * content_noise, dim=1
     )
-    true_quality = torch.sigmoid(normal(
-        item_id, 0, 157, config.environment_seed
-    ))
+    text_quality = uniform(item_id, 0, 277, config.seed)
+    visual_quality = uniform(item_id, 0, 281, config.seed)
+    merchant_quality = uniform(item_id, 0, 307, config.seed)
     quality = torch.sigmoid(
-        torch.logit(true_quality.clamp(1e-5, 1.0 - 1e-5))
-        + 0.55 * normal(item_id, 0, 359, config.seed)
+        -1.0 + 1.25 * text_quality + 1.45 * visual_quality
+        + 0.35 * normal(item_id, 0, 359, config.seed)
     )
-    true_risk = (
-        0.7 * uniform(item_id, 0, 173, config.environment_seed)
-        + 0.3 * (1.0 - true_quality)
-    ).clamp(0.0, 1.0)
-    risk = (
-        true_risk + 0.15 * normal(item_id, 0, 367, config.seed)
-    ).clamp(0.0, 1.0)
+    risk = torch.sigmoid(
+        -1.25 - 0.65 * quality
+        + 0.75 * normal(item_id, 0, 367, config.seed)
+    )
+    price = torch.exp(
+        -1.5 + 5.0 * uniform(item_id, 0, 293, config.seed)
+    )
+    semantic_embedding = functional.normalize(
+        embedding + 0.28 * normal(
+            item_id, 0, 151, config.environment_seed, config.topics
+        ),
+        dim=1,
+    )
+    true_quality = torch.sigmoid(
+        torch.logit(quality.clamp(1e-5, 1.0 - 1e-5))
+        + 0.95 * normal(item_id, 0, 157, config.environment_seed)
+    )
+    true_risk = torch.sigmoid(
+        torch.logit(risk.clamp(1e-5, 1.0 - 1e-5))
+        + 1.05 * normal(item_id, 0, 173, config.environment_seed)
+    )
+    price_appeal = torch.sigmoid(
+        0.55 + 0.70 * merchant_quality - 0.18 * torch.log1p(price)
+        + 1.10 * normal(item_id, 0, 373, config.environment_seed)
+    )
     popularity = uniform(item_id, 0, 163, config.seed).pow(3.0)
     catalog = CatalogState(
         item_id=item_id,
@@ -301,8 +313,8 @@ def initialize_catalog_pair(config: TwinConfig, device):
             config.countries * config.regions_per_country,
         ),
         quality=quality,
-        text_quality=uniform(item_id, 0, 277, config.seed),
-        visual_quality=uniform(item_id, 0, 281, config.seed),
+        text_quality=text_quality,
+        visual_quality=visual_quality,
         duration_seconds=(
             4.0 + 176.0 * uniform(item_id, 0, 283, config.seed).square()
         ),
@@ -310,10 +322,8 @@ def initialize_catalog_pair(config: TwinConfig, device):
         popularity=popularity,
         risk=risk,
         price_match_prior=uniform(item_id, 0, 179, config.seed),
-        price=torch.exp(
-            -1.5 + 5.0 * uniform(item_id, 0, 293, config.seed)
-        ),
-        merchant_quality=uniform(item_id, 0, 307, config.seed),
+        price=price,
+        merchant_quality=merchant_quality,
         inventory=uniform(item_id, 0, 181, config.seed),
         sponsored_value=uniform(item_id, 0, 191, config.seed),
         ad_bid=(
@@ -361,9 +371,7 @@ def initialize_catalog_pair(config: TwinConfig, device):
         semantic_embedding=semantic_embedding,
         true_quality=true_quality,
         true_risk=true_risk,
-        price_appeal=uniform(
-            item_id, 0, 373, config.environment_seed
-        ),
+        price_appeal=price_appeal,
     )
     return catalog, latent
 

@@ -153,6 +153,13 @@ counterfactuals; the factual future is always the shared mixed-A/B world, so
 experiment exposure changes later users, supply, and training samples. See the bilingual
 [multi-surface architecture](docs/architecture/multi-surface-digital-twin.md).
 
+The latest full-chain audit found that executable closure was not sufficient
+for credible model comparison. The causal/event-driven replacement, failure
+inventory, migration DAG, deletion boundary, and acceptance matrix are defined
+in [Recommendation Digital Twin v4](docs/architecture/digital-twin-v4-redesign.md).
+Until those gates pass, historical twin reports are engineering evidence, not
+model-lift evidence.
+
 ```mermaid
 flowchart LR
     Hidden["Hidden user environment<br/>preference, satisfaction, fatigue, retention"]

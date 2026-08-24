@@ -77,7 +77,7 @@ def launch_decision(experiment: TwinExperiment):
     metrics = experiment.report["cuped_ab"]
     primary = metrics["synthetic_lt_measurement"]
     stay = metrics["stay_seconds"]
-    negative = metrics["negative"]
+    negative = metrics["negative_rate_per_request"]
     requests = metrics["requests"]
     trace = experiment.report["trace"]["gates"]
     trace_pass = all(
@@ -142,7 +142,10 @@ def run_launch_campaign(
                 "synthetic_lt_measurement"
             ],
             "stay": experiment.report["cuped_ab"]["stay_seconds"],
-            "negative": experiment.report["cuped_ab"]["negative"],
+            "negative_rate": experiment.report["cuped_ab"][
+                "negative_rate_per_request"
+            ],
+            "negative_count": experiment.report["cuped_ab"]["negative"],
             "trace": experiment.report["trace"],
             "performance": experiment.report["performance"],
         })

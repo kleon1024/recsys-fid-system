@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import unittest
-from dataclasses import replace
+from dataclasses import fields, replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import torch
 
@@ -15,11 +16,13 @@ from fid_lab.simulation.twin.contracts import (
     TwinPolicy,
 )
 from fid_lab.simulation.twin.experimentation.campaign import run_launch_campaign
+from fid_lab.simulation.twin.experimentation.campaign import launch_decision
 from fid_lab.simulation.twin.experimentation.experiment import run_twin_experiment
 from fid_lab.simulation.twin.kernel import DigitalTwinKernel
 from fid_lab.simulation.twin.ledger import candidate_history_signals
 from fid_lab.simulation.twin.profiles import load_profile
-from fid_lab.simulation.twin.exchange import ServedSlate
+from fid_lab.simulation.twin.exchange import ObservableResponse, ServedSlate, TASKS
+from fid_lab.simulation.twin.platform.updates import apply_response_events
 from fid_lab.simulation.twin.serving.surfaces import (
     CANDIDATE_FEATURES,
     build_slate,
@@ -102,6 +105,61 @@ class MultiSurfaceTwinTest(unittest.TestCase):
         self.assertTrue((hidden.signup_step[future] > 0).all())
         self.assertFalse(hasattr(observed, "retained"))
         self.assertFalse(hasattr(observed, "long_interest"))
+
+    def test_platform_initial_state_is_invariant_to_hidden_world_seed(self):
+        config = small_config()
+        factual = DigitalTwinKernel(config).initialize()
+        counterfactual = DigitalTwinKernel(replace(
+            config, environment_seed=config.environment_seed + 1009
+        )).initialize()
+        for left_users, right_users in zip(
+            factual.users, counterfactual.users, strict=True
+        ):
+            for field in fields(left_users):
+                if field.name == "ledger":
+                    for ledger_field in fields(left_users.ledger):
+                        self.assertTrue(torch.equal(
+                            getattr(left_users.ledger, ledger_field.name),
+                            getattr(right_users.ledger, ledger_field.name),
+                        ), ledger_field.name)
+                else:
+                    self.assertTrue(torch.equal(
+                        getattr(left_users, field.name),
+                        getattr(right_users, field.name),
+                    ), field.name)
+        for field in fields(factual.catalog):
+            self.assertTrue(torch.equal(
+                getattr(factual.catalog, field.name),
+                getattr(counterfactual.catalog, field.name),
+            ), field.name)
+        self.assertFalse(torch.equal(
+            factual.latent_users[0].long_interest,
+            counterfactual.latent_users[0].long_interest,
+        ))
+        self.assertFalse(torch.equal(
+            factual.latent_catalog.semantic_embedding,
+            counterfactual.latent_catalog.semantic_embedding,
+        ))
+
+    def test_no_observable_event_cannot_change_interest_state(self):
+        snapshot = DigitalTwinKernel(small_config()).initialize()
+        users = snapshot.users[0]
+        before_short = users.short_interest.clone()
+        before_observed = users.observed_interest.clone()
+        count = len(users.user_id)
+        response = ObservableResponse(
+            task=torch.zeros(count, len(TASKS), dtype=torch.bool),
+            task_mask=torch.zeros(count, len(TASKS), dtype=torch.bool),
+            stay_seconds=torch.zeros(count),
+            selected_item=torch.zeros(count, dtype=torch.long),
+            active=torch.zeros(count, dtype=torch.bool),
+        )
+        apply_response_events(
+            users, snapshot.catalog, response,
+            torch.full((count,), int(Surface.FEED), dtype=torch.long),
+        )
+        self.assertTrue(torch.equal(users.short_interest, before_short))
+        self.assertTrue(torch.equal(users.observed_interest, before_observed))
 
     def test_platform_ranking_is_invariant_to_hidden_world_intervention(self):
         kernel = DigitalTwinKernel(small_config())
@@ -230,6 +288,9 @@ class MultiSurfaceTwinTest(unittest.TestCase):
         for surface in Surface:
             self.assertIn(f"{surface.name.lower()}_request_share", summary)
         self.assertIn("synthetic_lt_measurement", report["cuped_ab"])
+        negative_rate = report["cuped_ab"]["negative_rate_per_request"]
+        self.assertGreaterEqual(negative_rate["control_mean"], 0.0)
+        self.assertLessEqual(negative_rate["control_mean"], 1.0)
         self.assertIn("experiment_cells", report["sample_evolution"])
         self.assertIn("country", report["sample_evolution"]["slices"])
         self.assertIn("cold_start", report["sample_evolution"]["slices"])
@@ -241,6 +302,29 @@ class MultiSurfaceTwinTest(unittest.TestCase):
                 "registered_rate"
             ], 0.0,
         )
+
+    def test_launch_negative_guardrail_uses_rate_not_window_count(self):
+        def metric(control, difference, interval):
+            return {
+                "control_mean": control,
+                "difference": difference,
+                "confidence_interval": list(interval),
+            }
+        experiment = SimpleNamespace(report={
+            "cuped_ab": {
+                "synthetic_lt_measurement": metric(3.0, 0.1, (0.05, 0.15)),
+                "stay_seconds": metric(30.0, 0.2, (-0.1, 0.5)),
+                "negative": metric(0.2, 0.02, (-0.01, 0.05)),
+                "negative_rate_per_request": metric(
+                    0.01, 0.0002, (-0.0004, 0.0015)
+                ),
+                "requests": metric(12.0, 0.0, (-0.02, 0.02)),
+            },
+            "trace": {"gates": {"control": {"closed": True}}},
+        })
+        decision, gates = launch_decision(experiment)
+        self.assertEqual(decision, "pass")
+        self.assertTrue(gates["negative_guardrail"])
 
     def test_continuous_campaign_preserves_last_accepted_control(self):
         report = run_launch_campaign(small_config())

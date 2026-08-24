@@ -43,6 +43,17 @@ class FidCodecTest(unittest.TestCase):
         actual = int(subprocess.check_output(command, text=True).strip())
         self.assertEqual(actual, expected)
 
+    def test_numeric_tensor_fids_are_stable_and_preserve_slot(self) -> None:
+        codec = FidCodec(FidVersion.V2)
+        values = torch.tensor([0, 1, 42, 1_000_003], dtype=torch.long)
+        first = codec.encode_numeric_tensor(101, "item_id", values)
+        second = codec.encode_numeric_tensor(101, "item_id", values.clone())
+        self.assertTrue(torch.equal(first, second))
+        self.assertTrue((first >> codec.layout.signature_bits == 101).all())
+        self.assertEqual(len(torch.unique(first)), len(values))
+        with self.assertRaises(TypeError):
+            codec.encode_numeric_tensor(101, "item_id", values.float())
+
 
 class RegistryTest(unittest.TestCase):
     def test_cross_encoding_is_unambiguous(self) -> None:

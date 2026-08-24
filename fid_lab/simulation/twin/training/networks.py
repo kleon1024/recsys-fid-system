@@ -3,41 +3,84 @@
 from __future__ import annotations
 
 import torch
+from deepctr_torch.layers.core import DNN
+from deepctr_torch.layers.interaction import CrossNetMix, FM
 from torch import nn
 
 from ....multitask import MultiGateMixtureOfExperts
-from ....poi_distribution.models.architectures import CrossLayer
+from ..platform.fids import TWIN_FID_FIELDS
 
 
-class WideDeepNetwork(nn.Module):
-    def __init__(self, inputs: int, outputs: int, hidden: int):
+SPARSE_ARCHITECTURES = frozenset({"wide_deep", "deepfm", "dcnv2"})
+
+
+class SparseFeatureEncoder(nn.Module):
+    def __init__(self, embedding_dim: int = 8):
         super().__init__()
-        self.wide = nn.Linear(inputs, outputs)
-        self.deep = nn.Sequential(
-            nn.Linear(inputs, hidden * 2), nn.SiLU(),
-            nn.Linear(hidden * 2, hidden), nn.SiLU(),
-            nn.Linear(hidden, outputs),
+        self.deep = nn.ModuleList(
+            nn.Embedding(field.buckets, embedding_dim, padding_idx=0)
+            for field in TWIN_FID_FIELDS
+        )
+        self.wide = nn.ModuleList(
+            nn.Embedding(field.buckets, 1, padding_idx=0)
+            for field in TWIN_FID_FIELDS
         )
 
-    def forward(self, values):
-        return self.wide(values) + self.deep(values)
+    def forward(self, buckets):
+        deep = torch.stack(tuple(
+            embedding(buckets[:, index])
+            for index, embedding in enumerate(self.deep)
+        ), dim=1)
+        wide = torch.cat(tuple(
+            embedding(buckets[:, index])
+            for index, embedding in enumerate(self.wide)
+        ), dim=1)
+        return deep, wide
 
 
-class DCNv2Network(nn.Module):
-    def __init__(self, inputs: int, outputs: int, hidden: int):
+class DeepCTRMultiTaskNetwork(nn.Module):
+    """Shared sparse tables with mature DeepCTR interaction primitives."""
+
+    def __init__(
+        self, architecture: str, dense_inputs: int, outputs: int,
+        hidden: int, embedding_dim: int = 8,
+    ) -> None:
         super().__init__()
-        self.cross = nn.ModuleList(CrossLayer(inputs) for _ in range(3))
-        self.deep = nn.Sequential(
-            nn.Linear(inputs, hidden * 2), nn.SiLU(),
-            nn.Linear(hidden * 2, hidden), nn.SiLU(),
+        self.architecture = architecture
+        self.sparse = SparseFeatureEncoder(embedding_dim)
+        sparse_inputs = len(TWIN_FID_FIELDS) * embedding_dim
+        combined = dense_inputs + sparse_inputs
+        self.wide_head = nn.Linear(
+            dense_inputs + len(TWIN_FID_FIELDS), outputs
         )
-        self.head = nn.Linear(inputs + hidden, outputs)
+        self.deep = DNN(
+            combined, (hidden * 2, hidden), activation="relu",
+            dropout_rate=0.10, device="cpu",
+        )
+        self.deep_head = nn.Linear(hidden, outputs)
+        self.fm = FM()
+        self.fm_scale = nn.Parameter(torch.ones(outputs))
+        self.cross = CrossNetMix(
+            combined, low_rank=32, num_experts=4, layer_num=2,
+            device="cpu",
+        )
+        self.cross_head = nn.Linear(combined + hidden, outputs)
 
-    def forward(self, values):
-        crossed = values
-        for layer in self.cross:
-            crossed = layer(values, crossed)
-        return self.head(torch.cat((crossed, self.deep(values)), dim=1))
+    def forward(self, dense, buckets):
+        embedding, wide = self.sparse(buckets)
+        flattened = embedding.flatten(1)
+        combined = torch.cat((dense, flattened), dim=1)
+        wide_logit = self.wide_head(torch.cat((dense, wide), dim=1))
+        deep = self.deep(combined)
+        if self.architecture == "wide_deep":
+            return wide_logit + self.deep_head(deep)
+        if self.architecture == "deepfm":
+            return (
+                wide_logit + self.deep_head(deep)
+                + self.fm(embedding) * self.fm_scale[None]
+            )
+        crossed = self.cross(combined)
+        return wide_logit + self.cross_head(torch.cat((crossed, deep), dim=1))
 
 
 class MMoENetwork(nn.Module):
@@ -62,6 +105,10 @@ def build_network(
     hidden: int,
 ) -> nn.Module:
     outputs = len(tasks)
+    if architecture in SPARSE_ARCHITECTURES:
+        return DeepCTRMultiTaskNetwork(
+            architecture, inputs, outputs, hidden
+        )
     if architecture == "lr":
         return nn.Linear(inputs, outputs)
     if architecture == "mlp":
@@ -70,10 +117,6 @@ def build_network(
             nn.Linear(hidden, hidden), nn.SiLU(),
             nn.Linear(hidden, outputs),
         )
-    if architecture == "wide_deep":
-        return WideDeepNetwork(inputs, outputs, hidden)
-    if architecture == "dcnv2":
-        return DCNv2Network(inputs, outputs, hidden)
     if architecture == "mmoe":
         return MMoENetwork(inputs, tasks, hidden)
     raise ValueError(f"unsupported ranker architecture: {architecture}")

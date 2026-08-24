@@ -12,6 +12,10 @@ from fid_lab.simulation.twin.experimentation.robustness import (
 )
 from fid_lab.simulation.twin.serving.models import ServingStack
 from fid_lab.simulation.twin.serving.trace import RequestTrace
+from fid_lab.simulation.twin.platform.fids import (
+    TWIN_FID_FIELDS,
+    TwinFidEncoder,
+)
 from fid_lab.simulation.twin.training import (
     ContinuousLearningConfig,
     ModelRegistry,
@@ -21,7 +25,10 @@ from fid_lab.simulation.twin.training import (
     train_fine_ranker,
     run_continuous_learning,
 )
-from fid_lab.simulation.twin.training.ranker import RankerArtifact
+from fid_lab.simulation.twin.training.ranker import (
+    RankerArtifact,
+    scoring_context_from_examples,
+)
 
 
 def training_config() -> TwinConfig:
@@ -104,6 +111,34 @@ class TwinTrainingAuthorityTest(unittest.TestCase):
         self.assertTrue(
             authorities.fine.selected.sum(dim=1).eq(1).all()
         )
+        self.assertEqual(
+            authorities.fine.sparse_fids.shape[-1], len(TWIN_FID_FIELDS)
+        )
+        valid = authorities.fine.item_ids >= 0
+        self.assertTrue(
+            (authorities.fine.sparse_buckets[valid] > 0).all()
+        )
+        self.assertTrue(
+            (authorities.fine.sparse_buckets[~valid] == 0).all()
+        )
+        expected_fids, expected_buckets = TwinFidEncoder().encode_candidates(
+            user_id=authorities.fine.user_id,
+            item_id=authorities.fine.item_ids,
+            item_kind=authorities.fine.item_kinds,
+            surface=authorities.fine.surface,
+            route=authorities.fine.route,
+            step=authorities.fine.step,
+        )
+        self.assertTrue(torch.equal(
+            authorities.fine.sparse_fids, expected_fids
+        ))
+        self.assertTrue(torch.equal(
+            authorities.fine.sparse_buckets, expected_buckets
+        ))
+        self.assertTrue((
+            (authorities.fine.history_steps < authorities.fine.step[:, None])
+            | (authorities.fine.history_steps < 0)
+        ).all())
         self.assertTrue(
             authorities.recall.sampling_probability.eq(1.0).all()
         )
@@ -167,11 +202,14 @@ class TwinTrainingAuthorityTest(unittest.TestCase):
         restored = RankerArtifact.from_checkpoint(
             artifact.checkpoint(), device="cpu"
         )
-        sample_features = authorities.coarse.features[:3]
-        sample_surface = authorities.coarse.surface[:3]
+        sample_features = authorities.fine.features[:3]
+        sample_surface = authorities.fine.surface[:3]
+        sample_context = scoring_context_from_examples(
+            authorities.fine, slice(0, 3)
+        )
         self.assertTrue(torch.equal(
-            artifact.score(sample_features, sample_surface),
-            restored.score(sample_features, sample_surface),
+            artifact.score(sample_features, sample_surface, sample_context),
+            restored.score(sample_features, sample_surface, sample_context),
         ))
         registry = ModelRegistry()
         first = registry.register("fine", artifact)
@@ -188,9 +226,12 @@ class TwinTrainingAuthorityTest(unittest.TestCase):
 
     def test_mature_ranker_ladder_trains_and_replays_same_contract(self):
         authorities = join_training_authorities(self.events(watermark_step=100))
-        sample_features = authorities.coarse.features[:3]
-        sample_surface = authorities.coarse.surface[:3]
-        for architecture in ("wide_deep", "dcnv2", "mmoe"):
+        sample_features = authorities.fine.features[:3]
+        sample_surface = authorities.fine.surface[:3]
+        sample_context = scoring_context_from_examples(
+            authorities.fine, slice(0, 3)
+        )
+        for architecture in ("wide_deep", "deepfm", "dcnv2", "mmoe"):
             artifact = train_fine_ranker(
                 authorities.fine,
                 model_id=f"fine-{architecture}-contract",
@@ -202,8 +243,12 @@ class TwinTrainingAuthorityTest(unittest.TestCase):
                 artifact.checkpoint(), device="cpu"
             )
             self.assertTrue(torch.equal(
-                artifact.score(sample_features, sample_surface),
-                restored.score(sample_features, sample_surface),
+                artifact.score(
+                    sample_features, sample_surface, sample_context
+                ),
+                restored.score(
+                    sample_features, sample_surface, sample_context
+                ),
             ), architecture)
             self.assertGreater(
                 artifact.training_report["parameters"], 0
@@ -225,6 +270,20 @@ class TwinTrainingAuthorityTest(unittest.TestCase):
             ]
             self.assertGreater(len(evaluated), 0)
             self.assertIn("user_gauc", evaluated[0])
+
+    def test_sparse_ranker_fails_closed_without_logged_fid_context(self):
+        authorities = join_training_authorities(self.events(watermark_step=100))
+        artifact = train_fine_ranker(
+            authorities.fine,
+            model_id="fine-deepfm-context-gate",
+            architecture="deepfm",
+            epochs=1,
+            microbatch_rows=128,
+        )
+        with self.assertRaisesRegex(ValueError, "requires scoring context"):
+            artifact.score(
+                authorities.fine.features[:2], authorities.fine.surface[:2]
+            )
 
     def test_learned_model_uses_same_serving_stack_boundary_as_rules(self):
         authorities = join_training_authorities(self.events(watermark_step=100))

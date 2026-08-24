@@ -59,6 +59,10 @@ def materialize_events(
         candidate_kind=values["candidate_kind"][active],
         route=values["route"][active],
         candidate_features=values["candidate_features"][active],
+        candidate_sparse_fids=values["candidate_sparse_fids"][active],
+        candidate_sparse_buckets=values[
+            "candidate_sparse_buckets"
+        ][active],
         recall_score=values["recall_score"][active],
         coarse_score=values["coarse_score"][active],
         fine_score=values["fine_score"][active],
@@ -69,18 +73,20 @@ def materialize_events(
         labels=values["labels"][active].float(),
         label_mask=values["label_mask"][active].bool(),
         history_item_ids=values["history_item"][active],
+        history_kinds=values["history_kind"][active],
+        history_surfaces=values["history_surface"][active],
         history_steps=values["history_step"][active],
         manifest=manifest,
     )
 
 
-def _mature_mask(events: TwinEventBatch) -> torch.Tensor:
+def _maturity_mask(events: TwinEventBatch) -> torch.Tensor:
     maturity = torch.tensor(
         [TASK_MATURITY_STEPS[task] for task in TASKS],
         device=events.step.device,
     )
     matured = events.step[:, None] + maturity[None] <= events.manifest.watermark_step
-    return events.label_mask & matured
+    return matured
 
 
 def _behavior_strength(events: TwinEventBatch, mature: torch.Tensor) -> torch.Tensor:
@@ -104,8 +110,9 @@ def _candidate_positions(events: TwinEventBatch) -> tuple[torch.Tensor, torch.Te
 
 
 def join_training_authorities(events: TwinEventBatch) -> TrainingAuthorities:
-    mature = _mature_mask(events)
-    strength = _behavior_strength(events, mature)
+    mature = _maturity_mask(events)
+    selected_mature = mature & events.label_mask
+    strength = _behavior_strength(events, selected_mature)
     recall_keep = strength > 0
     selected_match = (
         events.candidate_item_ids == events.selected_item_id[:, None]
@@ -158,6 +165,20 @@ def join_training_authorities(events: TwinEventBatch) -> TrainingAuthorities:
     )
     fine_features = events.candidate_features.gather(1, gather_feature)
     fine_scores = events.fine_score.gather(1, candidate_position)
+    fine_route = events.route.gather(1, candidate_position)
+    gather_sparse = candidate_position[:, :, None].expand(
+        -1, -1, events.candidate_sparse_fids.shape[2]
+    )
+    sparse_fids = events.candidate_sparse_fids.gather(1, gather_sparse)
+    sparse_buckets = events.candidate_sparse_buckets.gather(
+        1, gather_sparse
+    )
+    sparse_fids = sparse_fids.masked_fill(
+        ~exposed_valid[:, :, None], 0
+    )
+    sparse_buckets = sparse_buckets.masked_fill(
+        ~exposed_valid[:, :, None], 0
+    )
     selected = events.exposed_item_ids == events.selected_item_id[:, None]
     label = events.labels[:, None, :] * selected[:, :, None]
     exposed_kind = events.candidate_kind.gather(1, candidate_position)
@@ -182,13 +203,21 @@ def join_training_authorities(events: TwinEventBatch) -> TrainingAuthorities:
         experiment_cell_id=events.experiment_cell_id,
         request_sampling_probability=events.request_sampling_probability,
         item_ids=events.exposed_item_ids,
+        item_kinds=exposed_kind,
+        route=fine_route,
         positions=positions,
+        sparse_fids=sparse_fids,
+        sparse_buckets=sparse_buckets,
         examination_propensity=propensity * exposed_valid.float(),
         features=fine_features,
         served_score=fine_scores,
         labels=label,
         label_mask=label_mask,
         selected=selected,
+        history_item_ids=events.history_item_ids,
+        history_kinds=events.history_kinds,
+        history_surfaces=events.history_surfaces,
+        history_steps=events.history_steps,
         manifest=events.manifest,
     )
     return TrainingAuthorities(recall=recall, coarse=coarse, fine=fine)

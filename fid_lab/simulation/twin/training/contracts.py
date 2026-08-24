@@ -8,11 +8,12 @@ import torch
 
 from ..exchange import TASKS
 from ..serving.surfaces import CANDIDATE_FEATURES
+from ..platform.fids import TWIN_FID_SCHEMA_VERSION
 
 
-SAMPLE_SCHEMA_VERSION = "twin-request-samples-v1"
-FEATURE_SCHEMA_VERSION = "twin-observed-candidate-features-v1"
-JOINER_VERSION = "twin-point-in-time-joiner-v1"
+SAMPLE_SCHEMA_VERSION = "twin-request-samples-v2-sparse-sequence"
+FEATURE_SCHEMA_VERSION = "twin-observed-candidate-features-v2"
+JOINER_VERSION = "twin-point-in-time-joiner-v2"
 
 # One authority for simulated label availability. Units are twin steps.
 TASK_MATURITY_STEPS = {
@@ -33,6 +34,7 @@ class SampleManifest:
     schema_version: str = SAMPLE_SCHEMA_VERSION
     feature_version: str = FEATURE_SCHEMA_VERSION
     joiner_version: str = JOINER_VERSION
+    fid_schema_version: str = TWIN_FID_SCHEMA_VERSION
 
 
 @dataclass(frozen=True)
@@ -48,6 +50,8 @@ class TwinEventBatch:
     candidate_kind: torch.Tensor
     route: torch.Tensor
     candidate_features: torch.Tensor
+    candidate_sparse_fids: torch.Tensor
+    candidate_sparse_buckets: torch.Tensor
     recall_score: torch.Tensor
     coarse_score: torch.Tensor
     fine_score: torch.Tensor
@@ -58,6 +62,8 @@ class TwinEventBatch:
     labels: torch.Tensor
     label_mask: torch.Tensor
     history_item_ids: torch.Tensor
+    history_kinds: torch.Tensor
+    history_surfaces: torch.Tensor
     history_steps: torch.Tensor
     manifest: SampleManifest
 
@@ -114,13 +120,21 @@ class FineRankExampleBatch:
     experiment_cell_id: torch.Tensor
     request_sampling_probability: torch.Tensor
     item_ids: torch.Tensor
+    item_kinds: torch.Tensor
+    route: torch.Tensor
     positions: torch.Tensor
+    sparse_fids: torch.Tensor
+    sparse_buckets: torch.Tensor
     examination_propensity: torch.Tensor
     features: torch.Tensor
     served_score: torch.Tensor
     labels: torch.Tensor
     label_mask: torch.Tensor
     selected: torch.Tensor
+    history_item_ids: torch.Tensor
+    history_kinds: torch.Tensor
+    history_surfaces: torch.Tensor
+    history_steps: torch.Tensor
     manifest: SampleManifest
 
 
@@ -135,6 +149,9 @@ class TrainingAuthorities:
             "schema": SAMPLE_SCHEMA_VERSION,
             "features": list(CANDIDATE_FEATURES),
             "tasks": list(TASKS),
+            "fid_schema": self.fine.manifest.fid_schema_version,
+            "sparse_fid_fields": self.fine.sparse_fids.shape[-1],
+            "sequence_length": self.fine.history_item_ids.shape[-1],
             "recall_requests": len(self.recall.request_id),
             "coarse_requests": len(self.coarse.request_id),
             "fine_requests": len(self.fine.request_id),

@@ -1,5 +1,9 @@
 # Multi-surface recommendation digital twin / 多业务推荐数字孪生
 
+> Historical v2 description. The implementation revealed additional causal,
+> sample-semantic, score-composition, and A/B ordering failures. New work is
+> governed by [Recommendation Digital Twin v4](digital-twin-v4-redesign.md).
+
 ## Decision / 决策
 
 旧 Feed engine 分别执行 control 和 treatment 的完整轨迹，再比较两个

@@ -10,7 +10,7 @@ import torch
 from ...experimentation.assignment import assign_binary_torch
 from ..contracts import BASELINE_POLICY, TwinConfig, TwinPolicy
 from ..kernel import DigitalTwinKernel, TwinRun
-from ..metrics import METRICS, summarize_user_metrics
+from ..metrics import METRIC_INDEX, METRICS, summarize_user_metrics
 from .analysis import mixed_sample_report
 from .mixed import MixedTwinRun, run_mixed_world_ab
 
@@ -28,10 +28,7 @@ def _concatenate(runs):
     return torch.cat(tuple(value.double() for value in runs))
 
 
-def _cuped_metric(control, treatment, preperiod, assigned, index):
-    control_y = control[:, index]
-    treatment_y = treatment[:, index]
-    x = preperiod[:, index]
+def _cuped_values(control_y, treatment_y, x, assigned):
     y = torch.where(assigned, treatment_y, control_y)
     x_centered = x - x.mean()
     variance = x_centered.square().mean()
@@ -63,6 +60,28 @@ def _cuped_metric(control, treatment, preperiod, assigned, index):
     }
 
 
+def _cuped_metric(control, treatment, preperiod, assigned, index):
+    return _cuped_values(
+        control[:, index], treatment[:, index], preperiod[:, index], assigned
+    )
+
+
+def _per_request(values, metric):
+    requests = values[:, METRIC_INDEX["requests"]].clamp_min(1.0)
+    return values[:, METRIC_INDEX[metric]] / requests
+
+
+def _derived_experiment_metrics(pre, left, right, assigned):
+    return {
+        "negative_rate_per_request": _cuped_values(
+            _per_request(left, "negative"),
+            _per_request(right, "negative"),
+            _per_request(pre, "negative"),
+            assigned,
+        ),
+    }
+
+
 def _experiment_metrics(config, preperiod, control, treatment, salt):
     pre = _concatenate(preperiod)
     left = _concatenate(control)
@@ -71,22 +90,28 @@ def _experiment_metrics(config, preperiod, control, treatment, salt):
     assigned = assign_binary_torch(user_id, salt)
     if assigned.sum() == 0 or (~assigned).sum() == 0:
         raise ValueError("A/B assignment produced an empty cell")
-    return {
+    report = {
         name: _cuped_metric(left, right, pre, assigned, index)
         for index, name in enumerate(METRICS)
     }
+    report.update(_derived_experiment_metrics(pre, left, right, assigned))
+    return report
 
 
 def _mixed_experiment_metrics(config, preperiod, mixed):
     pre = _concatenate(preperiod)
     observed = _concatenate(mixed.user_metrics)
     assigned = torch.cat(mixed.assigned_treatment)
-    return {
+    report = {
         name: _cuped_metric(
             observed, observed, pre, assigned, index
         )
         for index, name in enumerate(METRICS)
     }
+    report.update(_derived_experiment_metrics(
+        pre, observed, observed, assigned
+    ))
+    return report
 
 
 def _paired_shadow_metrics(control, treatment):

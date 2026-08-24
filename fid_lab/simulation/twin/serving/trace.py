@@ -78,6 +78,12 @@ class RequestTrace:
             "candidate_features": frozen(
                 candidates.feature_values, torch.float16
             ),
+            "candidate_sparse_fids": frozen(
+                candidates.sparse_fids, torch.long
+            ),
+            "candidate_sparse_buckets": frozen(
+                candidates.sparse_buckets, torch.int32
+            ),
             "eligible": frozen(candidates.eligible),
             "exposed_item_ids": frozen(
                 candidates.exposed_item_ids, torch.int32
@@ -90,6 +96,8 @@ class RequestTrace:
             "label_mask": frozen(response.task_mask),
             "active": frozen(response.active),
             "history_item": frozen(users.ledger.item, torch.int32),
+            "history_kind": frozen(users.ledger.kind, torch.int8),
+            "history_surface": frozen(users.ledger.surface, torch.int8),
             "history_step": frozen(users.ledger.step, torch.int32),
         })
 
