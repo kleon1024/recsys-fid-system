@@ -17,7 +17,9 @@ from .engine import (
     TickResult,
 )
 from .event_log import ObservableEventLog
+from .platform import ObservableProjection, ProjectionSnapshot
 from .world import (
+    DelayedOutcomeQueue,
     HiddenSupplyState,
     SupplyEcosystem,
     UserEcosystemWorld,
@@ -29,13 +31,16 @@ __all__ = (
     "AppEventBatch",
     "AtomicSimulationKernel",
     "ContentKind",
+    "DelayedOutcomeQueue",
     "EventType",
     "ExperimentAssignment",
     "ExperimentPlan",
     "HiddenSupplyState",
     "ObservableEventLog",
+    "ObservableProjection",
     "PlatformRequestBatch",
     "PublicCatalog",
+    "ProjectionSnapshot",
     "RenderedSlateBatch",
     "Surface",
     "SupplyEcosystem",

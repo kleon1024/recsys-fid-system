@@ -198,17 +198,11 @@ def sample_response_tensors(
         EventType.ADD_CART: detail & commerce & (
             draws[:, :, 14] < torch.sigmoid(-2.0 + utility)
         ),
-        EventType.ORDER: detail & (commerce | local) & (
-            draws[:, :, 15] < torch.sigmoid(-3.0 + 1.1 * utility)
-        ),
         EventType.CREATE: create,
         EventType.PUBLISH: create & (
             draws[:, :, 16] < torch.sigmoid(-0.45 + 0.85 * utility)
         ),
     }
-    action[EventType.PAYMENT] = action[EventType.ORDER] & (
-        draws[:, :, 17] < torch.sigmoid(1.0 + 0.3 * utility)
-    )
     action[EventType.SLIDE] = examined & feed & ~complete
     base_seconds = torch.exp(
         1.0 + 0.55 * utility + 0.50 * quality
@@ -228,6 +222,7 @@ def _events_for_mask(
     mask: torch.Tensor,
     slate: RenderedSlateBatch,
     catalog: PublicCatalog,
+    snapshot: UserWorldSnapshot,
     *,
     duration_ms: torch.Tensor | None = None,
 ) -> AppEventBatch:
@@ -258,8 +253,8 @@ def _events_for_mask(
         experiment_cell=slate.ui_variant[row],
         content_kind=kind,
         topic_id=catalog.topic_id[item],
-        country=catalog.country[item],
-        region=catalog.region[item],
+        country=snapshot.users.country[slate.user_id[row]],
+        region=snapshot.users.region[slate.user_id[row]],
         creator_id=catalog.creator_id[item],
         merchant_id=catalog.merchant_id[item],
         advertiser_id=catalog.advertiser_id[item],
@@ -283,11 +278,17 @@ def response_events(
 ) -> AppEventBatch:
     sampled = sample_response_tensors(snapshot, catalog, slate, seed)
     batches = [
-        _events_for_mask(EventType.IMPRESSION, slate.valid, slate, catalog),
-        _events_for_mask(EventType.EXAMINE, sampled.examined, slate, catalog),
+        _events_for_mask(
+            EventType.IMPRESSION, slate.valid, slate, catalog, snapshot,
+        ),
+        _events_for_mask(
+            EventType.EXAMINE, sampled.examined, slate, catalog, snapshot,
+        ),
     ]
     for event_type, mask in sampled.action.items():
-        batches.append(_events_for_mask(event_type, mask, slate, catalog))
+        batches.append(_events_for_mask(
+            event_type, mask, slate, catalog, snapshot,
+        ))
     engaged = (
         sampled.action[EventType.PLAY]
         | sampled.action[EventType.CLICK]
@@ -298,6 +299,7 @@ def response_events(
         engaged,
         slate,
         catalog,
+        snapshot,
         duration_ms=sampled.dwell_ms,
     ))
     positive = torch.stack((
@@ -305,7 +307,6 @@ def response_events(
         sampled.action[EventType.LIKE],
         sampled.action[EventType.SHARE],
         sampled.action[EventType.CLICK],
-        sampled.action[EventType.ORDER],
         sampled.action[EventType.PUBLISH],
     )).any(dim=0)
     request_value = (

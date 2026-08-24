@@ -12,6 +12,9 @@ from fid_lab.simulation.digital_twin.assets import (
 def test_default_asset_graph_declares_training_and_factual_closure():
     order = DIGITAL_TWIN_ASSETS.order()
     assert order.index("events.observable") < order.index("samples.fine")
+    assert order.index("events.pending_delivery") < order.index(
+        "events.observable"
+    )
     assert order.index("samples.fine") < order.index("models.candidate")
     assert order.index("events.observable") < order.index(
         "world.factual_successor"

@@ -9,12 +9,14 @@ from fid_lab.simulation.digital_twin import (
     EventType,
     ExperimentPlan,
     ObservableEventLog,
+    ObservableProjection,
     PlatformRequestBatch,
     RenderedSlateBatch,
     UserEcosystemWorld,
     UserWorldConfig,
     build_public_catalog,
 )
+from fid_lab.simulation.digital_twin.platform.projection import USER_COUNTER_EVENTS
 
 
 def build_world(users=256, items=720):
@@ -51,13 +53,18 @@ def event_keys(events, event_type):
 
 
 class CatalogPlatform:
-    def __init__(self, catalog, width=12):
+    def __init__(self, catalog, width=12, users=None):
         self.catalog = catalog
         self.width = width
         self.events = 0
+        self.projection = (
+            None if users is None else ObservableProjection(users, catalog)
+        )
 
     def ingest(self, events):
         self.events += len(events.event_id)
+        if self.projection is not None:
+            self.projection.ingest(events)
 
     def snapshot(self):
         return self.events
@@ -145,7 +152,7 @@ def test_world_emits_observable_session_and_cascade_events_only():
 def run_real_world(cell_order):
     world, catalog = build_world()
     platform = CatalogPlatform(catalog)
-    log = ObservableEventLog()
+    log = ObservableEventLog(allowed_lateness=world.max_reporting_lag)
     plan = ExperimentPlan.ramped_user_ab(
         active_policy=0,
         treatment_policy=7,
@@ -177,7 +184,11 @@ def test_real_world_ab_is_invariant_to_gpu_cell_execution_order():
 def test_factual_response_changes_the_next_world_snapshot():
     world, catalog = build_world(users=64, items=180)
     platform = CatalogPlatform(catalog)
-    kernel = AtomicSimulationKernel(world, platform, ObservableEventLog())
+    kernel = AtomicSimulationKernel(
+        world,
+        platform,
+        ObservableEventLog(allowed_lateness=world.max_reporting_lag),
+    )
     plan = ExperimentPlan.ramped_user_ab(
         active_policy=0,
         treatment_policy=11,
@@ -192,3 +203,33 @@ def test_factual_response_changes_the_next_world_snapshot():
     second_entry = world.schedule(1)
     assert len(second_entry.event_id) > 0
     assert first.baseline_requests > first.experiment_requests
+
+
+def test_kernel_delivers_delayed_funnel_into_point_in_time_projection():
+    world, catalog = build_world(users=512, items=1_800)
+    platform = CatalogPlatform(catalog, users=512)
+    log = ObservableEventLog(allowed_lateness=world.max_reporting_lag)
+    kernel = AtomicSimulationKernel(world, platform, log)
+    plan = ExperimentPlan.ramped_user_ab(
+        active_policy=0,
+        treatment_policy=7,
+        experiment_seed=109,
+        control_fraction=0.05,
+        treatment_fraction=0.05,
+    )
+    for logical_time in range(30):
+        kernel.step(logical_time, plan)
+    events = log.read()
+    orders = events.event(EventType.ORDER)
+    payments = events.event(EventType.PAYMENT)
+    assert int(orders.sum()) > 0
+    assert int(payments.sum()) > 0
+    assert set(events.order_id[payments].tolist()) <= set(
+        events.order_id[orders].tolist()
+    )
+    assert (events.event_time[payments] > 0).all()
+    order_column = USER_COUNTER_EVENTS.index(EventType.ORDER)
+    projected_orders = platform.projection.state.user_event_counts[
+        :, order_column
+    ].sum()
+    assert int(projected_orders) == int(orders.sum())

@@ -184,6 +184,11 @@ class AtomicSimulationKernel:
         platform: RecommendationPlatform,
         event_log: ObservableEventLog,
     ) -> None:
+        required_lateness = int(getattr(world, "max_reporting_lag", 0))
+        if event_log.allowed_lateness < required_lateness:
+            raise ValueError(
+                "event log allowed lateness is below the world reporting lag"
+            )
         self.world = world
         self.platform = platform
         self.event_log = event_log
@@ -196,10 +201,13 @@ class AtomicSimulationKernel:
         cell_order: tuple[int, ...] | None = None,
     ) -> TickResult:
         entry = self.world.schedule(logical_time)
-        if len(entry.event_time) and not (
-            entry.event_time == logical_time
+        if len(entry.ingest_time) and not (
+            entry.ingest_time == logical_time
         ).all():
-            raise ValueError("one step may schedule only its logical event time")
+            raise ValueError("one step may ingest only its logical delivery time")
+        if len(entry.event_time) and (entry.event_time > logical_time).any():
+            raise ValueError("world cannot deliver events before they occur")
+        self.event_log.validate(entry)
         self.world.commit(entry)
         self.event_log.append(entry)
         self.platform.ingest(entry)
@@ -224,12 +232,15 @@ class AtomicSimulationKernel:
             )
             proposals.append(self.world.respond(snapshot, slate))
         response = AppEventBatch.concatenate(proposals)
-        if len(response.event_time) and not (
-            response.event_time == logical_time
+        if len(response.ingest_time) and not (
+            response.ingest_time == logical_time
         ).all():
             raise ValueError(
-                "future outcomes must be scheduled at delivery time, not committed early"
+                "response events must ingest at the current logical time"
             )
+        if len(response.event_time) and (response.event_time > logical_time).any():
+            raise ValueError("response events cannot occur in the future")
+        self.event_log.validate(response)
         self.world.commit(response)
         self.event_log.append(response)
         self.platform.ingest(response)

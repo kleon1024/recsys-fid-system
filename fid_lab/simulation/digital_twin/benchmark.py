@@ -18,6 +18,7 @@ from .contracts import (
 )
 from .engine import AtomicSimulationKernel, ExperimentPlan
 from .event_log import ObservableEventLog
+from .platform import ObservableProjection
 from .world import UserEcosystemWorld, UserWorldConfig
 
 
@@ -34,16 +35,20 @@ class WorldBenchmarkConfig:
 class TransportBenchmarkPlatform:
     """Deterministic slate transport; deliberately not a retrieval model."""
 
-    def __init__(self, catalog: PublicCatalog, width: int):
+    def __init__(self, catalog: PublicCatalog, width: int, users: int):
         self.catalog = catalog
         self.width = width
         self.ingested_events = 0
+        self.projection = ObservableProjection(
+            users, catalog, history_length=32,
+        )
 
     def ingest(self, events: AppEventBatch) -> None:
         self.ingested_events += len(events.event_id)
+        self.projection.ingest(events)
 
-    def snapshot(self) -> int:
-        return self.ingested_events
+    def snapshot(self) -> object:
+        return self.projection.state
 
     def open_requests(
         self, entry_events: AppEventBatch,
@@ -119,8 +124,17 @@ def run_world_benchmark(config: WorldBenchmarkConfig) -> dict[str, object]:
         environment_seed=103,
         future_signup_fraction=0.0,
     ), catalog)
-    platform = TransportBenchmarkPlatform(catalog, config.slate_width)
-    kernel = AtomicSimulationKernel(world, platform, ObservableEventLog())
+    platform = TransportBenchmarkPlatform(
+        catalog, config.slate_width, config.users,
+    )
+    event_log = ObservableEventLog(
+        allowed_lateness=world.max_reporting_lag,
+    )
+    kernel = AtomicSimulationKernel(
+        world,
+        platform,
+        event_log,
+    )
     experiment = ExperimentPlan.ramped_user_ab(
         active_policy=0,
         treatment_policy=7,
@@ -131,16 +145,34 @@ def run_world_benchmark(config: WorldBenchmarkConfig) -> dict[str, object]:
     _synchronize(device)
     started = time.perf_counter()
     requests = events = 0
+    delayed_counts = {
+        event_type.name.lower(): 0
+        for event_type in (
+            EventType.ORDER,
+            EventType.PAYMENT,
+            EventType.REFUND,
+            EventType.PIXEL_CONVERSION,
+        )
+    }
     for logical_time in range(config.steps):
         result = kernel.step(logical_time, experiment)
         requests += result.rendered_requests
         events += len(result.entry_events.event_id)
         events += len(result.response_events.event_id)
+        for event_type in (
+            EventType.ORDER,
+            EventType.PAYMENT,
+            EventType.REFUND,
+            EventType.PIXEL_CONVERSION,
+        ):
+            delayed_counts[event_type.name.lower()] += int(
+                result.entry_events.event(event_type).sum()
+            )
     _synchronize(device)
     elapsed = time.perf_counter() - started
     candidates = requests * config.slate_width
     return {
-        "scope": "world-kernel-throughput-only",
+        "scope": "world-projection-kernel-throughput-only",
         "device": str(device),
         "users": config.users,
         "catalog_items": config.items,
@@ -148,6 +180,10 @@ def run_world_benchmark(config: WorldBenchmarkConfig) -> dict[str, object]:
         "requests": requests,
         "candidates": candidates,
         "observable_events": events,
+        "delayed_events": delayed_counts,
+        "pending_delayed_events": world.delayed.pending_events,
+        "event_watermark": event_log.watermark,
+        "ingest_watermark": event_log.ingest_watermark,
         "elapsed_seconds": elapsed,
         "requests_per_second": requests / elapsed,
         "candidates_per_second": candidates / elapsed,

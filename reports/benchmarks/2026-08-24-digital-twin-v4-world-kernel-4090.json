@@ -1,5 +1,5 @@
 {
-  "schema": "digital-twin-v4-world-kernel-throughput-v2",
+  "schema": "digital-twin-v4-world-projection-throughput-v3",
   "device": "NVIDIA GeForce RTX 4090",
   "cuda_runtime": "PyTorch 2.7.1+cu126",
   "experiment_ramp": {
@@ -16,11 +16,12 @@
       "slate_width": 32,
       "requests": 100000,
       "candidates": 3200000,
-      "observable_events": 4958204,
-      "elapsed_seconds": 0.49518149901996367,
-      "requests_per_second": 201946.15549634743,
-      "candidates_per_second": 6462276.975883118,
-      "peak_cuda_gib": 3.3167829513549805
+      "steps": 1,
+      "observable_events": 4956569,
+      "elapsed_seconds": 1.0554614060092717,
+      "requests_per_second": 94745.29284600061,
+      "candidates_per_second": 3031849.3710720195,
+      "peak_cuda_gib": 3.414734363555908
     },
     {
       "users": 500000,
@@ -28,29 +29,74 @@
       "slate_width": 32,
       "requests": 500000,
       "candidates": 16000000,
-      "observable_events": 24791946,
-      "elapsed_seconds": 1.0819521730009,
-      "requests_per_second": 462127.6360240593,
-      "candidates_per_second": 14788084.352769898,
-      "peak_cuda_gib": 16.318129062652588
+      "steps": 1,
+      "observable_events": 24783943,
+      "elapsed_seconds": 1.9714608420035802,
+      "requests_per_second": 253619.03688224105,
+      "candidates_per_second": 8115809.180231714,
+      "peak_cuda_gib": 16.79900884628296
+    },
+    {
+      "users": 100000,
+      "catalog_items": 500000,
+      "slate_width": 32,
+      "steps": 10,
+      "requests": 674257,
+      "candidates": 21576224,
+      "observable_events": 31756870,
+      "delayed_events": {
+        "order": 7301,
+        "payment": 3954,
+        "refund": 0,
+        "pixel_conversion": 20
+      },
+      "pending_delayed_events": 8317,
+      "elapsed_seconds": 10.407125316007296,
+      "requests_per_second": 64788.01585707045,
+      "candidates_per_second": 2073216.5074262545,
+      "peak_cuda_gib": 7.070599555969238
+    },
+    {
+      "users": 10000,
+      "catalog_items": 100000,
+      "slate_width": 32,
+      "steps": 200,
+      "requests": 77959,
+      "candidates": 2494688,
+      "observable_events": 3690766,
+      "delayed_events": {
+        "order": 1226,
+        "payment": 945,
+        "refund": 1,
+        "pixel_conversion": 249
+      },
+      "pending_delayed_events": 88,
+      "event_watermark": 7,
+      "ingest_watermark": 199,
+      "elapsed_seconds": 23.533019582013367,
+      "requests_per_second": 3312.74954870582,
+      "candidates_per_second": 106007.98555858624,
+      "peak_cuda_gib": 0.7807826995849609
     }
   ],
   "verification": {
-    "focused_tests": "13 passed",
+    "focused_tests": "20 passed",
     "repository_tests": "202 passed",
     "repository_check": "PASS",
     "architecture_lint": "PASS with one asset-body-io warning"
   },
   "code_closure": {
-    "fid_lab/simulation/digital_twin/benchmark.py": "501f05d94531876c67b04652a103d3bd74177c220b4359ac99ee67f4a4a6edc2",
+    "fid_lab/simulation/digital_twin/benchmark.py": "5bed10f5ed3457842873713be4131006ca0ae8249058a6ff96fa38f8a7dbda7e",
     "fid_lab/simulation/digital_twin/contracts.py": "6c421412e0904641756f05b6d4356da9814bfe11bbf05bd68564a907377983bd",
-    "fid_lab/simulation/digital_twin/engine.py": "ddf26cc6bf50ba6e9e99db1254410a7fd683495e95c0f77c0a1154167b96a7fd",
-    "fid_lab/simulation/digital_twin/event_log.py": "c5a0a618cf201210628e01e9b15a4f9c38480d2ed9ce000f256a77a2fc8b928d",
+    "fid_lab/simulation/digital_twin/engine.py": "869078d89d342232095780a34fa5c752957295328b5db2d266a4e058179104c6",
+    "fid_lab/simulation/digital_twin/event_log.py": "f8533c50146cbe22587b0da6acab60dd094f1d9f3a0480c1a01015c282698215",
     "fid_lab/simulation/digital_twin/catalog.py": "ca4ce3d280d60488f9dc3e1c3868c53aaccff13a376140a65bdc7e8712c1e3e6",
     "fid_lab/simulation/digital_twin/world/state.py": "3b725a487541e6863026f6460d10e5e988c6c867d2176537a407da03f4af9f51",
-    "fid_lab/simulation/digital_twin/world/behavior.py": "457c68e1f2336462129ed68789d30b09e1736ff3222f27c560cd6469b8c33351",
-    "fid_lab/simulation/digital_twin/world/runtime.py": "a632e259aba22cd9ac09d465b5483c306eb07a1caf1bcfa5534aa4be20738403",
-    "fid_lab/simulation/digital_twin/world/supply.py": "38abf4bcc45cce9218174e460fe1cc889481538f9961fe1304a45e03287a2ab1"
+    "fid_lab/simulation/digital_twin/world/behavior.py": "48da9c7badceb9da6f3fc427c36146b1b68257e782aa584c59344442f610271b",
+    "fid_lab/simulation/digital_twin/world/runtime.py": "bb917637236ed5db15a6c7b16ab0738d0b9e15dcfc358a5a0b012215f5990c41",
+    "fid_lab/simulation/digital_twin/world/supply.py": "200c0141fb07f59d49270e71b30d2d1f1dd6040897c01094705d1116f4e15042",
+    "fid_lab/simulation/digital_twin/world/delayed.py": "011f594683269dd6fc58dbea4175e4a5aac96cb2b0437b5e891c834e652235bb",
+    "fid_lab/simulation/digital_twin/platform/projection.py": "fd49b8af3bb68d524fc7a65028898115158748952ef4cb3c42b346b6927b18b1"
   },
-  "evidence_boundary": "This measures synthetic hidden user and supply agents, event generation, partial-traffic assignment, tensor idempotency and kernel transport throughput. The benchmark platform is not a retrieval or ranking model, so the report makes no recommendation-quality, A/B-lift or production-QPS claim."
+  "evidence_boundary": "This measures synthetic hidden user and supply agents, delayed outcome delivery, point-in-time observable projections, partial-traffic assignment, tensor idempotency and kernel throughput. The benchmark platform is not a retrieval or ranking model, so the report makes no recommendation-quality, A/B-lift or production-QPS claim."
 }

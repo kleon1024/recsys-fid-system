@@ -311,12 +311,12 @@ class SupplyEcosystem:
             events.creator_id[impression],
             torch.ones_like(events.creator_id[impression], dtype=torch.float),
         )
-        touched = exposure > 0
+        touched = (exposure + creator_gain + creator_loss) > 0
         response_rate = creator_gain / exposure.clamp_min(1.0)
         state.creator_motivation[touched] = (
             0.995 * state.creator_motivation[touched]
             + 0.06 * response_rate[touched]
-            - 0.04 * creator_loss[touched] / exposure[touched]
+            - 0.04 * creator_loss[touched] / exposure[touched].clamp_min(1.0)
         ).clamp(0.0, 1.0)
         order = events.event(EventType.ORDER) & valid_item
         order_item = events.item_id[order]
@@ -325,6 +325,23 @@ class SupplyEcosystem:
             0, order_item, torch.ones_like(order_item, dtype=torch.float),
         )
         state.item_inventory.sub_(0.04 * order_count).clamp_min_(0.0)
+        refund = events.event(EventType.REFUND) & valid_item
+        refund_item = events.item_id[refund]
+        refund_count = torch.zeros_like(state.item_inventory)
+        refund_count.index_add_(
+            0, refund_item, torch.ones_like(refund_item, dtype=torch.float),
+        )
+        state.item_inventory.add_(0.02 * refund_count).clamp_max_(1.0)
+        refund_merchant = events.merchant_id[refund]
+        reliability_loss = torch.zeros_like(state.merchant_reliability)
+        reliability_loss.index_add_(
+            0,
+            refund_merchant,
+            torch.ones_like(refund_merchant, dtype=torch.float),
+        )
+        state.merchant_reliability.sub_(
+            0.002 * reliability_loss
+        ).clamp_(0.05, 0.999)
         ad_impression = impression & (
             events.content_kind == int(ContentKind.AD)
         )
@@ -333,3 +350,21 @@ class SupplyEcosystem:
             spend = state.advertiser_bid[ad]
             state.advertiser_budget.index_add_(0, ad, -spend)
             state.advertiser_budget.clamp_min_(0.0)
+        pixel = events.event(EventType.PIXEL_CONVERSION)
+        pixel_advertiser = events.advertiser_id[pixel]
+        if len(pixel_advertiser):
+            observed_value = torch.zeros_like(state.advertiser_value)
+            conversion_count = torch.zeros_like(state.advertiser_value)
+            observed_value.index_add_(
+                0, pixel_advertiser, events.value[pixel].clamp_min(0.0),
+            )
+            conversion_count.index_add_(
+                0,
+                pixel_advertiser,
+                torch.ones_like(pixel_advertiser, dtype=torch.float),
+            )
+            converted = conversion_count > 0
+            state.advertiser_value[converted] = (
+                0.97 * state.advertiser_value[converted]
+                + 0.03 * observed_value[converted] / conversion_count[converted]
+            )

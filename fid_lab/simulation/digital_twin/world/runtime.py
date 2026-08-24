@@ -14,6 +14,7 @@ from ..contracts import (
     make_app_events,
 )
 from .behavior import response_events
+from .delayed import DelayedOutcomeQueue
 from .state import (
     UserWorldConfig,
     UserWorldSnapshot,
@@ -42,6 +43,13 @@ class UserEcosystemWorld:
         self.supply = SupplyEcosystem(
             catalog, config.environment_seed, config.ticks_per_day,
         )
+        self.delayed = DelayedOutcomeQueue(
+            catalog, config.environment_seed, config.ticks_per_day,
+        )
+
+    @property
+    def max_reporting_lag(self) -> int:
+        return 2 * self.config.ticks_per_day
 
     def snapshot(self) -> UserWorldSnapshot:
         return UserWorldSnapshot(self.users.clone(), self.catalog_truth)
@@ -169,7 +177,9 @@ class UserEcosystemWorld:
             query_events,
         ))
         return AppEventBatch.concatenate((
-            user_events, self.supply.schedule(logical_time),
+            user_events,
+            self.supply.schedule(logical_time),
+            self.delayed.due(logical_time),
         ))
 
     def respond(
@@ -187,9 +197,16 @@ class UserEcosystemWorld:
     def commit(self, events: AppEventBatch) -> None:
         if not len(events.event_id):
             return
+        self.delayed.acknowledge(events)
         self._commit_lifecycle(events)
         self._commit_engagement(events)
         self.supply.commit(events)
+        self.delayed.schedule_from(
+            events,
+            self.users,
+            self.catalog_truth,
+            self.supply.state,
+        )
 
     def _commit_lifecycle(self, events: AppEventBatch) -> None:
         state = self.users
@@ -247,7 +264,10 @@ class UserEcosystemWorld:
         }
         for event_type, weight in weights.items():
             positive_weight[events.event(event_type)] = weight
-        negative_weight = events.event(EventType.NEGATIVE).float()
+        negative_weight = (
+            events.event(EventType.NEGATIVE).float()
+            + 0.7 * events.event(EventType.REFUND).float()
+        )
         dwell = events.event(EventType.DWELL)
         dwell_value = torch.zeros_like(positive_weight)
         dwell_value[dwell] = torch.log1p(

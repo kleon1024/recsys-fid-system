@@ -55,6 +55,7 @@ class AssetGraph:
 
 DIGITAL_TWIN_ASSETS = AssetGraph((
     AssetSpec("world.exogenous", (), "world"),
+    AssetSpec("events.pending_delivery", ("world.exogenous",), "events"),
     AssetSpec("world.sessions", ("world.exogenous",), "world"),
     AssetSpec("platform.requests", ("world.sessions",), "platform"),
     AssetSpec(
@@ -62,7 +63,11 @@ DIGITAL_TWIN_ASSETS = AssetGraph((
     ),
     AssetSpec(
         "events.observable",
-        ("world.sessions", "platform.rendered_slates"),
+        (
+            "events.pending_delivery",
+            "world.sessions",
+            "platform.rendered_slates",
+        ),
         "events",
     ),
     AssetSpec(

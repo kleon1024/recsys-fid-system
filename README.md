@@ -174,8 +174,11 @@ requests and samples. The current
 covers 500K users, 2M catalog items and 16M slate candidates in one event-time
 microbatch. Creator publishing, merchant inventory and advertiser budget/bid
 agents now evolve from factual events in the same world. This is throughput
-evidence only; supply-to-platform projections, delayed outcomes, real
-retrieval and the frozen model ladder remain open migration phases.
+evidence only. Delayed order, payment, refund and Pixel outcomes now retain
+separate occurrence and ingestion times, and a point-in-time projection updates
+user counters, sequences, item/creator statistics and supply state only after
+delivery. The request-level Joiner, real retrieval and frozen model ladder
+remain open migration phases.
 
 ```mermaid
 flowchart LR

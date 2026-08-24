@@ -21,12 +21,16 @@ Status: design authority; implementation is not complete.
   消耗和可靠性回补库存；advertiser 根据广告曝光消耗预算并产生 pacing bid。
 - 曝光与实验 propensity、append-only tensor idempotency index、事件到事实 successor 的直接
   DAG 依赖。release decision 只决定未来 active policy，不能阻塞已经发生的事实行为。
+- DETAIL→ORDER→PAYMENT→REFUND 与 ad click→Pixel 使用 event-time pending queue；行为发生
+  时间和平台 ingest 时间分离，重复 schedule 在 acknowledge 前保持幂等。
+- Point-in-time platform projection 只消费已交付事件，维护用户行为 counter、surface
+  counter、ring sequence、item/creator counter、publish/inventory/bid 状态和双 watermark。
 - RTX 4090 已验证 500K 用户、2M item、16M candidate 的单 event-time 微批；报告见
   `reports/benchmarks/2026-08-24-digital-twin-v4-world-kernel-4090.json`。
 
-尚未落地：supply event 到 platform catalog/index 的 point-in-time projection、
-delayed-event queue、Joiner、真实多路召回与新模型 ladder。因此当前证据只证明因果边界、
-用户/供给行为执行和吞吐，不证明推荐质量或业务增量。
+尚未落地：request-level Joiner、真实多路召回与新模型 ladder。当前 projection 已经接收
+supply 和 delayed events，但还没有成为召回索引与训练样本的唯一 authority。因此当前证据
+只证明因果边界、用户/供给行为执行、迟到语义和吞吐，不证明推荐质量或业务增量。
 
 ## 1. 决策
 
@@ -218,16 +222,18 @@ day，也不是先跑完一个实验组再跑另一个实验组。每个请求�
 ```text
 Phase A — read-only snapshot
 1. schedule exogenous events and active sessions
-2. project observable state at watermark
-3. 对到达请求执行 eligibility 和正交实验稳定分桶
-4. 按 policy 临时聚合 GPU batch，但每个请求只执行一个 policy
-5. 把各 policy 输出恢复为原始 request/event-time 顺序
-6. world generates factual observable events with independent RNG channels
+2. deliver pending events whose ingest_time equals this logical time
+3. project only delivered observable state at watermark
+4. 对到达请求执行 eligibility 和正交实验稳定分桶
+5. 按 policy 临时聚合 GPU batch，但每个请求只执行一个 policy
+6. 把各 policy 输出恢复为原始 request/event-time 顺序
+7. world generates factual observable events with independent RNG channels
 
 Phase B — atomic commit
-7. merge同一 event-time 的 user、creator、inventory、budget 和 trend delta
-8. append events once with idempotency keys
-9. advance watermark and materialize downstream assets
+8. merge同一 ingest_time 的 user、creator、inventory、budget 和 trend delta
+9. append events once with idempotency keys
+10. enqueue future outcomes without making them observable early
+11. advance ingest/event watermarks and materialize downstream assets
 ```
 
 control/treatment 执行顺序、GPU microbatch 大小、user shard 数量和 candidate partition
@@ -243,6 +249,11 @@ cell 读取同一不可变 snapshot，且任何状态都只能在 Phase B 统一
 早到事件必须先提交并影响晚到请求；同一个 `event_time` 内才使用原子合并。延迟转化、退款
 和 Pixel 回传必须在真实 delivery time 重新进入 scheduler，禁止在产生请求时提前提交未来
 事件。
+
+`event_time` 表示行为实际发生时间，`ingest_time` 表示平台收到时间。ORDER/PAYMENT/REFUND
+通常两者相同但发生在未来；Pixel 可以先在第三方发生、后延迟回传，因此
+`event_time < ingest_time`。Feature projection 按 ingest time 更新，label maturity 按保守
+event watermark 判断，任何未交付事件都不能出现在训练或在线特征里。
 
 ## 7. Hidden ecosystem / DGP
 
@@ -506,6 +517,7 @@ DAG asset keys：
 
 ```text
 world.exogenous
+events.pending_delivery
 world.sessions
 platform.requests
 platform.rendered_slates
