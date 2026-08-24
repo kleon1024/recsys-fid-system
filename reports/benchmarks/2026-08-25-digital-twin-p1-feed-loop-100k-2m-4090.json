@@ -1,0 +1,79 @@
+{
+  "schema": "digital-twin-p1-feed-loop-benchmark-v1",
+  "date": "2026-08-25",
+  "status": "pass",
+  "device": "NVIDIA GeForce RTX 4090",
+  "scope": "two factual event-time partitions from posting through future Feed retrieval and seven-table materialization",
+  "quality_claim": false,
+  "configuration": {
+    "scenario": "feed_posting_cycle",
+    "users": 100000,
+    "catalog_items": 2000000,
+    "ticks": 2,
+    "routes": 12,
+    "route_k": 24,
+    "merged_k": 96,
+    "coarse_k": 48,
+    "fine_k": 16,
+    "expose_k": 8,
+    "history_length": 64,
+    "recall_negatives": 20
+  },
+  "runtime": {
+    "build_seconds": 80.84322281301138,
+    "materialize_seconds": 25.21210718000657,
+    "total_seconds": 106.05532999301795,
+    "process_wall_seconds": 108.13,
+    "peak_cuda_gib": 7.519723892211914,
+    "peak_cpu_rss_gib": 5.145305633544922,
+    "parquet_mib": 313
+  },
+  "dataset": {
+    "schema": "digital-twin-full-flow-dataset-v2",
+    "content_sha256": "6a33cfaba2c34ae557f30bad604602289c88f75c4046e3253ae0fc1362e91230",
+    "partition_content_sha256": {
+      "event_time=0": "84762be4a599e7ac87793f6b0461f177b9e2cc50888541b3289ac53f6c74a7a7",
+      "event_time=1": "67c41335a630c21cc4372d759ff66c131f7fd337930a8b40ddf7e8a25d8278df"
+    },
+    "rows": {
+      "v4_request_log": 194319,
+      "v4_route_candidate_log": 9710047,
+      "v4_candidate_decision_log": 9534737,
+      "v4_event_log": 4154725,
+      "v4_mature_label_log": 21894096,
+      "v4_training_example_log": 10509779,
+      "v4_checkpoint_log": 2
+    },
+    "total_rows": 55997705
+  },
+  "feed_loop": {
+    "published_posts": 32363,
+    "publish_failures": 20922,
+    "moderation_removals": 4944,
+    "published_posts_recalled_on_next_feed_tick": 31646,
+    "next_tick_recall_coverage": 0.9778450699873312,
+    "route_lifecycle_admission_violations": 0
+  },
+  "diagnosed_iteration": {
+    "before": {
+      "cold_start_policy": "global top-k",
+      "later_recalled_posts": 18,
+      "coverage": 0.000556190711615116
+    },
+    "after": {
+      "cold_start_policy": "deterministic request-level rotating exploration",
+      "later_recalled_posts": 31646,
+      "coverage": 0.9778450699873312
+    },
+    "root_cause": "all users shared one cold-start top-k, starving almost all new supply of feedback"
+  },
+  "acceptance": {
+    "two_partition_replay": true,
+    "post_to_future_feed_lineage": true,
+    "request_time_lifecycle": true,
+    "lifecycle_route_contract": true,
+    "capacity_failure_is_observable": true,
+    "gpu_memory_within_24_gib": true
+  },
+  "evidence_boundary": "This proves scalable synthetic Feed posting and consumption mechanics, lifecycle admission, replay lineage, and a diagnosed cold-start coverage iteration. It does not prove real-user calibration, causal LT lift, or production TikTok equivalence."
+}

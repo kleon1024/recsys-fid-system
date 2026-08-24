@@ -563,6 +563,18 @@ def acceptance_requirements(
     }
 
 
+def run_code_gates() -> None:
+    run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
+    run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
+    run([
+        sys.executable,
+        "-m",
+        "pytest",
+        "-q",
+        "tests/core/digital_twin",
+    ])
+
+
 def main() -> None:
     check_structure()
     check_public_docs()
@@ -573,8 +585,7 @@ def main() -> None:
     check_simulated_release()
     check_simulator_world_release()
     check_simulated_surface_releases()
-    run([sys.executable, "-m", "compileall", "-q", "fid_lab", "tests"])
-    run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"])
+    run_code_gates()
     benchmark = run([sys.executable, "-m", "fid_lab.online.benchmark"], capture=True)
     result = json.loads(benchmark.stdout)
     training_demo = run([sys.executable, "-m", "fid_lab.training.demo"], capture=True)

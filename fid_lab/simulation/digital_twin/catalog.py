@@ -24,6 +24,7 @@ class PublicCatalog:
     country: torch.Tensor
     region: torch.Tensor
     publish_time: torch.Tensor
+    evergreen_eligible: torch.Tensor
     duration_seconds: torch.Tensor
     quality_prior: torch.Tensor
     price: torch.Tensor
@@ -152,6 +153,17 @@ def build_public_catalog(
     historical_publish_time = -torch.floor(
         720.0 * uniform(item_id, 0, 127, platform_seed)
     ).long()
+    post_kind = (
+        (content_kind == int(ContentKind.SHORT_VIDEO))
+        | (content_kind == int(ContentKind.PHOTO))
+        | (content_kind == int(ContentKind.ARTICLE))
+        | (content_kind == int(ContentKind.CARD))
+    )
+    evergreen_eligible = (
+        post_kind
+        & (quality_prior >= 0.72)
+        & (uniform(item_id, 0, 163, platform_seed) < 0.24)
+    )
     return PublicCatalog(
         item_id=item_id,
         content_kind=content_kind,
@@ -169,6 +181,7 @@ def build_public_catalog(
             historical_publish_time,
             torch.full_like(item_id, torch.iinfo(torch.long).max),
         ),
+        evergreen_eligible=evergreen_eligible,
         duration_seconds=(
             4.0 + 176.0 * uniform(item_id, 0, 131, platform_seed).square()
         ),

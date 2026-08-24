@@ -2,7 +2,7 @@
 
 Status: design authority; implementation is not complete.
 
-The ordered implementation status, TODO register and acceptance gates live in
+The ordered implementation status, work register and acceptance gates live in
 the [v4 execution plan](../plans/digital-twin-v4-execution-plan.md). This document
 owns architecture invariants; the execution plan owns delivery status.
 

@@ -60,9 +60,19 @@ class EventType(IntEnum):
     LONG_VIEW = 27
     COMPLETE = 28
     DWELL = 29
+    PUBLISH_FAILED = 30
+    MODERATION_REMOVE = 31
+    CONTENT_DELETE = 32
+    CREATOR_EXIT = 33
 
 
-APP_EVENT_SCHEMA_VERSION = 2
+class PublishFailureReason(IntEnum):
+    NO_CAPACITY = 1
+    CREATOR_EXITED = 2
+    CREATOR_COOLDOWN = 3
+
+
+APP_EVENT_SCHEMA_VERSION = 4
 
 
 def _require_shape(name, value, shape):
@@ -145,6 +155,23 @@ class RenderedSlateBatch:
             for field in fields(self)
         })
 
+    @classmethod
+    def concatenate(cls, batches) -> RenderedSlateBatch:
+        batches = tuple(batch for batch in batches if len(batch.request_id))
+        if not batches:
+            raise ValueError("cannot concatenate an empty slate collection")
+        merged = cls(**{
+            field.name: torch.cat(tuple(
+                getattr(batch, field.name) for batch in batches
+            ))
+            for field in fields(cls)
+        })
+        order = torch.argsort(merged.request_id, stable=True)
+        ordered = merged.select(order)
+        if torch.unique(ordered.request_id).numel() != len(ordered.request_id):
+            raise ValueError("rendered requests must be unique")
+        return ordered
+
 
 @dataclass(frozen=True)
 class AppEventBatch:
@@ -159,6 +186,8 @@ class AppEventBatch:
     user_id: torch.Tensor
     surface: torch.Tensor
     item_id: torch.Tensor
+    post_id: torch.Tensor
+    source_candidate_id: torch.Tensor
     creator_id: torch.Tensor
     merchant_id: torch.Tensor
     advertiser_id: torch.Tensor
@@ -218,6 +247,8 @@ class AppEventBatch:
             user_id=integer.clone(),
             surface=integer.clone(),
             item_id=integer.clone(),
+            post_id=integer.clone(),
+            source_candidate_id=integer.clone(),
             creator_id=integer.clone(),
             merchant_id=integer.clone(),
             advertiser_id=integer.clone(),
@@ -287,6 +318,8 @@ def make_app_events(
     user_id: torch.Tensor,
     surface: torch.Tensor,
     item_id: torch.Tensor | None = None,
+    post_id: torch.Tensor | None = None,
+    source_candidate_id: torch.Tensor | None = None,
     position: torch.Tensor | None = None,
     experiment_cell: torch.Tensor | None = None,
     content_kind: torch.Tensor | None = None,
@@ -344,6 +377,8 @@ def make_app_events(
         user_id=user_id.long(),
         surface=surface.long(),
         item_id=items,
+        post_id=integer(post_id),
+        source_candidate_id=integer(source_candidate_id),
         creator_id=integer(creator_id),
         merchant_id=integer(merchant_id),
         advertiser_id=integer(advertiser_id),

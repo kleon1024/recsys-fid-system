@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25
+Updated: 2026-08-25 (P1 implementation and research audit)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -43,15 +43,20 @@ Public evidence establishes the transferable principles:
 ## 2. Current-state audit
 
 The audit below is the starting point. `Draft` means code exists in the working
-tree but has not passed the repository acceptance path.
+tree but has not passed the repository acceptance path. `Implemented` means the
+focused contract is executable; it does not mean the phase, benchmark or launch
+review is accepted.
 
-Latest local verification on 2026-08-25: the raw-route contract migration is
-complete and the focused v4/SQL suite has 42 passing tests. One CLI invocation
+The latest published P0 authority is commit
+`48769dd49000da64fcd5d28e24e651f0c724adb5`. P1 has passed its executable
+acceptance on the current working tree and is awaiting the publication commit.
+The unified remote gate runs 202 historical tests plus 49 focused v4 tests; the
+architecture lint has zero errors. One P0 CLI invocation
 materialized a 32-request fixture with all seven Parquet tables, table hashes,
 932 raw-route rows, 612 merged candidate decisions, 525 events, 1,632 task-label
 rows, 625 training examples and one checkpoint. This proves table closure and
-query execution at fixture scale; it does not yet prove GPU-scale logging cost,
-all seeded failure classes.
+query execution at fixture scale. The scale and seeded-failure claims below are
+separate P0 artifacts; they are not inferred from this small fixture.
 
 The RTX 4090 P0 standard run now covers 100K users, 2M catalog items and
 44,658,634 persisted rows. It completed in 74.34 seconds with 4.25 GiB peak
@@ -65,22 +70,44 @@ time partitions rather than one monolithic analytical snapshot.
 | Hidden user world boundary | Platform cannot directly read hidden preference state | Implemented | Held-out family calibration remains incomplete |
 | Atomic factual A/B world | One request receives one factual policy and commits once | Implemented | Longer-horizon interference tests remain incomplete |
 | Delayed outcomes | Order/payment/refund/Pixel occurrence and ingestion time are distinct | Implemented | Production-like loss/duplicate/orphan distributions need calibration |
-| Point-in-time projection | Only delivered events update observable state | Implemented | Multi-partition replay parity remains missing |
-| Request cascade trace | Raw route plus recall/coarse/fine/exposed masks and scores are retained | Implemented | Content lifecycle authority remains missing |
-| Feed retrieval mechanics | HNSW, graph, geo, fresh, long-tail, popular, search, retarget | Implemented | Taxonomy does not match the target Feed lifecycle |
+| Point-in-time projection | Delivered events, lifecycle transitions and removals replay across content-bound partitions | Implemented | P2 calibration remains |
+| Request cascade trace | Raw routes, request-time lifecycle, post lineage and every cascade stage are retained | Implemented | P3 proposal propensity and learned artifacts remain |
+| Feed retrieval mechanics | Six lifecycle-owned Feed routes plus six separately owned business routes | Implemented | Learned retrieval starts only after P2 |
 | Layered experiments | Ownership, independent assignment and composed factual policy | Implemented | Learned artifacts and continuous trainers are not connected |
-| Feed post creation | Creator supply can publish reserved items | Partial | A posting action does not create the exact immutable post later consumed |
-| Content lifecycle | Freshness and catalog timestamps exist | Partial | No 30-day recent authority, promotion, expiry or evergreen transition |
-| Public catalog anchors | Deterministic product/POI links are drafted | Draft | Must pass tests and become request/event lineage |
-| Behavior realism | Time, trend, freshness and drift additions are drafted | Draft | Must be calibrated by family and protected from feature leakage |
-| Full-chain analytical store | Seven Arrow/Parquet tables, hashes, DuckDB case/stage queries and ClickHouse SQL | Partial | Seeded recall/version failures, CH server and scale cost remain |
-| Recall/coarse/fine sample authorities | Typed examples and durable example index exist | Partial | Partitioned sample bus and trainer consumption remain |
+| Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
+| Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
+| Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
+| Behavior realism | Hidden state, examination, multi-action response, drift and delayed outcomes exist | Partial | Current response is still a hand-authored one-step SCM, not a calibrated neural-SCM ensemble |
+| Full-chain analytical store | Seven partitioned Parquet tables plus P1 lifecycle/post fields; DuckDB and ClickHouse agree | Implemented | P3 trainer consumption remains |
+| Recall/coarse/fine sample authorities | Typed request-level examples and partitioned replay authority exist | Partial | Recall negatives, propensity correction and trainer consumption remain |
 | Continuous learning | Historical demos exist outside v4 | Not connected | No active/candidate streaming lanes, checkpoints or snapshot gates |
 | Model ladder | Historical synthetic ladders exist | Invalid for v4 launch | Must train on the same factual request dataset and serving budget |
 | Search/Ads/Commerce/Live/Local | Surface actions and catalog types exist | Skeleton | Each lacks a closed business workflow and independent launch contract |
 
-Consequently, the current route Launch Reviews test mechanism plumbing only.
-They cannot yet decide whether Graph, Two-Tower or Multi-interest should launch.
+Consequently, current route Launch Reviews test mechanism plumbing only. They
+cannot yet decide whether Graph, Two-Tower or Multi-interest should launch, and
+no P1 result may be called an online-equivalent lift before the P1-P3 gates pass.
+
+## 2.1 Research disposition
+
+The research question is not whether a larger handcrafted DGP can make a neural
+ranker win. That would couple the evaluator to the desired model. The reviewed
+public systems establish a more defensible division of responsibility:
+
+| Evidence | What is adopted | What is explicitly not inferred |
+|---|---|---|
+| RecSim / RecSim NG | Entity-behavior-story decomposition, latent stochastic state, multi-agent ecosystem and accelerated vectorized execution | A configurable simulator is not automatically realistic |
+| SARDINE / RecLab | Recommendation changes future observations; policy order can change under feedback | Offline AUC is not online truth |
+| KuaiSim / RL4RS / Virtual-Taobao | Request, session and cross-session dynamics; learned response plus reality-gap and exploitation checks | One learned response model is not a causal oracle |
+| AAAI-25 LLM user simulator / RecInter | Semantic scenario generation, memory and environment-changing actions are useful challengers | Token agents are not the high-throughput numerical A/B authority |
+| Google recommender-ecosystem work | Consumer, creator, merchant and advertiser utilities interact over time | Creator value cannot be reduced to one immediate engagement label |
+| Google content-generation ranking | Sparse posting intent, conditional losses and personalized value are legitimate ranking targets | Public evidence does not reveal a proprietary production formula |
+| Monolith / Instagram Explore | Streaming feedback, multi-stage ranking and frequent refresh can create measurable freshness value | Faster training is not a launch unless served rankings and A/B outcomes change |
+
+Decision: keep the vectorized event kernel, but replace its final behavior
+authority with a calibrated partially observed neural structural causal model
+ensemble. Retain the deterministic formula world only for invariant tests. Add
+LLM agents only as a low-volume semantic and adversarial scenario lane.
 
 ## 3. Target system and invariants
 
@@ -197,7 +224,7 @@ Acceptance: a seeded fixture contains a known recall miss, coarse loss, fine
 misorder, mixer displacement, immature label and version mismatch; each query
 must identify the intended root cause independently of the producer code.
 
-## 5. User and supply world TODOs
+## 5. User and supply world work
 
 ### 5.1 User arrival, sessions and churn
 
@@ -392,6 +419,107 @@ Each surface owns its sample space, candidate authority, labels, model and
 Launch Review. Shared identity, content, experiment and event contracts prevent
 duplicate implementations.
 
+## 9.1 Audited work register
+
+This is the exhaustive v4 backlog. A new task must either refine one row or be
+added here with an owner, dependency and executable acceptance bar. A checkbox
+in another document is informative only; it cannot override this register.
+
+| ID | Owner / deliverable | Current state | Dependency | Acceptance evidence |
+|---|---|---|---|---|
+| P1-01 | Split retrieval into route registry, Feed lifecycle routes and business routes | Done | P0 | architecture lint and ownership tests pass |
+| P1-02 | Immutable post identity and posting source lineage | Done | P1-01 | publish→future candidate→creator trace and failure tests pass |
+| P1-03 | Lifecycle transition authority and indexes | Done | P1-01 | boundary, removal, ANN rebuild and deterministic replay tests pass |
+| P1-04 | Lifecycle/post observability | Done | P1-02/03 | request-time lifecycle and route admission pass DuckDB/ClickHouse |
+| P1-05 | Creator feedback, retention, deletion and moderation | Done for P1 mechanics | P1-02 | future supply, exit, delete and moderation tests pass; P2 owns calibration |
+| P1-06 | P1 scale and replay review | Done | P1-01..05 | 100K/2M/two-tick 4090 report passes with content hashes |
+| P2-01 | Correlated population generator | Missing in v4; current factors are mostly counter-random marginals | P1 | fit/sample users, creators and content with copula/flow or latent mixture; held-out joint statistics |
+| P2-02 | Arrival, timezone calendar, session and churn process | Partial | P2-01 | request/session/cross-session distributions and hazard calibration by cohort |
+| P2-03 | Exogenous/endogenous trend and concept drift | Partial formula | P2-01 | region/topic/time shocks, recovery and policy-independent counterfactual seed tests |
+| P2-04 | Neural slate response SCM | Missing; current authority is handwritten | P2-01/02 | set/attention slate encoder; censored watch-time and logically masked multi-action decoder |
+| P2-05 | Latent transition, return survival and creator response | Missing learned authority | P2-04 | free-running multi-step calibration, retention and supply trajectories without teacher forcing |
+| P2-06 | Ensemble uncertainty and causal noise | Counter RNG exists; ensemble missing | P2-04/05 | paired potential outcomes, world-member disagreement and support-distance report |
+| P2-07 | External evidence adapters | KuaiRand component exists outside v4 | P2-04 | versioned adapters for randomized, observational and historical A/B summaries; license manifest |
+| P2-08 | DGP validity suite | Research protocol exists, not connected | P2-01..07 | distribution, sequence, intervention, policy-order and anti-exploitation gates all executable |
+| P3-01 | Recall Joiner and corrected negatives | Typed shell only | P1/P2 | in-batch/exposed/mined negatives, false-negative mask, proposal probability and correction tests |
+| P3-02 | Coarse Joiner and teacher lineage | Partial typed example | P1/P2 | factual recall candidates, teacher logits/order, conflict samples and Top-K pass-through |
+| P3-03 | Fine Joiner and cascade labels | Partial typed example | P1/P2 | point-in-time features, sequences, conditional masks, delayed maturity and propensity/DR fields |
+| P3-04 | Streaming sample bus and checkpoint registry | Partition store exists; trainers missing | P3-01..03 | watermark/resume, active/candidate lanes, model-data-feature-index compatibility and fallback |
+| P3-05 | Feature/FID authority | Legacy implementation exists outside v4 | P3-03/04 | user/item/creator/context/route/counter/sequence/content manifests; collision and parity reports |
+| P3-06 | Retrieval model ladder | Only route-mechanism LR exists | P3-01/04 | fixed corpus/Top-K/latency Popular→Graph→Two-Tower→Multi-interest→generative reviews |
+| P3-07 | Coarse model ladder | Missing on v4 samples | P3-02/04/05 | Rule/LR/XGBoost/W&D/DeepFM/DCNv2/distillation with equal candidate and tuning budgets |
+| P3-08 | Fine model ladder | Missing on v4 samples | P3-03/04/05 | LR/XGBoost→deep crosses→DIN/Transformer→MMoE/PLE/HSTU with multi-task masks |
+| P3-09 | Request-aware evaluation and diagnostics | Partial | P3-06..08 | request GAUC, NDCG, calibration, Top-K delta, slices, latency and paired A/B attribution |
+| P4-01 | Primitive calibration and Value Tree | Missing in v4 | P3 | calibrated probabilities/magnitudes; versioned nonnegative exchange coefficients and sensitivity |
+| P4-02 | Unified LT measurement container | Design only | P4-01 | LT is an A/B outcome container, never a training label; MDE/power and business argue sheet |
+| P4-03 | COPP, dedup, diversity, quotas and multi-queue mixer | Missing | P4-01 | one final-slate owner; exposure dedup; load, displacement and constraint attribution |
+| P4-04 | Cadence ladder | Missing | P3-04 | daily/hourly/streaming comparisons with fixed model/features/traffic and cost/freshness curves |
+| P4-05 | Orthogonal experiment program | Assignment core exists | P3/P4 | compatibility graph, factual traffic allocation, SRM/A-A, feedback-aware analysis and rollback |
+| P5-01 | Search closed loop | Skeleton | P2-P4 | query/reformulation/retrieval/ranking/click/success/post-search Feed and independent LR |
+| P5-02 | Ads closed loop | Skeleton | P2-P4 | auction, pacing, budget interference, click/conversion delay, revenue and Feed guardrails |
+| P5-03 | Commerce closed loop | Skeleton | P2-P4 | shelf→detail→cart→order→payment/refund, stock and transaction value |
+| P5-04 | Local closed/open loops | Skeleton | P2-P4 | POI video/anchor→detail/map/YMAL→order plus Pixel identity/attribution/loss |
+| P5-05 | Posting recommendation | Feed posting identity only | P1-P4 | draft/media→POI/product/topic candidates→select→publish; user- and creator-randomized LR |
+| P5-06 | Live and format-specific loops | Skeleton | P2-P4 | room availability/enter/stay/gift and photo/card/article-specific examination/actions |
+| P6-01 | Scale profiles | P0 100K/2M evidence only | P1-P5 | 100K diagnostic, 1M standard, 10M stress on 4090 with fixed scenario manifests |
+| P6-02 | Tensor/GPU performance | Partial vectorization | P1-P5 | no per-request Python hot loop; numerical and semantic parity across batch sizes |
+| P6-03 | Failure injection and recovery | P0 seeded diagnostics only | P3-P5 | index/checkpoint mismatch, PS shard, feature delay, late labels, timeout, overload and recovery LR |
+| P6-04 | Legacy deletion and public release | Missing | all accepted successors | delete superseded `simulation/twin`, zero orphan authority, clean public scan and reproducible README |
+
+The research disposition for every row is settled. Remaining uncertainty is
+empirical and must be resolved by its acceptance artifact, not another design
+essay. In particular:
+
+- RecSim NG is a reference for decomposition and vectorization, not a dependency
+  to transplant wholesale into the PyTorch runtime.
+- Neural-SCM is an ensemble challenger trained from declared evidence; it does
+  not receive hidden fields as serving features and is not tuned to make MMoE win.
+- LLM simulation is bounded to semantic content, rare scenarios and adversarial
+  review; it never supplies numeric A/B truth.
+- OPE is allowed only where logged propensity and support exist. Otherwise the
+  report must say unsupported rather than fabricate a counterfactual lift.
+- A complex model may lose. The required output is an explained pass, hold or
+  reject with equal data, candidate, tuning and serving budgets.
+
+## 9.2 Dependency graph and next accepted slice
+
+```text
+P1 Feed supply-consumption closure
+  → P2 calibrated hidden ecosystem
+    → P3 request samples + continuous learned cascade
+      → P4 value, mixer, experiments and cadence
+        → P5 business surfaces
+          → P6 scale, failures and legacy deletion
+```
+
+P1-01 through P1-06 are accepted. The next slice is P2-01 through P2-08; P3
+learned-model work must not begin until the hidden-world validity suite can
+falsify a candidate simulator. P2 execution order is:
+
+```text
+correlated population generator
+→ arrival/session/churn and trend process
+→ neural slate response and censored multi-action decoder
+→ latent transition, survival and creator response
+→ ensemble causal noise and external evidence adapters
+→ distribution/sequence/intervention/policy/anti-exploitation gates
+→ P2 Launch Review
+```
+
+Accepted P1 command set:
+
+```text
+python -m fid_lab.check
+python -m fid_lab.simulation.digital_twin.observability.cli \
+  --output <content-addressed-p1-fixture> \
+  --scenario feed_posting_cycle --ticks 2
+```
+
+The repository gate and CLI must run on the same clean source state. The CLI
+must materialize a multi-tick fixture whose DuckDB and ClickHouse diagnostics
+agree. Focused tests and architecture lint are diagnostics inside the repository
+gate, not competing acceptance commands.
+
 ## 10. Ordered delivery phases
 
 ### P0 — Authority and observability
@@ -432,13 +560,18 @@ queries identify seeded failures. Full lineage exists from request to checkpoint
 
 ### P1 — Feed posting and content lifecycle
 
-Status: pending; highest product priority.
+Status: completed on 2026-08-25; publication commit pending.
 
-- Introduce immutable post creation and replace random reserved-item publication.
-- Implement the 30-day recent corpus and separate cold-start/hot/evergreen state
-  machines and indexes.
-- Replace current route taxonomy with the six core Feed authorities.
-- Close creator feedback, retention and future supply.
+- [Done] Introduce immutable post creation and replace random reserved-item
+  publication. `source_candidate_id` no longer aliases `post_id`.
+- [Done] Implement the observable 30-day recent corpus and separate
+  cold-start/hot/evergreen/expired state authority.
+- [Done] Replace the old fake six-route taxonomy with six core Feed authorities;
+  Local, Posting, Commerce, Live, Search and retarget routes have distinct owners.
+- [Done] Close factual creator feedback, retention mechanics, deletion,
+  moderation and future supply; P2 owns empirical calibration.
+- [Done] Add request-time lifecycle/post lineage to durable analytical rows,
+  split route ownership and pass DuckDB, ClickHouse, architecture and 4090 gates.
 
 Acceptance: one creator publish can be traced to later Feed candidates,
 impressions, consumption, creator feedback and subsequent posting; lifecycle
@@ -446,7 +579,7 @@ transitions are deterministic under replay.
 
 ### P2 — User-world families and calibration
 
-Status: pending.
+Status: research complete; implementation is the active phase.
 
 - Implement arrival/calendar/lifecycle mixtures, sessions, churn, trends,
   nonlinear response and held-out mechanisms.
@@ -458,7 +591,7 @@ country/timezone/activity/content/lifecycle slices; leakage probes fail closed.
 
 ### P3 — Streaming learning and learned cascade
 
-Status: pending.
+Status: contracts partial; trainers and v4 model ladders pending.
 
 - Build partitioned sample bus, three Joiners, active/candidate trainers,
   checkpoint registry and snapshot validation.
@@ -470,7 +603,7 @@ diagnosed reason; ranking delta, sample lineage and resource costs are auditable
 
 ### P4 — Value, policy and cadence
 
-Status: pending.
+Status: research complete; implementation pending on accepted P3 predictions.
 
 - Calibrate primitive predictions; add Value Tree, COPP, dedup/diversity, queues
   and cross-business load ownership.
@@ -483,7 +616,7 @@ nonnegative exchange, guardrails, rollback and cost curves.
 
 ### P5 — Multi-business systems
 
-Status: pending.
+Status: workflow contracts defined; implementations remain skeletons.
 
 - Complete Search, Ads, Commerce, Local, Posting, Live and photo/card/article in
   that order of dependency and available evidence.
@@ -493,7 +626,7 @@ independent experiment owner and documented final-mixer interaction.
 
 ### P6 — Scale, reliability and deletion
 
-Status: pending.
+Status: P0 scale baseline exists; end-state work pending.
 
 - Run 100K diagnostic, 1M standard and 10M high-complexity RTX 4090 protocols.
 - Tensorize environment and ranking hot paths; measure throughput, memory,
@@ -509,15 +642,23 @@ clean commit.
 
 ## 11. Research basis
 
+- [RecSim: configurable sequential user simulation](https://research.google/pubs/recsim-a-configurable-simulation-platform-for-recommender-systems/)
+- [RecSim NG: probabilistic multi-agent ecosystem and accelerated execution](https://google-research.github.io/recsim_ng/)
 - [RecFlow: An Industrial Full Flow Recommendation Dataset](https://arxiv.org/abs/2410.20868)
 - [KuaiSim: A Comprehensive Simulator for Recommender Systems](https://arxiv.org/abs/2309.12645)
 - [SARDINE: Dynamic and Interactive Recommendation Environments](https://arxiv.org/abs/2311.16586)
+- [RecInter: interaction-centric dynamic recommender simulation](https://aclanthology.org/2025.emnlp-main.956/)
+- [AAAI-25 LLM-Powered User Simulator](https://ojs.aaai.org/index.php/AAAI/article/view/33456)
 - [Monolith: Real Time Recommendation System](https://arxiv.org/abs/2209.07663)
 - [Scaling Instagram Explore Recommendations](https://engineering.fb.com/2023/08/09/ml-applications/scaling-instagram-explore-recommendations-system/)
 - [How Instagram Suggests New Content](https://engineering.fb.com/2020/12/10/web/how-instagram-suggests-new-content/)
 - [Content-based Related Video Recommendations](https://research.google/pubs/content-based-related-video-recommendations/)
 - [Co-optimize Content Generation and Consumption](https://research.google/pubs/co-optimize-content-generation-and-consumption-in-a-large-scale-video-recommendation-system/)
-- [Recommender Ecosystems: A Mechanism Design Perspective](https://ojs.aaai.org/index.php/AAAI/article/view/30266)
+- [Modeling Recommender Ecosystems](https://research.google/pubs/modeling-recommender-ecosystems-research-challenges-at-the-intersection-of-mechanism-design-reinforcement-learning-and-generative-models/)
+- [Provider-aware recommendation ecosystem simulation](https://research.google/pubs/towards-content-provider-aware-recommendation-systems-a-simulation-study-on-interplays-among-user-and-provider-utilities/)
+- [Slate off-policy evaluation](https://arxiv.org/abs/1605.04812)
 
-These sources support architecture and evaluation choices. They do not validate
-the simulator until the executable acceptance gates above pass.
+These sources support architecture and evaluation choices. RecInter and LLM
+simulator results justify an optional semantic-agent lane, not replacement of
+the reproducible vectorized numeric kernel. No source validates this simulator;
+only the executable acceptance gates above can accept a repository claim.

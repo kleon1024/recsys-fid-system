@@ -112,7 +112,7 @@ class CascadeRanker:
             0.35 * (self.catalog.country[item] == country[:, None]).float()
             + 0.65 * (self.catalog.region[item] == region[:, None]).float()
         )
-        creator = self.catalog.creator_id[item]
+        creator = state.item_creator_id[item]
         creator_rate = state.creator_engagements[creator] / (
             state.creator_impressions[creator].clamp_min(1.0)
         )

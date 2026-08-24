@@ -19,7 +19,7 @@ from .store import FULL_FLOW_SCHEMA_VERSION, _replace_json, materialize_full_flo
 from .tables import TABLE_NAMES
 
 
-DATASET_SCHEMA_VERSION = "digital-twin-full-flow-dataset-v1"
+DATASET_SCHEMA_VERSION = "digital-twin-full-flow-dataset-v2"
 _PARTITION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._=-]{0,127}$")
 
 
@@ -64,6 +64,7 @@ def _dataset_contract(manifest: dict[str, object]) -> dict[str, object]:
             "policy_registry_version",
             "route_names",
             "fid_version",
+            "lifecycle_version",
         )
     }
 

@@ -26,8 +26,14 @@ from ..platform import (
 from ..world import UserEcosystemWorld, UserWorldConfig
 
 
-BASE_ROUTES = ("popular",)
-ROUTE_LADDER = ("geo", "graph", "fresh", "long_tail", "ann")
+BASE_ROUTES = ("evergreen",)
+ROUTE_LADDER = (
+    "cold_start",
+    "recent_ann",
+    "recent_graph",
+    "following",
+    "hot",
+)
 COUNT_METRICS = {
     "play_3s": EventType.PLAY_3S,
     "long_view": EventType.LONG_VIEW,
@@ -336,7 +342,7 @@ def _run_one_review(
 def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
     device, kernel = _build_kernel(config)
     active_routes = BASE_ROUTES
-    active = _policy("feed-popular-v1", 1, active_routes)
+    active = _policy("feed-evergreen-v1", 1, active_routes)
     logical_time = 0
     _sync(device)
     started = time.perf_counter()

@@ -80,7 +80,7 @@ class ObservableEventLog:
 
     def manifest(self) -> dict[str, int | str]:
         return {
-            "schema": "observable-app-events-v2",
+            "schema": "observable-app-events-v4",
             "events": self._events,
             "batches": len(self._batches),
             "watermark": self.watermark,

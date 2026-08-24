@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import duckdb
+import pyarrow.compute as pc
 import pyarrow.parquet as pq
 import pytest
 
@@ -14,6 +15,7 @@ from fid_lab.simulation.digital_twin.observability import (
     TABLE_NAMES,
     append_full_flow_partition,
     build_full_flow_fixture,
+    build_full_flow_fixtures,
     build_full_flow_tables,
     materialize_full_flow,
     open_full_flow_dataset,
@@ -46,17 +48,37 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
     request = tables["v4_request_log"].to_pandas()
     assert request.index_version.eq("observable-index-t0").all()
     assert request.fid_version.eq("fid-v2").all()
+    assert request.lifecycle_version.eq("content-lifecycle-v1").all()
+    routes = tables["v4_route_candidate_log"].to_pandas()
+    assert routes.lifecycle_name.notna().all()
+    assert routes.route_admission_reason.isin({
+        "feed_lifecycle", "business_surface_contract",
+    }).all()
+    assert (routes.loc[routes.post_id >= 0, "post_id"] == routes.loc[
+        routes.post_id >= 0, "item_id"
+    ]).all()
     labels = tables["v4_mature_label_log"].to_pandas()
     assert labels.loc[~labels.label_mask, "label_value"].isna().all()
     examples = tables["v4_training_example_log"].to_pandas()
     assert set(examples.authority) == {"recall", "coarse", "fine"}
 
 
+def test_route_lifecycle_is_request_time_not_post_response_projection():
+    snapshot = _snapshot()
+    valid = snapshot.trace.route_valid
+    item = snapshot.trace.route_item_id[valid]
+    request_time = snapshot.trace.route_lifecycle_id[valid]
+    post_response = snapshot.projection.state.item_lifecycle[item]
+    assert (request_time != post_response).any()
+    table = build_full_flow_tables(snapshot)["v4_route_candidate_log"]
+    assert table["lifecycle_id"].to_pylist() == request_time.tolist()
+
+
 def test_parquet_manifest_is_content_bound_and_replayable(tmp_path):
     snapshot = _snapshot()
     manifest = materialize_full_flow(snapshot, tmp_path)
     persisted = json.loads((tmp_path / "manifest.json").read_text())
-    assert persisted["schema"] == "digital-twin-full-flow-v1"
+    assert persisted["schema"] == "digital-twin-full-flow-v2"
     assert set(persisted["tables"]) == set(TABLE_NAMES)
     for name in TABLE_NAMES:
         evidence = manifest["tables"][name]
@@ -88,6 +110,9 @@ def test_duckdb_case_and_stage_queries_execute_on_arrow_authority():
         ).fetchall()
     }
     assert {"coarse_filter", "fine_filter", "mixer_drop", "exposed"} <= stages
+    assert connection.execute(
+        "SELECT count(*) FROM v4_route_admission_violations"
+    ).fetchone()[0] == 0
 
 
 def test_seeded_failures_are_independently_diagnosed():
@@ -144,6 +169,42 @@ def test_partition_bus_resumes_exact_content_and_rejects_key_drift(tmp_path):
     altered = replace(snapshot, trace=altered_trace)
     with pytest.raises(ValueError, match="different content"):
         append_full_flow_partition(altered, tmp_path, "event_time=0")
+
+
+def test_multi_tick_posting_cycle_is_queryable_without_reconstructing_world(
+    tmp_path,
+):
+    snapshots = build_full_flow_fixtures(FullFlowFixtureConfig(
+        users=256,
+        items=4_000,
+        scenario="feed_posting_cycle",
+    ), ticks=2)
+    for logical_time, snapshot in enumerate(snapshots):
+        append_full_flow_partition(
+            snapshot, tmp_path, f"event_time={logical_time}",
+        )
+    dataset = open_full_flow_dataset(tmp_path)
+    events = dataset["v4_event_log"].to_table()
+    published = events.filter(
+        pc.equal(events["event_name"], "publish")
+    )["post_id"].to_pylist()
+    assert published
+    routes = dataset["v4_route_candidate_log"].to_table().to_pandas()
+    requests = dataset["v4_request_log"].to_table().to_pandas()
+    later_request = set(requests.loc[requests.event_time == 1, "request_id"])
+    later = routes.loc[routes.request_id.isin(later_request)]
+    recalled_published = set(published) & set(later.post_id)
+    assert len(recalled_published) >= min(len(set(published)), 16)
+    tables = {name: source.to_table() for name, source in dataset.items()}
+    connection = duckdb.connect()
+    register_full_flow(connection, tables)
+    install_diagnostics(
+        connection,
+        ROOT / "sql" / "duckdb" / "v4_full_flow_diagnostics.sql",
+    )
+    assert connection.execute(
+        "SELECT count(*) FROM v4_route_admission_violations"
+    ).fetchone()[0] == 0
 
 
 def test_partition_verifier_rejects_corrupted_parquet(tmp_path):

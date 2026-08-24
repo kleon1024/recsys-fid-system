@@ -69,6 +69,15 @@ def event_keys(events, event_type):
     ))
 
 
+def publish_source_keys(events):
+    selected = events.event(EventType.PUBLISH)
+    return set(zip(
+        events.request_id[selected].tolist(),
+        events.source_candidate_id[selected].tolist(),
+        strict=True,
+    ))
+
+
 class CatalogPlatform:
     def __init__(self, catalog, width=12, users=None):
         self.catalog = catalog
@@ -155,9 +164,14 @@ def test_world_emits_observable_session_and_cascade_events_only():
     assert event_keys(events, EventType.PAYMENT) <= event_keys(
         events, EventType.ORDER,
     )
-    assert event_keys(events, EventType.PUBLISH) <= event_keys(
+    assert publish_source_keys(events) <= event_keys(
         events, EventType.CREATE,
     )
+    published = events.event(EventType.PUBLISH)
+    assert torch.equal(events.item_id[published], events.post_id[published])
+    assert (
+        events.item_id[published] != events.source_candidate_id[published]
+    ).all()
 
 
 def run_real_world(cell_order):

@@ -15,7 +15,7 @@ from .failure_fixture import seed_diagnostic_failures
 from .tables import iter_full_flow_tables
 
 
-FULL_FLOW_SCHEMA_VERSION = "digital-twin-full-flow-v1"
+FULL_FLOW_SCHEMA_VERSION = "digital-twin-full-flow-v2"
 
 
 def _replace_json(path: Path, value: dict[str, object]) -> None:
@@ -73,6 +73,7 @@ def materialize_full_flow(
             "route_names": list(snapshot.trace.manifest.route_names),
             "index_version": snapshot.trace.manifest.index_version,
             "fid_version": snapshot.trace.manifest.fid_version,
+            "lifecycle_version": snapshot.trace.manifest.lifecycle_version,
         },
         "tables": {},
     }

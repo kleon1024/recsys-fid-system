@@ -8,7 +8,7 @@ import torch
 
 from ...randomness.counter import normal, uniform
 from ..catalog import PublicCatalog
-from ..contracts import Surface
+from ..contracts import ContentKind, Surface
 
 
 @dataclass(frozen=True)
@@ -40,6 +40,7 @@ class UserWorldConfig:
 @dataclass
 class HiddenUserState:
     user_id: torch.Tensor
+    creator_id: torch.Tensor
     country: torch.Tensor
     region: torch.Tensor
     timezone_offset: torch.Tensor
@@ -84,6 +85,12 @@ class UserWorldSnapshot:
     catalog_truth: HiddenCatalogTruth
     ticks_per_day: int
     environment_seed: int
+    item_creator_id: torch.Tensor
+    item_product_id: torch.Tensor
+    item_poi_id: torch.Tensor
+    item_country: torch.Tensor
+    item_region: torch.Tensor
+    item_publish_time: torch.Tensor
 
 
 def topic_prototypes(catalog: PublicCatalog, topics: int) -> torch.Tensor:
@@ -173,8 +180,23 @@ def build_hidden_users(
         torch.zeros_like(user),
     )
     base = uniform(user, 0, 1_063, config.environment_seed)
+    post_kind = (
+        (catalog.content_kind == int(ContentKind.SHORT_VIDEO))
+        | (catalog.content_kind == int(ContentKind.PHOTO))
+        | (catalog.content_kind == int(ContentKind.ARTICLE))
+        | (catalog.content_kind == int(ContentKind.CARD))
+    )
+    reserved_creators = torch.unique(
+        catalog.creator_id[~catalog.active & post_kind], sorted=True,
+    )
+    if not len(reserved_creators):
+        reserved_creators = torch.unique(catalog.creator_id, sorted=True)
+    creator_id = reserved_creators[
+        torch.remainder(user * 503 + 17, len(reserved_creators))
+    ]
     return HiddenUserState(
         user_id=user,
+        creator_id=creator_id,
         country=country,
         region=region,
         timezone_offset=(country * 3 + segment).remainder(24) - 12,

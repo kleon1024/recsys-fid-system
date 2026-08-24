@@ -57,6 +57,12 @@ class UserEcosystemWorld:
             self.catalog_truth,
             self.config.ticks_per_day,
             self.config.environment_seed,
+            self.supply.state.item_creator_id.clone(),
+            self.supply.state.item_product_id.clone(),
+            self.supply.state.item_poi_id.clone(),
+            self.supply.state.item_country.clone(),
+            self.supply.state.item_region.clone(),
+            self.supply.state.item_publish_time.clone(),
         )
 
     def _surface(self, user: torch.Tensor, logical_time: int) -> torch.Tensor:
@@ -135,6 +141,7 @@ class UserEcosystemWorld:
             request_id=registration_request,
             user_id=registration_user,
             surface=torch.full_like(registration_user, -1),
+            creator_id=state.creator_id[registration_user],
             country=state.country[registration_user],
             region=state.region[registration_user],
         )
@@ -192,12 +199,13 @@ class UserEcosystemWorld:
         snapshot: UserWorldSnapshot,
         slate: RenderedSlateBatch,
     ) -> AppEventBatch:
-        return response_events(
+        events = response_events(
             snapshot,
             self.catalog,
             slate,
             self.config.environment_seed,
         )
+        return self.supply.materialize_user_posts(events)
 
     def commit(self, events: AppEventBatch) -> None:
         if not len(events.event_id):

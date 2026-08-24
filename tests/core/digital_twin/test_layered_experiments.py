@@ -60,14 +60,14 @@ def _plan() -> LayeredExperimentPlan:
     return LayeredExperimentPlan(
         CascadePolicy(
             "active", 1, 1, 1,
-            enabled_routes=("popular",),
+            enabled_routes=("evergreen",),
         ),
         (
             PolicyLayer(
                 "retrieval",
                 101,
                 {
-                    "enabled_routes": ("popular", "geo"),
+                    "enabled_routes": ("evergreen", "cold_start"),
                     "recall_version_id": 2,
                 },
                 0.3,

@@ -9,7 +9,7 @@ import time
 
 import torch
 
-from .fixture import FullFlowFixtureConfig, build_full_flow_fixture
+from .fixture import FullFlowFixtureConfig, build_full_flow_fixtures
 from .dataset import append_full_flow_partition
 from .store import materialize_full_flow
 
@@ -30,12 +30,16 @@ def main() -> None:
     parser.add_argument("--seed-failures", action="store_true")
     parser.add_argument("--partition-key")
     parser.add_argument("--logical-time", type=int, default=0)
+    parser.add_argument("--ticks", type=int, default=1)
+    parser.add_argument(
+        "--scenario", choices=("mixed", "feed_posting_cycle"), default="mixed",
+    )
     args = parser.parse_args()
     device = torch.device(args.device)
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
     started = time.perf_counter()
-    snapshot = build_full_flow_fixture(FullFlowFixtureConfig(
+    snapshots = build_full_flow_fixtures(FullFlowFixtureConfig(
         users=args.users,
         items=args.items,
         device=args.device,
@@ -47,22 +51,31 @@ def main() -> None:
         history_length=args.history_length,
         recall_negatives=args.recall_negatives,
         logical_time=args.logical_time,
-    ))
+        scenario=args.scenario,
+    ), ticks=args.ticks)
     if device.type == "cuda":
         torch.cuda.synchronize(device)
     built = time.perf_counter()
-    if args.partition_key:
+    if args.ticks > 1 and args.partition_key:
+        raise ValueError("partition-key cannot name multiple tick partitions")
+    if args.ticks > 1:
+        manifest = [
+            append_full_flow_partition(
+                snapshot,
+                args.output,
+                f"event_time={args.logical_time + offset}",
+                seed_failures=args.seed_failures,
+            )
+            for offset, snapshot in enumerate(snapshots)
+        ]
+    elif args.partition_key:
         manifest = append_full_flow_partition(
-            snapshot,
-            args.output,
-            args.partition_key,
+            snapshots[0], args.output, args.partition_key,
             seed_failures=args.seed_failures,
         )
     else:
         manifest = materialize_full_flow(
-            snapshot,
-            args.output,
-            seed_failures=args.seed_failures,
+            snapshots[0], args.output, seed_failures=args.seed_failures,
         )
     if device.type == "cuda":
         torch.cuda.synchronize(device)

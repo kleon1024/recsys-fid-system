@@ -108,7 +108,7 @@ def _latent_utility(
     ))
     style = users.response_style[row]
     event_time = slate.event_time[:, None]
-    age = (event_time - catalog.publish_time[item]).clamp_min(0).float()
+    age = (event_time - snapshot.item_publish_time[item]).clamp_min(0).float()
     freshness = torch.exp(-age / (2.0 * snapshot.ticks_per_day))
     day = torch.div(
         event_time, snapshot.ticks_per_day, rounding_mode="floor",
@@ -148,7 +148,7 @@ def _latent_utility(
     posting = _surface_mask(slate, Surface.POSTING)
     feed = _surface_mask(slate, Surface.FEED)
     live_or_feed = feed | _surface_mask(slate, Surface.LIVE)
-    local_anchor = (catalog.poi_id[item] >= 0).float()
+    local_anchor = (snapshot.item_poi_id[item] >= 0).float()
     fresh_content = (
         (catalog.content_kind[item] == int(ContentKind.SHORT_VIDEO))
         | (catalog.content_kind[item] == int(ContentKind.PHOTO))
@@ -272,8 +272,23 @@ def _events_for_mask(
         return AppEventBatch.empty(slate.request_id.device)
     item = slate.item_ids[row, position]
     kind = catalog.content_kind[item]
-    product = catalog.product_id[item]
-    poi = catalog.poi_id[item]
+    product = snapshot.item_product_id[item]
+    poi = snapshot.item_poi_id[item]
+    creator = snapshot.item_creator_id[item]
+    posting_outcome = event_type in {EventType.CREATE, EventType.PUBLISH}
+    if posting_outcome:
+        creator = snapshot.users.creator_id[slate.user_id[row]]
+    post_kind = (
+        (kind == int(ContentKind.SHORT_VIDEO))
+        | (kind == int(ContentKind.PHOTO))
+        | (kind == int(ContentKind.ARTICLE))
+        | (kind == int(ContentKind.CARD))
+    )
+    post = torch.where(post_kind, item, torch.full_like(item, -1))
+    source_candidate = torch.full_like(item, -1)
+    if posting_outcome:
+        post = torch.full_like(item, -1)
+        source_candidate = item
     order_id = (
         slate.request_id[row] * 10_000 + position
         if event_type in {EventType.ORDER, EventType.PAYMENT}
@@ -286,13 +301,15 @@ def _events_for_mask(
         user_id=slate.user_id[row],
         surface=slate.surface[row],
         item_id=item,
+        post_id=post,
+        source_candidate_id=source_candidate,
         position=position,
         experiment_cell=slate.ui_variant[row],
         content_kind=kind,
         topic_id=catalog.topic_id[item],
         country=snapshot.users.country[slate.user_id[row]],
         region=snapshot.users.region[slate.user_id[row]],
-        creator_id=catalog.creator_id[item],
+        creator_id=creator,
         merchant_id=catalog.merchant_id[item],
         advertiser_id=catalog.advertiser_id[item],
         product_id=product,

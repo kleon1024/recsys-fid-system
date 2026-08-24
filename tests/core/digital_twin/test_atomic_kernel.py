@@ -6,6 +6,7 @@ import torch
 
 from fid_lab.simulation.digital_twin import (
     AppEventBatch,
+    APP_EVENT_SCHEMA_VERSION,
     AtomicSimulationKernel,
     EventType,
     ExperimentPlan,
@@ -27,7 +28,9 @@ def event_batch(
         event_id=deterministic_event_id(
             request_id, event_types, item_id, ordinal
         ),
-        schema_version=torch.full((rows,), 2, dtype=torch.long),
+        schema_version=torch.full(
+            (rows,), APP_EVENT_SCHEMA_VERSION, dtype=torch.long,
+        ),
         event_type=event_types,
         event_time=torch.full((rows,), logical_time, dtype=torch.long),
         ingest_time=torch.full((rows,), logical_time, dtype=torch.long),
@@ -35,6 +38,8 @@ def event_batch(
         user_id=user_id,
         surface=torch.remainder(user_id, 6),
         item_id=item_id,
+        post_id=integer_missing.clone(),
+        source_candidate_id=integer_missing.clone(),
         creator_id=integer_missing.clone(),
         merchant_id=integer_missing.clone(),
         advertiser_id=integer_missing.clone(),

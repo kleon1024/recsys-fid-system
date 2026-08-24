@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from ..catalog import PublicCatalog
 from ..contracts import AppEventBatch
 from ..engine import LayerAssignmentTrace
+from ..platform.projection import ProjectionSnapshot
 from ..samples.contracts import (
     JoinedSampleAuthorities,
     RequestCandidateTrace,
@@ -37,6 +38,7 @@ class FullFlowSnapshot:
     context: RequestContextBatch
     events: AppEventBatch
     samples: JoinedSampleAuthorities
+    projection: ProjectionSnapshot
     checkpoints: tuple[CheckpointRecord, ...] = ()
     layer_assignment: LayerAssignmentTrace | None = None
 
@@ -45,6 +47,8 @@ class FullFlowSnapshot:
             raise ValueError("full-flow trace and context are misaligned")
         if self.samples.manifest != self.trace.manifest:
             raise ValueError("full-flow sample and trace manifests differ")
+        if self.projection.as_of_ingest_time < int(self.trace.event_time.max()):
+            raise ValueError("full-flow projection predates request trace")
         if self.layer_assignment is not None and not self.trace.request_id.equal(
             self.layer_assignment.request_id
         ):

@@ -9,6 +9,8 @@ import pyarrow as pa
 import torch
 
 from ..contracts import EventType
+from ..platform.lifecycle import ContentLifecycle, post_content_mask
+from ..platform.route_contracts import FEED_ROUTE_NAMES
 from .contracts import CheckpointRecord, FullFlowSnapshot
 
 
@@ -20,6 +22,10 @@ TABLE_NAMES = (
     "v4_mature_label_log",
     "v4_training_example_log",
     "v4_checkpoint_log",
+)
+
+LIFECYCLE_NAMES = np.asarray(
+    [state.name.lower() for state in ContentLifecycle], dtype=object,
 )
 
 
@@ -66,6 +72,7 @@ def _request_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "query_topic": _numpy(trace.query_topic),
         "user_country": _numpy(trace.user_country),
         "user_region": _numpy(trace.user_region),
+        "user_creator_id": _numpy(trace.user_creator_id),
         "experiment_cell": _numpy(trace.experiment_cell),
         "assignment_probability": _numpy(trace.assignment_probability),
         "recall_version_id": _numpy(trace.recall_version_id),
@@ -83,6 +90,9 @@ def _request_table(snapshot: FullFlowSnapshot) -> pa.Table:
         ] * len(trace.request_id),
         "index_version": [trace.manifest.index_version] * len(trace.request_id),
         "fid_version": [trace.manifest.fid_version] * len(trace.request_id),
+        "lifecycle_version": [
+            trace.manifest.lifecycle_version
+        ] * len(trace.request_id),
         "user_event_counts": _fixed_list(context.user_event_counts),
         "user_surface_counts": _fixed_list(context.user_surface_counts),
         "history_item_id": _fixed_list(context.history_item_id),
@@ -104,6 +114,7 @@ def _request_table(snapshot: FullFlowSnapshot) -> pa.Table:
 
 def _route_table(snapshot: FullFlowSnapshot) -> pa.Table:
     trace, catalog = snapshot.trace, snapshot.catalog
+    state = snapshot.projection.state
     requests, routes, width = trace.route_item_id.shape
     request = trace.request_id[:, None, None].expand(requests, routes, width)
     route = torch.arange(routes, device=trace.request_id.device)[None, :, None]
@@ -114,19 +125,32 @@ def _route_table(snapshot: FullFlowSnapshot) -> pa.Table:
     route_id = _numpy(route[valid])
     names = np.asarray(trace.manifest.route_names, dtype=object)[route_id]
     item = trace.route_item_id[valid]
+    lifecycle = trace.route_lifecycle_id[valid]
+    post = torch.where(
+        post_content_mask(catalog.content_kind[item]),
+        item,
+        torch.full_like(item, -1),
+    )
+    feed_route = np.isin(names, np.asarray(FEED_ROUTE_NAMES, dtype=object))
     return pa.table({
         "request_id": _numpy(request[valid]),
         "route_id": route_id,
         "route_name": names,
         "route_rank": _numpy(rank[valid]),
         "item_id": _numpy(item),
+        "post_id": _numpy(post),
         "content_kind": _numpy(catalog.content_kind[item]),
-        "creator_id": _numpy(catalog.creator_id[item]),
-        "country": _numpy(catalog.country[item]),
-        "region": _numpy(catalog.region[item]),
-        "publish_time": _numpy(catalog.publish_time[item]),
-        "product_id": _numpy(catalog.product_id[item]),
-        "poi_id": _numpy(catalog.poi_id[item]),
+        "creator_id": _numpy(state.item_creator_id[item]),
+        "country": _numpy(state.item_country[item]),
+        "region": _numpy(state.item_region[item]),
+        "publish_time": _numpy(state.item_publish_time[item]),
+        "product_id": _numpy(state.item_product_id[item]),
+        "poi_id": _numpy(state.item_poi_id[item]),
+        "lifecycle_id": _numpy(lifecycle),
+        "lifecycle_name": LIFECYCLE_NAMES[_numpy(lifecycle)],
+        "route_admission_reason": np.where(
+            feed_route, "feed_lifecycle", "business_surface_contract",
+        ),
         "route_score": _numpy(trace.route_score[valid]),
         "candidate_valid": np.ones(int(valid.sum()), dtype=np.bool_),
         "recall_version_id": _numpy(
@@ -139,6 +163,7 @@ def _route_table(snapshot: FullFlowSnapshot) -> pa.Table:
 
 def _candidate_table(snapshot: FullFlowSnapshot) -> pa.Table:
     trace, catalog = snapshot.trace, snapshot.catalog
+    state = snapshot.projection.state
     valid = trace.recall_item_id >= 0
     coarse, coarse_rank, coarse_score = _stage_membership(
         trace.recall_item_id, trace.coarse_item_id, trace.coarse_score,
@@ -160,6 +185,12 @@ def _candidate_table(snapshot: FullFlowSnapshot) -> pa.Table:
     )[None].expand_as(trace.recall_item_id) + 1
     request = trace.request_id[:, None].expand_as(trace.recall_item_id)
     item = trace.recall_item_id[valid]
+    lifecycle = trace.recall_lifecycle_id[valid]
+    post = torch.where(
+        post_content_mask(catalog.content_kind[item]),
+        item,
+        torch.full_like(item, -1),
+    )
     request_time = trace.event_time[:, None].expand_as(
         trace.recall_item_id
     )[valid]
@@ -171,14 +202,19 @@ def _candidate_table(snapshot: FullFlowSnapshot) -> pa.Table:
     return pa.table({
         "request_id": _numpy(request[valid]),
         "item_id": _numpy(item),
+        "post_id": _numpy(post),
         "content_kind": _numpy(catalog.content_kind[item]),
-        "creator_id": _numpy(catalog.creator_id[item]),
-        "country": _numpy(catalog.country[item]),
-        "region": _numpy(catalog.region[item]),
-        "publish_time": _numpy(catalog.publish_time[item]),
-        "content_age": _numpy((request_time - catalog.publish_time[item]).clamp_min(0)),
-        "product_id": _numpy(catalog.product_id[item]),
-        "poi_id": _numpy(catalog.poi_id[item]),
+        "creator_id": _numpy(state.item_creator_id[item]),
+        "country": _numpy(state.item_country[item]),
+        "region": _numpy(state.item_region[item]),
+        "publish_time": _numpy(state.item_publish_time[item]),
+        "content_age": _numpy(
+            (request_time - state.item_publish_time[item]).clamp_min(0)
+        ),
+        "product_id": _numpy(state.item_product_id[item]),
+        "poi_id": _numpy(state.item_poi_id[item]),
+        "lifecycle_id": _numpy(lifecycle),
+        "lifecycle_name": LIFECYCLE_NAMES[_numpy(lifecycle)],
         "route_bits": _numpy(trace.recall_route_id[valid]),
         "recall_rank": _numpy(recall_rank[valid]),
         "recall_score": _numpy(trace.recall_score[valid]),

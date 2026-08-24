@@ -47,6 +47,30 @@ FROM v4_route_candidate_log
 GROUP BY route_name
 ORDER BY candidates DESC;
 
+-- Lifecycle admission is an observable route contract, not an inferred score.
+SELECT
+    route_name,
+    lifecycle_name,
+    route_admission_reason,
+    count() AS candidates,
+    uniqExact(request_id) AS requests,
+    uniqExactIf(post_id, post_id >= 0) AS unique_posts
+FROM v4_route_candidate_log
+GROUP BY route_name, lifecycle_name, route_admission_reason
+ORDER BY route_name, lifecycle_name;
+
+-- This query must return zero rows for an accepted P1 partition.
+SELECT *
+FROM v4_route_candidate_log
+WHERE
+    (route_name IN ('recent_ann', 'recent_graph') AND lifecycle_name != 'recent')
+    OR (route_name = 'following' AND lifecycle_name NOT IN (
+        'cold_start', 'recent', 'hot', 'evergreen'
+    ))
+    OR (route_name = 'cold_start' AND lifecycle_name != 'cold_start')
+    OR (route_name = 'hot' AND lifecycle_name != 'hot')
+    OR (route_name = 'evergreen' AND lifecycle_name != 'evergreen');
+
 SELECT
     left.route_name AS left_route,
     right.route_name AS right_route,
@@ -88,14 +112,14 @@ FROM v4_candidate_decision_log
 GROUP BY drop_stage
 ORDER BY candidates DESC;
 
--- Observable country/region/content/age slices. Content lifecycle is added by
--- P1; age is retained in ticks here rather than guessed as a wall-clock unit.
+-- Observable country/region/content/age/lifecycle slices.
 SELECT
     request.user_country,
     request.user_region,
     candidate.content_kind,
     candidate.country AS item_country,
     candidate.region AS item_region,
+    candidate.lifecycle_name,
     intDiv(candidate.content_age, 96) AS content_age_days,
     candidate.drop_stage,
     count() AS candidates

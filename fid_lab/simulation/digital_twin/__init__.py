@@ -1,10 +1,12 @@
 """Causal, event-driven recommendation ecosystem simulator."""
 
 from .contracts import (
+    APP_EVENT_SCHEMA_VERSION,
     AppEventBatch,
     ContentKind,
     EventType,
     PlatformRequestBatch,
+    PublishFailureReason,
     RenderedSlateBatch,
     Surface,
     make_app_events,
@@ -27,6 +29,8 @@ from .observability import (
 from .experiments.layered import LayeredExperimentPlan, PolicyLayer
 from .platform import (
     CascadePolicy,
+    ContentLifecycle,
+    LifecycleConfig,
     ObservableProjection,
     ProjectionSnapshot,
     RankingConfig,
@@ -55,8 +59,10 @@ from .world import (
 
 __all__ = (
     "AppEventBatch",
+    "APP_EVENT_SCHEMA_VERSION",
     "AtomicSimulationKernel",
     "CascadePolicy",
+    "ContentLifecycle",
     "CheckpointRecord",
     "ContentKind",
     "DelayedOutcomeQueue",
@@ -68,10 +74,12 @@ __all__ = (
     "LayeredExperimentPlan",
     "HiddenSupplyState",
     "JoinerConfig",
+    "LifecycleConfig",
     "ObservableEventLog",
     "ObservableProjection",
     "PlatformRequestBatch",
     "PolicyLayer",
+    "PublishFailureReason",
     "PublicCatalog",
     "ProjectionSnapshot",
     "RequestCandidateTrace",

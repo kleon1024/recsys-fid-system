@@ -19,6 +19,7 @@ from ..samples.contracts import (
 )
 from ..samples.joiner import capture_request_context
 from .projection import ObservableProjection, ProjectionSnapshot
+from .lifecycle import LIFECYCLE_POLICY_VERSION, LifecycleConfig
 from .ranking import CascadePolicy, CascadeRanker, RankingConfig
 from .requests import open_platform_requests
 from .retrieval import MultiRouteRetriever, RetrievalConfig
@@ -33,9 +34,10 @@ class ReferencePlatformConfig:
     catalog_version: str = "public-catalog-v1"
     policy_registry_version: str = "reference-policy-registry-v1"
     fid_version: str = "fid-v2"
+    ticks_per_day: int = 96
 
     def __post_init__(self):
-        if self.users <= 0 or self.history_length <= 0:
+        if self.users <= 0 or self.history_length <= 0 or self.ticks_per_day <= 0:
             raise ValueError("reference platform dimensions must be positive")
 
 
@@ -58,7 +60,10 @@ class ReferenceRecommendationPlatform:
         self.config = config
         self.catalog = catalog
         self.projection = ObservableProjection(
-            config.users, catalog, config.history_length,
+            config.users,
+            catalog,
+            config.history_length,
+            LifecycleConfig(ticks_per_day=config.ticks_per_day),
         )
         self.retriever = MultiRouteRetriever(
             catalog, retrieval_config or RetrievalConfig(),
@@ -103,6 +108,20 @@ class ReferenceRecommendationPlatform:
             requests, snapshot.projection.state, retrieval, policy,
         )
         valid = ranked.exposed_item_id >= 0
+        route_lifecycle = torch.where(
+            retrieval.route_valid,
+            snapshot.projection.state.item_lifecycle[
+                retrieval.route_item_id.clamp_min(0)
+            ],
+            torch.full_like(retrieval.route_item_id, -1),
+        )
+        recall_lifecycle = torch.where(
+            retrieval.item_id >= 0,
+            snapshot.projection.state.item_lifecycle[
+                retrieval.item_id.clamp_min(0)
+            ],
+            torch.full_like(retrieval.item_id, -1),
+        )
         exposure_probability = valid.float()
         slate = RenderedSlateBatch(
             request_id=requests.request_id,
@@ -127,13 +146,18 @@ class ReferenceRecommendationPlatform:
             query_topic=requests.query_topic,
             user_country=snapshot.projection.state.user_country[requests.user_id],
             user_region=snapshot.projection.state.user_region[requests.user_id],
+            user_creator_id=snapshot.projection.state.user_creator_id[
+                requests.user_id
+            ],
             route_item_id=retrieval.route_item_id,
             route_score=retrieval.route_score,
             route_valid=retrieval.route_valid,
+            route_lifecycle_id=route_lifecycle,
             recall_item_id=retrieval.item_id,
             recall_route_id=retrieval.route_bits,
             recall_score=retrieval.score,
             recall_sampling_probability=retrieval.sampling_probability,
+            recall_lifecycle_id=recall_lifecycle,
             coarse_item_id=ranked.coarse_item_id,
             coarse_score=ranked.coarse_score,
             coarse_sampling_probability=torch.where(
@@ -159,13 +183,14 @@ class ReferenceRecommendationPlatform:
                 requests.user_id, policy.mix_version_id,
             ),
             manifest=TraceManifest(
-                schema_version="request-candidate-trace-v1",
+                schema_version="request-candidate-trace-v2",
                 feature_version=self.config.feature_version,
                 catalog_version=self.config.catalog_version,
                 policy_registry_version=self.config.policy_registry_version,
                 route_names=self.retriever.route_names,
                 index_version=snapshot.index_version,
                 fid_version=self.config.fid_version,
+                lifecycle_version=LIFECYCLE_POLICY_VERSION,
             ),
         )
         context = capture_request_context(trace, snapshot.projection)

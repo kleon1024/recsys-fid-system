@@ -60,6 +60,7 @@ class TraceManifest:
     route_names: tuple[str, ...] = ()
     index_version: str = ""
     fid_version: str = ""
+    lifecycle_version: str = ""
 
 
 @dataclass(frozen=True)
@@ -71,13 +72,16 @@ class RequestCandidateTrace:
     query_topic: torch.Tensor
     user_country: torch.Tensor
     user_region: torch.Tensor
+    user_creator_id: torch.Tensor
     route_item_id: torch.Tensor
     route_score: torch.Tensor
     route_valid: torch.Tensor
+    route_lifecycle_id: torch.Tensor
     recall_item_id: torch.Tensor
     recall_route_id: torch.Tensor
     recall_score: torch.Tensor
     recall_sampling_probability: torch.Tensor
+    recall_lifecycle_id: torch.Tensor
     coarse_item_id: torch.Tensor
     coarse_score: torch.Tensor
     coarse_sampling_probability: torch.Tensor
@@ -103,6 +107,7 @@ class RequestCandidateTrace:
             "query_topic",
             "user_country",
             "user_region",
+            "user_creator_id",
             "experiment_cell",
             "assignment_probability",
             "recall_version_id",
@@ -117,7 +122,7 @@ class RequestCandidateTrace:
         route_shape = self.route_item_id.shape
         if route_shape[0] != requests:
             raise ValueError("route candidates do not align with requests")
-        for name in ("route_score", "route_valid"):
+        for name in ("route_score", "route_valid", "route_lifecycle_id"):
             _aligned(name, getattr(self, name), route_shape)
         if not torch.equal(self.route_valid, self.route_item_id >= 0):
             raise ValueError("route validity must match nonnegative route items")
@@ -133,6 +138,7 @@ class RequestCandidateTrace:
             "recall_route_id",
             "recall_score",
             "recall_sampling_probability",
+            "recall_lifecycle_id",
         ):
             _aligned(name, getattr(self, name), (requests, recall))
         for name in (

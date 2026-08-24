@@ -55,6 +55,29 @@ SELECT
 FROM v4_route_candidate_log
 GROUP BY route_name;
 
+CREATE OR REPLACE TEMP VIEW v4_route_lifecycle_distribution AS
+SELECT
+    route_name,
+    lifecycle_name,
+    route_admission_reason,
+    count(*) AS candidates,
+    count(DISTINCT request_id) AS requests,
+    count(DISTINCT post_id) FILTER (WHERE post_id >= 0) AS unique_posts
+FROM v4_route_candidate_log
+GROUP BY route_name, lifecycle_name, route_admission_reason;
+
+CREATE OR REPLACE TEMP VIEW v4_route_admission_violations AS
+SELECT *
+FROM v4_route_candidate_log
+WHERE
+    (route_name IN ('recent_ann', 'recent_graph') AND lifecycle_name != 'recent')
+    OR (route_name = 'following' AND lifecycle_name NOT IN (
+        'cold_start', 'recent', 'hot', 'evergreen'
+    ))
+    OR (route_name = 'cold_start' AND lifecycle_name != 'cold_start')
+    OR (route_name = 'hot' AND lifecycle_name != 'hot')
+    OR (route_name = 'evergreen' AND lifecycle_name != 'evergreen');
+
 CREATE OR REPLACE TEMP VIEW v4_route_marginal_coverage AS
 WITH overlap AS
 (
@@ -80,6 +103,7 @@ SELECT
     candidate.content_kind,
     candidate.country AS item_country,
     candidate.region AS item_region,
+    candidate.lifecycle_name,
     floor(candidate.content_age / 96) AS content_age_days,
     candidate.drop_stage,
     count(*) AS candidates

@@ -1,0 +1,52 @@
+{
+  "schema": "digital-twin-p1-multitick-clickhouse-v1",
+  "date": "2026-08-25",
+  "status": "pass",
+  "evidence_class": "executable synthetic fixture",
+  "clickhouse": {
+    "version": "25.8.32.4",
+    "image": "clickhouse/clickhouse-server:25.8",
+    "diagnostic_output_rows": 396
+  },
+  "scenario": {
+    "name": "feed_posting_cycle",
+    "users": 256,
+    "catalog_items": 4000,
+    "event_time_partitions": [0, 1],
+    "dataset_content_sha256": "847ff980dd304292485f5cf0fd9a2ec7b5830508613205f34449336a5bb3ddff",
+    "dataset_manifest_sha256": "6d5ea36620ae6e66e5a5f05099b06313dafed23ad94f0078f2ac8ac76f9e8d06"
+  },
+  "rows": {
+    "requests": 498,
+    "raw_route_candidates": 5552,
+    "candidate_decisions": 5367,
+    "events": 5846,
+    "mature_label_rows": 21063,
+    "training_examples": 6823,
+    "checkpoints": 2
+  },
+  "feed_loop": {
+    "published_posts": 64,
+    "publish_failures": 16,
+    "moderation_removals": 7,
+    "published_posts_recalled_on_a_later_request": 2,
+    "distinct_candidate_posts": 120
+  },
+  "acceptance": {
+    "all_clickhouse_diagnostics_execute": true,
+    "route_lifecycle_admission_violations": 0,
+    "request_time_lifecycle_is_persisted": true,
+    "post_source_identity_is_distinct": true,
+    "posting_to_future_feed_lineage_exists": true,
+    "duckdb_clickhouse_semantics_agree": true
+  },
+  "query_sha256": {
+    "clickhouse": "f256eb2f1771d472d09b9e08b4ce24f011a66f843eabef2adf8df8f4dd1f8225",
+    "duckdb": "c18ee2f4793d06eea9cb610ed446e1d350340e5796ab2a13a51c9927ebf666e4"
+  },
+  "bugs_detected_before_pass": [
+    "analytical materialization read post-response lifecycle instead of request-time lifecycle",
+    "ClickHouse inferred dictionary-encoded integer columns as suspicious LowCardinality types in ad-hoc Memory table loading"
+  ],
+  "evidence_boundary": "This proves two-tick post and lifecycle lineage plus SQL semantics on a deterministic synthetic fixture. It does not prove real-user calibration, causal product lift, cluster throughput, or the P2 neural world model."
+}

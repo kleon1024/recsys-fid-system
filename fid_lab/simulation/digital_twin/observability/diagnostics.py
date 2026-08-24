@@ -12,6 +12,8 @@ DIAGNOSTIC_VIEWS = (
     "v4_request_case",
     "v4_stage_distribution",
     "v4_route_distribution",
+    "v4_route_lifecycle_distribution",
+    "v4_route_admission_violations",
     "v4_route_marginal_coverage",
     "v4_candidate_slices",
     "v4_label_maturity",

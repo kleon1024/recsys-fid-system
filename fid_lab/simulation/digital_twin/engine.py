@@ -254,7 +254,7 @@ class AtomicSimulationKernel:
         cells = cell_order or tuple(sorted(assignment.policies))
         if set(cells) != set(assignment.policies):
             raise ValueError("cell_order must contain every experiment cell once")
-        proposals = []
+        slates = []
         traces = []
         contexts = []
         cell_counts = {}
@@ -273,7 +273,7 @@ class AtomicSimulationKernel:
                 if isinstance(rendered, ServingOutput)
                 else ServingOutput(rendered)
             )
-            proposals.append(self.world.respond(snapshot, output.slate))
+            slates.append(output.slate)
             if output.candidate_trace is not None:
                 traces.append(output.candidate_trace)
                 contexts.append(output.request_context)
@@ -281,7 +281,12 @@ class AtomicSimulationKernel:
             count > 0 for count in cell_counts.values()
         ):
             raise ValueError("every served experiment cell must emit a trace")
-        response = AppEventBatch.concatenate(proposals)
+        response = (
+            self.world.respond(
+                snapshot, RenderedSlateBatch.concatenate(tuple(slates)),
+            )
+            if slates else AppEventBatch.empty(requests.request_id.device)
+        )
         if len(response.ingest_time) and not (
             response.ingest_time == logical_time
         ).all():

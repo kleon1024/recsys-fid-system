@@ -98,6 +98,13 @@ def _event_values(
 ) -> torch.Tensor:
     selected = events.event(event_type)
     event_id = events.event_id[selected]
+    if event_type == EventType.PUBLISH:
+        event_id = deterministic_event_id(
+            events.request_id[selected],
+            events.event_type[selected],
+            events.source_candidate_id[selected],
+            events.position[selected],
+        )
     output = torch.zeros_like(trace.exposed_item_id, dtype=torch.float)
     if not len(event_id):
         return output

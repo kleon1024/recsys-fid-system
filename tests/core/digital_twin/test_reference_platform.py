@@ -8,6 +8,7 @@ import torch
 from fid_lab.simulation.digital_twin import (
     AtomicSimulationKernel,
     CascadePolicy,
+    EventType,
     ExperimentPlan,
     JoinerConfig,
     ObservableEventLog,
@@ -24,6 +25,7 @@ from fid_lab.simulation.digital_twin.platform.retrieval import (
     ROUTE_NAMES,
     surface_eligibility,
 )
+from fid_lab.simulation.digital_twin.contracts import make_app_events
 
 
 def build_system(users=256, items=2_400):
@@ -107,12 +109,12 @@ def test_routes_gain_behavioral_graph_and_keep_search_triggered():
     _, _, _, kernel, plan, _ = build_system()
     first = kernel.step(0, plan)
     second = kernel.step(1, plan)
-    ann_bit = 1 << ROUTE_NAMES.index("ann")
-    popular_bit = 1 << ROUTE_NAMES.index("popular")
-    graph_bit = 1 << ROUTE_NAMES.index("graph")
+    ann_bit = 1 << ROUTE_NAMES.index("recent_ann")
+    evergreen_bit = 1 << ROUTE_NAMES.index("evergreen")
+    graph_bit = 1 << ROUTE_NAMES.index("recent_graph")
     search_bit = 1 << ROUTE_NAMES.index("search")
     assert (first.candidate_trace.recall_route_id & ann_bit).any()
-    assert (first.candidate_trace.recall_route_id & popular_bit).any()
+    assert (first.candidate_trace.recall_route_id & evergreen_bit).any()
     assert (second.candidate_trace.recall_route_id & graph_bit).any()
     search_rows = second.candidate_trace.surface == 1
     has_search_route = (
@@ -129,12 +131,14 @@ def test_policy_can_change_only_retrieval_routes_and_version():
     base = CascadePolicy(
         "base-routes", 1, 1, 1,
         recall_version_id=10,
-        enabled_routes=("popular", "geo", "graph"),
+        enabled_routes=("evergreen", "recent_ann", "recent_graph"),
     )
     treatment = CascadePolicy(
-        "add-fresh", 1, 1, 1,
+        "add-cold-start", 1, 1, 1,
         recall_version_id=11,
-        enabled_routes=("popular", "geo", "graph", "fresh"),
+        enabled_routes=(
+            "evergreen", "recent_ann", "recent_graph", "cold_start",
+        ),
     )
     result = kernel.step(0, ExperimentPlan.ramped_user_ab(
         active_policy=base,
@@ -149,9 +153,9 @@ def test_policy_can_change_only_retrieval_routes_and_version():
     treated = trace.experiment_cell == 1
     assert (trace.recall_version_id[control] == 10).all()
     assert (trace.recall_version_id[treated] == 11).all()
-    fresh_bit = 1 << ROUTE_NAMES.index("fresh")
-    assert not (trace.recall_route_id[control] & fresh_bit).any()
-    assert (trace.recall_route_id[treated] & fresh_bit).any()
+    cold_start_bit = 1 << ROUTE_NAMES.index("cold_start")
+    assert not (trace.recall_route_id[control] & cold_start_bit).any()
+    assert (trace.recall_route_id[treated] & cold_start_bit).any()
 
 
 def test_real_trace_materializes_three_authorities_without_fake_negatives():
@@ -185,3 +189,27 @@ def test_platform_package_cannot_import_hidden_world_modules():
             if isinstance(node, ast.ImportFrom)
         }
         assert not any(module and "world" in module for module in imports), path
+
+
+def test_content_removal_updates_projection_and_rebuilds_ann_index():
+    _, platform, _, kernel, plan, catalog = build_system()
+    kernel.step(0, plan)
+    post = torch.where(
+        platform.projection.state.item_active
+        & (catalog.content_kind <= 3)
+    )[0][:1]
+    removal = make_app_events(
+        EventType.MODERATION_REMOVE,
+        event_time=1,
+        request_id=torch.tensor([9_001]),
+        user_id=torch.tensor([-1]),
+        surface=torch.tensor([-1]),
+        item_id=post,
+        post_id=post,
+        creator_id=platform.projection.state.item_creator_id[post],
+        content_kind=catalog.content_kind[post],
+        topic_id=catalog.topic_id[post],
+    )
+    platform.ingest(removal)
+    assert not platform.projection.state.item_active[post].any()
+    assert not platform.retriever.faiss._indexed_active[post].any()

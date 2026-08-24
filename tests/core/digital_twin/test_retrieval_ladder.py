@@ -32,7 +32,7 @@ def test_retrieval_launches_change_one_route_and_preserve_factual_world():
         assert stages["recall"] >= stages["coarse"]
         assert stages["coarse"] >= stages["fine"]
         assert stages["fine"] >= stages["exposed"]
-    assert result["final_active_routes"] == ["popular"]
+    assert result["final_active_routes"] == ["evergreen"]
 
 
 def test_empty_or_nonfinite_launch_cannot_promote():
@@ -47,7 +47,7 @@ def test_empty_or_nonfinite_launch_cannot_promote():
         minimum_triggered_users=100,
     ))
     assert all(review["decision"] == "hold" for review in result["reviews"])
-    assert result["final_active_routes"] == ["popular"]
+    assert result["final_active_routes"] == ["evergreen"]
 
 
 def test_significant_primary_regression_rejects_before_promotion():

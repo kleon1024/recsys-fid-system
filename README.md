@@ -157,7 +157,7 @@ The latest full-chain audit found that executable closure was not sufficient
 for credible model comparison. The causal/event-driven replacement, failure
 inventory, migration DAG, deletion boundary, and acceptance matrix are defined
 in [Recommendation Digital Twin v4](docs/architecture/digital-twin-v4-redesign.md).
-The current implementation order, audited TODO register, evidence boundaries and
+The current implementation order, audited work register, evidence boundaries and
 phase acceptance gates are maintained in the
 [v4 execution plan](docs/plans/digital-twin-v4-execution-plan.md).
 Until those gates pass, historical twin reports are engineering evidence, not
@@ -202,6 +202,17 @@ python -m fid_lab.simulation.digital_twin.observability.cli \
   --logical-time 0
 ```
 
+The accepted P1 Feed loop can materialize consecutive partitions from one
+evolving world in one command:
+
+```bash
+python -m fid_lab.simulation.digital_twin.observability.cli \
+  --output reports/datasets/v4-feed-loop \
+  --scenario feed_posting_cycle \
+  --ticks 2 \
+  --device cuda
+```
+
 An identical partition resumes; the same key with different bytes, schemas or
 event time fails closed. `open_full_flow_dataset` exposes lazy Arrow datasets
 for replay and training without loading all partitions into memory.
@@ -218,11 +229,18 @@ The [ClickHouse 25.8 fixture review](reports/benchmarks/2026-08-25-digital-twin-
 executes the same Parquet authority and diagnostic SQL on an official server
 image. It caught and closed checkpoint aliasing, false supply-event orphans and
 zero/one-based exposure-position drift that DuckDB-only validation missed.
-The reference cascade now emits real stage traces from
-FAISS HNSW ANN, sparse co-visit Graph, Geo, Fresh, Long-tail, Popular, triggered
-Search and Retarget routes, followed by RRF, coarse, sequence-aware fine rank
-and diversity reranking. See the
-[reference cascade screen](reports/benchmarks/2026-08-24-digital-twin-v4-reference-cascade-4090.json).
+The reference cascade now separates six core Feed routes—Recent ANN, Recent
+Graph/I2I, Following, Cold-start, Hot and Evergreen—from Local Geo, Posting,
+Commerce, Live, Search and Retarget business routes. Every admitted candidate
+retains request-time lifecycle and route ownership. Posting selection creates an
+immutable post ID distinct from the selected POI/product/prompt; moderation,
+deletion, creator exit and capacity failure change future supply through typed
+events. The [P1 4090 review](reports/benchmarks/2026-08-25-digital-twin-p1-feed-loop-100k-2m-4090.json)
+materialized two event-time partitions for 100K users and 2M items. It found
+that global Cold-start Top-K exposed only 18 of 32,363 new posts on the next
+Feed tick; deterministic request-level rotating exploration raised this to
+31,646 posts (97.78%) with zero lifecycle-route violations. This is synthetic
+mechanism and throughput evidence, not causal product lift.
 The frozen model ladder and continuous launch reviews remain open; no current
 evidence says LR or a deep model is best on v4.
 

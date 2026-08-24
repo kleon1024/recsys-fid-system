@@ -12,60 +12,10 @@ import scipy.sparse
 import torch
 
 from ..catalog import PublicCatalog
-from ..contracts import AppEventBatch, ContentKind, EventType, PlatformRequestBatch
-from ..contracts import Surface
+from ..contracts import AppEventBatch, EventType, PlatformRequestBatch, Surface
 from .projection import ITEM_COUNTER_EVENTS, PlatformProjectionState
-
-
-ROUTE_NAMES = (
-    "ann",
-    "graph",
-    "geo",
-    "fresh",
-    "long_tail",
-    "popular",
-    "search",
-    "retarget",
-)
-
-SURFACE_CONTENT = {
-    Surface.FEED: (
-        ContentKind.SHORT_VIDEO,
-        ContentKind.PHOTO,
-        ContentKind.ARTICLE,
-        ContentKind.CARD,
-        ContentKind.LIVE_ROOM,
-        ContentKind.PRODUCT,
-        ContentKind.POI,
-        ContentKind.AD,
-    ),
-    Surface.SEARCH: (
-        ContentKind.SHORT_VIDEO,
-        ContentKind.PHOTO,
-        ContentKind.ARTICLE,
-        ContentKind.CARD,
-        ContentKind.PRODUCT,
-        ContentKind.POI,
-    ),
-    Surface.COMMERCE: (
-        ContentKind.PRODUCT,
-        ContentKind.LIVE_ROOM,
-        ContentKind.AD,
-    ),
-    Surface.LIVE: (ContentKind.LIVE_ROOM,),
-    Surface.LOCAL: (
-        ContentKind.SHORT_VIDEO,
-        ContentKind.PHOTO,
-        ContentKind.CARD,
-        ContentKind.PRODUCT,
-        ContentKind.POI,
-    ),
-    Surface.POSTING: (
-        ContentKind.POI,
-        ContentKind.PRODUCT,
-        ContentKind.CREATOR_PROMPT,
-    ),
-}
+from .lifecycle import ContentLifecycle
+from .route_contracts import ROUTE_NAMES, surface_eligibility
 
 
 @dataclass(frozen=True)
@@ -105,31 +55,6 @@ class RetrievalResult:
     index_version: str
 
 
-def surface_eligibility(
-    surface: int | torch.Tensor,
-    content_kind: torch.Tensor,
-) -> torch.Tensor:
-    if isinstance(surface, int):
-        allowed = SURFACE_CONTENT[Surface(surface)]
-        result = torch.zeros_like(content_kind, dtype=torch.bool)
-        for kind in allowed:
-            result |= content_kind == int(kind)
-        return result
-    result = torch.zeros(
-        len(surface), content_kind.shape[-1],
-        device=content_kind.device,
-        dtype=torch.bool,
-    )
-    for candidate_surface, allowed in SURFACE_CONTENT.items():
-        rows = surface == int(candidate_surface)
-        if not rows.any():
-            continue
-        kinds = content_kind[rows]
-        for kind in allowed:
-            result[rows] |= kinds == int(kind)
-    return result
-
-
 class FaissItemIndex:
     def __init__(self, catalog: PublicCatalog, config: RetrievalConfig):
         self.catalog = catalog
@@ -146,8 +71,6 @@ class FaissItemIndex:
         self._indexed_active = torch.zeros_like(catalog.active)
 
     def sync(self, active: torch.Tensor, version: str) -> None:
-        if (self._indexed_active & ~active).any():
-            raise ValueError("ANN item deletion requires an explicit index rebuild")
         if self.backend == "torch":
             self._torch_item = self.catalog.item_id[active]
             self._torch_embedding = self.catalog.content_embedding[active]
@@ -155,6 +78,9 @@ class FaissItemIndex:
         else:
             faiss = importlib.import_module("faiss")
             faiss.omp_set_num_threads(int(os.environ.get("FID_FAISS_THREADS", "1")))
+            if (self._indexed_active & ~active).any():
+                self._index = None
+                self._indexed_active.zero_()
             new_item = active & ~self._indexed_active
             item = self.catalog.item_id[new_item].detach().cpu().numpy().astype("int64")
             vectors = self.catalog.content_embedding[new_item].detach().cpu().numpy()
@@ -323,6 +249,20 @@ class MultiRouteRetriever:
         item = state.user_history_item[requests.user_id, slot]
         return torch.where(cursor > 0, item, torch.full_like(item, -1))
 
+    @staticmethod
+    def _last_followed_creator(
+        requests: PlatformRequestBatch,
+        state: PlatformProjectionState,
+    ) -> torch.Tensor:
+        cursor = state.user_followed_creator_cursor[requests.user_id]
+        slot = torch.remainder(
+            cursor - 1, state.user_followed_creator.shape[1],
+        )
+        creator = state.user_followed_creator[requests.user_id, slot]
+        return torch.where(
+            cursor > 0, creator, torch.full_like(creator, -1),
+        )
+
     def _top_by_group(
         self,
         requests: PlatformRequestBatch,
@@ -332,6 +272,7 @@ class MultiRouteRetriever:
         item_group: torch.Tensor,
         *,
         require_query: bool = False,
+        allowed_lifecycle: tuple[int, ...] | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         rows, limit = len(requests.user_id), self.config.route_k
         item = torch.full((rows, limit), -1, device=self.device, dtype=torch.long)
@@ -344,6 +285,10 @@ class MultiRouteRetriever:
                 state.item_active
                 & (item_group == key)
             )
+            if allowed_lifecycle is not None:
+                eligible &= self._lifecycle_mask(
+                    state, allowed_lifecycle,
+                )
             row_index = torch.where(selected_rows)[0]
             for surface in torch.unique(requests.surface[row_index]).tolist():
                 target = row_index[requests.surface[row_index] == surface]
@@ -358,6 +303,86 @@ class MultiRouteRetriever:
                 chosen = candidate[top]
                 item[target, :count] = chosen[None]
                 values[target, :count] = score[chosen][None]
+        return item, values
+
+    @staticmethod
+    def _lifecycle_mask(
+        state: PlatformProjectionState,
+        allowed: tuple[int, ...],
+    ) -> torch.Tensor:
+        result = torch.zeros_like(state.item_active)
+        for lifecycle in allowed:
+            result |= state.item_lifecycle == lifecycle
+        return result
+
+    def _top_for_surface(
+        self,
+        requests: PlatformRequestBatch,
+        state: PlatformProjectionState,
+        score: torch.Tensor,
+        surface: Surface,
+        *,
+        allowed_lifecycle: tuple[int, ...] | None = None,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        rows = len(requests.user_id)
+        item = torch.full(
+            (rows, self.config.route_k),
+            -1,
+            device=self.device,
+            dtype=torch.long,
+        )
+        values = torch.full_like(item, -torch.inf, dtype=torch.float)
+        selected = requests.surface == int(surface)
+        eligible = state.item_active & surface_eligibility(
+            int(surface), self.catalog.content_kind,
+        )
+        if allowed_lifecycle is not None:
+            eligible &= self._lifecycle_mask(state, allowed_lifecycle)
+        count = min(self.config.route_k, int(eligible.sum()))
+        if selected.any() and count:
+            candidates = torch.where(eligible)[0]
+            top = torch.topk(score[candidates], count).indices
+            chosen = candidates[top]
+            item[selected, :count] = chosen[None]
+            values[selected, :count] = score[chosen][None]
+        return item, values
+
+    def _rotating_lifecycle_candidates(
+        self,
+        requests: PlatformRequestBatch,
+        state: PlatformProjectionState,
+        score: torch.Tensor,
+        lifecycle: ContentLifecycle,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        rows = len(requests.user_id)
+        item = torch.full(
+            (rows, self.config.route_k),
+            -1,
+            device=self.device,
+            dtype=torch.long,
+        )
+        values = torch.full_like(item, -torch.inf, dtype=torch.float)
+        feed = requests.surface == int(Surface.FEED)
+        eligible = (
+            state.item_active
+            & self._lifecycle_mask(state, (int(lifecycle),))
+            & surface_eligibility(
+                int(Surface.FEED), self.catalog.content_kind,
+            )
+        )
+        candidates = torch.where(eligible)[0]
+        width = min(self.config.route_k, len(candidates))
+        if not feed.any() or not width:
+            return item, values
+        start = torch.remainder(
+            requests.request_id[feed] * 503 + requests.user_id[feed] * 1_009,
+            len(candidates),
+        )
+        offset = torch.arange(width, device=self.device)[None]
+        location = torch.remainder(start[:, None] + offset, len(candidates))
+        chosen = candidates[location]
+        item[feed, :width] = chosen
+        values[feed, :width] = score[chosen]
         return item, values
 
     def retrieve(
@@ -412,12 +437,38 @@ class MultiRouteRetriever:
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
     ) -> tuple[torch.Tensor, torch.Tensor]:
+        routes = {
+            **self._feed_route_candidates(requests, state),
+            **self._business_route_candidates(requests, state),
+        }
+        missing = set(ROUTE_NAMES) - set(routes)
+        extra = set(routes) - set(ROUTE_NAMES)
+        if missing or extra:
+            raise ValueError(
+                f"route registry mismatch: missing={sorted(missing)}, "
+                f"extra={sorted(extra)}"
+            )
+        return (
+            torch.stack(tuple(routes[name][0] for name in ROUTE_NAMES), dim=1),
+            torch.stack(tuple(routes[name][1] for name in ROUTE_NAMES), dim=1),
+        )
+
+    def _feed_route_candidates(
+        self,
+        requests: PlatformRequestBatch,
+        state: PlatformProjectionState,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
         query = self.query_embedding(requests, state)
         ann_item, ann_score = self.faiss.search(
             query, self.config.route_k * self.config.ann_oversample,
         )
         ann_item, ann_score = self._filter_and_trim(
-            requests, state, ann_item, ann_score,
+            requests,
+            state,
+            ann_item,
+            ann_score,
+            required_surface=Surface.FEED,
+            allowed_lifecycle=(int(ContentLifecycle.RECENT),),
         )
         last_item = self._last_item(requests, state)
         graph_item = self.graph.neighbor[last_item.clamp_min(0)]
@@ -426,42 +477,135 @@ class MultiRouteRetriever:
             (last_item >= 0)[:, None], graph_item, torch.full_like(graph_item, -1)
         )
         graph_item, graph_score = self._filter_and_trim(
-            requests, state, graph_item, graph_score,
+            requests,
+            state,
+            graph_item,
+            graph_score,
+            required_surface=Surface.FEED,
+            allowed_lifecycle=(int(ContentLifecycle.RECENT),),
         )
+        engagement_rate = state.item_recent_engagements / (
+            state.item_recent_impressions.clamp_min(1.0)
+        )
+        current_time = requests.event_time.max()
+        age = (
+            current_time
+            - state.item_publish_time.clamp_max(current_time)
+        ).clamp_min(0).float()
+        cold_score = (
+            0.65 * self.catalog.quality_prior
+            - 0.08 * torch.log1p(state.item_recent_impressions)
+            - 0.0005 * age
+        )
+        hot_score = (
+            0.55 * engagement_rate
+            + 0.22 * torch.log1p(state.item_recent_impressions)
+            + 0.23 * self.catalog.quality_prior
+        )
+        evergreen_score = (
+            0.72 * self.catalog.quality_prior
+            + 0.28 * engagement_rate
+        )
+        cold_item, cold_value = self._rotating_lifecycle_candidates(
+            requests,
+            state,
+            cold_score,
+            ContentLifecycle.COLD_START,
+        )
+        hot_item, hot_value = self._top_for_surface(
+            requests,
+            state,
+            hot_score,
+            Surface.FEED,
+            allowed_lifecycle=(int(ContentLifecycle.HOT),),
+        )
+        evergreen_item, evergreen_value = self._top_for_surface(
+            requests,
+            state,
+            evergreen_score,
+            Surface.FEED,
+            allowed_lifecycle=(int(ContentLifecycle.EVERGREEN),),
+        )
+        followed_creator = self._last_followed_creator(requests, state)
+        followed_creator = torch.where(
+            requests.surface == int(Surface.FEED),
+            followed_creator,
+            torch.full_like(followed_creator, -1),
+        )
+        following_item, following_score = self._top_by_group(
+            requests,
+            state,
+            self.catalog.quality_prior + 0.25 * engagement_rate,
+            followed_creator,
+            state.item_creator_id,
+            allowed_lifecycle=(
+                int(ContentLifecycle.COLD_START),
+                int(ContentLifecycle.RECENT),
+                int(ContentLifecycle.HOT),
+                int(ContentLifecycle.EVERGREEN),
+            ),
+        )
+        return {
+            "recent_ann": (ann_item, ann_score),
+            "recent_graph": (graph_item, graph_score),
+            "following": (following_item, following_score),
+            "cold_start": (cold_item, cold_value),
+            "hot": (hot_item, hot_value),
+            "evergreen": (evergreen_item, evergreen_value),
+        }
+
+    def _business_route_candidates(
+        self,
+        requests: PlatformRequestBatch,
+        state: PlatformProjectionState,
+    ) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
+        last_item = self._last_item(requests, state)
         impression = state.item_event_counts[
             :, ITEM_COUNTER_EVENTS.index(EventType.IMPRESSION)
         ]
-        engagement = state.item_event_counts[
-            :, ITEM_COUNTER_EVENTS.index(EventType.LONG_VIEW)
-        ] + state.item_event_counts[:, ITEM_COUNTER_EVENTS.index(EventType.CLICK)]
-        popular_score = torch.log1p(impression) + 0.4 * torch.log1p(engagement)
-        popular_score += 0.25 * self.catalog.quality_prior
-        fresh_score = (
-            -0.002 * (
-                requests.event_time.max().float()
-                - state.item_publish_time.clamp_max(requests.event_time.max()).float()
-            )
-            + 0.35 * self.catalog.quality_prior
-        )
-        tail_score = (
-            0.65 * self.catalog.quality_prior - 0.18 * torch.log1p(impression)
-        )
-        popular_item, popular_value = self._surface_top(
-            requests, state, popular_score,
-        )
-        fresh_item, fresh_value = self._surface_top(
-            requests, state, fresh_score,
-        )
-        tail_item, tail_value = self._surface_top(
-            requests, state, tail_score,
+        popular_score = torch.log1p(impression)
+        engagement_rate = state.item_recent_engagements / (
+            state.item_recent_impressions.clamp_min(1.0)
         )
         region = state.user_region[requests.user_id]
-        geo_item, geo_score = self._top_by_group(
+        local_region = torch.where(
+            requests.surface == int(Surface.LOCAL),
+            region,
+            torch.full_like(region, -1),
+        )
+        local_item, local_score = self._top_by_group(
             requests,
             state,
             self.catalog.quality_prior + 0.2 * state.item_inventory,
+            local_region,
+            state.item_region,
+        )
+        posting_region = torch.where(
+            requests.surface == int(Surface.POSTING),
             region,
-            self.catalog.region,
+            torch.full_like(region, -1),
+        )
+        posting_item, posting_score = self._top_by_group(
+            requests,
+            state,
+            self.catalog.quality_prior + 0.15 * torch.log1p(impression),
+            posting_region,
+            state.item_region,
+        )
+        commerce_item, commerce_score = self._top_for_surface(
+            requests,
+            state,
+            0.45 * self.catalog.quality_prior
+            + 0.35 * state.item_inventory
+            + 0.20 * torch.log1p(state.item_bid),
+            Surface.COMMERCE,
+        )
+        live_item, live_score = self._top_for_surface(
+            requests,
+            state,
+            0.55 * self.catalog.quality_prior
+            + 0.45 * engagement_rate,
+            Surface.LIVE,
         )
         search_item, search_score = self._top_by_group(
             requests,
@@ -483,27 +627,14 @@ class MultiRouteRetriever:
         retarget_item, retarget_score = self._filter_and_trim(
             requests, state, retarget_item, retarget_score,
         )
-        item = torch.stack((
-            ann_item,
-            graph_item,
-            geo_item,
-            fresh_item,
-            tail_item,
-            popular_item,
-            search_item,
-            retarget_item,
-        ), dim=1)
-        score = torch.stack((
-            ann_score,
-            graph_score,
-            geo_score,
-            fresh_value,
-            tail_value,
-            popular_value,
-            search_score,
-            retarget_score,
-        ), dim=1)
-        return item, score
+        return {
+            "local_geo": (local_item, local_score),
+            "posting_context": (posting_item, posting_score),
+            "commerce_intent": (commerce_item, commerce_score),
+            "live_now": (live_item, live_score),
+            "search": (search_item, search_score),
+            "retarget": (retarget_item, retarget_score),
+        }
 
     def _surface_top(
         self,
@@ -539,6 +670,9 @@ class MultiRouteRetriever:
         state: PlatformProjectionState,
         item: torch.Tensor,
         score: torch.Tensor,
+        *,
+        required_surface: Surface | None = None,
+        allowed_lifecycle: tuple[int, ...] | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         safe = item.clamp_min(0)
         valid = item >= 0
@@ -547,6 +681,14 @@ class MultiRouteRetriever:
             requests.surface,
             self.catalog.content_kind[safe],
         )
+        if required_surface is not None:
+            valid &= (
+                requests.surface == int(required_surface)
+            )[:, None]
+        if allowed_lifecycle is not None:
+            valid &= self._lifecycle_mask(
+                state, allowed_lifecycle,
+            )[safe]
         history = state.user_history_item[requests.user_id]
         valid &= ~(safe[:, :, None] == history[:, None, :]).any(dim=2)
         score = score.masked_fill(~valid, -torch.inf)
@@ -557,6 +699,14 @@ class MultiRouteRetriever:
         chosen_item = torch.where(
             torch.isfinite(chosen_score), chosen_item, torch.full_like(chosen_item, -1)
         )
+        if width < self.config.route_k:
+            padding = self.config.route_k - width
+            chosen_item = torch.nn.functional.pad(
+                chosen_item, (0, padding), value=-1,
+            )
+            chosen_score = torch.nn.functional.pad(
+                chosen_score, (0, padding), value=-torch.inf,
+            )
         return chosen_item, chosen_score
 
     def _rrf(
