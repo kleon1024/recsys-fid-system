@@ -17,14 +17,16 @@ Status: design authority; implementation is not complete.
   改变用户状态或事件日志。
 - Feed、Search、Commerce、Live、Local、Posting 的 examination、outside option、行为级联、
   dwell、session leave 和 cross-session return 用户世界。
+- Creator 根据事实曝光、互动和负反馈调整投稿动机并发布 reserved item；merchant 根据订单
+  消耗和可靠性回补库存；advertiser 根据广告曝光消耗预算并产生 pacing bid。
 - 曝光与实验 propensity、append-only tensor idempotency index、事件到事实 successor 的直接
   DAG 依赖。release decision 只决定未来 active policy，不能阻塞已经发生的事实行为。
 - RTX 4090 已验证 500K 用户、2M item、16M candidate 的单 event-time 微批；报告见
   `reports/benchmarks/2026-08-24-digital-twin-v4-world-kernel-4090.json`。
 
-尚未落地：creator/merchant/advertiser supply agents、delayed-event queue、point-in-time
-projection/Joiner、真实多路召回与新模型 ladder。因此当前证据只证明因果边界、行为执行和
-吞吐，不证明推荐质量或业务增量。
+尚未落地：supply event 到 platform catalog/index 的 point-in-time projection、
+delayed-event queue、Joiner、真实多路召回与新模型 ladder。因此当前证据只证明因果边界、
+用户/供给行为执行和吞吐，不证明推荐质量或业务增量。
 
 ## 1. 决策
 

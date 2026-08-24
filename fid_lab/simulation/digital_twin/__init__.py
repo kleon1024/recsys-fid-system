@@ -17,7 +17,13 @@ from .engine import (
     TickResult,
 )
 from .event_log import ObservableEventLog
-from .world import UserEcosystemWorld, UserWorldConfig, UserWorldSnapshot
+from .world import (
+    HiddenSupplyState,
+    SupplyEcosystem,
+    UserEcosystemWorld,
+    UserWorldConfig,
+    UserWorldSnapshot,
+)
 
 __all__ = (
     "AppEventBatch",
@@ -26,11 +32,13 @@ __all__ = (
     "EventType",
     "ExperimentAssignment",
     "ExperimentPlan",
+    "HiddenSupplyState",
     "ObservableEventLog",
     "PlatformRequestBatch",
     "PublicCatalog",
     "RenderedSlateBatch",
     "Surface",
+    "SupplyEcosystem",
     "TickResult",
     "UserEcosystemWorld",
     "UserWorldConfig",

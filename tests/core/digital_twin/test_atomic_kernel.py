@@ -36,6 +36,8 @@ def event_batch(
         surface=torch.remainder(user_id, 6),
         item_id=item_id,
         creator_id=integer_missing.clone(),
+        merchant_id=integer_missing.clone(),
+        advertiser_id=integer_missing.clone(),
         product_id=integer_missing.clone(),
         poi_id=integer_missing.clone(),
         order_id=integer_missing.clone(),

@@ -172,9 +172,10 @@ posting events immediately update the single factual world used by later
 requests and samples. The current
 [RTX 4090 benchmark](reports/benchmarks/2026-08-24-digital-twin-v4-world-kernel-4090.json)
 covers 500K users, 2M catalog items and 16M slate candidates in one event-time
-microbatch. It is throughput evidence only; supply agents, delayed outcomes,
-point-in-time projections, real retrieval and the frozen model ladder remain
-open migration phases.
+microbatch. Creator publishing, merchant inventory and advertiser budget/bid
+agents now evolve from factual events in the same world. This is throughput
+evidence only; supply-to-platform projections, delayed outcomes, real
+retrieval and the frozen model ladder remain open migration phases.
 
 ```mermaid
 flowchart LR

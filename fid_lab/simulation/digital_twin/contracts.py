@@ -159,6 +159,8 @@ class AppEventBatch:
     surface: torch.Tensor
     item_id: torch.Tensor
     creator_id: torch.Tensor
+    merchant_id: torch.Tensor
+    advertiser_id: torch.Tensor
     product_id: torch.Tensor
     poi_id: torch.Tensor
     order_id: torch.Tensor
@@ -216,6 +218,8 @@ class AppEventBatch:
             surface=integer.clone(),
             item_id=integer.clone(),
             creator_id=integer.clone(),
+            merchant_id=integer.clone(),
+            advertiser_id=integer.clone(),
             product_id=integer.clone(),
             poi_id=integer.clone(),
             order_id=integer.clone(),
@@ -291,6 +295,8 @@ def make_app_events(
     query_id: torch.Tensor | None = None,
     duration_ms: torch.Tensor | None = None,
     creator_id: torch.Tensor | None = None,
+    merchant_id: torch.Tensor | None = None,
+    advertiser_id: torch.Tensor | None = None,
     product_id: torch.Tensor | None = None,
     poi_id: torch.Tensor | None = None,
     order_id: torch.Tensor | None = None,
@@ -338,6 +344,8 @@ def make_app_events(
         surface=surface.long(),
         item_id=items,
         creator_id=integer(creator_id),
+        merchant_id=integer(merchant_id),
+        advertiser_id=integer(advertiser_id),
         product_id=integer(product_id),
         poi_id=integer(poi_id),
         order_id=integer(order_id),

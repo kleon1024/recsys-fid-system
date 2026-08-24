@@ -18,6 +18,7 @@ class PublicCatalog:
     content_embedding: torch.Tensor
     creator_id: torch.Tensor
     merchant_id: torch.Tensor
+    advertiser_id: torch.Tensor
     country: torch.Tensor
     region: torch.Tensor
     publish_time: torch.Tensor
@@ -54,11 +55,15 @@ def build_public_catalog(
     embedding_dim: int,
     platform_seed: int,
     device: str | torch.device,
+    advertisers: int | None = None,
+    initial_active_fraction: float = 0.92,
 ) -> PublicCatalog:
+    advertisers = merchants if advertisers is None else advertisers
     dimensions = (
         items,
         creators,
         merchants,
+        advertisers,
         topics,
         countries,
         regions_per_country,
@@ -66,6 +71,8 @@ def build_public_catalog(
     )
     if any(value <= 0 for value in dimensions):
         raise ValueError("catalog dimensions must be positive")
+    if not 0.0 < initial_active_fraction <= 1.0:
+        raise ValueError("initial active fraction must be in (0, 1]")
     device = torch.device(device)
     item_id = torch.arange(items, device=device)
     topic_id = torch.remainder(item_id * 69_697 + 29, topics)
@@ -92,6 +99,10 @@ def build_public_catalog(
         -1.0 + 1.25 * text_quality + 1.45 * visual_quality
         + 0.35 * normal(item_id, 0, 113, platform_seed)
     )
+    active = uniform(item_id, 0, 149, platform_seed) < initial_active_fraction
+    historical_publish_time = -torch.floor(
+        720.0 * uniform(item_id, 0, 127, platform_seed)
+    ).long()
     return PublicCatalog(
         item_id=item_id,
         content_kind=content_kind,
@@ -99,11 +110,14 @@ def build_public_catalog(
         content_embedding=content_embedding,
         creator_id=torch.remainder(item_id * 7_919 + 31, creators),
         merchant_id=torch.remainder(item_id * 1_231 + 17, merchants),
+        advertiser_id=torch.remainder(item_id * 2_003 + 23, advertisers),
         country=country,
         region=region,
-        publish_time=-torch.floor(
-            720.0 * uniform(item_id, 0, 127, platform_seed)
-        ).long(),
+        publish_time=torch.where(
+            active,
+            historical_publish_time,
+            torch.full_like(item_id, torch.iinfo(torch.long).max),
+        ),
         duration_seconds=(
             4.0 + 176.0 * uniform(item_id, 0, 131, platform_seed).square()
         ),
@@ -112,5 +126,5 @@ def build_public_catalog(
             -1.5 + 5.0 * uniform(item_id, 0, 137, platform_seed)
         ),
         inventory=uniform(item_id, 0, 139, platform_seed),
-        active=torch.ones(items, device=device, dtype=torch.bool),
+        active=active,
     )

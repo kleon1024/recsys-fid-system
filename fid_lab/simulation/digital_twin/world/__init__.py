@@ -2,5 +2,12 @@
 
 from .runtime import UserEcosystemWorld
 from .state import UserWorldConfig, UserWorldSnapshot
+from .supply import HiddenSupplyState, SupplyEcosystem
 
-__all__ = ("UserEcosystemWorld", "UserWorldConfig", "UserWorldSnapshot")
+__all__ = (
+    "HiddenSupplyState",
+    "SupplyEcosystem",
+    "UserEcosystemWorld",
+    "UserWorldConfig",
+    "UserWorldSnapshot",
+)

@@ -21,6 +21,7 @@ from .state import (
     build_hidden_users,
     topic_prototypes,
 )
+from .supply import SupplyEcosystem
 
 
 class UserEcosystemWorld:
@@ -38,6 +39,9 @@ class UserEcosystemWorld:
             catalog, config.environment_seed,
         )
         self._topic_prototypes = topic_prototypes(catalog, config.topics)
+        self.supply = SupplyEcosystem(
+            catalog, config.environment_seed, config.ticks_per_day,
+        )
 
     def snapshot(self) -> UserWorldSnapshot:
         return UserWorldSnapshot(self.users.clone(), self.catalog_truth)
@@ -158,11 +162,14 @@ class UserEcosystemWorld:
             query_id=request_id[query_row] * 31 + query_topic,
             topic_id=query_topic,
         )
-        return AppEventBatch.concatenate((
+        user_events = AppEventBatch.concatenate((
             registration_events,
             session_events,
             surface_events,
             query_events,
+        ))
+        return AppEventBatch.concatenate((
+            user_events, self.supply.schedule(logical_time),
         ))
 
     def respond(
@@ -182,6 +189,7 @@ class UserEcosystemWorld:
             return
         self._commit_lifecycle(events)
         self._commit_engagement(events)
+        self.supply.commit(events)
 
     def _commit_lifecycle(self, events: AppEventBatch) -> None:
         state = self.users

@@ -261,6 +261,8 @@ def _events_for_mask(
         country=catalog.country[item],
         region=catalog.region[item],
         creator_id=catalog.creator_id[item],
+        merchant_id=catalog.merchant_id[item],
+        advertiser_id=catalog.advertiser_id[item],
         product_id=product,
         poi_id=poi,
         order_id=order_id,
