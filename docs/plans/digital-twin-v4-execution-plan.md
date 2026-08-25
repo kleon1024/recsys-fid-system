@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (all remaining rows researched; pre-ladder contracts reopened)
+Updated: 2026-08-25 (pre-ladder contracts reopened; attributable LR ladder frozen)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -412,66 +412,37 @@ reports LT/stay/engagement, hot/new-content slices, checkpoint age, PS staleness
 fallbacks and resource cost. A faster pipeline that changes no served ranking or
 business outcome is a system benchmark, not a successful launch.
 
+The exact cadence sequence is L-T00..06 in the
+[Launch Ladder](digital-twin-v4-launch-ladder.md). Sample changes L-D00..05 and
+feature changes L-X00..05 are separate experiments; cadence cannot claim them.
+
 ## 7. Learned recommendation ladder
 
 Only start after the request-level dataset and replay parity gates pass.
+Executable order and LR IDs live in the
+[Launch Ladder](digital-twin-v4-launch-ladder.md); these sections define model
+families and cannot authorize bundling several mechanisms into one LR.
 
-### 7.1 Retrieval
+### 7.1 Layer boundaries
 
-1. Popular/recent/following/cold-start/hot/evergreen baseline.
-2. Graph/I2I on observable co-watch and engagement edges.
-3. Two-Tower using corrected in-batch, exposed and mined hard negatives.
-4. Multi-interest retrieval for distinct short/long/session interests.
-5. Semantic-ID generative retrieval as a separate route.
+- Retrieval owns corpus coverage and candidate provenance; every model shares
+  corpus, Top-K, quota and latency budgets.
+- Fine ranking is introduced on the small candidate pool before coarse ranking.
+  Coarse becomes eligible only after measured fine capacity pressure and first
+  launches as a cost/non-inferiority change.
+- Ranking predicts masked primitive outcomes. Calibration, Value Tree and final
+  mixer are later, separately versioned policy owners.
+- Unified LT is measured after randomization; it is never a training label.
 
-Each version shares corpus snapshot, query set, Top-K, route quota and latency
-budget. Report Recall@K, valid recall, marginal unique positives, head/tail,
-freshness, lifecycle coverage and downstream fixed-ranker impact.
-
-### 7.2 Coarse ranking
-
-```text
-rules/logistic regression → XGBoost → W&D → DeepFM → DCNv2
-→ DCNv2 plus fine-ranker distillation
-```
-
-Training candidates must come from factual retrieval logs. Acceptance includes
-fine Top-K pass-through, rare high-value label pass-through, calibration,
-latency and route/lifecycle slices. A model cannot win by seeing a larger
-candidate budget or hidden world fields.
-
-### 7.3 Fine ranking
-
-```text
-logistic regression/XGBoost
-→ W&D/DeepFM/DCNv2
-→ DIN candidate-aware short sequence
-→ Transformer long sequence
-→ Transformer + MMoE
-→ Transformer + PLE
-→ HSTU-style long-sequence experiment
-```
-
-Features must cover user, item/post, creator, request/context, route, real-time
-counters, short/long sequences, content embeddings and business primitives.
-Models predict play/stay distribution, 3-second/finish, engagement, negative
-feedback, creator/posting intent and eligible business actions with correct
-conditional masks. Selection uses request-aware ranking metrics, calibration,
-business slices, latency and A/B—not global AUC alone.
-
-### 7.4 Value and policy
-
-The model emits calibrated primitive probabilities and expected magnitudes.
-Value Tree, COPP/constraints, quotas, deduplication, diversity and cross-business
-mixing are separate versioned policy owners. Unified LT is the final A/B value
-container; it is not a supervised label or a hand-authored model target.
-
-Policy experiments occur after predictive parity so model and coefficient
-effects remain identifiable. Coefficients may be nonnegative as required, but
-must be fitted/argued from experimental exchange evidence and guarded by Feed
-experience, ecosystem, safety and business constraints.
+The complete Random→Popular→route→fine→coarse→VT→mixer sequence is F-R00..F-M02
+in the Launch Ladder. A model cannot win by receiving wider candidates, hidden
+world fields or a different tuning budget.
 
 ## 8. Experiment program
+
+Every algorithm, policy, sample, feature and cadence change maps to one row in
+the [Launch Ladder](digital-twin-v4-launch-ladder.md). Observed lift comes only
+from a factual A/B artifact; offline and shadow results remain diagnostics.
 
 Experiments may be orthogonal by layer when ownership and interference permit:
 retrieval, coarse, fine, calibration/value, mixer, feature freshness and training
