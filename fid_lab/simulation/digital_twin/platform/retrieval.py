@@ -16,7 +16,12 @@ from ..catalog import PublicCatalog
 from ..contracts import AppEventBatch, EventType, PlatformRequestBatch, Surface
 from .projection import ITEM_COUNTER_EVENTS, PlatformProjectionState
 from .lifecycle import ContentLifecycle
-from .route_contracts import ROUTE_NAMES, surface_eligibility
+from .routes import (
+    MAIN_FEED_LIFECYCLES,
+    ROUTE_NAMES,
+    build_feed_route_signals,
+    surface_eligibility,
+)
 
 
 @dataclass(frozen=True)
@@ -377,7 +382,7 @@ class MultiRouteRetriever:
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
         score: torch.Tensor,
-        lifecycle: ContentLifecycle,
+        lifecycle: ContentLifecycle | tuple[ContentLifecycle, ...],
     ) -> tuple[torch.Tensor, torch.Tensor]:
         rows = len(requests.user_id)
         item = torch.full(
@@ -388,9 +393,14 @@ class MultiRouteRetriever:
         )
         values = torch.full_like(item, -torch.inf, dtype=torch.float)
         feed = requests.surface == int(Surface.FEED)
+        lifecycles = (
+            lifecycle if isinstance(lifecycle, tuple) else (lifecycle,)
+        )
         eligible = (
             state.item_active
-            & self._lifecycle_mask(state, (int(lifecycle),))
+            & self._lifecycle_mask(
+                state, tuple(int(value) for value in lifecycles),
+            )
             & surface_eligibility(
                 int(Surface.FEED), self.catalog.content_kind,
             )
@@ -514,45 +524,41 @@ class MultiRouteRetriever:
             required_surface=Surface.FEED,
             allowed_lifecycle=(int(ContentLifecycle.RECENT),),
         )
-        engagement_rate = state.item_recent_engagements / (
-            state.item_recent_impressions.clamp_min(1.0)
+        signals = build_feed_route_signals(
+            self.catalog, state, requests.event_time.max(),
         )
-        current_time = requests.event_time.max()
-        age = (
-            current_time
-            - state.item_publish_time.clamp_max(current_time)
-        ).clamp_min(0).float()
-        cold_score = (
-            0.65 * self.catalog.quality_prior
-            - 0.08 * torch.log1p(state.item_recent_impressions)
-            - 0.0005 * age
+        random_item, random_value = self._rotating_lifecycle_candidates(
+            requests,
+            state,
+            signals.random,
+            MAIN_FEED_LIFECYCLES,
         )
-        hot_score = (
-            0.55 * engagement_rate
-            + 0.22 * torch.log1p(state.item_recent_impressions)
-            + 0.23 * self.catalog.quality_prior
-        )
-        evergreen_score = (
-            0.72 * self.catalog.quality_prior
-            + 0.28 * engagement_rate
+        popular_item, popular_value = self._top_for_surface(
+            requests,
+            state,
+            signals.popular,
+            Surface.FEED,
+            allowed_lifecycle=tuple(
+                int(value) for value in MAIN_FEED_LIFECYCLES
+            ),
         )
         cold_item, cold_value = self._rotating_lifecycle_candidates(
             requests,
             state,
-            cold_score,
+            signals.cold_start,
             ContentLifecycle.COLD_START,
         )
         hot_item, hot_value = self._top_for_surface(
             requests,
             state,
-            hot_score,
+            signals.hot,
             Surface.FEED,
             allowed_lifecycle=(int(ContentLifecycle.HOT),),
         )
         evergreen_item, evergreen_value = self._top_for_surface(
             requests,
             state,
-            evergreen_score,
+            signals.evergreen,
             Surface.FEED,
             allowed_lifecycle=(int(ContentLifecycle.EVERGREEN),),
         )
@@ -565,7 +571,7 @@ class MultiRouteRetriever:
         following_item, following_score = self._top_by_group(
             requests,
             state,
-            self.catalog.quality_prior + 0.25 * engagement_rate,
+            signals.following,
             followed_creator,
             state.item_creator_id,
             allowed_lifecycle=(
@@ -576,6 +582,8 @@ class MultiRouteRetriever:
             ),
         )
         return {
+            "random": (random_item, random_value),
+            "popular": (popular_item, popular_value),
             "recent_ann": (ann_item, ann_score),
             "recent_graph": (graph_item, graph_score),
             "following": (following_item, following_score),

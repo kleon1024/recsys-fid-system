@@ -99,8 +99,8 @@ def _sample_authority_metrics(joined) -> dict[str, object]:
         "fine_applicable_labels": int(fine.label_applicable.sum()),
         "fine_mature_labels": int(fine.label_mature.sum()),
         "fine_training_labels": int(fine.label_mask.sum()),
-        "fine_ope_support_rate": float(
-            fine.ope_supported[fine_valid].float().mean()
+        "fine_randomized_support_rate": float(
+            fine.randomized_support[fine_valid].float().mean()
         ),
         "history_valid_events": int(history_valid.sum()),
         "history_distinct_event_types": int(torch.unique(event_types).numel()),

@@ -1,0 +1,475 @@
+"""Content-addressed save, restore and fork boundary for the full twin state."""
+
+from __future__ import annotations
+
+from dataclasses import asdict, dataclass, fields
+from hashlib import sha256
+from io import BytesIO
+import json
+import os
+from pathlib import Path
+from tempfile import NamedTemporaryFile
+from typing import Mapping
+
+import scipy.sparse
+import torch
+
+from ..catalog import PublicCatalog
+from ..contracts import AppEventBatch
+from ..engine import AtomicSimulationKernel, ExperimentPlan
+from ..experiments.layered import LayeredExperimentPlan, PolicyLayer
+from ..platform.ranking import CascadePolicy
+from ..platform.runtime import ReferenceRecommendationPlatform
+from ..world.runtime import UserEcosystemWorld
+
+
+WORLD_CHECKPOINT_SCHEMA = "digital-twin-world-checkpoint-v1"
+
+
+@dataclass(frozen=True)
+class WorldCheckpointRef:
+    checkpoint_id: str
+    logical_time: int
+    parent_checkpoint_id: str
+    state_object: str
+    event_objects: tuple[str, ...]
+    catalog_sha256: str
+    runtime_sha256: str
+    code_sha256: str
+    experiment_sha256: str
+
+
+@dataclass(frozen=True)
+class RestoredWorldCheckpoint:
+    ref: WorldCheckpointRef
+    experiment: ExperimentPlan | LayeredExperimentPlan
+    learning_cursors: dict[str, object]
+
+
+def _canonical_json(value: object) -> bytes:
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"),
+    ).encode("utf-8")
+
+
+def _tensor_payload(value: torch.Tensor) -> torch.Tensor:
+    return value.detach().cpu().clone()
+
+
+def _dataclass_tensor_state(value: object) -> dict[str, torch.Tensor]:
+    return {
+        field.name: _tensor_payload(getattr(value, field.name))
+        for field in fields(value)
+    }
+
+
+def _restore_tensor_state(target: object, state: Mapping[str, torch.Tensor]) -> None:
+    expected = {field.name for field in fields(target)}
+    if set(state) != expected:
+        raise ValueError("checkpoint tensor state schema differs from runtime")
+    for name, saved in state.items():
+        current = getattr(target, name)
+        if current.shape != saved.shape or current.dtype != saved.dtype:
+            raise ValueError(f"checkpoint tensor {name} is incompatible")
+        current.copy_(saved.to(current.device))
+
+
+def _event_state(events: AppEventBatch) -> dict[str, torch.Tensor]:
+    return _dataclass_tensor_state(events)
+
+
+def _restore_events(
+    value: Mapping[str, torch.Tensor], device: torch.device,
+) -> AppEventBatch:
+    expected = {field.name for field in fields(AppEventBatch)}
+    if set(value) != expected:
+        raise ValueError("checkpoint event schema differs from runtime")
+    return AppEventBatch(**{
+        name: tensor.to(device) for name, tensor in value.items()
+    })
+
+
+def _catalog_hash(catalog: PublicCatalog) -> str:
+    digest = sha256()
+    for field in fields(catalog):
+        tensor = getattr(catalog, field.name).detach().cpu().contiguous()
+        digest.update(field.name.encode("utf-8"))
+        digest.update(str(tensor.dtype).encode("ascii"))
+        digest.update(_canonical_json(list(tensor.shape)))
+        digest.update(tensor.numpy().tobytes())
+    return digest.hexdigest()
+
+
+def _source_hash() -> str:
+    package = Path(__file__).resolve().parents[1]
+    digest = sha256()
+    for path in sorted(package.rglob("*.py")):
+        digest.update(str(path.relative_to(package)).encode("utf-8"))
+        digest.update(path.read_bytes())
+    return digest.hexdigest()
+
+
+def _runtime_manifest(
+    world: UserEcosystemWorld,
+    platform: ReferenceRecommendationPlatform,
+) -> dict[str, object]:
+    return {
+        "world_config": asdict(world.config),
+        "world_manifest": world.manifest(),
+        "platform_config": asdict(platform.config),
+        "retrieval_config": asdict(platform.retriever.config),
+        "ranking_config": asdict(platform.ranker.config),
+        "feature_manifest_hash": platform.ranker.features.manifest.manifest_hash,
+        "fine_scorer_versions": sorted(platform.ranker._fine_scorers),
+        "learned_retriever": (
+            None
+            if platform.retriever.learned_retriever is None
+            else {
+                "serving_version_id": (
+                    platform.retriever.learned_retriever.serving_version_id
+                ),
+                "index_version": platform.retriever.learned_retriever.index_version,
+            }
+        ),
+    }
+
+
+def _policy_state(policy: CascadePolicy) -> dict[str, object]:
+    return asdict(policy)
+
+
+def _experiment_state(
+    plan: ExperimentPlan | LayeredExperimentPlan,
+) -> dict[str, object]:
+    if isinstance(plan, ExperimentPlan):
+        return {
+            "kind": "ramped",
+            "policies": {
+                str(cell): _policy_state(policy)
+                for cell, policy in plan.policies.items()
+            },
+            "experiment_seed": plan.experiment_seed,
+            "control_fraction": plan.control_fraction,
+            "treatment_fraction": plan.treatment_fraction,
+            "analysis_cells": list(plan.analysis_cells),
+            "default_cell": plan.default_cell,
+            "assignment_unit": plan.assignment_unit,
+            "eligible_surfaces": (
+                None
+                if plan.eligible_surfaces is None
+                else list(plan.eligible_surfaces)
+            ),
+        }
+    if isinstance(plan, LayeredExperimentPlan):
+        return {
+            "kind": "layered",
+            "base_policy": _policy_state(plan.base_policy),
+            "layers": [asdict(layer) for layer in plan.layers],
+            "assignment_unit": plan.assignment_unit,
+        }
+    raise TypeError("checkpoint supports only factual digital-twin experiment plans")
+
+
+def _restore_experiment(
+    state: Mapping[str, object],
+) -> ExperimentPlan | LayeredExperimentPlan:
+    kind = state.get("kind")
+    if kind == "ramped":
+        policies = {
+            int(cell): CascadePolicy(**value)
+            for cell, value in state["policies"].items()
+        }
+        eligible = state["eligible_surfaces"]
+        return ExperimentPlan(
+            policies=policies,
+            experiment_seed=int(state["experiment_seed"]),
+            control_fraction=float(state["control_fraction"]),
+            treatment_fraction=float(state["treatment_fraction"]),
+            analysis_cells=tuple(state["analysis_cells"]),
+            default_cell=int(state["default_cell"]),
+            assignment_unit=str(state["assignment_unit"]),
+            eligible_surfaces=None if eligible is None else tuple(eligible),
+        )
+    if kind == "layered":
+        return LayeredExperimentPlan(
+            base_policy=CascadePolicy(**state["base_policy"]),
+            layers=tuple(PolicyLayer(**value) for value in state["layers"]),
+            assignment_unit=str(state["assignment_unit"]),
+        )
+    raise ValueError("checkpoint experiment schema is unsupported")
+
+
+def _world_state(world: UserEcosystemWorld) -> dict[str, object]:
+    return {
+        "users": _dataclass_tensor_state(world.users),
+        "supply": _dataclass_tensor_state(world.supply.state),
+        "trend": {
+            "strength": _tensor_payload(world.trends.state.strength),
+            "momentum": _tensor_payload(world.trends.state.momentum),
+            "last_time": world.trends.state.last_time,
+        },
+        "delayed": {
+            str(ingest_time): _event_state(events)
+            for ingest_time, events in world.delayed._pending.items()
+        },
+    }
+
+
+def _graph_state(platform: ReferenceRecommendationPlatform) -> dict[str, object]:
+    graph = platform.retriever.graph
+    matrix = graph._matrix
+    return {
+        "indptr": torch.from_numpy(matrix.indptr.copy()),
+        "indices": torch.from_numpy(matrix.indices.copy()),
+        "data": torch.from_numpy(matrix.data.copy()),
+        "pending_source": [
+            torch.from_numpy(value.copy()) for value in graph._pending_source
+        ],
+        "pending_target": [
+            torch.from_numpy(value.copy()) for value in graph._pending_target
+        ],
+        "neighbor": _tensor_payload(graph.neighbor),
+        "score": _tensor_payload(graph.score),
+        "version": graph.version,
+    }
+
+
+def _platform_state(
+    platform: ReferenceRecommendationPlatform,
+) -> dict[str, object]:
+    retriever = platform.retriever
+    return {
+        "projection": _dataclass_tensor_state(platform.projection.state),
+        "retriever": {
+            "last_refresh": retriever._last_refresh,
+            "faiss_version": retriever.faiss.version,
+            "indexed_active": _tensor_payload(retriever.faiss._indexed_active),
+            "graph": _graph_state(platform),
+        },
+    }
+
+
+def _restore_world(
+    world: UserEcosystemWorld, state: Mapping[str, object],
+) -> None:
+    _restore_tensor_state(world.users, state["users"])
+    _restore_tensor_state(world.supply.state, state["supply"])
+    trend = state["trend"]
+    world.trends.state.strength.copy_(
+        trend["strength"].to(world.trends.state.strength.device)
+    )
+    world.trends.state.momentum.copy_(
+        trend["momentum"].to(world.trends.state.momentum.device)
+    )
+    world.trends.state.last_time = int(trend["last_time"])
+    device = world.catalog.item_id.device
+    world.delayed._pending = {
+        int(ingest_time): _restore_events(events, device)
+        for ingest_time, events in state["delayed"].items()
+    }
+
+
+def _restore_graph(
+    platform: ReferenceRecommendationPlatform, state: Mapping[str, object],
+) -> None:
+    graph = platform.retriever.graph
+    graph._matrix = scipy.sparse.csr_matrix(
+        (
+            state["data"].numpy(),
+            state["indices"].numpy(),
+            state["indptr"].numpy(),
+        ),
+        shape=(graph.items, graph.items),
+    )
+    graph._pending_source = [value.numpy() for value in state["pending_source"]]
+    graph._pending_target = [value.numpy() for value in state["pending_target"]]
+    graph.neighbor.copy_(state["neighbor"].to(graph.device))
+    graph.score.copy_(state["score"].to(graph.device))
+    graph.version = str(state["version"])
+
+
+def _restore_platform(
+    platform: ReferenceRecommendationPlatform, state: Mapping[str, object],
+) -> None:
+    _restore_tensor_state(platform.projection.state, state["projection"])
+    retriever_state = state["retriever"]
+    retriever = platform.retriever
+    retriever._last_refresh = int(retriever_state["last_refresh"])
+    indexed = retriever_state["indexed_active"].to(retriever.device)
+    retriever.faiss._index = None
+    retriever.faiss._torch_item = None
+    retriever.faiss._torch_embedding = None
+    retriever.faiss._indexed_active.zero_()
+    retriever.faiss.sync(indexed, str(retriever_state["faiss_version"]))
+    _restore_graph(platform, retriever_state["graph"])
+
+
+class WorldCheckpointStore:
+    """Writes immutable objects and restores them into a compatible runtime."""
+
+    def __init__(self, root: Path):
+        self.root = root
+        self.objects = root / "objects"
+        self.refs = root / "refs"
+        self.objects.mkdir(parents=True, exist_ok=True)
+        self.refs.mkdir(parents=True, exist_ok=True)
+
+    def _write_object(self, value: object) -> str:
+        buffer = BytesIO()
+        torch.save(value, buffer)
+        payload = buffer.getvalue()
+        digest = sha256(payload).hexdigest()
+        target = self.objects / f"{digest}.pt"
+        if not target.exists():
+            with NamedTemporaryFile(dir=self.objects, delete=False) as stream:
+                temporary = Path(stream.name)
+                stream.write(payload)
+            os.replace(temporary, target)
+        elif sha256(target.read_bytes()).hexdigest() != digest:
+            raise ValueError("checkpoint object content hash mismatch")
+        return digest
+
+    def _read_object(self, digest: str) -> object:
+        path = self.objects / f"{digest}.pt"
+        if not path.is_file() or sha256(path.read_bytes()).hexdigest() != digest:
+            raise ValueError("checkpoint object is missing or corrupted")
+        return torch.load(path, map_location="cpu", weights_only=False)
+
+    def save(
+        self,
+        kernel: AtomicSimulationKernel,
+        logical_time: int,
+        experiment: ExperimentPlan | LayeredExperimentPlan,
+        *,
+        parent_checkpoint_id: str = "",
+        learning_cursors: Mapping[str, object] | None = None,
+    ) -> WorldCheckpointRef:
+        world, platform = self._compatible_runtime(kernel)
+        experiment_state = _experiment_state(experiment)
+        runtime_manifest = _runtime_manifest(world, platform)
+        state_object = self._write_object({
+            "world": _world_state(world),
+            "platform": _platform_state(platform),
+        })
+        event_objects = tuple(
+            self._write_object(_event_state(batch))
+            for batch in kernel.event_log._batches
+        )
+        manifest = {
+            "schema": WORLD_CHECKPOINT_SCHEMA,
+            "logical_time": logical_time,
+            "parent_checkpoint_id": parent_checkpoint_id,
+            "state_object": state_object,
+            "event_objects": list(event_objects),
+            "catalog_sha256": _catalog_hash(world.catalog),
+            "runtime_manifest": runtime_manifest,
+            "runtime_sha256": sha256(
+                _canonical_json(runtime_manifest)
+            ).hexdigest(),
+            "code_sha256": _source_hash(),
+            "experiment": experiment_state,
+            "experiment_sha256": sha256(
+                _canonical_json(experiment_state)
+            ).hexdigest(),
+            "learning_cursors": dict(learning_cursors or {}),
+            "event_manifest": kernel.event_log.manifest(),
+        }
+        checkpoint_id = sha256(_canonical_json(manifest)).hexdigest()
+        path = self.refs / f"{checkpoint_id}.json"
+        if not path.exists():
+            self._write_json_atomic(path, manifest)
+        elif json.loads(path.read_text()) != manifest:
+            raise ValueError("checkpoint identity collision")
+        return self._ref(checkpoint_id, manifest)
+
+    def restore(
+        self,
+        kernel: AtomicSimulationKernel,
+        checkpoint_id: str,
+        *,
+        require_code_match: bool = True,
+    ) -> RestoredWorldCheckpoint:
+        world, platform = self._compatible_runtime(kernel)
+        manifest = self._manifest(checkpoint_id)
+        if manifest["catalog_sha256"] != _catalog_hash(world.catalog):
+            raise ValueError("checkpoint catalog differs from runtime")
+        runtime = _runtime_manifest(world, platform)
+        if manifest["runtime_sha256"] != sha256(
+            _canonical_json(runtime)
+        ).hexdigest():
+            raise ValueError("checkpoint runtime contract differs")
+        if require_code_match and manifest["code_sha256"] != _source_hash():
+            raise ValueError("checkpoint code closure differs from runtime")
+        state = self._read_object(manifest["state_object"])
+        _restore_world(world, state["world"])
+        _restore_platform(platform, state["platform"])
+        self._restore_event_log(kernel, manifest)
+        return RestoredWorldCheckpoint(
+            ref=self._ref(checkpoint_id, manifest),
+            experiment=_restore_experiment(manifest["experiment"]),
+            learning_cursors=dict(manifest["learning_cursors"]),
+        )
+
+    def _restore_event_log(
+        self, kernel: AtomicSimulationKernel, manifest: Mapping[str, object],
+    ) -> None:
+        allowed = int(manifest["event_manifest"]["allowed_lateness"])
+        if kernel.event_log.allowed_lateness != allowed:
+            raise ValueError("checkpoint event-log lateness differs")
+        device = kernel.world.catalog.item_id.device
+        kernel.event_log._batches.clear()
+        kernel.event_log._ids_by_event_time.clear()
+        kernel.event_log._events = 0
+        kernel.event_log._ingest_watermark = -1
+        for digest in manifest["event_objects"]:
+            kernel.event_log.append(
+                _restore_events(self._read_object(digest), device)
+            )
+        if kernel.event_log.manifest() != manifest["event_manifest"]:
+            raise ValueError("restored event log differs from checkpoint")
+
+    def _manifest(self, checkpoint_id: str) -> dict[str, object]:
+        path = self.refs / f"{checkpoint_id}.json"
+        if not path.is_file():
+            raise KeyError(f"unknown world checkpoint: {checkpoint_id}")
+        manifest = json.loads(path.read_text())
+        if manifest.get("schema") != WORLD_CHECKPOINT_SCHEMA:
+            raise ValueError("world checkpoint schema is unsupported")
+        expected = sha256(_canonical_json(manifest)).hexdigest()
+        if expected != checkpoint_id:
+            raise ValueError("world checkpoint manifest hash mismatch")
+        return manifest
+
+    @staticmethod
+    def _ref(
+        checkpoint_id: str, manifest: Mapping[str, object],
+    ) -> WorldCheckpointRef:
+        return WorldCheckpointRef(
+            checkpoint_id=checkpoint_id,
+            logical_time=int(manifest["logical_time"]),
+            parent_checkpoint_id=str(manifest["parent_checkpoint_id"]),
+            state_object=str(manifest["state_object"]),
+            event_objects=tuple(manifest["event_objects"]),
+            catalog_sha256=str(manifest["catalog_sha256"]),
+            runtime_sha256=str(manifest["runtime_sha256"]),
+            code_sha256=str(manifest["code_sha256"]),
+            experiment_sha256=str(manifest["experiment_sha256"]),
+        )
+
+    @staticmethod
+    def _compatible_runtime(
+        kernel: AtomicSimulationKernel,
+    ) -> tuple[UserEcosystemWorld, ReferenceRecommendationPlatform]:
+        if not isinstance(kernel.world, UserEcosystemWorld):
+            raise TypeError("world checkpoint requires UserEcosystemWorld")
+        if not isinstance(kernel.platform, ReferenceRecommendationPlatform):
+            raise TypeError("world checkpoint requires reference platform")
+        return kernel.world, kernel.platform
+
+    @staticmethod
+    def _write_json_atomic(path: Path, value: object) -> None:
+        payload = _canonical_json(value)
+        with NamedTemporaryFile(dir=path.parent, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(payload)
+        os.replace(temporary, path)

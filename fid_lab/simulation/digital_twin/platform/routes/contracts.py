@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import torch
 
-from ..contracts import ContentKind, Surface
+from ...contracts import ContentKind, Surface
 
 
 FEED_ROUTE_NAMES = (
+    "random",
+    "popular",
     "recent_ann",
     "recent_graph",
     "following",

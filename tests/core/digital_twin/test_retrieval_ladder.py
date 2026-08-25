@@ -18,8 +18,10 @@ def test_retrieval_launches_change_one_route_and_preserve_factual_world():
         device="cpu",
         auto_promote=False,
         minimum_triggered_users=2,
+        max_reviews=1,
     ))
-    assert len(result["reviews"]) == 5
+    assert len(result["reviews"]) == 1
+    assert result["reviews"][0]["added_route"] == "popular"
     for review in result["reviews"]:
         control = review["control_routes"]
         treatment = review["treatment_routes"]
@@ -32,7 +34,7 @@ def test_retrieval_launches_change_one_route_and_preserve_factual_world():
         assert stages["recall"] >= stages["coarse"]
         assert stages["coarse"] >= stages["fine"]
         assert stages["fine"] >= stages["exposed"]
-    assert result["final_active_routes"] == ["evergreen"]
+    assert result["final_active_routes"] == ["random"]
 
 
 def test_empty_or_nonfinite_launch_cannot_promote():
@@ -46,8 +48,26 @@ def test_empty_or_nonfinite_launch_cannot_promote():
         device="cpu",
         minimum_triggered_users=100,
     ))
-    assert all(review["decision"] == "hold" for review in result["reviews"])
-    assert result["final_active_routes"] == ["evergreen"]
+    assert len(result["reviews"]) == 1
+    assert result["reviews"][0]["decision"] == "hold"
+    assert result["final_active_routes"] == ["random"]
+
+
+def test_inconclusive_launch_stops_at_preregistered_window_limit():
+    result = run_retrieval_ladder(RetrievalLadderConfig(
+        users=128,
+        items=1_200,
+        burn_in_steps=1,
+        experiment_steps=1,
+        control_fraction=0.01,
+        treatment_fraction=0.01,
+        device="cpu",
+        minimum_triggered_users=100,
+        max_attempts_per_review=1,
+        max_reviews=1,
+    ))
+    assert result["reviews"][0]["decision"] == "stop_inconclusive"
+    assert not result["reviews"][0]["promoted_to_next_baseline"]
 
 
 def test_significant_primary_regression_rejects_before_promotion():
@@ -67,3 +87,37 @@ def test_significant_primary_regression_rejects_before_promotion():
     )
     assert decision == "reject"
     assert reason == "stay significantly decreases"
+
+
+def test_retrieval_ladder_resumes_from_promoted_world_state(tmp_path):
+    initial = RetrievalLadderConfig(
+        users=128,
+        items=1_200,
+        burn_in_steps=1,
+        experiment_steps=1,
+        control_fraction=0.4,
+        treatment_fraction=0.4,
+        device="cpu",
+        auto_promote=False,
+        minimum_triggered_users=10_000,
+        checkpoint_root=str(tmp_path),
+        max_reviews=1,
+    )
+    first = run_retrieval_ladder(initial)
+    assert len(first["checkpoint_ids"]) == 2
+    assert len(first["reviews"]) == 1
+    resumed = run_retrieval_ladder(RetrievalLadderConfig(
+        **{
+            **initial.__dict__,
+            "resume_checkpoint_id": first["final_checkpoint_id"],
+            "max_reviews": 1,
+        },
+    ))
+    assert resumed["reviews"][:1] == first["reviews"]
+    assert len(resumed["reviews"]) == 2
+    assert resumed["reviews"][1]["added_route"] == "popular"
+    assert resumed["reviews"][1]["attempt"] == 2
+    assert resumed["reviews"][1]["requests"]["control"] > (
+        first["reviews"][0]["requests"]["control"]
+    )
+    assert resumed["resumed_from_checkpoint"] == first["final_checkpoint_id"]

@@ -1,0 +1,148 @@
+{
+  "schema": "digital-twin-launch-review-v1",
+  "scope": "v4 Feed factual world checkpoint and sequential retrieval mainline",
+  "quality_claim": "synthetic-world causal evidence only",
+  "hardware": {
+    "gpu": "NVIDIA GeForce RTX 4090",
+    "cuda": "12.6",
+    "pytorch": "2.7.1+cu126"
+  },
+  "validation": {
+    "full_repository": "310 passed, 3 subtests passed",
+    "architecture": "PASS, 0 errors",
+    "restore_equivalence": "next-tick events, candidate trace, hidden users, supply and projection are tensor-equal"
+  },
+  "simulation": {
+    "users": 20000,
+    "items": 500000,
+    "ticks_per_day": 8,
+    "burn_in_ticks": 4,
+    "ticks_per_review_window": 8,
+    "control_fraction": 0.2,
+    "treatment_fraction": 0.2,
+    "minimum_triggered_users": 500,
+    "maximum_windows_per_review": 3
+  },
+  "checkpoint_lineage": [
+    {
+      "role": "burn_in",
+      "checkpoint_id": "7dad0c7871d0ecc8c349160bc002829062da931832610171a7a9c4db42b69bfe"
+    },
+    {
+      "role": "popular_promoted",
+      "checkpoint_id": "1fa760f39f6b8090ae3753593b62250bdc6a7127c9a993ac8f4c5e228a1fa445"
+    },
+    {
+      "role": "cold_start_stopped_inconclusive",
+      "checkpoint_id": "69f5e8da54e20ef4e09a8b0f5818fd70af2a1080ff48beb3232d2b4256903737"
+    },
+    {
+      "role": "recent_ann_pending_attempt_1",
+      "checkpoint_id": "87f1fa6990584f2db57792d13c81a998ec4ec61dfc98e1f95991f2d54bb13d0c"
+    }
+  ],
+  "invalidated_branch": {
+    "checkpoint_id": "aaecb8993916c2ba4d8058af88497a7c881743e13ab9c61d4c321cc86aba94a5",
+    "reason": "the pre-fix runner advanced after HOLD instead of retaining a pending launch cursor"
+  },
+  "launch_reviews": [
+    {
+      "id": "R-LR-001",
+      "change": "eligible Random to Random plus Popular retrieval",
+      "attempts": 1,
+      "requests": {
+        "control": 6337,
+        "treatment": 6843,
+        "default": 27634
+      },
+      "triggered_users": {
+        "control": 1555,
+        "treatment": 1596
+      },
+      "relative_delta": {
+        "dwell_seconds": 0.27189362049102783,
+        "long_view": 0.3567379415035248,
+        "play_3s": 0.19463759660720825,
+        "complete": 0.09791409224271774,
+        "negative": -0.07419382035732269
+      },
+      "dwell_absolute_ci95_seconds": [
+        8.351818084716797,
+        13.232425689697266
+      ],
+      "route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 1.0,
+        "fine": 0.554642213454138,
+        "exposed": 0.30859394027960446
+      },
+      "decision": "promote"
+    },
+    {
+      "id": "R-LR-002",
+      "change": "Random plus Popular to add cold-start retrieval",
+      "attempts": 3,
+      "analysis_ticks": [12, 35],
+      "requests": {
+        "control": 4014,
+        "treatment": 4192,
+        "default": 16231
+      },
+      "triggered_users": {
+        "control": 824,
+        "treatment": 825
+      },
+      "relative_delta": {
+        "dwell_seconds": 0.03797797113656998,
+        "long_view": 0.019349640235304832,
+        "play_3s": 0.040460508316755295,
+        "complete": 0.0026146583259105682,
+        "negative": 0.04540994018316269
+      },
+      "dwell_absolute_ci95_seconds": [
+        -3.3607358932495117,
+        8.097346305847168
+      ],
+      "route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 0.5714058524173028,
+        "fine": 0.09854087150127226,
+        "exposed": 0.01955112913486005
+      },
+      "decision": "stop_inconclusive"
+    },
+    {
+      "id": "R-LR-003",
+      "change": "Random plus Popular to add recent ANN retrieval",
+      "attempts": 1,
+      "analysis_ticks": [36, 43],
+      "requests": {
+        "control": 1208,
+        "treatment": 1256,
+        "default": 4887
+      },
+      "triggered_users": {
+        "control": 319,
+        "treatment": 347
+      },
+      "relative_delta": {
+        "dwell_seconds": -0.042455755174160004,
+        "long_view": -0.031063176691532135,
+        "play_3s": -0.011349037289619446,
+        "complete": 0.2060651332139969,
+        "negative": -0.1847642958164215
+      },
+      "dwell_absolute_ci95_seconds": [
+        -7.816030502319336,
+        3.6698131561279297
+      ],
+      "route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 1.0,
+        "fine": 0.5582276736493936,
+        "exposed": 0.24662348401323042
+      },
+      "decision": "hold"
+    }
+  ]
+}

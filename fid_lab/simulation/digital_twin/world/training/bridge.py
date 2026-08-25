@@ -182,7 +182,7 @@ def _build_family(config, family_id):
 def _served_fine_scores(serving, feed):
     exposed = serving.slate.item_ids[feed]
     fine_item = serving.candidate_trace.fine_item_id[feed]
-    fine_score = serving.candidate_trace.fine_score[feed]
+    fine_score = serving.candidate_trace.fine_selected_score[feed]
     match = exposed[:, :, None] == fine_item[:, None, :]
     return torch.where(
         match, fine_score[:, None, :], torch.full_like(

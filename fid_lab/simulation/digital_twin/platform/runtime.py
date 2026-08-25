@@ -132,7 +132,6 @@ class ReferenceRecommendationPlatform:
             ],
             torch.full_like(retrieval.item_id, -1),
         )
-        exposure_probability = valid.float()
         slate = RenderedSlateBatch(
             request_id=requests.request_id,
             user_id=requests.user_id,
@@ -142,7 +141,10 @@ class ReferenceRecommendationPlatform:
             positions=ranked.exposed_position,
             valid=valid,
             ui_variant=torch.full_like(requests.user_id, experiment_cell),
-            exposure_probability=exposure_probability,
+            exposure_probability=ranked.exposure_probability,
+            selection_policy_kind=ranked.selection_policy_kind,
+            exploration_rate=ranked.exploration_rate,
+            slate_log_probability=ranked.slate_log_probability,
             assignment_probability=assignment_probability,
         )
         recall_version = torch.full_like(
@@ -168,21 +170,23 @@ class ReferenceRecommendationPlatform:
             recall_score=retrieval.score,
             recall_sampling_probability=retrieval.sampling_probability,
             recall_lifecycle_id=recall_lifecycle,
+            coarse_input_score=ranked.coarse_input_score,
+            coarse_admission_probability=ranked.coarse_admission_probability,
             coarse_item_id=ranked.coarse_item_id,
-            coarse_score=ranked.coarse_score,
-            coarse_sampling_probability=torch.where(
-                ranked.coarse_item_id >= 0,
-                torch.ones_like(ranked.coarse_score),
-                torch.zeros_like(ranked.coarse_score),
-            ),
+            coarse_selected_score=ranked.coarse_selected_score,
+            fine_input_score=ranked.fine_input_score,
+            fine_admission_probability=ranked.fine_admission_probability,
             fine_item_id=ranked.fine_item_id,
-            fine_score=ranked.fine_score,
-            fine_dense_features=ranked.fine_features.dense,
-            fine_sparse_fids=ranked.fine_features.sparse_fids,
-            fine_sparse_buckets=ranked.fine_features.sparse_buckets,
+            fine_selected_score=ranked.fine_selected_score,
+            candidate_dense_features=ranked.candidate_features.dense,
+            candidate_sparse_fids=ranked.candidate_features.sparse_fids,
+            candidate_sparse_buckets=ranked.candidate_features.sparse_buckets,
             exposed_item_id=ranked.exposed_item_id,
             exposed_position=ranked.exposed_position,
-            exposure_probability=exposure_probability,
+            exposure_probability=ranked.exposure_probability,
+            selection_policy_kind=ranked.selection_policy_kind,
+            exploration_rate=ranked.exploration_rate,
+            slate_log_probability=ranked.slate_log_probability,
             experiment_cell=torch.full_like(requests.user_id, experiment_cell),
             assignment_probability=assignment_probability,
             recall_version_id=recall_version,
@@ -196,7 +200,7 @@ class ReferenceRecommendationPlatform:
                 requests.user_id, policy.mix_version_id,
             ),
             manifest=TraceManifest(
-                schema_version="request-candidate-trace-v3",
+                schema_version="request-candidate-trace-v5",
                 feature_version=self.ranker.features.manifest.schema_version,
                 catalog_version=self.config.catalog_version,
                 policy_registry_version=self.config.policy_registry_version,
@@ -204,7 +208,7 @@ class ReferenceRecommendationPlatform:
                 index_version=snapshot.index_version,
                 fid_version=f"fid-{self.ranker.features.manifest.fid_version}",
                 lifecycle_version=LIFECYCLE_POLICY_VERSION,
-                feature_manifest_hash=ranked.fine_features.manifest_hash,
+                feature_manifest_hash=ranked.candidate_features.manifest_hash,
             ),
         )
         context = capture_request_context(trace, snapshot.projection)

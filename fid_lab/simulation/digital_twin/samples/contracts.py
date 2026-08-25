@@ -6,7 +6,7 @@ from dataclasses import dataclass, fields
 
 import torch
 
-from ..contracts import RenderedSlateBatch
+from ..contracts import RenderedSlateBatch, SelectionPolicyKind
 
 
 def _aligned(name: str, value: torch.Tensor, shape: tuple[int, ...]) -> None:
@@ -83,17 +83,23 @@ class RequestCandidateTrace:
     recall_score: torch.Tensor
     recall_sampling_probability: torch.Tensor
     recall_lifecycle_id: torch.Tensor
+    coarse_input_score: torch.Tensor
+    coarse_admission_probability: torch.Tensor
     coarse_item_id: torch.Tensor
-    coarse_score: torch.Tensor
-    coarse_sampling_probability: torch.Tensor
+    coarse_selected_score: torch.Tensor
+    fine_input_score: torch.Tensor
+    fine_admission_probability: torch.Tensor
     fine_item_id: torch.Tensor
-    fine_score: torch.Tensor
-    fine_dense_features: torch.Tensor
-    fine_sparse_fids: torch.Tensor
-    fine_sparse_buckets: torch.Tensor
+    fine_selected_score: torch.Tensor
+    candidate_dense_features: torch.Tensor
+    candidate_sparse_fids: torch.Tensor
+    candidate_sparse_buckets: torch.Tensor
     exposed_item_id: torch.Tensor
     exposed_position: torch.Tensor
     exposure_probability: torch.Tensor
+    selection_policy_kind: torch.Tensor
+    exploration_rate: torch.Tensor
+    slate_log_probability: torch.Tensor
     experiment_cell: torch.Tensor
     assignment_probability: torch.Tensor
     recall_version_id: torch.Tensor
@@ -118,6 +124,9 @@ class RequestCandidateTrace:
             "coarse_version_id",
             "fine_version_id",
             "mix_version_id",
+            "selection_policy_kind",
+            "exploration_rate",
+            "slate_log_probability",
         ):
             _aligned(name, getattr(self, name), (requests,))
         recall = self.recall_item_id.shape[1]
@@ -143,24 +152,28 @@ class RequestCandidateTrace:
             "recall_score",
             "recall_sampling_probability",
             "recall_lifecycle_id",
+            "coarse_input_score",
+            "coarse_admission_probability",
+            "fine_admission_probability",
         ):
             _aligned(name, getattr(self, name), (requests, recall))
         for name in (
             "coarse_item_id",
-            "coarse_score",
-            "coarse_sampling_probability",
+            "coarse_selected_score",
+            "fine_input_score",
         ):
             _aligned(name, getattr(self, name), (requests, coarse))
-        for name in ("fine_item_id", "fine_score"):
+        for name in ("fine_item_id", "fine_selected_score"):
             _aligned(name, getattr(self, name), (requests, fine))
         for name in (
-            "fine_dense_features", "fine_sparse_fids", "fine_sparse_buckets",
+            "candidate_dense_features", "candidate_sparse_fids",
+            "candidate_sparse_buckets",
         ):
             value = getattr(self, name)
-            if value.ndim != 3 or value.shape[:2] != (requests, fine):
-                raise ValueError(f"{name} must align with fine candidates")
-        if self.fine_sparse_fids.shape != self.fine_sparse_buckets.shape:
-            raise ValueError("fine sparse FIDs and buckets differ")
+            if value.ndim != 3 or value.shape[:2] != (requests, recall):
+                raise ValueError(f"{name} must align with recalled candidates")
+        if self.candidate_sparse_fids.shape != self.candidate_sparse_buckets.shape:
+            raise ValueError("candidate sparse FIDs and buckets differ")
         if not self.manifest.feature_manifest_hash:
             raise ValueError("candidate trace requires a feature manifest hash")
         for name in (
@@ -189,30 +202,35 @@ class RequestCandidateTrace:
 
     def _validate_probabilities(self) -> None:
         valid_recall = _valid_items(self.recall_item_id)
-        valid_coarse = _valid_items(self.coarse_item_id)
         valid_exposed = _valid_items(self.exposed_item_id)
-        for name, probability, valid in (
-            (
-                "recall_sampling_probability",
-                self.recall_sampling_probability,
-                valid_recall,
-            ),
-            (
-                "coarse_sampling_probability",
-                self.coarse_sampling_probability,
-                valid_coarse,
-            ),
+        positive = (
+            ("recall_sampling_probability", self.recall_sampling_probability, valid_recall),
             ("exposure_probability", self.exposure_probability, valid_exposed),
-        ):
+        )
+        for name, probability, valid in positive:
             if valid.any() and (
                 (probability[valid] <= 0.0) | (probability[valid] > 1.0)
             ).any():
                 raise ValueError(f"{name} must be in (0, 1] for valid items")
+        for name, probability in (
+            ("coarse_admission_probability", self.coarse_admission_probability),
+            ("fine_admission_probability", self.fine_admission_probability),
+        ):
+            if ((probability < 0.0) | (probability > 1.0)).any():
+                raise ValueError(f"{name} must be in [0, 1]")
         if len(self.assignment_probability) and (
             (self.assignment_probability <= 0.0)
             | (self.assignment_probability > 1.0)
         ).any():
             raise ValueError("assignment_probability must be in (0, 1]")
+        if ((self.exploration_rate < 0.0) | (self.exploration_rate > 1.0)).any():
+            raise ValueError("exploration_rate must be in [0, 1]")
+        randomized = self.selection_policy_kind == int(SelectionPolicyKind.RANDOMIZED)
+        deterministic = self.selection_policy_kind == int(SelectionPolicyKind.DETERMINISTIC)
+        if ~(randomized | deterministic).all():
+            raise ValueError("unknown selection policy kind")
+        if (randomized & (self.exploration_rate <= 0.0)).any():
+            raise ValueError("randomized selection requires positive exploration")
 
     def select(self, selected: torch.Tensor) -> RequestCandidateTrace:
         values = {
@@ -364,10 +382,15 @@ class FineRankExampleBatch:
     recall_route_id: torch.Tensor
     recall_score: torch.Tensor
     coarse_score: torch.Tensor
+    fine_admitted: torch.Tensor
+    exposed: torch.Tensor
     exposure_probability: torch.Tensor
+    selection_policy_kind: torch.Tensor
+    exploration_rate: torch.Tensor
+    slate_log_probability: torch.Tensor
     assignment_probability: torch.Tensor
     joint_logging_probability: torch.Tensor
-    ope_supported: torch.Tensor
+    randomized_support: torch.Tensor
     recall_version_id: torch.Tensor
     coarse_version_id: torch.Tensor
     fine_version_id: torch.Tensor
@@ -396,14 +419,16 @@ class FineRankExampleBatch:
             raise ValueError("fine items are not request-aligned")
         for name in (
             "position", "served_score", "recall_route_id", "recall_score",
-            "coarse_score", "exposure_probability",
-            "joint_logging_probability", "ope_supported", "dwell_ms",
+            "coarse_score", "fine_admitted", "exposed",
+            "exposure_probability", "joint_logging_probability",
+            "randomized_support", "dwell_ms",
         ):
             _aligned(name, getattr(self, name), item_shape)
         for name in (
             "user_id", "surface", "request_time", "assignment_probability",
             "recall_version_id", "coarse_version_id", "fine_version_id",
-            "mix_version_id",
+            "mix_version_id", "selection_policy_kind", "exploration_rate",
+            "slate_log_probability",
         ):
             _aligned(name, getattr(self, name), (requests,))
         task_shape = (*item_shape, self.labels.shape[2])
@@ -429,16 +454,26 @@ class FineRankExampleBatch:
         ):
             raise ValueError("fine label mask must be applicable and mature")
         valid = self.item_id >= 0
-        if not torch.equal(self.ope_supported, valid):
-            raise ValueError("valid impressions must have logging support")
+        if (self.exposed & ~valid).any() or (self.fine_admitted & ~valid).any():
+            raise ValueError("stage masks require valid fine input candidates")
+        if (self.exposed & ~self.fine_admitted).any():
+            raise ValueError("exposure must pass fine admission")
+        if (self.label_mask & ~self.exposed[:, :, None]).any():
+            raise ValueError("unexposed candidates cannot have behavior labels")
+        if (self.randomized_support & ~valid).any():
+            raise ValueError("support requires a valid fine input candidate")
+        expected_support = valid & (self.exploration_rate[:, None] > 0.0)
+        if not torch.equal(self.randomized_support, expected_support):
+            raise ValueError("randomized support disagrees with exploration policy")
+        if (self.exposure_probability[self.exposed] <= 0.0).any():
+            raise ValueError("exposed candidates require positive propensity")
+        if (self.exposure_probability[~self.exposed] != 0.0).any():
+            raise ValueError("unexposed candidates cannot carry factual propensity")
         expected_probability = (
             self.exposure_probability
             * self.assignment_probability[:, None]
         )
-        if not torch.allclose(
-            self.joint_logging_probability[valid],
-            expected_probability[valid],
-        ):
+        if not torch.allclose(self.joint_logging_probability, expected_probability):
             raise ValueError("joint logging probability is inconsistent")
         if not torch.equal(self.context.request_id, self.request_id):
             raise ValueError("fine context requests differ")
@@ -453,8 +488,9 @@ class CoarseRankExampleBatch:
     route_id: torch.Tensor
     recall_score: torch.Tensor
     served_score: torch.Tensor
+    coarse_admitted: torch.Tensor
     coarse_rank: torch.Tensor
-    sampling_probability: torch.Tensor
+    admission_probability: torch.Tensor
     hard_label: torch.Tensor
     hard_label_mask: torch.Tensor
     teacher_score: torch.Tensor
@@ -473,7 +509,8 @@ class CoarseRankExampleBatch:
         shape = self.item_id.shape
         for name in (
             "route_id", "recall_score", "served_score", "coarse_rank",
-            "sampling_probability", "hard_label", "hard_label_mask",
+            "coarse_admitted", "admission_probability", "hard_label",
+            "hard_label_mask",
             "teacher_score", "teacher_rank", "teacher_mask", "conflict_mask",
         ):
             _aligned(name, getattr(self, name), shape)
@@ -483,6 +520,11 @@ class CoarseRankExampleBatch:
             _aligned(name, getattr(self, name), (requests,))
         if (self.conflict_mask & ~self.teacher_mask).any():
             raise ValueError("coarse conflict requires a teacher")
+        valid = self.item_id >= 0
+        if (self.coarse_admitted & ~valid).any():
+            raise ValueError("coarse admission requires a valid recalled item")
+        if ((self.admission_probability < 0.0) | (self.admission_probability > 1.0)).any():
+            raise ValueError("coarse admission probability must be in [0, 1]")
         if not torch.equal(self.context.request_id, self.request_id):
             raise ValueError("coarse context requests differ")
 

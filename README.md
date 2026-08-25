@@ -635,6 +635,29 @@ sequenceDiagram
     A->>S: Shadow-approved version
 ```
 
+## Continuous factual world and checkpoints
+
+The v4 simulator does not restart from day zero for every Launch Review. A
+single factual world advances user, creator, content, delayed-outcome and
+observable platform state. Content-addressed checkpoints freeze that complete
+boundary; restore and fork are accepted only when the catalog, runtime, feature,
+model and code contracts match.
+
+```mermaid
+flowchart LR
+    Burn["Burn-in world"] --> C0["C0 world checkpoint"]
+    C0 --> AB1["Random vs Popular factual A/B"]
+    AB1 --> C1["C1 promoted mainline"]
+    C1 --> AB2["Cold-start cumulative windows"]
+    AB2 --> C2["C2 active policy unchanged"]
+    C2 --> AB3["Recent ANN pending A/B"]
+    C1 -. same-start diagnostic fork .-> Replay["Shadow / counterfactual replay"]
+```
+
+The current [checkpoint and retrieval Launch Review](docs/launch-reviews/2026-08-25-v4-world-checkpoint-retrieval-mainline.md)
+records Popular promotion, cold-start's inconclusive stop, ANN's pending state
+and the invalidated pre-fix HOLD branch.
+
 ## One atomic publication manifest
 
 ```mermaid
@@ -792,6 +815,9 @@ python3 -m fid_lab.evolution.cli.signal_diagnostic --impressions 1000000 --signa
 python3 -m fid_lab.evolution.cli.generative_demo
 python3 -m fid_lab.evolution.cli.ab_demo
 python3 -m fid_lab.simulation.cli --users 2000 --items 4000
+python3 -m fid_lab.simulation.digital_twin.experiments.retrieval_ladder \
+  --users 20000 --items 500000 --device cuda --max-reviews 1 \
+  --checkpoint-root checkpoints/feed-v4
 python3 -m fid_lab.feed_loop.models.cli --users 3000 --items 4000 --ab-users 500 --epochs 10 --device cuda:0
 python3 -m fid_lab.feed_loop.scale.tensor_cli --users 1000000 --steps 24 --device cuda:0
 python3 -m fid_lab.feed_loop.scale.artifact.cli \

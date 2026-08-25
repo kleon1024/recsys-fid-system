@@ -83,6 +83,11 @@ class TransportBenchmarkPlatform:
             valid=torch.ones_like(item, dtype=torch.bool),
             ui_variant=torch.full_like(requests.user_id, experiment_cell),
             exposure_probability=torch.ones_like(item, dtype=torch.float),
+            selection_policy_kind=torch.zeros_like(requests.user_id),
+            exploration_rate=torch.zeros_like(requests.user_id, dtype=torch.float),
+            slate_log_probability=torch.zeros_like(
+                requests.user_id, dtype=torch.float,
+            ),
             assignment_probability=assignment_probability,
         )
 

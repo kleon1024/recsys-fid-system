@@ -10,7 +10,7 @@ import torch
 
 from ..contracts import EventType
 from ..platform.lifecycle import ContentLifecycle, post_content_mask
-from ..platform.route_contracts import FEED_ROUTE_NAMES
+from ..platform.routes import FEED_ROUTE_NAMES
 from .contracts import CheckpointRecord, FullFlowSnapshot
 
 
@@ -93,6 +93,9 @@ def _request_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "user_creator_id": _numpy(trace.user_creator_id),
         "experiment_cell": _numpy(trace.experiment_cell),
         "assignment_probability": _numpy(trace.assignment_probability),
+        "selection_policy_kind": _numpy(trace.selection_policy_kind),
+        "exploration_rate": _numpy(trace.exploration_rate),
+        "slate_log_probability": _numpy(trace.slate_log_probability),
         "recall_version_id": _numpy(trace.recall_version_id),
         "coarse_version_id": _numpy(trace.coarse_version_id),
         "fine_version_id": _numpy(trace.fine_version_id),
@@ -189,11 +192,20 @@ def _candidate_table(snapshot: FullFlowSnapshot) -> pa.Table:
     trace, catalog = snapshot.trace, snapshot.catalog
     state = snapshot.projection.state
     valid = trace.recall_item_id >= 0
-    coarse, coarse_rank, coarse_score = _stage_membership(
-        trace.recall_item_id, trace.coarse_item_id, trace.coarse_score,
+    coarse, coarse_rank, _ = _stage_membership(
+        trace.recall_item_id,
+        trace.coarse_item_id,
+        trace.coarse_selected_score,
     )
-    fine, fine_rank, fine_score = _stage_membership(
-        trace.recall_item_id, trace.fine_item_id, trace.fine_score,
+    fine, fine_rank, _ = _stage_membership(
+        trace.recall_item_id,
+        trace.fine_item_id,
+        trace.fine_selected_score,
+    )
+    _, _, fine_input_score = _stage_membership(
+        trace.recall_item_id,
+        trace.coarse_item_id,
+        trace.fine_input_score,
     )
     exposed, exposed_rank, _ = _stage_membership(
         trace.recall_item_id,
@@ -247,12 +259,27 @@ def _candidate_table(snapshot: FullFlowSnapshot) -> pa.Table:
         ),
         "coarse_pass": _numpy(coarse[valid]),
         "coarse_rank": _numpy(coarse_rank[valid]),
-        "coarse_score": _numpy(coarse_score[valid]),
+        "coarse_score": _numpy(trace.coarse_input_score[valid]),
+        "coarse_admission_probability": _numpy(
+            trace.coarse_admission_probability[valid]
+        ),
         "fine_pass": _numpy(fine[valid]),
         "fine_rank": _numpy(fine_rank[valid]),
-        "fine_score": _numpy(fine_score[valid]),
+        "fine_score": _numpy(fine_input_score[valid]),
+        "fine_admission_probability": _numpy(
+            trace.fine_admission_probability[valid]
+        ),
         "exposed": _numpy(exposed[valid]),
         "exposed_position": _numpy(exposed_position[valid]),
+        "candidate_dense_features": _variable_list(
+            trace.candidate_dense_features[valid], pa.float32(),
+        ),
+        "candidate_sparse_fids": _variable_list(
+            trace.candidate_sparse_fids[valid], pa.int64(),
+        ),
+        "candidate_sparse_buckets": _variable_list(
+            trace.candidate_sparse_buckets[valid], pa.int64(),
+        ),
         "drop_stage": drop[_numpy(valid)],
     })
 
@@ -322,6 +349,13 @@ def _sample_lineage_defaults(rows: int) -> dict[str, object]:
             rows, np.nan, dtype=np.float32,
         ),
         "ope_supported": np.zeros(rows, dtype=np.bool_),
+        "randomized_support": np.zeros(rows, dtype=np.bool_),
+        "coarse_admitted": np.zeros(rows, dtype=np.bool_),
+        "fine_admitted": np.zeros(rows, dtype=np.bool_),
+        "exposed": np.zeros(rows, dtype=np.bool_),
+        "selection_policy_kind": np.full(rows, -1, dtype=np.int64),
+        "exploration_rate": np.zeros(rows, dtype=np.float32),
+        "slate_log_probability": np.full(rows, np.nan, dtype=np.float32),
         "user_id": np.full(rows, -1, dtype=np.int64),
         "surface": np.full(rows, -1, dtype=np.int64),
         "request_time": np.full(rows, -1, dtype=np.int64),
@@ -406,7 +440,7 @@ def _coarse_example_table(coarse) -> pa.Table:
         "role": ["candidate"] * coarse_rows,
         "ordinal": _numpy(coarse_rank[coarse_valid]),
         "sampling_probability": _numpy(
-            coarse.sampling_probability[coarse_valid]
+            coarse.admission_probability[coarse_valid]
         ),
         "label_value": _numpy(coarse.hard_label[coarse_valid]),
         "label_mask": _numpy(coarse.hard_label_mask[coarse_valid]),
@@ -419,6 +453,9 @@ def _coarse_example_table(coarse) -> pa.Table:
         coarse.recall_score[coarse_valid]
     )
     coarse_data["coarse_rank"] = _numpy(coarse.coarse_rank[coarse_valid])
+    coarse_data["coarse_admitted"] = _numpy(
+        coarse.coarse_admitted[coarse_valid]
+    )
     coarse_data["teacher_rank"] = _numpy(coarse.teacher_rank[coarse_valid])
     coarse_data["conflict_mask"] = _numpy(
         coarse.conflict_mask[coarse_valid]
@@ -437,7 +474,7 @@ def _fine_example_table(fine) -> pa.Table:
         "request_id": _numpy(fine_request[fine_valid]),
         "item_id": _numpy(fine.item_id[fine_valid]),
         "authority": ["fine"] * fine_rows,
-        "role": ["impression"] * fine_rows,
+        "role": ["candidate"] * fine_rows,
         "ordinal": _numpy(fine_rank[fine_valid]),
         "sampling_probability": _numpy(
             fine.exposure_probability[fine_valid]
@@ -453,7 +490,11 @@ def _fine_example_table(fine) -> pa.Table:
     fine_data["joint_logging_probability"] = _numpy(
         fine.joint_logging_probability[fine_valid]
     )
-    fine_data["ope_supported"] = _numpy(fine.ope_supported[fine_valid])
+    fine_data["randomized_support"] = _numpy(
+        fine.randomized_support[fine_valid]
+    )
+    fine_data["fine_admitted"] = _numpy(fine.fine_admitted[fine_valid])
+    fine_data["exposed"] = _numpy(fine.exposed[fine_valid])
     fine_data["user_id"] = _numpy(
         fine.user_id[:, None].expand_as(fine.item_id)[fine_valid]
     )
@@ -464,6 +505,15 @@ def _fine_example_table(fine) -> pa.Table:
         fine.request_time[:, None].expand_as(fine.item_id)[fine_valid]
     )
     fine_data["position"] = _numpy(fine.position[fine_valid])
+    fine_data["selection_policy_kind"] = _numpy(
+        fine.selection_policy_kind[:, None].expand_as(fine.item_id)[fine_valid]
+    )
+    fine_data["exploration_rate"] = _numpy(
+        fine.exploration_rate[:, None].expand_as(fine.item_id)[fine_valid]
+    )
+    fine_data["slate_log_probability"] = _numpy(
+        fine.slate_log_probability[:, None].expand_as(fine.item_id)[fine_valid]
+    )
     fine_data["served_checkpoint_id"] = _numpy(
         fine.fine_version_id[:, None].expand_as(fine.item_id)[fine_valid]
     )

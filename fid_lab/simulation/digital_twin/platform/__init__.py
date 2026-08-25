@@ -11,7 +11,7 @@ from .requests import open_platform_requests
 from .lifecycle import ContentLifecycle, LifecycleConfig
 from .ranking import CascadePolicy, RankingConfig
 from .retrieval import ROUTE_NAMES, MultiRouteRetriever, RetrievalConfig
-from .route_contracts import BUSINESS_ROUTE_NAMES, FEED_ROUTE_NAMES
+from .routes import BUSINESS_ROUTE_NAMES, FEED_ROUTE_NAMES
 from .runtime import ReferencePlatformConfig, ReferenceRecommendationPlatform
 
 __all__ = (

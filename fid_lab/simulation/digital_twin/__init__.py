@@ -8,10 +8,16 @@ from .contracts import (
     PlatformRequestBatch,
     PublishFailureReason,
     RenderedSlateBatch,
+    SelectionPolicyKind,
     Surface,
     make_app_events,
 )
 from .catalog import PublicCatalog, build_public_catalog
+from fid_lab.simulation.digital_twin.checkpoint.store import (
+    RestoredWorldCheckpoint,
+    WorldCheckpointRef,
+    WorldCheckpointStore,
+)
 from .engine import (
     AtomicSimulationKernel,
     ExperimentAssignment,
@@ -70,6 +76,7 @@ __all__ = (
     "ContentLifecycle",
     "CheckpointRecord",
     "ContentKind",
+    "RestoredWorldCheckpoint",
     "DelayedOutcomeQueue",
     "EventType",
     "ExperimentAssignment",
@@ -94,6 +101,7 @@ __all__ = (
     "ReferencePlatformConfig",
     "ReferenceRecommendationPlatform",
     "RenderedSlateBatch",
+    "SelectionPolicyKind",
     "ServingOutput",
     "Surface",
     "SupplyEcosystem",
@@ -103,6 +111,8 @@ __all__ = (
     "UserEcosystemWorld",
     "UserWorldConfig",
     "UserWorldSnapshot",
+    "WorldCheckpointRef",
+    "WorldCheckpointStore",
     "build_public_catalog",
     "build_full_flow_tables",
     "capture_request_context",

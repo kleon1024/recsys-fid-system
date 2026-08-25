@@ -143,6 +143,8 @@ LR; fix it first and rerun that LR instead of opening a convenient new treatment
 | B-IDX00 | model/index/corpus mismatch → compatibility-gated snapshot | pre-score rejection, fallback and exact rollback |
 | B-PS00 | stale/lost sparse shard → versioned shard recovery | freshness, checksum, replay and recovery-to-baseline |
 | B-LAT00 | timeout/fallback amplification → bounded latency and explicit fallback | P50/P99, fallback rate, ranking distribution and business recovery |
+| B-CKPT00 | process-local replay → content-addressed world checkpoint and fork | next-tick tensor parity across hidden world, platform, events, experiment and learning cursors |
+| B-LR00 | HOLD incorrectly advances route → pending cumulative launch cursor | same experiment assignment and analysis start survive restore; max-window stop is pre-registered |
 
 Urgent correctness fixes may use canary or switchback rather than withholding a
 known fix from half the users. The review still records pre-fix loss, recovery,

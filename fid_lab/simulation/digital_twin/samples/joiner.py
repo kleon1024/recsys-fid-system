@@ -249,24 +249,92 @@ def _map_fine_features(
     trace: RequestCandidateTrace,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     dense, _ = _map_stage(
-        trace.exposed_item_id,
-        trace.fine_item_id,
-        trace.fine_dense_features,
+        trace.coarse_item_id,
+        trace.recall_item_id,
+        trace.candidate_dense_features,
         0.0,
     )
     fids, _ = _map_stage(
-        trace.exposed_item_id,
-        trace.fine_item_id,
-        trace.fine_sparse_fids,
+        trace.coarse_item_id,
+        trace.recall_item_id,
+        trace.candidate_sparse_fids,
         0,
     )
     buckets, _ = _map_stage(
-        trace.exposed_item_id,
-        trace.fine_item_id,
-        trace.fine_sparse_buckets,
+        trace.coarse_item_id,
+        trace.recall_item_id,
+        trace.candidate_sparse_buckets,
         0,
     )
     return dense, fids, buckets
+
+
+@dataclass(frozen=True)
+class _FineLabelTensors:
+    labels: torch.Tensor
+    exposed: torch.Tensor
+    applicable: torch.Tensor
+    mature: torch.Tensor
+    mask: torch.Tensor
+    maturity_time: torch.Tensor
+    dwell_ms: torch.Tensor
+
+
+def _fine_label_tensors(
+    trace: RequestCandidateTrace,
+    events: AppEventBatch,
+    catalog: PublicCatalog,
+    tasks: tuple[LabelTask, ...],
+    watermark: int,
+) -> _FineLabelTensors:
+    exposed_labels = torch.stack(tuple(
+        _event_values(events, task.event_type, trace) for task in tasks
+    ), dim=2)
+    labels, _ = _map_stage(
+        trace.coarse_item_id,
+        trace.exposed_item_id,
+        exposed_labels,
+        0.0,
+    )
+    exposed, _ = _map_stage(
+        trace.coarse_item_id,
+        trace.exposed_item_id,
+        torch.ones_like(trace.exposed_item_id, dtype=torch.bool),
+        False,
+    )
+    item = trace.coarse_item_id.clamp_min(0)
+    content_kind = catalog.content_kind[item]
+    surface = trace.surface[:, None].expand_as(trace.coarse_item_id)
+    valid = trace.coarse_item_id >= 0
+    applicability = []
+    maturity = []
+    maturity_time = []
+    for task in tasks:
+        task_maturity_time = trace.event_time + task.maturity_ticks
+        applicability.append(
+            exposed & _task_applicability(task, surface, content_kind)
+        )
+        maturity.append(exposed & (watermark >= task_maturity_time)[:, None])
+        maturity_time.append(task_maturity_time[:, None].expand_as(valid))
+    applicable = torch.stack(applicability, dim=2)
+    mature = torch.stack(maturity, dim=2)
+    dwell, _ = _map_stage(
+        trace.coarse_item_id,
+        trace.exposed_item_id,
+        _event_values(
+            events, EventType.DWELL, trace, values=events.duration_ms,
+        ),
+        0.0,
+    )
+    return _FineLabelTensors(
+        labels=labels,
+        exposed=exposed,
+        applicable=applicable,
+        mature=mature,
+        mask=applicable & mature,
+        maturity_time=torch.stack(maturity_time, dim=2),
+        dwell_ms=dwell,
+    )
 
 
 class RequestLevelJoiner:
@@ -302,64 +370,49 @@ class RequestLevelJoiner:
         watermark: int,
     ) -> FineRankExampleBatch:
         tasks = self.config.tasks
-        labels = torch.stack(tuple(
-            _event_values(events, task.event_type, trace) for task in tasks
-        ), dim=2)
-        item = trace.exposed_item_id.clamp_min(0)
-        content_kind = self.catalog.content_kind[item]
-        surface = trace.surface[:, None].expand_as(trace.exposed_item_id)
-        valid = trace.exposed_item_id >= 0
-        applicability = []
-        maturity = []
-        maturity_time = []
-        for task in tasks:
-            task_maturity_time = trace.event_time + task.maturity_ticks
-            applicability.append(
-                valid & _task_applicability(task, surface, content_kind)
-            )
-            maturity.append(
-                valid & (watermark >= task_maturity_time)[:, None]
-            )
-            maturity_time.append(
-                task_maturity_time[:, None].expand_as(valid)
-            )
-        label_applicable = torch.stack(applicability, dim=2)
-        label_mature = torch.stack(maturity, dim=2)
-        label_mask = label_applicable & label_mature
-        label_maturity_time = torch.stack(maturity_time, dim=2)
-        dwell = _event_values(
-            events,
-            EventType.DWELL,
-            trace,
-            values=events.duration_ms,
+        label = _fine_label_tensors(
+            trace, events, self.catalog, tasks, watermark,
         )
-        served_score, _ = _map_stage(
-            trace.exposed_item_id,
+        fine_admitted, _ = _map_stage(
+            trace.coarse_item_id,
             trace.fine_item_id,
-            trace.fine_score,
-            0.0,
+            torch.ones_like(trace.fine_item_id, dtype=torch.bool),
+            False,
         )
+        valid = trace.coarse_item_id >= 0
         recall_route, _ = _map_stage(
-            trace.exposed_item_id,
+            trace.coarse_item_id,
             trace.recall_item_id,
             trace.recall_route_id,
             -1,
         )
         recall_score, _ = _map_stage(
-            trace.exposed_item_id,
+            trace.coarse_item_id,
             trace.recall_item_id,
             trace.recall_score,
             0.0,
         )
         coarse_score, _ = _map_stage(
-            trace.exposed_item_id,
             trace.coarse_item_id,
-            trace.coarse_score,
+            trace.recall_item_id,
+            trace.coarse_input_score,
+            0.0,
+        )
+        position, _ = _map_stage(
+            trace.coarse_item_id,
+            trace.exposed_item_id,
+            trace.exposed_position,
+            -1,
+        )
+        exposure_probability, _ = _map_stage(
+            trace.coarse_item_id,
+            trace.exposed_item_id,
+            trace.exposure_probability,
             0.0,
         )
         dense_features, sparse_fids, sparse_buckets = _map_fine_features(trace)
         joint_probability = (
-            trace.exposure_probability
+            exposure_probability
             * trace.assignment_probability[:, None]
         )
         return FineRankExampleBatch(
@@ -367,26 +420,31 @@ class RequestLevelJoiner:
             user_id=trace.user_id,
             surface=trace.surface,
             request_time=trace.event_time,
-            item_id=trace.exposed_item_id,
-            position=trace.exposed_position,
-            served_score=served_score,
+            item_id=trace.coarse_item_id,
+            position=position,
+            served_score=trace.fine_input_score,
             recall_route_id=recall_route,
             recall_score=recall_score,
             coarse_score=coarse_score,
-            exposure_probability=trace.exposure_probability,
+            fine_admitted=fine_admitted,
+            exposed=label.exposed,
+            exposure_probability=exposure_probability,
+            selection_policy_kind=trace.selection_policy_kind,
+            exploration_rate=trace.exploration_rate,
+            slate_log_probability=trace.slate_log_probability,
             assignment_probability=trace.assignment_probability,
             joint_logging_probability=joint_probability,
-            ope_supported=valid & (joint_probability > 0.0),
+            randomized_support=valid & (trace.exploration_rate[:, None] > 0.0),
             recall_version_id=trace.recall_version_id,
             coarse_version_id=trace.coarse_version_id,
             fine_version_id=trace.fine_version_id,
             mix_version_id=trace.mix_version_id,
-            labels=labels,
-            label_applicable=label_applicable,
-            label_mature=label_mature,
-            label_mask=label_mask,
-            label_maturity_time=label_maturity_time,
-            dwell_ms=dwell,
+            labels=label.labels,
+            label_applicable=label.applicable,
+            label_mature=label.mature,
+            label_mask=label.mask,
+            label_maturity_time=label.maturity_time,
+            dwell_ms=label.dwell_ms,
             dense_features=dense_features,
             sparse_fids=sparse_fids,
             sparse_buckets=sparse_buckets,
@@ -406,47 +464,41 @@ class RequestLevelJoiner:
         context: RequestContextBatch,
         fine: FineRankExampleBatch,
     ) -> CoarseRankExampleBatch:
-        route, _ = _map_stage(
-            trace.coarse_item_id,
-            trace.recall_item_id,
-            trace.recall_route_id,
-            -1,
-        )
-        recall_score, _ = _map_stage(
-            trace.coarse_item_id,
-            trace.recall_item_id,
-            trace.recall_score,
-            0.0,
-        )
         teacher_score, teacher_mask = _map_stage(
-            trace.coarse_item_id,
-            trace.fine_item_id,
-            trace.fine_score,
+            trace.recall_item_id,
+            fine.item_id,
+            fine.served_score,
             0.0,
         )
-        fine_rank = torch.arange(
-            1,
-            trace.fine_item_id.shape[1] + 1,
-            device=trace.fine_item_id.device,
-        )[None].expand_as(trace.fine_item_id)
+        valid_teacher = fine.item_id >= 0
+        teacher_order = torch.argsort(
+            fine.served_score.masked_fill(~valid_teacher, -torch.inf),
+            dim=1,
+            descending=True,
+            stable=True,
+        )
+        fine_rank = torch.full_like(fine.item_id, -1)
+        ordinal = torch.arange(
+            1, fine.item_id.shape[1] + 1, device=fine.item_id.device,
+        )[None].expand_as(fine.item_id)
+        fine_rank.scatter_(1, teacher_order, ordinal)
+        fine_rank = torch.where(valid_teacher, fine_rank, torch.full_like(fine_rank, -1))
         teacher_rank, _ = _map_stage(
-            trace.coarse_item_id,
-            trace.fine_item_id,
+            trace.recall_item_id,
+            fine.item_id,
             fine_rank,
             -1,
         )
-        coarse_rank = torch.arange(
-            1,
-            trace.coarse_item_id.shape[1] + 1,
-            device=trace.coarse_item_id.device,
+        selected_rank = torch.arange(
+            1, trace.coarse_item_id.shape[1] + 1, device=trace.coarse_item_id.device,
         )[None].expand_as(trace.coarse_item_id)
-        coarse_rank = torch.where(
-            trace.coarse_item_id >= 0,
-            coarse_rank,
-            torch.full_like(coarse_rank, -1),
+        coarse_rank, coarse_admitted = _map_stage(
+            trace.recall_item_id,
+            trace.coarse_item_id,
+            selected_rank,
+            -1,
         )
-        teacher_order_in_coarse = teacher_mask.long().cumsum(dim=1)
-        conflict = teacher_mask & (teacher_rank != teacher_order_in_coarse)
+        conflict = teacher_mask & coarse_admitted & (teacher_rank != coarse_rank)
         weights = torch.tensor(
             [task.weight for task in self.config.tasks],
             device=fine.labels.device,
@@ -454,28 +506,29 @@ class RequestLevelJoiner:
         exposed_value = (
             fine.labels * fine.label_mask.float() * weights
         ).sum(dim=2)
-        hard_label, exposed = _map_stage(
-            trace.coarse_item_id,
+        hard_label, _ = _map_stage(
+            trace.recall_item_id,
             fine.item_id,
             exposed_value,
             0.0,
         )
         observed, _ = _map_stage(
-            trace.coarse_item_id,
+            trace.recall_item_id,
             fine.item_id,
             fine.label_mask.any(dim=2),
             False,
         )
         return CoarseRankExampleBatch(
             request_id=trace.request_id,
-            item_id=trace.coarse_item_id,
-            route_id=route,
-            recall_score=recall_score,
-            served_score=trace.coarse_score,
+            item_id=trace.recall_item_id,
+            route_id=trace.recall_route_id,
+            recall_score=trace.recall_score,
+            served_score=trace.coarse_input_score,
+            coarse_admitted=coarse_admitted,
             coarse_rank=coarse_rank,
-            sampling_probability=trace.coarse_sampling_probability,
+            admission_probability=trace.coarse_admission_probability,
             hard_label=hard_label,
-            hard_label_mask=exposed & observed,
+            hard_label_mask=observed,
             teacher_score=teacher_score,
             teacher_rank=teacher_rank,
             teacher_mask=teacher_mask,
@@ -510,7 +563,10 @@ class RequestLevelJoiner:
             & fine.label_mask.any(dim=2)
         )
         recalled_is_exposed = (
-            trace.recall_item_id[:, :, None] == fine.item_id[:, None, :]
+            (
+                trace.recall_item_id[:, :, None]
+                == fine.item_id[:, None, :]
+            ) & fine.exposed[:, None, :]
         ).any(dim=2)
         selected_context = _select_context(context, selected)
         negatives = build_recall_negatives(

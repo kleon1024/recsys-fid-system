@@ -29,6 +29,11 @@ class ContentKind(IntEnum):
     CREATOR_PROMPT = 8
 
 
+class SelectionPolicyKind(IntEnum):
+    DETERMINISTIC = 0
+    RANDOMIZED = 1
+
+
 class EventType(IntEnum):
     REGISTRATION = 0
     SESSION_START = 1
@@ -122,6 +127,9 @@ class RenderedSlateBatch:
     valid: torch.Tensor
     ui_variant: torch.Tensor
     exposure_probability: torch.Tensor
+    selection_policy_kind: torch.Tensor
+    exploration_rate: torch.Tensor
+    slate_log_probability: torch.Tensor
     assignment_probability: torch.Tensor
 
     def __post_init__(self):
@@ -138,7 +146,8 @@ class RenderedSlateBatch:
         )
         for name in (
             "user_id", "surface", "event_time", "ui_variant",
-            "assignment_probability",
+            "selection_policy_kind", "exploration_rate",
+            "slate_log_probability", "assignment_probability",
         ):
             _require_shape(name, getattr(self, name), (requests,))
         if not torch.equal(self.valid, self.item_ids >= 0):
@@ -155,6 +164,19 @@ class RenderedSlateBatch:
             | (self.assignment_probability > 1.0)
         ).any():
             raise ValueError("assignment probabilities must be in (0, 1]")
+        if requests and (
+            (self.exploration_rate < 0.0) | (self.exploration_rate > 1.0)
+        ).any():
+            raise ValueError("exploration rates must be in [0, 1]")
+        allowed = torch.tensor(
+            [int(SelectionPolicyKind.DETERMINISTIC), int(SelectionPolicyKind.RANDOMIZED)],
+            device=self.selection_policy_kind.device,
+        )
+        if requests and ~torch.isin(self.selection_policy_kind, allowed).all():
+            raise ValueError("unknown selection policy kind")
+        randomized = self.selection_policy_kind == int(SelectionPolicyKind.RANDOMIZED)
+        if (randomized & (self.exploration_rate <= 0.0)).any():
+            raise ValueError("randomized selection requires positive exploration")
 
     def select(self, selector) -> RenderedSlateBatch:
         return RenderedSlateBatch(**{

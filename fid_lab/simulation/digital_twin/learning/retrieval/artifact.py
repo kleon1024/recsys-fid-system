@@ -13,7 +13,7 @@ import torch
 
 from ...contracts import PlatformRequestBatch, Surface
 from ...platform.projection import PlatformProjectionState
-from ...platform.route_contracts import surface_eligibility
+from ...platform.routes import surface_eligibility
 from ..contracts import ArtifactCompatibility
 from .contracts import (
     RetrievalCorpus,

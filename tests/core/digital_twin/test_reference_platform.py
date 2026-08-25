@@ -17,6 +17,7 @@ from fid_lab.simulation.digital_twin import (
     ReferenceRecommendationPlatform,
     RequestLevelJoiner,
     RetrievalConfig,
+    SelectionPolicyKind,
     UserEcosystemWorld,
     UserWorldConfig,
     build_public_catalog,
@@ -95,14 +96,14 @@ def test_reference_cascade_emits_closed_stage_trace_for_partial_ab():
     assert trace.coarse_item_id.shape == (256, 16)
     assert trace.fine_item_id.shape == (256, 8)
     assert trace.exposed_item_id.shape == (256, 4)
-    assert trace.fine_dense_features.shape == (256, 8, 11)
-    assert trace.fine_sparse_fids.shape == (256, 8, 13)
-    assert trace.fine_sparse_buckets.shape == (256, 8, 13)
+    assert trace.candidate_dense_features.shape == (256, 32, 11)
+    assert trace.candidate_sparse_fids.shape == (256, 32, 13)
+    assert trace.candidate_sparse_buckets.shape == (256, 32, 13)
     assert trace.manifest.feature_manifest_hash == (
         DEFAULT_FEATURE_MANIFEST.manifest_hash
     )
-    valid_fine = trace.fine_item_id >= 0
-    assert (trace.fine_sparse_fids[valid_fine] > 0).all()
+    valid_recall = trace.recall_item_id >= 0
+    assert (trace.candidate_sparse_fids[valid_recall] > 0).all()
     assert set(trace.fine_version_id.tolist()) == {1, 2}
     assert result.baseline_requests > result.experiment_requests
     safe = trace.recall_item_id.clamp_min(0)
@@ -196,6 +197,47 @@ def test_policy_can_change_only_retrieval_routes_and_version():
     assert (trace.recall_route_id[treated] & cold_start_bit).any()
 
 
+def test_randomized_cascade_logs_exact_support_without_changing_factuality():
+    world, platform, log, _, _, _ = build_system(users=512, items=3_000)
+    policy = CascadePolicy(
+        "exploration-lane",
+        1,
+        1,
+        1,
+        exploration_rate=0.25,
+        exploration_seed=113,
+    )
+    result = AtomicSimulationKernel(world, platform, log).step(
+        0,
+        ExperimentPlan.ramped_user_ab(
+            active_policy=policy,
+            treatment_policy=policy,
+            experiment_seed=127,
+            control_fraction=0.25,
+            treatment_fraction=0.25,
+        ),
+    )
+    trace = result.candidate_trace
+    randomized = (
+        trace.selection_policy_kind == int(SelectionPolicyKind.RANDOMIZED)
+    )
+    assert randomized.any() and (~randomized).any()
+    assert (trace.exposure_probability[trace.exposed_item_id >= 0] > 0).all()
+    assert (trace.coarse_admission_probability >= 0).all()
+    assert (trace.fine_admission_probability >= 0).all()
+    joined = RequestLevelJoiner(
+        JoinerConfig(ticks_per_day=96, recall_negatives=6), platform.catalog,
+    ).materialize(
+        trace,
+        result.request_context,
+        result.response_events,
+        event_watermark=0,
+    )
+    valid = joined.fine.item_id >= 0
+    assert joined.fine.randomized_support[valid].all()
+    assert (joined.fine.exposure_probability[~joined.fine.exposed] == 0).all()
+
+
 def test_installed_learned_scorer_replays_exact_score_and_version():
     world, platform, log, _, _, _ = build_system(users=128, items=1_600)
 
@@ -224,14 +266,18 @@ def test_installed_learned_scorer_replays_exact_score_and_version():
     trace = result.candidate_trace
     assert trace is not None
     assert (trace.fine_version_id == serving_version).all()
-    replay = scorer.score(FeatureTensorBatch(
-        dense=trace.fine_dense_features,
-        sparse_fids=trace.fine_sparse_fids,
-        sparse_buckets=trace.fine_sparse_buckets,
+    candidate_features = FeatureTensorBatch(
+        dense=trace.candidate_dense_features,
+        sparse_fids=trace.candidate_sparse_fids,
+        sparse_buckets=trace.candidate_sparse_buckets,
         manifest_hash=trace.manifest.feature_manifest_hash,
-    ), trace.surface)
-    valid = trace.fine_item_id >= 0
-    assert torch.allclose(replay[valid], trace.fine_score[valid])
+    )
+    scorer_input = platform.ranker._select_features(
+        trace.coarse_item_id, trace.recall_item_id, candidate_features,
+    )
+    replay = scorer.score(scorer_input, trace.surface)
+    valid = trace.coarse_item_id >= 0
+    assert torch.allclose(replay[valid], trace.fine_input_score[valid])
 
 
 def test_installed_learned_retriever_owns_ann_route_and_index_version():
@@ -274,13 +320,13 @@ def test_real_trace_materializes_three_authorities_without_fake_negatives():
         event_watermark=0,
     )
     assert len(joined.recall.request_id) > 0
-    assert joined.fine.item_id.shape == (256, 4)
-    assert joined.coarse.item_id.shape == (256, 16)
+    assert joined.fine.item_id.shape == (256, 16)
+    assert joined.coarse.item_id.shape == (256, 32)
     unexposed = ~joined.coarse.hard_label_mask
     assert (joined.coarse.hard_label[unexposed] == 0).all()
     assert torch.equal(
         joined.coarse.teacher_mask.sum(dim=1),
-        (result.candidate_trace.fine_item_id >= 0).sum(dim=1),
+        (result.candidate_trace.coarse_item_id >= 0).sum(dim=1),
     )
 
 

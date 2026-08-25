@@ -67,21 +67,35 @@ def build_trace():
         recall_score=torch.linspace(1.0, 0.1, 12).reshape(2, 6),
         recall_sampling_probability=torch.ones(2, 6),
         recall_lifecycle_id=torch.full((2, 6), 2),
+        coarse_input_score=torch.linspace(0.9, 0.1, 12).reshape(2, 6),
+        coarse_admission_probability=torch.tensor([
+            [1, 1, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1, 0],
+        ], dtype=torch.float),
         coarse_item_id=coarse,
-        coarse_score=torch.linspace(0.9, 0.1, 10).reshape(2, 5),
-        coarse_sampling_probability=torch.ones(2, 5),
+        coarse_selected_score=torch.linspace(0.9, 0.1, 10).reshape(2, 5),
+        fine_input_score=torch.linspace(0.8, 0.1, 10).reshape(2, 5),
+        fine_admission_probability=torch.tensor([
+            [1, 1, 1, 1, 0, 0],
+            [1, 1, 1, 1, 0, 0],
+        ], dtype=torch.float),
         fine_item_id=fine,
-        fine_score=torch.linspace(0.8, 0.1, 8).reshape(2, 4),
-        fine_dense_features=torch.arange(
-            2 * 4 * 11, dtype=torch.float32,
-        ).reshape(2, 4, 11),
-        fine_sparse_fids=torch.arange(2 * 4 * 13).reshape(2, 4, 13),
-        fine_sparse_buckets=torch.remainder(
-            torch.arange(2 * 4 * 13).reshape(2, 4, 13), 32,
+        fine_selected_score=torch.linspace(0.8, 0.1, 8).reshape(2, 4),
+        candidate_dense_features=torch.arange(
+            2 * 6 * 11, dtype=torch.float32,
+        ).reshape(2, 6, 11),
+        candidate_sparse_fids=(
+            torch.arange(2 * 6 * 13).reshape(2, 6, 13) + 1
+        ),
+        candidate_sparse_buckets=torch.remainder(
+            torch.arange(2 * 6 * 13).reshape(2, 6, 13), 32,
         ),
         exposed_item_id=exposed,
         exposed_position=torch.tensor([[0, 1], [0, 1]]),
         exposure_probability=torch.ones(2, 2),
+        selection_policy_kind=torch.zeros(2, dtype=torch.long),
+        exploration_rate=torch.zeros(2),
+        slate_log_probability=torch.zeros(2),
         experiment_cell=torch.tensor([0, 1]),
         assignment_probability=torch.tensor([0.05, 0.05]),
         recall_version_id=torch.tensor([1, 1]),
@@ -200,8 +214,8 @@ def test_three_authorities_preserve_observability_and_teacher_boundaries():
     assert set(joined.recall.negative_source.flatten().tolist()) <= {0, 1, 2, 3}
     assert joined.coarse.hard_label_mask[:, :2].all()
     assert not joined.coarse.hard_label_mask[:, 2:].any()
-    assert joined.coarse.teacher_mask[:, :4].all()
-    assert not joined.coarse.teacher_mask[:, 4:].any()
+    assert joined.coarse.teacher_mask[:, :5].all()
+    assert not joined.coarse.teacher_mask[:, 5:].any()
     assert torch.equal(joined.fine.context.request_id, trace.request_id)
     assert torch.equal(
         joined.fine.label_mask,
@@ -215,7 +229,7 @@ def test_three_authorities_preserve_observability_and_teacher_boundaries():
     assert joined.manifest == trace.manifest
     assert torch.equal(
         joined.fine.dense_features,
-        trace.fine_dense_features[:, :2],
+        trace.candidate_dense_features[:, :5],
     )
     assert joined.fine.feature_manifest_hash == "a" * 64
 
@@ -317,8 +331,8 @@ def test_in_batch_sampling_uses_peer_frequency_without_quadratic_pool():
 def test_coarse_teacher_rank_detects_real_order_conflicts():
     catalog, trace = build_catalog(), build_trace()
     values = trace.__dict__.copy()
-    values["fine_item_id"] = trace.fine_item_id.clone()
-    values["fine_item_id"][0] = torch.tensor([9, 1, 2, 4])
+    values["fine_input_score"] = trace.fine_input_score.clone()
+    values["fine_input_score"][0] = torch.tensor([0.8, 0.7, 0.9, 0.6, 0.5])
     reordered = RequestCandidateTrace(**values)
     context = capture_request_context(
         reordered, ObservableProjection(2, catalog, history_length=4).snapshot(),

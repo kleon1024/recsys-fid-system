@@ -8,10 +8,12 @@ import json
 import math
 from pathlib import Path
 import time
+from typing import Mapping
 
 import torch
 
 from ..catalog import build_public_catalog
+from ..checkpoint import WorldCheckpointStore
 from ..contracts import AppEventBatch, EventType, Surface
 from ..engine import AtomicSimulationKernel, ExperimentPlan
 from ..event_log import ObservableEventLog
@@ -26,13 +28,15 @@ from ..platform import (
 from ..world import UserEcosystemWorld, UserWorldConfig
 
 
-BASE_ROUTES = ("evergreen",)
+BASE_ROUTES = ("random",)
 ROUTE_LADDER = (
+    "popular",
     "cold_start",
     "recent_ann",
     "recent_graph",
     "following",
     "hot",
+    "evergreen",
 )
 COUNT_METRICS = {
     "play_3s": EventType.PLAY_3S,
@@ -60,10 +64,19 @@ class RetrievalLadderConfig:
     auto_promote: bool = True
     ticks_per_day: int = 8
     minimum_triggered_users: int = 500
+    checkpoint_root: str | None = None
+    resume_checkpoint_id: str | None = None
+    max_reviews: int | None = None
+    allow_code_migration: bool = False
+    max_attempts_per_review: int = 3
 
     def __post_init__(self):
         if self.ticks_per_day <= 0 or self.minimum_triggered_users <= 1:
             raise ValueError("cadence and sample gate must be positive")
+        if self.max_reviews is not None and self.max_reviews <= 0:
+            raise ValueError("max_reviews must be positive when provided")
+        if self.max_attempts_per_review <= 0:
+            raise ValueError("max_attempts_per_review must be positive")
 
 
 def _sync(device: torch.device) -> None:
@@ -188,6 +201,19 @@ def _policy(name: str, version: int, routes: tuple[str, ...]) -> CascadePolicy:
     )
 
 
+def _baseline_plan(
+    config: RetrievalLadderConfig, active: CascadePolicy, seed_offset: int,
+) -> ExperimentPlan:
+    return ExperimentPlan.ramped_user_ab(
+        active_policy=active,
+        treatment_policy=active,
+        experiment_seed=config.seed + seed_offset,
+        control_fraction=config.control_fraction,
+        treatment_fraction=config.treatment_fraction,
+        eligible_surfaces=(int(Surface.FEED),),
+    )
+
+
 def _build_kernel(config: RetrievalLadderConfig):
     device = torch.device(config.device)
     if device.type == "cuda":
@@ -239,9 +265,8 @@ def _run_review_window(
     steps: int,
     route: str,
 ) -> tuple[
-    list[AppEventBatch], dict[str, int], dict[str, int], dict[str, int], int,
+    dict[str, int], dict[str, int], dict[str, int], int,
 ]:
-    batches = []
     requests = {"control": 0, "treatment": 0, "default": 0}
     route_hits = {"control": 0, "treatment": 0}
     stage_candidates = {
@@ -251,7 +276,6 @@ def _run_review_window(
     for _ in range(steps):
         tick = kernel.step(logical_time, plan)
         logical_time += 1
-        batches.append(tick.response_events)
         for cell, name in ((0, "control"), (1, "treatment"), (-1, "default")):
             requests[name] += tick.cell_counts.get(cell, 0)
         trace = tick.candidate_trace
@@ -278,7 +302,37 @@ def _run_review_window(
                 & route_recall[:, None, :]
             ).any(dim=2)
             stage_candidates[name] += int(from_route.sum())
-    return batches, requests, route_hits, stage_candidates, logical_time
+    return requests, route_hits, stage_candidates, logical_time
+
+
+def _add_counts(
+    current: dict[str, int], prior: Mapping[str, int] | None,
+) -> dict[str, int]:
+    if prior is None:
+        return current
+    if set(current) != set(prior):
+        raise ValueError("pending launch counters changed schema")
+    return {name: current[name] + int(prior[name]) for name in current}
+
+
+def _pending_review(
+    route: str,
+    route_index: int,
+    start_time: int,
+    attempt: int,
+    requests: dict[str, int],
+    route_hits: dict[str, int],
+    stage_candidates: dict[str, int],
+) -> dict[str, object]:
+    return {
+        "route": route,
+        "route_index": route_index,
+        "start_time": start_time,
+        "attempt": attempt,
+        "requests": requests,
+        "route_hits": route_hits,
+        "stage_candidates": stage_candidates,
+    }
 
 
 def _run_one_review(
@@ -289,7 +343,15 @@ def _run_one_review(
     route: str,
     index: int,
     logical_time: int,
-) -> tuple[dict[str, object], CascadePolicy, tuple[str, ...], int]:
+    pending: Mapping[str, object] | None = None,
+) -> tuple[
+    dict[str, object],
+    CascadePolicy,
+    tuple[str, ...],
+    int,
+    dict[str, object] | None,
+    ExperimentPlan,
+]:
     proposed_routes = (*active_routes, route)
     treatment = _policy(
         f"feed-add-{route}-v{index + 1}", index + 1, proposed_routes,
@@ -302,18 +364,42 @@ def _run_one_review(
         treatment_fraction=config.treatment_fraction,
         eligible_surfaces=(int(Surface.FEED),),
     )
-    batches, requests, route_hits, stage_candidates, logical_time = (
+    start_time = logical_time if pending is None else int(pending["start_time"])
+    attempt = 1 if pending is None else int(pending["attempt"]) + 1
+    if pending is not None and (
+        pending["route"] != route or int(pending["route_index"]) != index - 1
+    ):
+        raise ValueError("pending launch cursor points to a different route")
+    requests, route_hits, stage_candidates, logical_time = (
         _run_review_window(
-        kernel, plan, logical_time, config.experiment_steps, route,
+            kernel, plan, logical_time, config.experiment_steps, route,
         )
     )
-    metrics, sample = _analyze(batches, config.users)
+    requests = _add_counts(
+        requests, None if pending is None else pending["requests"],
+    )
+    route_hits = _add_counts(
+        route_hits, None if pending is None else pending["route_hits"],
+    )
+    stage_candidates = _add_counts(
+        stage_candidates,
+        None if pending is None else pending["stage_candidates"],
+    )
+    events = kernel.event_log.read(ingested_through=logical_time - 1)
+    events = events.select(events.ingest_time >= start_time)
+    metrics, sample = _analyze([events], config.users)
     decision, reason = _decision(
         metrics, sample, config.minimum_triggered_users,
     )
+    if decision == "hold" and attempt >= config.max_attempts_per_review:
+        decision = "stop_inconclusive"
+        reason = "maximum review windows reached without conclusive lift"
     promoted = config.auto_promote and decision == "promote"
     review = {
         "launch_review": f"R-LR-{index:03d}",
+        "attempt": attempt,
+        "analysis_start_time": start_time,
+        "analysis_end_time": logical_time - 1,
         "changed_owner": "retrieval routes only",
         "control_routes": list(active_routes),
         "treatment_routes": list(proposed_routes),
@@ -331,38 +417,165 @@ def _run_one_review(
         "reason": reason,
         "promoted_to_next_baseline": promoted,
     }
+    next_pending = (
+        _pending_review(
+            route,
+            index - 1,
+            start_time,
+            attempt,
+            requests,
+            route_hits,
+            stage_candidates,
+        )
+        if decision == "hold" else None
+    )
     return (
         review,
         treatment if promoted else active,
         proposed_routes if promoted else active_routes,
         logical_time,
+        next_pending,
+        plan,
+    )
+
+
+def _restore_or_burn_in(
+    config: RetrievalLadderConfig,
+    kernel: AtomicSimulationKernel,
+    store: WorldCheckpointStore | None,
+) -> tuple[
+    CascadePolicy,
+    tuple[str, ...],
+    int,
+    list[dict[str, object]],
+    list[str],
+    int,
+    dict[str, object] | None,
+    str,
+]:
+    active_routes = BASE_ROUTES
+    active = _policy("feed-random-v1", 1, active_routes)
+    if config.resume_checkpoint_id is not None:
+        if store is None:
+            raise ValueError("resume requires checkpoint_root")
+        restored = store.restore(
+            kernel,
+            config.resume_checkpoint_id,
+            require_code_match=not config.allow_code_migration,
+        )
+        cursor = restored.learning_cursors.get("retrieval_ladder")
+        if not isinstance(cursor, dict):
+            raise ValueError("checkpoint has no retrieval ladder cursor")
+        if not isinstance(restored.experiment, ExperimentPlan):
+            raise ValueError("retrieval ladder checkpoint has a layered plan")
+        return (
+            restored.experiment.policies[-1],
+            tuple(cursor["active_routes"]),
+            restored.ref.logical_time + 1,
+            list(cursor["reviews"]),
+            [restored.ref.checkpoint_id],
+            int(cursor["next_route_index"]),
+            cursor.get("pending_review"),
+            restored.ref.checkpoint_id,
+        )
+    logical_time = 0
+    burn_in = _baseline_plan(config, active, 10)
+    for _ in range(config.burn_in_steps):
+        kernel.step(logical_time, burn_in)
+        logical_time += 1
+    if store is None:
+        return active, active_routes, logical_time, [], [], 0, None, ""
+    ref = store.save(
+        kernel,
+        logical_time - 1,
+        burn_in,
+        learning_cursors={
+            "retrieval_ladder": {
+                "next_route_index": 0,
+                "active_routes": list(active_routes),
+                "reviews": [],
+                "pending_review": None,
+            },
+        },
+    )
+    return (
+        active,
+        active_routes,
+        logical_time,
+        [],
+        [ref.checkpoint_id],
+        0,
+        None,
+        ref.checkpoint_id,
     )
 
 
 def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
     device, kernel = _build_kernel(config)
-    active_routes = BASE_ROUTES
-    active = _policy("feed-evergreen-v1", 1, active_routes)
-    logical_time = 0
+    store = (
+        None
+        if config.checkpoint_root is None
+        else WorldCheckpointStore(Path(config.checkpoint_root))
+    )
     _sync(device)
     started = time.perf_counter()
-    burn_in = ExperimentPlan.ramped_user_ab(
-        active_policy=active,
-        treatment_policy=active,
-        experiment_seed=config.seed + 10,
-        control_fraction=config.control_fraction,
-        treatment_fraction=config.treatment_fraction,
-        eligible_surfaces=(int(Surface.FEED),),
-    )
-    for _ in range(config.burn_in_steps):
-        kernel.step(logical_time, burn_in)
-        logical_time += 1
-    reviews = []
-    for index, route in enumerate(ROUTE_LADDER, start=1):
-        review, active, active_routes, logical_time = _run_one_review(
-            kernel, config, active, active_routes, route, index, logical_time,
+    (
+        active,
+        active_routes,
+        logical_time,
+        reviews,
+        checkpoint_ids,
+        next_route_index,
+        pending_review,
+        parent_checkpoint_id,
+    ) = _restore_or_burn_in(config, kernel, store)
+    review_windows = 0
+    while next_route_index < len(ROUTE_LADDER):
+        if config.max_reviews is not None and review_windows >= config.max_reviews:
+            break
+        route_offset = next_route_index
+        route = ROUTE_LADDER[route_offset]
+        index = route_offset + 1
+        review, active, active_routes, logical_time, pending_review, plan = (
+            _run_one_review(
+                kernel,
+                config,
+                active,
+                active_routes,
+                route,
+                index,
+                logical_time,
+                pending_review,
+            )
         )
         reviews.append(review)
+        review_windows += 1
+        if pending_review is None:
+            next_route_index += 1
+        if store is not None:
+            checkpoint_plan = (
+                plan
+                if pending_review is not None
+                else _baseline_plan(config, active, 10_000 + index)
+            )
+            ref = store.save(
+                kernel,
+                logical_time - 1,
+                checkpoint_plan,
+                parent_checkpoint_id=parent_checkpoint_id,
+                learning_cursors={
+                    "retrieval_ladder": {
+                        "next_route_index": next_route_index,
+                        "active_routes": list(active_routes),
+                        "reviews": reviews,
+                        "pending_review": pending_review,
+                    },
+                },
+            )
+            parent_checkpoint_id = ref.checkpoint_id
+            checkpoint_ids.append(ref.checkpoint_id)
+        if pending_review is not None:
+            break
     _sync(device)
     elapsed = time.perf_counter() - started
     return {
@@ -379,6 +592,9 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
         ),
         "reviews": reviews,
         "final_active_routes": list(active_routes),
+        "checkpoint_ids": checkpoint_ids,
+        "final_checkpoint_id": parent_checkpoint_id,
+        "resumed_from_checkpoint": config.resume_checkpoint_id or "",
         "elapsed_seconds": elapsed,
         "peak_cuda_gib": (
             torch.cuda.max_memory_allocated(device) / 2**30
@@ -400,6 +616,11 @@ def main() -> None:
     parser.add_argument("--ticks-per-day", type=int, default=8)
     parser.add_argument("--minimum-triggered-users", type=int, default=500)
     parser.add_argument("--no-auto-promote", action="store_true")
+    parser.add_argument("--checkpoint-root", type=Path)
+    parser.add_argument("--resume-checkpoint-id")
+    parser.add_argument("--max-reviews", type=int)
+    parser.add_argument("--allow-code-migration", action="store_true")
+    parser.add_argument("--max-attempts-per-review", type=int, default=3)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     result = run_retrieval_ladder(RetrievalLadderConfig(
@@ -414,6 +635,13 @@ def main() -> None:
         auto_promote=not args.no_auto_promote,
         ticks_per_day=args.ticks_per_day,
         minimum_triggered_users=args.minimum_triggered_users,
+        checkpoint_root=(
+            None if args.checkpoint_root is None else str(args.checkpoint_root)
+        ),
+        resume_checkpoint_id=args.resume_checkpoint_id,
+        max_reviews=args.max_reviews,
+        allow_code_migration=args.allow_code_migration,
+        max_attempts_per_review=args.max_attempts_per_review,
     ))
     payload = json.dumps(result, indent=2, sort_keys=True)
     if args.output:

@@ -138,6 +138,9 @@ class FakePlatform:
                 (len(item),), experiment_cell, dtype=torch.long
             ),
             exposure_probability=torch.ones(len(item), 1),
+            selection_policy_kind=torch.zeros(len(item), dtype=torch.long),
+            exploration_rate=torch.zeros(len(item)),
+            slate_log_probability=torch.zeros(len(item)),
             assignment_probability=assignment_probability,
         )
 

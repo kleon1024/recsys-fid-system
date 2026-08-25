@@ -78,7 +78,7 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
     assert (coarse.loc[coarse.teacher_mask, "teacher_rank"] > 0).all()
     fine = examples[examples.authority == "fine"]
     assert fine.joint_logging_probability.notna().all()
-    assert fine.ope_supported.all()
+    assert not fine.randomized_support.any()
     assert fine.label_value.isna().all()
     assert not fine.label_mask.any()
     assert fine.feature_manifest_hash.str.len().eq(64).all()

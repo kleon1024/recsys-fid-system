@@ -10,7 +10,7 @@ import numpy as np
 import torch
 
 from ...contracts import Surface
-from ...platform.route_contracts import surface_eligibility
+from ...platform.routes import surface_eligibility
 from .artifact import RetrievalANNIndex, RetrievalArtifact
 from .contracts import RetrievalCorpus, RetrievalQueryBatch
 

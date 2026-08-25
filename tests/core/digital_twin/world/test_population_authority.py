@@ -197,6 +197,9 @@ def test_neural_feed_authority_is_request_keyed_and_keeps_hidden_inputs_private(
         valid=torch.ones_like(item, dtype=torch.bool),
         ui_variant=torch.zeros_like(user),
         exposure_probability=torch.ones_like(item, dtype=torch.float),
+        selection_policy_kind=torch.zeros_like(user),
+        exploration_rate=torch.zeros_like(user, dtype=torch.float),
+        slate_log_probability=torch.zeros_like(user, dtype=torch.float),
         assignment_probability=torch.ones_like(user, dtype=torch.float),
     )
     snapshot = world.snapshot()
