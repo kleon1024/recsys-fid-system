@@ -249,7 +249,8 @@ class AtomicSimulationKernel:
         self.platform.ingest(entry)
         requests = self.platform.open_requests(entry)
         assignment = experiment.assign(requests)
-        snapshot = self.world.snapshot()
+        view = getattr(self.world, "view", self.world.snapshot)
+        snapshot = view()
         platform_snapshot = self.platform.snapshot()
         cells = cell_order or tuple(sorted(assignment.policies))
         if set(cells) != set(assignment.policies):

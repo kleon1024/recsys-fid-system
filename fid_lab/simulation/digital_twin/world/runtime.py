@@ -99,6 +99,23 @@ class UserEcosystemWorld:
             self.trends.snapshot(),
         )
 
+    def view(self) -> UserWorldSnapshot:
+        """Read-only-by-contract response view valid for one atomic tick."""
+        state = self.supply.state
+        return UserWorldSnapshot(
+            self.users,
+            self.catalog_truth,
+            self.config.ticks_per_day,
+            self.config.environment_seed,
+            state.item_creator_id,
+            state.item_product_id,
+            state.item_poi_id,
+            state.item_country,
+            state.item_region,
+            state.item_publish_time,
+            self.trends.state.strength,
+        )
+
     def _surface(self, user: torch.Tensor, logical_time: int) -> torch.Tensor:
         state = self.users
         local_hour = (
