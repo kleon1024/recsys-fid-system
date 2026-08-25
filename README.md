@@ -166,11 +166,14 @@ in [Recommendation Digital Twin v4](docs/architecture/digital-twin-v4-redesign.m
 The current implementation order, audited work register, evidence boundaries and
 phase acceptance gates are maintained in the
 [v4 execution plan](docs/plans/digital-twin-v4-execution-plan.md).
-P1, the Feed scope of P2, and P3-01..05 now pass. The v4 request samples feed
+P1, the Feed scope of P2, and P3-01..06 now pass. The v4 request samples feed
 persistent active/candidate lanes; one feature/FID manifest compiles the exact
 online and replay tensors; the content-bound registry enforces checkpoint,
-index and fallback compatibility. P3-06..09 still must run the equal-budget
-retrieval, coarse and fine ladders before historical lifts become v4 evidence.
+index and fallback compatibility. P3-06 now compares lifecycle, Graph,
+Two-Tower and Multi-interest retrieval on the same persisted requests, corpus,
+Top-K and latency budget. Its 100K/1M review retains lifecycle control and
+rejects every challenger because old-policy exposures collapse target diversity;
+P3-07..09 still own coarse/fine ladders and randomized retrieval truth.
 
 The v4 event boundary and hidden user world are now executable under
 [`fid_lab/simulation/digital_twin`](fid_lab/simulation/digital_twin/). Online

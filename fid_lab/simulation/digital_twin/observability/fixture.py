@@ -55,7 +55,7 @@ class FullFlowFixtureConfig:
             raise ValueError("fixture dimensions must be positive")
         if self.logical_time < 0:
             raise ValueError("fixture logical time cannot be negative")
-        if self.scenario not in {"mixed", "feed_posting_cycle"}:
+        if self.scenario not in {"mixed", "feed_posting_cycle", "feed_consumption"}:
             raise ValueError("fixture scenario is unsupported")
         if not self.merged_k >= self.coarse_k >= self.fine_k >= self.expose_k:
             raise ValueError("fixture cascade budgets are inconsistent")
@@ -124,10 +124,12 @@ def build_full_flow_fixtures(
     snapshots = []
     final_time = config.logical_time + ticks
     for logical_time in range(final_time):
-        if config.scenario == "feed_posting_cycle":
+        if config.scenario in {"feed_posting_cycle", "feed_consumption"}:
             world.users.surface_intent.fill_(1e-8)
             world.users.surface_intent[:, int(
-                Surface.POSTING if logical_time == 0 else Surface.FEED
+                Surface.POSTING
+                if config.scenario == "feed_posting_cycle" and logical_time == 0
+                else Surface.FEED
             )] = 1.0
             world.users.habit.fill_(1.0)
         result = kernel.step(logical_time, experiment)

@@ -42,12 +42,18 @@ owns architecture invariants; the execution plan owns delivery status.
   bus、active/candidate 独立 cursor、content-bound registry 和 learned scorer adapter 闭合。
   100K 用户、1M item、两 tick 的 4090 验收通过；LR 仅为 infrastructure probe，保持
   model `HOLD`。
+- P3-06 已把持久 RecallExample、独立 retrieval feature contract、Two-Tower、
+  Multi-interest、FAISS IVF、registry 和 `recent_ann` adapter 接回 v4。100K/1M
+  固定预算结果保留 lifecycle control，拒绝 Graph/RRF/两个 neural challenger；
+  10K evaluation 只有 89 个不同 positive，证明旧曝光条件化造成 logging-policy
+  ceiling。P3-09 必须用受支持的随机检索流量或 factual A/B 回答 novel candidate
+  价值，不能调 DGP 让模型赢。
 - RTX 4090 已验证 500K 用户、2M item、16M candidate 的单 event-time 微批；报告见
   `reports/benchmarks/2026-08-24-digital-twin-v4-world-kernel-4090.json`。
 
-尚未落地：基于新 authority 的公平 retrieval/coarse/fine model ladder、统一 evaluator
-和 powered model Launch Review。真实 serving trace 已成为训练输入，但尚未证明
-Two-Tower、LR、XGBoost、W&D、DeepFM、DCNv2 或
+尚未落地：基于新 authority 的 coarse/fine model ladder、统一 evaluator 和 powered
+model Launch Review。retrieval ladder 已完成但没有 learned model 通过；真实 serving
+trace 已成为训练输入，但尚未证明 LR、XGBoost、W&D、DeepFM、DCNv2 或
 MMoE 的相对效果。当前证据证明因果边界、候选链路、用户/供给行为、迟到与样本语义；不证明
 模型或业务增量。
 

@@ -93,7 +93,7 @@ class ReferenceRecommendationPlatform:
     def snapshot(self) -> PlatformServingSnapshot:
         return PlatformServingSnapshot(
             projection=self.projection.view(),
-            index_version=self.retriever.faiss.version,
+            index_version=self.retriever.index_version,
         )
 
     def open_requests(

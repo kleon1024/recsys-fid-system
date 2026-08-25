@@ -21,9 +21,12 @@ def content_hash(value: object) -> str:
 def learning_source_hash() -> str:
     """Bind artifacts to the current learning and online feature source closure."""
     digital_twin = Path(__file__).resolve().parents[1]
-    files = tuple(sorted((digital_twin / "learning").glob("*.py"))) + tuple(
+    files = tuple(sorted((digital_twin / "learning").rglob("*.py"))) + tuple(
         sorted((digital_twin / "platform" / "features").glob("*.py"))
-    ) + (digital_twin / "platform" / "ranking.py",)
+    ) + (
+        digital_twin / "platform" / "ranking.py",
+        digital_twin / "platform" / "retrieval.py",
+    )
     digest = sha256()
     for path in files:
         digest.update(str(path.relative_to(digital_twin)).encode("utf-8"))
@@ -76,6 +79,7 @@ class LaneCursor:
 class ArtifactCompatibility:
     dataset_contract_hash: str
     feature_manifest_hash: str
+    stage_contract_hash: str
     feature_version: str
     fid_version: str
     catalog_version: str

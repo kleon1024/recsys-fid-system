@@ -11,15 +11,9 @@ from torch import nn
 
 from ..observability import FullFlowPartitionRef
 from ..platform.features import FeatureTensorBatch
+from .arrow import list_column_to_tensor
 from .contracts import Lane, ProbeBatch
 from .sample_bus import PartitionedSampleBus
-
-
-def _list_tensor(column, dtype: torch.dtype) -> torch.Tensor:
-    values = column.combine_chunks()
-    width = len(values[0]) if len(values) else 0
-    flat = values.values.to_numpy(zero_copy_only=False)
-    return torch.as_tensor(flat.copy(), dtype=dtype).reshape(len(values), width)
 
 
 def load_probe_batch(
@@ -45,10 +39,10 @@ def load_probe_batch(
         values = table[name].to_numpy(zero_copy_only=False)[order]
         return torch.as_tensor(values.copy(), dtype=dtype)
 
-    dense = _list_tensor(table["dense_features"], torch.float32)[order]
-    sparse = _list_tensor(table["sparse_buckets"], torch.long)[order]
-    labels = _list_tensor(table["task_label_values"], torch.float32)[order]
-    masks = _list_tensor(table["task_label_masks"], torch.bool)[order]
+    dense = list_column_to_tensor(table["dense_features"], torch.float32)[order]
+    sparse = list_column_to_tensor(table["sparse_buckets"], torch.long)[order]
+    labels = list_column_to_tensor(table["task_label_values"], torch.float32)[order]
+    masks = list_column_to_tensor(table["task_label_masks"], torch.bool)[order]
     return ProbeBatch(
         request_id=scalar("request_id", torch.long),
         user_id=scalar("user_id", torch.long),
@@ -132,6 +126,16 @@ class ProbeArtifact:
     task_names: tuple[str, ...]
     feature_manifest_hash: str
     training_report: dict[str, object]
+
+    @property
+    def model_name(self) -> str:
+        return "v4-lr-infrastructure-probe"
+
+    def validate_compatibility(self, expected) -> None:
+        if self.feature_manifest_hash != expected.feature_manifest_hash:
+            raise ValueError("probe artifact feature manifest differs")
+        if self.feature_manifest_hash != expected.stage_contract_hash:
+            raise ValueError("probe artifact stage contract differs")
 
     @torch.inference_mode()
     def score(

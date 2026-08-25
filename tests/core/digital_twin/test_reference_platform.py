@@ -234,6 +234,34 @@ def test_installed_learned_scorer_replays_exact_score_and_version():
     assert torch.allclose(replay[valid], trace.fine_score[valid])
 
 
+def test_installed_learned_retriever_owns_ann_route_and_index_version():
+    world, platform, log, _, plan, catalog = build_system(users=128, items=1_600)
+
+    class FixedRetriever:
+        serving_version_id = 81
+        index_version = "learned-index-81"
+
+        @staticmethod
+        def retrieve(requests, state, top_k):
+            eligible = state.item_active & surface_eligibility(
+                0, catalog.content_kind,
+            )
+            items = catalog.item_id[eligible][:top_k]
+            values = torch.linspace(1.0, 0.1, len(items))
+            return (
+                items[None].expand(len(requests.request_id), -1),
+                values[None].expand(len(requests.request_id), -1),
+            )
+
+    platform.retriever.install_learned_retriever(FixedRetriever())
+    result = AtomicSimulationKernel(world, platform, log).step(0, plan)
+    trace = result.candidate_trace
+    assert trace is not None
+    assert trace.manifest.index_version == "learned-index-81"
+    ann_bit = 1 << ROUTE_NAMES.index("recent_ann")
+    assert (trace.recall_route_id & ann_bit).any()
+
+
 def test_real_trace_materializes_three_authorities_without_fake_negatives():
     _, _, _, kernel, plan, catalog = build_system()
     result = kernel.step(0, plan)

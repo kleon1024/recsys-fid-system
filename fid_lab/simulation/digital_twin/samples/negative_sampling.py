@@ -216,6 +216,8 @@ def corrected_sampled_softmax_loss(
     negative_logits: torch.Tensor,
     negative_expected_count: torch.Tensor,
     negative_loss_mask: torch.Tensor,
+    *,
+    reduction: str = "mean",
 ) -> torch.Tensor:
     """Correct sampled negatives; the always-present positive is unchanged."""
     if positive_logits.ndim != 1:
@@ -236,4 +238,8 @@ def corrected_sampled_softmax_loss(
     corrected = corrected.masked_fill(~negative_loss_mask, -torch.inf)
     logits = torch.cat((positive_logits[:, None], corrected), dim=1)
     targets = torch.zeros(len(positive_logits), device=logits.device, dtype=torch.long)
-    return torch.nn.functional.cross_entropy(logits, targets)
+    if reduction not in {"mean", "none"}:
+        raise ValueError("sampled-softmax reduction must be mean or none")
+    return torch.nn.functional.cross_entropy(
+        logits, targets, reduction=reduction,
+    )

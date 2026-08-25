@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import Protocol
 
 from filelock import FileLock
 import torch
@@ -17,11 +18,21 @@ from .contracts import ArtifactCompatibility, Lane
 from .probe import ProbeArtifact
 
 
-REGISTRY_SCHEMA = "v4-persistent-model-registry-v1"
+REGISTRY_SCHEMA = "v4-persistent-model-registry-v2"
+
+
+class RegistryArtifact(Protocol):
+    feature_manifest_hash: str
+    model_name: str
+
+    def checkpoint(self) -> dict[str, object]: ...
+
+    def validate_compatibility(self, expected: ArtifactCompatibility) -> None: ...
 
 
 @dataclass(frozen=True)
 class ModelRecord:
+    model_name: str
     serving_version_id: int
     checkpoint_version: str
     artifact_file: str
@@ -77,20 +88,19 @@ class PersistentModelRegistry:
 
     def register_candidate(
         self,
-        artifact: ProbeArtifact,
+        artifact: RegistryArtifact,
         compatibility: ArtifactCompatibility,
         *,
         lane: Lane,
         data_watermark: int,
     ) -> ModelRecord:
-        if artifact.feature_manifest_hash != compatibility.feature_manifest_hash:
-            raise ValueError("artifact and compatibility feature manifests differ")
+        artifact.validate_compatibility(compatibility)
         with self.lock:
             state = self._state()
             version = int(state["next_version"])
             temporary = self._save_temporary(artifact)
             digest = sha256(temporary.read_bytes()).hexdigest()
-            checkpoint_version = f"probe-{digest[:20]}"
+            checkpoint_version = f"{artifact.model_name}-{digest[:20]}"
             target = self.artifacts / f"{checkpoint_version}.pt"
             if target.exists() and sha256(target.read_bytes()).hexdigest() != digest:
                 temporary.unlink(missing_ok=True)
@@ -99,6 +109,7 @@ class PersistentModelRegistry:
             parent = state["aliases"].get("active", -1)
             fallback = state["aliases"].get("fallback", -1)
             record = ModelRecord(
+                model_name=artifact.model_name,
                 serving_version_id=version,
                 checkpoint_version=checkpoint_version,
                 artifact_file=target.name,
@@ -118,7 +129,7 @@ class PersistentModelRegistry:
             replace_json_atomic(self.path, state)
             return record
 
-    def _save_temporary(self, artifact: ProbeArtifact) -> Path:
+    def _save_temporary(self, artifact: RegistryArtifact) -> Path:
         with NamedTemporaryFile(
             dir=self.artifacts, prefix=".checkpoint-", suffix=".pt", delete=False,
         ) as stream:
@@ -201,7 +212,9 @@ class PersistentModelRegistry:
         self,
         alias: str,
         expected: ArtifactCompatibility,
-    ) -> tuple[ModelRecord, ProbeArtifact]:
+        *,
+        corpus=None,
+    ) -> tuple[ModelRecord, RegistryArtifact]:
         record = self.alias(alias)
         if record is None:
             raise ValueError(f"model alias is not assigned: {alias}")
@@ -213,20 +226,34 @@ class PersistentModelRegistry:
         ):
             raise ValueError("model artifact content hash mismatch")
         checkpoint = torch.load(path, map_location="cpu", weights_only=False)
-        artifact = ProbeArtifact.from_checkpoint(checkpoint)
-        if artifact.feature_manifest_hash != expected.feature_manifest_hash:
-            raise ValueError("loaded model feature manifest differs")
+        artifact = self._load_checkpoint(checkpoint, corpus=corpus)
+        artifact.validate_compatibility(expected)
         return record, artifact
+
+    @staticmethod
+    def _load_checkpoint(checkpoint, *, corpus=None) -> RegistryArtifact:
+        schema = checkpoint.get("schema")
+        if schema == "v4-lr-infrastructure-probe-v1":
+            return ProbeArtifact.from_checkpoint(checkpoint)
+        if schema == "v4-retrieval-artifact-v1":
+            if corpus is None:
+                raise ValueError("retrieval artifact load requires its corpus")
+            from .retrieval.artifact import RetrievalArtifact
+
+            return RetrievalArtifact.from_checkpoint(checkpoint, corpus)
+        raise ValueError("model checkpoint schema is unsupported")
 
     def load_active_with_fallback(
         self,
         expected: ArtifactCompatibility,
-    ) -> tuple[ModelRecord, ProbeArtifact, bool]:
+        *,
+        corpus=None,
+    ) -> tuple[ModelRecord, RegistryArtifact, bool]:
         try:
-            record, artifact = self.load("active", expected)
+            record, artifact = self.load("active", expected, corpus=corpus)
             return record, artifact, False
         except (OSError, ValueError):
-            record, artifact = self.load("fallback", expected)
+            record, artifact = self.load("fallback", expected, corpus=corpus)
             return record, artifact, True
 
     def checkpoint_records(self, created_time: int) -> tuple[CheckpointRecord, ...]:
@@ -242,7 +269,7 @@ class PersistentModelRegistry:
             records.append(CheckpointRecord(
                 created_time=created_time,
                 lane=model.training_lane,
-                model_name="v4-lr-infrastructure-probe",
+                model_name=model.model_name,
                 checkpoint_version=model.checkpoint_version,
                 data_watermark=model.data_watermark,
                 sample_manifest=compatibility.dataset_contract_hash,

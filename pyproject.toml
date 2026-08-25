@@ -52,6 +52,7 @@ entry_points = [
   "fid_lab/simulation/digital_twin/samples/joiner.py",
   "fid_lab/simulation/digital_twin/learning/registry.py",
   "fid_lab/simulation/digital_twin/learning/benchmark.py",
+  "fid_lab/simulation/digital_twin/learning/retrieval/benchmark.py",
   "fid_lab/simulation/local/launch_suite.py",
   "fid_lab/value/container.py",
   "fid_lab/value/gate.py",
@@ -149,4 +150,5 @@ authority_modules = [
   "fid_lab.feed_posting.serving",
   "fid_lab.simulation.digital_twin.platform.features.manifest",
   "fid_lab.simulation.digital_twin.learning.contracts",
+  "fid_lab.simulation.digital_twin.learning.retrieval.contracts",
 ]

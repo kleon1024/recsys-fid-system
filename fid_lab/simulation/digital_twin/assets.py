@@ -155,6 +155,20 @@ DIGITAL_TWIN_ASSETS = AssetGraph((
         "learning.candidate_lane", ("learning.sample_bus",), "learning"
     ),
     AssetSpec(
+        "learning.retrieval_corpus",
+        ("projection.online_state", "platform.feature_manifest"),
+        "learning",
+    ),
+    AssetSpec(
+        "models.retrieval_candidate",
+        (
+            "learning.candidate_lane",
+            "learning.retrieval_corpus",
+            "platform.feature_manifest",
+        ),
+        "learning",
+    ),
+    AssetSpec(
         "models.active",
         ("learning.active_lane", "platform.feature_manifest"),
         "learning",
@@ -185,6 +199,11 @@ DIGITAL_TWIN_ASSETS = AssetGraph((
     AssetSpec(
         "evaluation.shadow",
         ("models.candidate", "platform.rendered_slates"),
+        "experiments",
+    ),
+    AssetSpec(
+        "evaluation.retrieval_shadow",
+        ("models.retrieval_candidate", "platform.rendered_slates"),
         "experiments",
     ),
     AssetSpec(

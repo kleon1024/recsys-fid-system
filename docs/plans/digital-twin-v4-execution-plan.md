@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (P3-01..05 accepted; all 19 remaining rows research-closed)
+Updated: 2026-08-25 (P3-01..06 accepted; all 18 remaining rows research-closed)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -77,7 +77,7 @@ LR probe remains `HOLD` and provides no model or A/B lift claim.
 | Full-chain analytical store | Full-flow schema v4 persists exact feature/FID and task vectors; DuckDB and ClickHouse agree | Accepted through P3-05 | P3 evaluators remain |
 | Recall/coarse/fine sample authorities | Source-corrected recall, teacher-aware coarse and PIT fine examples replay from one request authority | Accepted for P3-01..03 | Model consumption remains P3-06..08 |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
-| Model ladder | Historical synthetic ladders exist | Invalid for v4 launch | Must train on the same factual request dataset and serving budget |
+| Model ladder | v4 retrieval ladder compares one factual dataset and budget; every challenger rejected | Accepted through P3-06, no learned retrieval launch | Coarse/fine ladders and randomized retrieval truth remain P3-07..09 |
 | Search/Ads/Commerce/Live/Local/Posting | Surface actions and catalog types exist | Skeleton | Each lacks a closed business workflow and independent launch contract |
 
 The accepted v23 NeuralSCM is the declared Feed response authority only. Its
@@ -138,8 +138,8 @@ after the conventional cascade is identified; they are not P2 dependencies.
 
 ### 2.3 Backlog research closure
 
-Every backlog row now has a selected implementation path. Nineteen implementation
-rows remain: P3-06..09, P4-01..05, P5-01..06 and P6-01..04. “Research closed” means
+Every backlog row now has a selected implementation path. Eighteen implementation
+rows remain: P3-07..09, P4-01..05, P5-01..06 and P6-01..04. “Research closed” means
 the next falsifiable implementation and rejection boundary are known. It does not
 mean the implementation exists, the chosen model will win, or a phase is accepted.
 The remaining work is empirical execution against section 9.1.
@@ -539,7 +539,7 @@ in another document is informative only; it cannot override this register.
 | P3-03 | `samples/fine`: PIT cascade/sequence authority | Done for sample contract; identified DR remains P3-09 | P1/P2 | applicability/maturity/time are separate; heterogeneous long history and declared short suffix are PIT; joint logging probability and support persist in full-flow schema v4 |
 | P3-04 | `learning`: persistent sample bus, active/candidate lanes and registry | Done for infrastructure; LR probe is not a model launch | P3-01..03 plus P3-05 | independent cursors, numeric served checkpoint, compatibility rejection, fallback/restart and 100K/1M scale pass on accepted commit |
 | P3-05 | `platform/features`: one feature/FID manifest for train and serve | Done; 11 dense and 13 sparse fields compile once | P3-03 | full manifest, exact trace→Joiner→Parquet→score replay, collision/drift and TTL/namespace gates pass on accepted commit |
-| P3-06 | `platform/retrieval` + `learning/retrieval`: migrate retrieval ladder | Historical Two-Tower/Multi-interest code; no v4-trained artifact | P3-01/04/05 | one frozen corpus/query set/Top-K/quota/latency budget compares lifecycle rules, Graph, Two-Tower and Multi-interest; report marginal unique recall, downstream fixed-ranker delta and cost; Semantic-ID waits for an accepted dense baseline |
+| P3-06 | `platform/retrieval` + `learning/retrieval`: migrate retrieval ladder | Done; lifecycle control retained, Graph/RRF/Two-Tower/Multi-interest rejected | P3-01/04/05 | persisted RecallExample, retrieval feature contract, registry/serving replay and 100K/1M equal-budget report pass; old-exposure target concentration is explicit; Semantic-ID still waits for an accepted dense baseline |
 | P3-07 | `platform/ranking/coarse`: migrate equal-budget ladder and distillation | Historical implementations only | P3-02/04/05 | Rule/LR/XGBoost/W&D/DeepFM/DCNv2 share factual candidates, feature manifest and tuning budget; distillation preserves teacher Top-K; selection reports effect, calibration, latency, memory and failure slices |
 | P3-08 | `platform/ranking/fine`: migrate multi-task and sequence ladder | Historical implementations only; request-native pairwise/listwise path absent | P3-03/04/05 | pointwise baseline then pairwise/listwise LR/XGBoost/deep-cross/DIN/Transformer/MMoE/PLE on identical requests; per-head calibration, gradient conflict, gate/expert health and latency decide; HSTU requires measured long-sequence gain |
 | P3-09 | `validation/evaluation`: one request-aware evaluator and P3 review | Metrics are fragmented across historical runners | P3-06..08 | exact served-rank replay emits stage pass-through, request/user/surface GAUC, NDCG, PR-AUC, log-loss/NE, ECE, Top-K change, slices and resource cost; identified OPE and paired A/B use the same candidate authority; at least one model passes, holds and rejects |
@@ -614,12 +614,12 @@ P1 Feed supply-consumption closure
           → P6 scale, failures and legacy deletion
 ```
 
-P1, the declared Feed scope of P2 and P3-01..05 are accepted. The next slice is
-P3-06..09 and must use the frozen partition, feature and compatibility contracts:
+P1, the declared Feed scope of P2 and P3-01..06 are accepted. The next slice is
+P3-07..09 and must use the frozen partition, feature and compatibility contracts:
 
 ```text
 accepted sample bus + exact feature/FID bytes + checkpoint registry
-→ P3-06: fixed-budget retrieval ladder
+→ accepted P3-06 factual retrieval candidates and rejection diagnostics
 → P3-07: factual-candidate coarse ladder and distillation
 → P3-08: request-aware multi-task and sequence fine ladder
 → diagnose pass, hold and reject from one request-aware evaluator
@@ -727,7 +727,8 @@ before any authority switch.
 
 ### P3 — Streaming learning and learned cascade
 
-Status: sample, streaming and feature authorities accepted; model ladders pending.
+Status: sample, streaming, feature and retrieval authorities accepted; coarse/fine
+model ladders pending. No learned retrieval model is active.
 
 - Run retrieval, coarse and fine ladders in dependency order.
 - Use the accepted dual-lane trainer, manifest, collision/drift and replay gates.

@@ -97,17 +97,33 @@ class PartitionedSampleBus:
         )
         return table.filter(pc.equal(table["authority"], "fine"))
 
+    def recall_examples(self, ref: FullFlowPartitionRef):
+        table = read_full_flow_partition_table(
+            self.dataset_root, ref, "v4_training_example_log",
+        )
+        return table.filter(pc.equal(table["authority"], "recall"))
+
+    def request_context(self, ref: FullFlowPartitionRef):
+        return read_full_flow_partition_table(
+            self.dataset_root, ref, "v4_request_log",
+        )
+
     def compatibility(
         self,
         *,
         index_version: str,
         corpus_sha256: str,
+        stage_contract_hash: str | None = None,
     ) -> ArtifactCompatibility:
         contract = self.contract()
         trace = contract["trace_manifest"]
         return ArtifactCompatibility(
             dataset_contract_hash=self.contract_hash,
             feature_manifest_hash=str(trace["feature_manifest_hash"]),
+            stage_contract_hash=(
+                str(trace["feature_manifest_hash"])
+                if stage_contract_hash is None else stage_contract_hash
+            ),
             feature_version=str(trace["feature_version"]),
             fid_version=str(trace["fid_version"]),
             catalog_version=str(trace["catalog_version"]),

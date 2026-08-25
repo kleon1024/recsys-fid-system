@@ -242,8 +242,8 @@ def read_full_flow_partition_table(
     current = {item.key: item for item in list_full_flow_partitions(root)}
     if current.get(ref.key) != ref:
         raise ValueError("partition reference is stale or incompatible")
-    return pq.read_table(
-        root / "partitions" / ref.key / f"{table_name}.parquet",
+    path = root / "partitions" / ref.key / f"{table_name}.parquet"
+    return pq.ParquetFile(path).read(
         columns=list(columns) if columns is not None else None,
     )
 

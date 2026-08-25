@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import importlib
 import os
 import sys
+from typing import Protocol
 
 import numpy as np
 import scipy.sparse
@@ -53,6 +54,20 @@ class RetrievalResult:
     route_score: torch.Tensor
     route_valid: torch.Tensor
     index_version: str
+
+
+class LearnedRetriever(Protocol):
+    serving_version_id: int
+
+    @property
+    def index_version(self) -> str: ...
+
+    def retrieve(
+        self,
+        requests: PlatformRequestBatch,
+        state: PlatformProjectionState,
+        top_k: int,
+    ) -> tuple[torch.Tensor, torch.Tensor]: ...
 
 
 class FaissItemIndex:
@@ -204,6 +219,16 @@ class MultiRouteRetriever:
         self._global_query = torch.nn.functional.normalize(
             catalog.content_embedding.mean(dim=0, keepdim=True), dim=1,
         )
+        self.learned_retriever: LearnedRetriever | None = None
+
+    @property
+    def index_version(self) -> str:
+        if self.learned_retriever is not None:
+            return self.learned_retriever.index_version
+        return self.faiss.version
+
+    def install_learned_retriever(self, retriever: LearnedRetriever | None) -> None:
+        self.learned_retriever = retriever
 
     @property
     def route_names(self) -> tuple[str, ...]:
@@ -429,7 +454,7 @@ class MultiRouteRetriever:
             route_item_id=route_item,
             route_score=route_score,
             route_valid=route_valid,
-            index_version=self.faiss.version,
+            index_version=self.index_version,
         )
 
     def _route_candidates(
@@ -458,10 +483,15 @@ class MultiRouteRetriever:
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
     ) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
-        query = self.query_embedding(requests, state)
-        ann_item, ann_score = self.faiss.search(
-            query, self.config.route_k * self.config.ann_oversample,
-        )
+        if self.learned_retriever is None:
+            query = self.query_embedding(requests, state)
+            ann_item, ann_score = self.faiss.search(
+                query, self.config.route_k * self.config.ann_oversample,
+            )
+        else:
+            ann_item, ann_score = self.learned_retriever.retrieve(
+                requests, state, self.config.route_k * self.config.ann_oversample,
+            )
         ann_item, ann_score = self._filter_and_trim(
             requests,
             state,
