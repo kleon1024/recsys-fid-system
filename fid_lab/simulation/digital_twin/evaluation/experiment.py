@@ -12,44 +12,109 @@ from ..contracts import AppEventBatch, EventType, Surface
 from ..samples.contracts import RequestCandidateTrace
 
 
-def _assigned_users(
-    trace: RequestCandidateTrace | tuple[RequestCandidateTrace, ...],
-    cell: int,
-    surface: Surface,
-) -> torch.Tensor:
-    traces = trace if isinstance(trace, tuple) else (trace,)
-    selected_users = tuple(
-        value.user_id[
-            (value.experiment_cell == cell)
-            & (value.surface == int(surface))
-        ]
-        for value in traces
-    )
-    return torch.unique(torch.cat(selected_users), sorted=True)
+AB_EVENT_TYPES = {
+    "dwell_seconds": EventType.DWELL,
+    "play_3s": EventType.PLAY_3S,
+    "long_view": EventType.LONG_VIEW,
+    "complete": EventType.COMPLETE,
+    "like": EventType.LIKE,
+    "share": EventType.SHARE,
+    "negative": EventType.NEGATIVE,
+    "session_end": EventType.SESSION_END,
+}
 
 
-def _user_metric(
-    events: AppEventBatch,
-    users: torch.Tensor,
-    cell: int,
-    event_type: EventType,
-) -> np.ndarray:
-    if not len(users):
-        return np.empty(0, dtype=np.float64)
-    selected = (
-        (events.experiment_cell == cell)
-        & events.event(event_type)
-        & torch.isin(events.user_id, users)
-    )
-    value = torch.zeros(len(users), device=events.user_id.device)
-    location = torch.searchsorted(users, events.user_id[selected])
-    increment = (
-        events.duration_ms[selected].float() / 1_000.0
-        if event_type == EventType.DWELL
-        else torch.ones(int(selected.sum()), device=events.user_id.device)
-    )
-    value.scatter_add_(0, location, increment)
-    return value.double().cpu().numpy()
+class FactualABAccumulator:
+    """Bounded user-clustered metrics for a multi-tick factual experiment."""
+
+    def __init__(
+        self,
+        users: int,
+        *,
+        control_fraction: float,
+        treatment_fraction: float,
+        surface: Surface = Surface.FEED,
+        device: torch.device | str = "cpu",
+    ) -> None:
+        if users <= 0:
+            raise ValueError("A/B accumulator requires a positive user universe")
+        self.users = users
+        self.control_fraction = control_fraction
+        self.treatment_fraction = treatment_fraction
+        self.surface = surface
+        self.assignment = torch.zeros((2, users), dtype=torch.bool, device=device)
+        self.values = torch.zeros(
+            (2, len(AB_EVENT_TYPES), users), dtype=torch.float64, device=device,
+        )
+
+    def update(
+        self,
+        trace: RequestCandidateTrace,
+        events: AppEventBatch,
+    ) -> None:
+        for cell in (0, 1):
+            assigned = (
+                (trace.experiment_cell == cell)
+                & (trace.surface == int(self.surface))
+            )
+            user = trace.user_id[assigned]
+            if len(user):
+                self.assignment[cell, torch.unique(user)] = True
+            for metric, event_type in enumerate(AB_EVENT_TYPES.values()):
+                selected = (
+                    (events.experiment_cell == cell)
+                    & (events.surface == int(self.surface))
+                    & events.event(event_type)
+                    & (events.user_id >= 0)
+                    & (events.user_id < self.users)
+                )
+                event_user = events.user_id[selected]
+                if not len(event_user):
+                    continue
+                increment = (
+                    events.duration_ms[selected].double() / 1_000.0
+                    if event_type == EventType.DWELL
+                    else torch.ones(
+                        len(event_user), dtype=torch.float64,
+                        device=event_user.device,
+                    )
+                )
+                self.values[cell, metric].index_add_(
+                    0, event_user, increment,
+                )
+
+    def report(self) -> dict[str, object]:
+        control = self.assignment[0]
+        treatment = self.assignment[1]
+        observed = np.asarray([
+            int(control.sum()), int(treatment.sum()),
+        ], dtype=float)
+        total_fraction = self.control_fraction + self.treatment_fraction
+        expected = observed.sum() * np.asarray([
+            self.control_fraction / total_fraction,
+            self.treatment_fraction / total_fraction,
+        ])
+        srm_p = (
+            None
+            if observed.sum() == 0
+            else float(chisquare(observed, expected).pvalue)
+        )
+        metrics = {}
+        for index, name in enumerate(AB_EVENT_TYPES):
+            metrics[name] = _effect(
+                self.values[0, index, control].cpu().numpy(),
+                self.values[1, index, treatment].cpu().numpy(),
+            )
+        return {
+            "schema": "factual-user-ab-evaluation/v1",
+            "surface": self.surface.name.lower(),
+            "assignment_unit": "user",
+            "control_users": int(control.sum()),
+            "treatment_users": int(treatment.sum()),
+            "cross_cell_users": int((control & treatment).sum()),
+            "srm_p_value": srm_p,
+            "metrics": metrics,
+        }
 
 
 def _effect(control: np.ndarray, treatment: np.ndarray) -> dict[str, object]:
@@ -87,43 +152,24 @@ def factual_ab_report(
     treatment_fraction: float,
     surface: Surface = Surface.FEED,
 ) -> dict[str, object]:
-    control = _assigned_users(trace, 0, surface)
-    treatment = _assigned_users(trace, 1, surface)
-    contamination = torch.isin(control, treatment)
-    observed = np.asarray([len(control), len(treatment)], dtype=float)
-    total_fraction = control_fraction + treatment_fraction
-    expected = observed.sum() * np.asarray([
-        control_fraction / total_fraction,
-        treatment_fraction / total_fraction,
-    ])
-    srm_p = (
-        None if observed.sum() == 0 else float(chisquare(observed, expected).pvalue)
+    traces = trace if isinstance(trace, tuple) else (trace,)
+    maximum = max(
+        int(value.user_id.max()) if len(value.user_id) else -1
+        for value in traces
     )
-    metrics = {}
-    for name, event_type in {
-        "dwell_seconds": EventType.DWELL,
-        "play_3s": EventType.PLAY_3S,
-        "long_view": EventType.LONG_VIEW,
-        "complete": EventType.COMPLETE,
-        "like": EventType.LIKE,
-        "share": EventType.SHARE,
-        "negative": EventType.NEGATIVE,
-        "session_end": EventType.SESSION_END,
-    }.items():
-        metrics[name] = _effect(
-            _user_metric(events, control, 0, event_type),
-            _user_metric(events, treatment, 1, event_type),
-        )
-    return {
-        "schema": "factual-user-ab-evaluation/v1",
-        "surface": surface.name.lower(),
-        "assignment_unit": "user",
-        "control_users": len(control),
-        "treatment_users": len(treatment),
-        "cross_cell_users": int(contamination.sum()),
-        "srm_p_value": srm_p,
-        "metrics": metrics,
-    }
+    if len(events.user_id):
+        maximum = max(maximum, int(events.user_id.max()))
+    accumulator = FactualABAccumulator(
+        maximum + 1,
+        control_fraction=control_fraction,
+        treatment_fraction=treatment_fraction,
+        surface=surface,
+        device=events.user_id.device,
+    )
+    for value in traces:
+        accumulator.update(value, events)
+        events = AppEventBatch.empty(events.user_id.device)
+    return accumulator.report()
 
 
 def aa_decision(

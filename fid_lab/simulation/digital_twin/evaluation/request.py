@@ -59,6 +59,85 @@ def stage_report(
     }
 
 
+class RequestWindowAccumulator:
+    """Bounded cascade and support evidence across ordered request partitions."""
+
+    _FIELDS = {
+        "recall": "recall_item_id",
+        "coarse": "coarse_item_id",
+        "fine": "fine_item_id",
+        "exposed": "exposed_item_id",
+    }
+
+    def __init__(self) -> None:
+        self.counts = {name: 0 for name in self._FIELDS}
+        self.requests = 0
+        self.duplicate_request_ids = 0
+        self.last_request_id = -1
+        self.randomized_requests = 0
+        self.candidate_rows = 0
+        self.supported_candidate_rows = 0
+        self.factual_exposures = 0
+        self.supported_factual_exposures = 0
+
+    def update(self, trace: RequestCandidateTrace) -> None:
+        request_id = trace.request_id
+        if len(request_id):
+            unique = int(torch.unique(request_id).numel())
+            self.duplicate_request_ids += len(request_id) - unique
+            if int(request_id.min()) <= self.last_request_id:
+                raise ValueError("request partitions are not strictly ordered")
+            self.last_request_id = int(request_id.max())
+        self.requests += len(request_id)
+        for name, field in self._FIELDS.items():
+            self.counts[name] += _count(getattr(trace, field))
+        valid = trace.recall_item_id >= 0
+        randomized = trace.exploration_rate > 0.0
+        supported = (
+            valid
+            & randomized[:, None]
+            & (trace.candidate_exposure_probability > 0.0)
+        )
+        exposed = trace.exposed_item_id >= 0
+        factual_supported = exposed & (trace.exposure_probability > 0.0)
+        self.randomized_requests += int(randomized.sum())
+        self.candidate_rows += int(valid.sum())
+        self.supported_candidate_rows += int(supported.sum())
+        self.factual_exposures += int(exposed.sum())
+        self.supported_factual_exposures += int(factual_supported.sum())
+
+    def stage(self) -> dict[str, object]:
+        recall = max(self.counts["recall"], 1)
+        requests = max(self.requests, 1)
+        return {
+            "requests": self.requests,
+            "unique_requests": self.requests - self.duplicate_request_ids,
+            "duplicate_request_ids": self.duplicate_request_ids,
+            "candidate_counts": dict(self.counts),
+            "pass_rate_from_recall": {
+                name: value / recall for name, value in self.counts.items()
+            },
+            "mean_candidates_per_request": {
+                name: value / requests for name, value in self.counts.items()
+            },
+        }
+
+    def support(self) -> dict[str, object]:
+        return {
+            "randomized_requests": self.randomized_requests,
+            "candidate_rows": self.candidate_rows,
+            "randomized_supported_candidate_rows": self.supported_candidate_rows,
+            "randomized_supported_candidate_rate": (
+                self.supported_candidate_rows / max(self.candidate_rows, 1)
+            ),
+            "factual_exposures": self.factual_exposures,
+            "factual_exposures_with_propensity": self.supported_factual_exposures,
+            "factual_action_support_complete": (
+                self.factual_exposures == self.supported_factual_exposures
+            ),
+            "candidate_ope_identified": False,
+            "slate_ope_identified": False,
+        }
 def _challenger_probability(
     trace: RequestCandidateTrace,
     challenger_item_id: torch.Tensor,

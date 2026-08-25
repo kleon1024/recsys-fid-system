@@ -1,7 +1,16 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
+import torch
+
 from fid_lab.simulation.digital_twin import AppEventBatch, RequestCandidateTrace
-from fid_lab.simulation.digital_twin.evaluation import aa_decision, factual_ab_report
+from fid_lab.simulation.digital_twin.contracts import Surface
+from fid_lab.simulation.digital_twin.evaluation import (
+    FactualABAccumulator,
+    aa_decision,
+    factual_ab_report,
+)
 from fid_lab.simulation.digital_twin.observability import (
     FullFlowFixtureConfig,
     build_full_flow_fixtures,
@@ -35,3 +44,25 @@ def test_factual_ab_uses_request_assignment_and_user_clusters():
     assert report["srm_p_value"] is not None
     assert report["metrics"]["dwell_seconds"]["status"] == "estimated"
     assert decision["decision"] in {"pass", "hold"}
+
+    accumulator = FactualABAccumulator(
+        1_024, control_fraction=0.2, treatment_fraction=0.2,
+    )
+    for snapshot in snapshots:
+        accumulator.update(snapshot.trace, snapshot.events)
+    streamed = accumulator.report()
+    assert streamed == report
+
+    foreign = replace(
+        events,
+        event_id=events.event_id + int(events.event_id.max()) + 1,
+        surface=torch.full_like(events.surface, int(Surface.SEARCH)),
+        duration_ms=torch.full_like(events.duration_ms, 9_999_000),
+    )
+    contaminated = factual_ab_report(
+        trace,
+        AppEventBatch.concatenate((events, foreign)),
+        control_fraction=0.2,
+        treatment_fraction=0.2,
+    )
+    assert contaminated == report

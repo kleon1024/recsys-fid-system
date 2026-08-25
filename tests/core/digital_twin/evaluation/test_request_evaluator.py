@@ -3,12 +3,15 @@ from __future__ import annotations
 import torch
 
 from fid_lab.simulation.digital_twin.evaluation import (
+    RequestWindowAccumulator,
     evaluate_request_batch,
+    stage_report,
     support_report,
 )
 from fid_lab.simulation.digital_twin.observability import (
     FullFlowFixtureConfig,
     build_full_flow_fixture,
+    build_full_flow_fixtures,
 )
 
 
@@ -61,3 +64,18 @@ def test_request_metrics_keep_task_masks_and_grouping_explicit():
     assert report["grouping"] == "request_id"
     assert report["tasks"]["play"]["rows"] > 0
     assert "request_gauc" in report["tasks"]["play"]
+
+
+def test_request_window_accumulator_matches_partition_reports():
+    snapshots = build_full_flow_fixtures(FullFlowFixtureConfig(
+        users=128,
+        items=1_200,
+        scenario="feed_consumption",
+    ), ticks=3)
+    traces = tuple(snapshot.trace for snapshot in snapshots)
+    accumulator = RequestWindowAccumulator()
+    for trace in traces:
+        accumulator.update(trace)
+
+    assert accumulator.stage() == stage_report(traces)
+    assert accumulator.support() == support_report(traces)

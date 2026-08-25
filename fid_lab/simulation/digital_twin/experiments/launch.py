@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, fields, is_dataclass, replace
+from dataclasses import asdict, dataclass, replace
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -13,8 +13,8 @@ import torch
 from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
 from ..contracts import AppEventBatch, ContentKind, EventType, Surface
 from ..engine import ExperimentPlan
-from ..evaluation.experiment import aa_decision, factual_ab_report
-from ..evaluation.request import stage_report, support_report
+from ..evaluation.experiment import FactualABAccumulator, aa_decision
+from ..evaluation.request import RequestWindowAccumulator
 from ..learning.request_stream import FactualRequestStream
 from ..learning.request_stream import FactualRequestPartitionRef
 from ..learning.contracts import ServingCompatibility, learning_source_hash
@@ -22,7 +22,6 @@ from ..learning.registry import PersistentModelRegistry
 from ..platform import CascadePolicy
 from ..profile import STANDARD_FEED_PROFILE, SimulationProfile
 from ..runtime_paths import RuntimePaths
-from ..samples.contracts import RequestCandidateTrace
 from .retrieval_ladder import RetrievalLadderConfig, _build_kernel
 
 
@@ -244,7 +243,10 @@ def _source_revision(root: Path) -> str:
     ).stdout.strip()
 
 
-def _feed_repeat_report(events: AppEventBatch) -> dict[str, object]:
+def _feed_impression_keys(
+    events: AppEventBatch,
+    item_universe: int,
+) -> torch.Tensor:
     selected = (
         events.event(EventType.IMPRESSION)
         & (events.surface == int(Surface.FEED))
@@ -252,12 +254,17 @@ def _feed_repeat_report(events: AppEventBatch) -> dict[str, object]:
         & (events.user_id >= 0)
         & (events.item_id >= 0)
     )
-    if not selected.any():
+    return (
+        events.user_id[selected] * item_universe + events.item_id[selected]
+    ).detach().cpu()
+
+
+def _feed_repeat_report(keys: tuple[torch.Tensor, ...]) -> dict[str, object]:
+    if not keys:
         return {"impressions": 0, "repeated_impressions": 0, "repeat_rate": 0.0}
-    item_base = int(events.item_id[selected].max()) + 1
-    key = events.user_id[selected] * item_base + events.item_id[selected]
+    key = torch.cat(keys)
     unique = int(torch.unique(key).numel())
-    impressions = int(selected.sum())
+    impressions = len(key)
     repeated = impressions - unique
     return {
         "impressions": impressions,
@@ -339,19 +346,6 @@ def _write_review(
     return path
 
 
-def _offload(value):
-    if isinstance(value, torch.Tensor):
-        return value.detach().cpu()
-    if is_dataclass(value):
-        return type(value)(**{
-            field.name: _offload(getattr(value, field.name))
-            for field in fields(value)
-        })
-    if isinstance(value, tuple):
-        return tuple(_offload(item) for item in value)
-    return value
-
-
 def _execute_window(
     kernel,
     plan: ExperimentPlan,
@@ -359,15 +353,25 @@ def _execute_window(
     transaction_id: str,
     start: int,
     ticks: int,
+    profile: SimulationProfile,
+    spec: FeedLaunchSpec,
 ) -> tuple[
-    tuple[RequestCandidateTrace, ...],
-    AppEventBatch,
+    dict[str, object],
+    dict[str, object],
+    dict[str, object],
+    tuple[torch.Tensor, ...],
     tuple[FactualRequestPartitionRef, ...],
     int,
 ]:
-    traces = []
-    event_batches = []
+    impression_keys = []
     staged = []
+    requests = RequestWindowAccumulator()
+    ab = FactualABAccumulator(
+        profile.users,
+        control_fraction=spec.control_fraction,
+        treatment_fraction=spec.treatment_fraction,
+        device=kernel.platform.catalog.item_id.device,
+    )
     logical_time = start
     for _ in range(ticks):
         tick = kernel.step(logical_time, plan)
@@ -378,15 +382,20 @@ def _execute_window(
             kernel.world.manifest(),
         ))
         if tick.candidate_trace is not None:
-            traces.append(_offload(tick.candidate_trace))
-        event_batches.extend((
-            _offload(tick.entry_events),
-            _offload(tick.response_events),
-        ))
+            events = AppEventBatch.concatenate((
+                tick.entry_events, tick.response_events,
+            ))
+            ab.update(tick.candidate_trace, events)
+            requests.update(tick.candidate_trace)
+            keys = _feed_impression_keys(events, profile.items)
+            if len(keys):
+                impression_keys.append(keys)
         logical_time += 1
     return (
-        tuple(traces),
-        AppEventBatch.concatenate(tuple(event_batches)),
+        requests.stage(),
+        requests.support(),
+        ab.report(),
+        tuple(impression_keys),
         tuple(staged),
         logical_time,
     )
@@ -433,21 +442,19 @@ def run_feed_launch(
     transaction_id = f"{spec.launch_id}-{branch.head_checkpoint_id[:12]}"
     start = restored.ref.logical_time + 1
     try:
-        trace, events, staged, logical_time = _execute_window(
-            kernel,
-            plan,
-            stream,
-            transaction_id,
-            start,
-            spec.maximum_ticks,
+        stage, support, ab, impression_keys, staged, logical_time = (
+            _execute_window(
+                kernel,
+                plan,
+                stream,
+                transaction_id,
+                start,
+                spec.maximum_ticks,
+                profile,
+                spec,
+            )
         )
-        ab = factual_ab_report(
-            trace,
-            events,
-            control_fraction=spec.control_fraction,
-            treatment_fraction=spec.treatment_fraction,
-        )
-        repeats = _feed_repeat_report(events)
+        repeats = _feed_repeat_report(impression_keys)
         decision = _policy_decision(spec, ab, repeats)
         review = {
             "schema": LAUNCH_REVIEW_SCHEMA,
@@ -459,8 +466,8 @@ def run_feed_launch(
             "profile_hash": profile.profile_hash,
             "parent_checkpoint_id": branch.head_checkpoint_id,
             "analysis_time": [start, logical_time - 1],
-            "stage": stage_report(trace),
-            "support": support_report(trace),
+            "stage": stage,
+            "support": support,
             "feed_repeat": repeats,
             "ab": ab,
             **decision,
