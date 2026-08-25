@@ -179,19 +179,29 @@ def aa_decision(
     minimum_srm_p: float = 0.001,
 ) -> dict[str, object]:
     primary = report["metrics"][primary_metric]
+    estimated = tuple(
+        metric for metric in report["metrics"].values()
+        if metric.get("status") == "estimated"
+    )
+    familywise_alpha = 0.05 / max(len(estimated), 1)
+    family_passes = all(
+        metric["p_value"] >= familywise_alpha for metric in estimated
+    )
     passes = (
         report["cross_cell_users"] == 0
         and report["srm_p_value"] is not None
         and report["srm_p_value"] >= minimum_srm_p
         and primary.get("status") == "estimated"
         and primary["ci95_low"] <= 0.0 <= primary["ci95_high"]
+        and family_passes
     )
     return {
         "decision": "pass" if passes else "hold",
         "primary_metric": primary_metric,
         "minimum_srm_p": minimum_srm_p,
+        "familywise_alpha": familywise_alpha,
         "reason": (
-            "A/A assignment and zero-effect interval pass"
-            if passes else "A/A assignment or zero-effect interval is not valid"
+            "A/A assignment and Bonferroni metric family pass"
+            if passes else "A/A assignment or metric-family balance is not valid"
         ),
     }

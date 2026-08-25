@@ -1,0 +1,17 @@
+{
+  "schema": "factual-feed-launch-spec/v1",
+  "launch_id": "F-AA-01",
+  "kind": "aa",
+  "hypothesis": "Identical random Feed policies pass assignment and family-wise zero-effect gates.",
+  "isolated_change": "Correct A/A review from primary-only to Bonferroni metric-family balance.",
+  "primary_metric": "dwell_seconds",
+  "treatment_changes": {},
+  "experiment_seed": 1211,
+  "control_fraction": 0.2,
+  "treatment_fraction": 0.2,
+  "minimum_triggered_users": 5000,
+  "minimum_ticks": 4,
+  "maximum_ticks": 4,
+  "mde_relative": 0.005,
+  "predecessor_launch_id": "F-AA-00"
+}

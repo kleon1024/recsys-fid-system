@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from copy import deepcopy
 
 import torch
 
-from fid_lab.simulation.digital_twin import AppEventBatch, RequestCandidateTrace
+from fid_lab.simulation.digital_twin import AppEventBatch
 from fid_lab.simulation.digital_twin.contracts import Surface
 from fid_lab.simulation.digital_twin.evaluation import (
     FactualABAccumulator,
@@ -23,9 +24,7 @@ def test_factual_ab_uses_request_assignment_and_user_clusters():
         items=5_000,
         scenario="feed_consumption",
     ), ticks=4)
-    trace = RequestCandidateTrace.concatenate(tuple(
-        snapshot.trace for snapshot in snapshots
-    ))
+    trace = tuple(snapshot.trace for snapshot in snapshots)
     events = AppEventBatch.concatenate(tuple(
         snapshot.events for snapshot in snapshots
     ))
@@ -66,3 +65,11 @@ def test_factual_ab_uses_request_assignment_and_user_clusters():
         treatment_fraction=0.2,
     )
     assert contaminated == report
+
+    imbalanced = deepcopy(report)
+    imbalanced["metrics"]["share"].update({
+        "p_value": 0.0005,
+        "ci95_low": 0.01,
+        "ci95_high": 0.03,
+    })
+    assert aa_decision(imbalanced)["decision"] == "hold"
