@@ -63,7 +63,7 @@ class DelayedOutcomeQueue:
         supply: HiddenSupplyState,
     ) -> None:
         generated = (
-            self._orders(events, users, truth),
+            self._orders(events, users, truth, supply),
             self._payments(events, users),
             self._refunds(events, truth, supply),
             self._pixel_conversions(events, users, truth),
@@ -86,15 +86,19 @@ class DelayedOutcomeQueue:
         events: AppEventBatch,
         users: HiddenUserState,
         truth: HiddenCatalogTruth,
+        supply: HiddenSupplyState,
     ) -> AppEventBatch:
-        detail = events.event(EventType.DETAIL)
+        commerce_cart = events.event(EventType.ADD_CART) & (
+            events.surface == int(Surface.COMMERCE)
+        )
+        local_submit = events.event(EventType.DETAIL) & (
+            events.surface == int(Surface.LOCAL)
+        )
         eligible = (
-            detail
+            (commerce_cart | local_submit)
             & (events.item_id >= 0)
-            & (
-                (events.surface == int(Surface.COMMERCE))
-                | (events.surface == int(Surface.LOCAL))
-            )
+            & supply.item_active[events.item_id.clamp_min(0)]
+            & (supply.item_inventory[events.item_id.clamp_min(0)] > 0.0)
         )
         if not eligible.any():
             return AppEventBatch.empty(events.event_id.device)
@@ -111,11 +115,12 @@ class DelayedOutcomeQueue:
             + 0.85 * affordability
             + 0.55 * users.satisfaction[user]
             - 0.8 * users.fatigue[user]
+            + 0.35 * supply.item_inventory[item]
         )
         chosen = uniform(
             events.event_id[row], 0, 1_501, self.seed,
         ) < probability
-        row = row[chosen]
+        row = self._within_available_inventory(events, row[chosen], supply)
         delay = 1 + torch.floor(
             12.0 * uniform(
                 events.event_id[row], 0, 1_503, self.seed,
@@ -130,6 +135,33 @@ class DelayedOutcomeQueue:
             ingest_time=occurrence,
             value=self.catalog.price[events.item_id[row]],
         )
+
+    def _within_available_inventory(
+        self,
+        events: AppEventBatch,
+        row: torch.Tensor,
+        supply: HiddenSupplyState,
+    ) -> torch.Tensor:
+        """Reserve bounded units without adding mutable queue-side state."""
+        if not len(row):
+            return row
+        pending = torch.zeros_like(supply.item_inventory)
+        for batch in self._pending.values():
+            order = batch.event(EventType.ORDER) & (batch.item_id >= 0)
+            pending.index_add_(
+                0,
+                batch.item_id[order],
+                torch.ones_like(batch.item_id[order], dtype=torch.float),
+            )
+        units = torch.floor(25.0 * supply.item_inventory).long()
+        available = (units - pending.long()).clamp_min(0)
+        ordered = row[torch.argsort(events.event_id[row], stable=True)]
+        keep = torch.zeros(len(ordered), device=row.device, dtype=torch.bool)
+        item = events.item_id[ordered]
+        for item_id in torch.unique(item, sorted=True).tolist():
+            positions = torch.where(item == item_id)[0]
+            keep[positions[: int(available[item_id])]] = True
+        return ordered[keep]
 
     def _payments(
         self, events: AppEventBatch, users: HiddenUserState,

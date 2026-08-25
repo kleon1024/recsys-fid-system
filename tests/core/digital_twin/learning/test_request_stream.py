@@ -99,6 +99,22 @@ def test_request_stream_is_idempotent_content_verified_and_resumable(tmp_path):
     assert moved.trace.request_id.device.type == "cpu"
 
 
+def test_request_stream_stages_atomically_and_reconciles_orphans(tmp_path):
+    kernel, tick, branch = _main_branch(tmp_path)
+    stream = FactualRequestStream(tmp_path / "requests", branch)
+    ref = stream.stage(
+        "launch-attempt-1",
+        tick,
+        kernel.platform.projection.snapshot(),
+        kernel.world.manifest(),
+    )
+    assert stream.refs(training=True) == ()
+    stream.commit_staged("launch-attempt-1", (ref,))
+    assert stream.refs(training=True) == (ref,)
+    assert stream.reconcile_through(-1) == (ref,)
+    assert stream.refs(training=True) == ()
+
+
 def test_diagnostic_request_stream_cannot_be_used_for_training(tmp_path):
     kernel, tick, main = _main_branch(tmp_path)
     registry = WorldBranchRegistry(WorldCheckpointStore(tmp_path / "checkpoints"))

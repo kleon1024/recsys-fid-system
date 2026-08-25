@@ -138,19 +138,22 @@ def _run_experiment_window(
     steps: int,
     dedup_ticks: int,
     dedup_mode: str,
-) -> tuple[int, dict[str, dict[str, int]]]:
+    transaction_id: str,
+) -> tuple[int, dict[str, dict[str, int]], tuple[object, ...]]:
     repeat_counts = {
         "control": {"exposures": 0, "repeats": 0},
         "treatment": {"exposures": 0, "repeats": 0},
     }
+    staged_refs = []
     for _ in range(steps):
         before = kernel.platform.projection.snapshot().state
         tick = kernel.step(logical_time, plan)
-        stream.append(
+        staged_refs.append(stream.stage(
+            transaction_id,
             tick,
             kernel.platform.projection.snapshot(),
             kernel.world.manifest(),
-        )
+        ))
         counts = _repeat_counts(
             tick.candidate_trace,
             before.user_feed_exposure_item,
@@ -164,7 +167,7 @@ def _run_experiment_window(
         )
         repeat_counts = _merge_repeat_counts(counts, repeat_counts)
         logical_time += 1
-    return logical_time, repeat_counts
+    return logical_time, repeat_counts, tuple(staged_refs)
 
 
 def _review_window(
@@ -252,6 +255,36 @@ def _active_cursor(
     return cursor
 
 
+def _ensure_exposure_ledger(kernel, logical_time: int) -> None:
+    if not int(kernel.platform.projection.state.user_feed_exposure_cursor.sum()):
+        kernel.platform.projection.rebuild_exposures(
+            kernel.event_log.read(ingested_through=logical_time),
+        )
+
+
+def _save_launch_checkpoint(
+    store, registry, branch, kernel, logical_time, plan, cursors, stream,
+    restore_time,
+):
+    try:
+        checkpoint = store.save(
+            kernel,
+            logical_time,
+            plan,
+            parent_checkpoint_id=branch.head_checkpoint_id,
+            learning_cursors=cursors,
+        )
+        registry.advance(
+            branch.name,
+            checkpoint.checkpoint_id,
+            expected_head_checkpoint_id=branch.head_checkpoint_id,
+        )
+        return checkpoint
+    except Exception:
+        stream.reconcile_through(restore_time)
+        raise
+
+
 def run_feed_dedup_launch(config: FeedDedupLaunchConfig) -> dict[str, object]:
     device, kernel = _build_kernel(_runtime_config(config))
     store = WorldCheckpointStore(Path(config.checkpoint_root))
@@ -268,32 +301,40 @@ def run_feed_dedup_launch(config: FeedDedupLaunchConfig) -> dict[str, object]:
     if not isinstance(restored.experiment, ExperimentPlan):
         raise ValueError("Feed foundation LR requires a non-layered experiment")
     cursor = _active_cursor(restored.learning_cursors, config.cursor_key)
-    if not int(kernel.platform.projection.state.user_feed_exposure_cursor.sum()):
-        kernel.platform.projection.rebuild_exposures(
-            kernel.event_log.read(ingested_through=restored.ref.logical_time),
-        )
+    _ensure_exposure_ledger(kernel, restored.ref.logical_time)
     active = restored.experiment.policies[-1]
     if not isinstance(active, CascadePolicy):
         raise ValueError("Feed foundation control is not a cascade policy")
     treatment, plan = _dedup_treatment_plan(active, config)
     stream = FactualRequestStream(
-        Path(config.request_stream_root) / branch.name,
-        branch,
+        Path(config.request_stream_root) / branch.name, branch,
     )
+    orphaned = stream.reconcile_through(restored.ref.logical_time)
     logical_time = restored.ref.logical_time + 1
     start_time = int(cursor.get("analysis_start_time", logical_time))
     attempt = int(cursor.get("attempt", 0)) + 1
+    transaction_id = (
+        f"{config.launch_id}-attempt-{attempt}-"
+        f"{branch.head_checkpoint_id[:12]}"
+    )
     _sync(device)
     started = time.perf_counter()
-    logical_time, repeat_counts = _run_experiment_window(
-        kernel,
-        stream,
-        plan,
-        logical_time=logical_time,
-        steps=config.experiment_steps,
-        dedup_ticks=config.dedup_ticks,
-        dedup_mode=config.dedup_mode,
-    )
+    try:
+        logical_time, repeat_counts, staged_refs = _run_experiment_window(
+            kernel,
+            stream,
+            plan,
+            logical_time=logical_time,
+            steps=config.experiment_steps,
+            dedup_ticks=config.dedup_ticks,
+            dedup_mode=config.dedup_mode,
+            transaction_id=transaction_id,
+        )
+        stream.commit_staged(transaction_id, staged_refs)
+    except Exception:
+        stream.abort_staged(transaction_id)
+        stream.reconcile_through(restored.ref.logical_time)
+        raise
     repeat_counts = _merge_repeat_counts(
         repeat_counts,
         cursor.get("repeat_counts"),
@@ -343,17 +384,9 @@ def run_feed_dedup_launch(config: FeedDedupLaunchConfig) -> dict[str, object]:
         _baseline_plan(_runtime_config(config), active_after, 8_100)
         if completed else plan
     )
-    checkpoint = store.save(
-        kernel,
-        logical_time - 1,
-        checkpoint_plan,
-        parent_checkpoint_id=branch.head_checkpoint_id,
-        learning_cursors=learning_cursors,
-    )
-    registry.advance(
-        branch.name,
-        checkpoint.checkpoint_id,
-        expected_head_checkpoint_id=branch.head_checkpoint_id,
+    checkpoint = _save_launch_checkpoint(
+        store, registry, branch, kernel, logical_time - 1,
+        checkpoint_plan, learning_cursors, stream, restored.ref.logical_time,
     )
     _sync(device)
     return {
@@ -365,6 +398,7 @@ def run_feed_dedup_launch(config: FeedDedupLaunchConfig) -> dict[str, object]:
         "active_policy": active_after.name,
         "review": reviews[-1],
         "request_stream_sha256": stream.stream_sha256,
+        "reconciled_orphan_partitions": len(orphaned),
         "elapsed_seconds": time.perf_counter() - started,
         "peak_cuda_gib": (
             torch.cuda.max_memory_allocated(device) / 2**30

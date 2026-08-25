@@ -14,6 +14,7 @@ from fid_lab.simulation.digital_twin import (
     ExperimentPlan,
     JoinerConfig,
     ObservableEventLog,
+    PlatformRequestBatch,
     RankingConfig,
     ReferencePlatformConfig,
     ReferenceRecommendationPlatform,
@@ -230,6 +231,49 @@ def test_feed_route_ab_cannot_disable_business_surface_candidates():
         assert rows.any()
         route_bit = 1 << ROUTE_NAMES.index(route_name)
         assert (trace.recall_route_id[rows] & route_bit).any()
+
+
+def test_commerce_inventory_policy_removes_only_unavailable_products():
+    _, platform, _, _, _, catalog = build_system(users=64, items=3_000)
+    state = platform.projection.state
+    product = catalog.content_kind == int(ContentKind.PRODUCT)
+    catalog.quality_prior[product] = 10.0
+    state.item_inventory[product] = 0.0
+    source = int(torch.where(product)[0][0])
+    state.user_history_item[0, 0] = source
+    state.user_history_event_time[0, 0] = 0
+    state.user_history_cursor[0] = 1
+    request = PlatformRequestBatch(
+        request_id=torch.tensor([1]),
+        user_id=torch.tensor([0]),
+        surface=torch.tensor([2]),
+        event_time=torch.tensor([0]),
+        query_topic=torch.tensor([-1]),
+    )
+    baseline = platform.retriever.retrieve(
+        request, state, ("commerce_intent", "retarget"),
+    )
+    treatment = platform.retriever.retrieve(
+        request,
+        state,
+        ("commerce_intent", "retarget"),
+        commerce_require_inventory=True,
+    )
+    route = ROUTE_NAMES.index("commerce_intent")
+    baseline_item = baseline.route_item_id[0, route]
+    treatment_item = treatment.route_item_id[0, route]
+    assert (
+        catalog.content_kind[baseline_item[baseline_item >= 0]]
+        == int(ContentKind.PRODUCT)
+    ).any()
+    assert not (
+        catalog.content_kind[treatment_item[treatment_item >= 0]]
+        == int(ContentKind.PRODUCT)
+    ).any()
+    all_treatment = treatment.route_item_id[treatment.route_valid]
+    assert not (
+        catalog.content_kind[all_treatment] == int(ContentKind.PRODUCT)
+    ).any()
 
 
 def test_randomized_cascade_logs_exact_support_without_changing_factuality():

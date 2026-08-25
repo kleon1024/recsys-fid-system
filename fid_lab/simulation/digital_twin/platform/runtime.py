@@ -124,6 +124,8 @@ class ReferenceRecommendationPlatform:
             policy.effective_routes,
             feed_exposure_dedup_ticks=policy.feed_exposure_dedup_ticks,
             feed_session_dedup=policy.feed_session_dedup,
+            commerce_require_inventory=policy.commerce_require_inventory,
+            commerce_min_inventory=policy.commerce_min_inventory,
         )
         ranked = self.ranker.rank(
             requests, snapshot.projection.state, retrieval, policy,

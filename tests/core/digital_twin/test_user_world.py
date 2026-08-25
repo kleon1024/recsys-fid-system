@@ -17,6 +17,7 @@ from fid_lab.simulation.digital_twin import (
 )
 from fid_lab.simulation.digital_twin.platform.projection import USER_COUNTER_EVENTS
 from fid_lab.simulation.digital_twin.platform.requests import open_platform_requests
+from fid_lab.simulation.digital_twin.scenarios.commerce import audit_commerce_funnel
 from fid_lab.simulation.digital_twin.world.behavior import sample_response_tensors
 
 
@@ -307,3 +308,8 @@ def test_kernel_delivers_delayed_funnel_into_point_in_time_projection():
         :, order_column
     ].sum()
     assert int(projected_orders) == int(orders.sum())
+    commerce = audit_commerce_funnel(events)
+    assert commerce.impressions >= commerce.clicks >= commerce.details
+    assert commerce.details >= commerce.carts >= commerce.orders
+    assert commerce.carts > 0
+    assert commerce.orders >= commerce.payments

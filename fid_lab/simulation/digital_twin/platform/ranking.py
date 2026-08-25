@@ -66,6 +66,8 @@ class CascadePolicy:
     feed_exposure_dedup_ticks: int = 0
     feed_session_dedup: bool = False
     cold_start_exploration_rate: float = 0.0
+    commerce_require_inventory: bool = False
+    commerce_min_inventory: float = 0.0
 
     def __post_init__(self):
         if len(self.coarse_weights) != 10 or len(self.fine_weights) != 10:
@@ -92,6 +94,8 @@ class CascadePolicy:
             raise ValueError("general and cold-start exploration cannot overlap")
         if self.cold_start_exploration_rate and "cold_start" not in self.enabled_routes:
             raise ValueError("cold-start exploration requires its recall route")
+        if not 0.0 <= self.commerce_min_inventory <= 1.0:
+            raise ValueError("Commerce minimum inventory must be in [0, 1]")
 
     @property
     def effective_routes(self) -> tuple[str, ...]:

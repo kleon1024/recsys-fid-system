@@ -6,7 +6,8 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
-| [R-LR-012](2026-08-25-feed-v5-cold-start.md) | One-slot item cold-start exploration with route recovery and exact propensities | HOLD; traffic contract passes, stay non-inferiority remains unproven |
+| [C-LR-001..003](2026-08-25-commerce-transaction-ladder.md) | Commerce cart/order/payment state machine, transactional request stream and inventory eligibility | C-LR-001 no support; C-LR-002 rejected for cross-route leakage; C-LR-003 pending |
+| [R-LR-012](2026-08-25-feed-v5-cold-start.md) | One-slot item cold-start exploration with route recovery and exact propensities | Stop inconclusive after five windows; remove layer and retain base policy |
 | [L-FEED-FOUNDATION-010](2026-08-25-feed-v5-experience-dedup.md) | Hidden experience DGP migration and exact short-video dedup | Promote dedup in the synthetic factual world; cold-start exploration remains gated |
 | [L-RETRIEVAL-003](2026-08-25-p3-fixed-budget-retrieval.md) | v4 persisted RecallExample, lifecycle/Graph/Two-Tower/Multi-interest and 100K/1M fixed-budget replay | Accept P3-06 implementation; retain lifecycle control and reject all challengers |
 | [L-LEARNING-001](2026-08-25-p3-streaming-feature-authority.md) | Persistent dual-lane sample bus, feature/FID parity, registry and 100K/1M scale | Accept P3-04/05 infrastructure; LR probe remains model HOLD |

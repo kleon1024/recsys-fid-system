@@ -430,60 +430,111 @@ class ObservableProjection:
         self.state.item_active[events.item_id[removed]] = False
 
     def _history(self, events: AppEventBatch) -> None:
+        selected = self._history_mask(events)
+        if not selected.any():
+            return
+        self._merge_history(events.select(selected))
+
+    @staticmethod
+    def _history_mask(events: AppEventBatch) -> torch.Tensor:
         selected = torch.zeros_like(events.event_type, dtype=torch.bool)
         for event_type in HISTORY_EVENTS:
             selected |= events.event(event_type)
         selected &= (events.user_id >= 0) & (events.item_id >= 0)
-        if not selected.any():
-            return
-        user = events.user_id[selected]
-        item = events.item_id[selected]
-        event_type = events.event_type[selected]
-        surface = events.surface[selected]
-        duration_ms = events.duration_ms[selected].float().clamp_min(0.0)
-        event_time = events.event_time[selected]
-        ingest_time = events.ingest_time[selected]
-        time_order = torch.argsort(event_time, stable=True)
-        user_order = torch.argsort(user[time_order], stable=True)
-        order = time_order[user_order]
-        user, item = user[order], item[order]
-        event_type, surface = event_type[order], surface[order]
-        duration_ms = duration_ms[order]
-        event_time, ingest_time = event_time[order], ingest_time[order]
-        new_user = torch.ones_like(user, dtype=torch.bool)
-        new_user[1:] = user[1:] != user[:-1]
+        return selected
+
+    def _merge_history(self, events: AppEventBatch) -> None:
+        user = events.user_id
+        item = events.item_id
+        event_type = events.event_type
+        surface = events.surface
+        duration_ms = events.duration_ms.float().clamp_min(0.0)
+        event_time = events.event_time
+        ingest_time = events.ingest_time
+        touched, compact_user = torch.unique(
+            user, sorted=True, return_inverse=True,
+        )
+        history_length = self.state.user_history_item.shape[1]
+        existing_user = torch.arange(
+            len(touched), device=user.device,
+        )[:, None].expand(-1, history_length).reshape(-1)
+        existing_item = self.state.user_history_item[touched].reshape(-1)
+        existing_valid = existing_item >= 0
+        candidate_user = torch.cat((
+            existing_user[existing_valid], compact_user,
+        ))
+        candidate_item = torch.cat((existing_item[existing_valid], item))
+
+        def combine(field: str, incoming: torch.Tensor) -> torch.Tensor:
+            existing = getattr(self.state, field)[touched].reshape(-1)
+            return torch.cat((existing[existing_valid], incoming))
+
+        candidate_event_type = combine("user_history_event_type", event_type)
+        candidate_surface = combine("user_history_surface", surface)
+        candidate_duration = combine("user_history_duration_ms", duration_ms)
+        candidate_event_time = combine("user_history_event_time", event_time)
+        candidate_ingest_time = combine("user_history_ingest_time", ingest_time)
+        order = torch.argsort(candidate_ingest_time, stable=True)
+        order = order[torch.argsort(candidate_event_time[order], stable=True)]
+        order = order[torch.argsort(candidate_user[order], stable=True)]
+        candidate_user = candidate_user[order]
+        candidate_item = candidate_item[order]
+        candidate_event_type = candidate_event_type[order]
+        candidate_surface = candidate_surface[order]
+        candidate_duration = candidate_duration[order]
+        candidate_event_time = candidate_event_time[order]
+        candidate_ingest_time = candidate_ingest_time[order]
+        new_user = torch.ones_like(candidate_user, dtype=torch.bool)
+        new_user[1:] = candidate_user[1:] != candidate_user[:-1]
         starts = torch.where(new_user)[0]
         group = torch.cumsum(new_user.long(), dim=0) - 1
-        within = torch.arange(len(user), device=user.device) - starts[group]
+        within = (
+            torch.arange(len(candidate_user), device=user.device) - starts[group]
+        )
         ends = torch.cat((starts[1:], torch.tensor(
-            [len(user)], device=user.device,
+            [len(candidate_user)], device=user.device,
         )))
         group_size = (ends - starts)[group]
-        history_length = self.state.user_history_item.shape[1]
         keep = within >= (group_size - history_length).clamp_min(0)
+        counts = torch.zeros_like(touched)
+        counts.index_add_(0, compact_user, torch.ones_like(compact_user))
+        next_cursor = self.state.user_history_cursor[touched] + counts
+        retained_count = group_size.clamp_max(history_length)
+        retained_position = within - (group_size - retained_count)
         slot = torch.remainder(
-            self.state.user_history_cursor[user] + within,
+            next_cursor[candidate_user] - retained_count + retained_position,
             history_length,
         )
-        self.state.user_history_item[user[keep], slot[keep]] = item[keep]
-        self.state.user_history_event_type[user[keep], slot[keep]] = event_type[
-            keep
-        ]
-        self.state.user_history_surface[user[keep], slot[keep]] = surface[keep]
-        self.state.user_history_duration_ms[user[keep], slot[keep]] = duration_ms[
-            keep
-        ]
-        self.state.user_history_event_time[user[keep], slot[keep]] = event_time[
-            keep
-        ]
-        self.state.user_history_ingest_time[user[keep], slot[keep]] = ingest_time[
-            keep
-        ]
-        counts = torch.zeros_like(self.state.user_history_cursor)
-        counts.index_add_(
-            0, user, torch.ones_like(user, dtype=torch.long),
+        for field, missing in (
+            ("user_history_item", -1),
+            ("user_history_event_type", -1),
+            ("user_history_surface", -1),
+            ("user_history_duration_ms", 0.0),
+            ("user_history_event_time", -1),
+            ("user_history_ingest_time", -1),
+        ):
+            getattr(self.state, field)[touched] = missing
+        retained_user = touched[candidate_user[keep]]
+        retained_slot = slot[keep]
+        self.state.user_history_item[retained_user, retained_slot] = (
+            candidate_item[keep]
         )
-        self.state.user_history_cursor.add_(counts)
+        self.state.user_history_event_type[retained_user, retained_slot] = (
+            candidate_event_type[keep]
+        )
+        self.state.user_history_surface[retained_user, retained_slot] = (
+            candidate_surface[keep]
+        )
+        self.state.user_history_duration_ms[retained_user, retained_slot] = (
+            candidate_duration[keep]
+        )
+        self.state.user_history_event_time[retained_user, retained_slot] = (
+            candidate_event_time[keep]
+        )
+        self.state.user_history_ingest_time[retained_user, retained_slot] = (
+            candidate_ingest_time[keep]
+        )
+        self.state.user_history_cursor[touched] = next_cursor
 
     def rebuild_exposures(self, events: AppEventBatch) -> None:
         """Backfill newly added serving-history fields from observable events."""
@@ -503,6 +554,45 @@ class ObservableProjection:
             events.event_time[session_start],
         )
         self._exposures(events)
+
+    def history_chronology_violations(self) -> int:
+        state = self.state
+        width = state.user_history_item.shape[1]
+        event_number = (
+            state.user_history_cursor[:, None]
+            - width
+            + torch.arange(width, device=state.user_history_item.device)[None]
+        )
+        valid = event_number >= 0
+        slot = torch.remainder(event_number.clamp_min(0), width)
+        item = torch.gather(state.user_history_item, 1, slot)
+        event_time = torch.gather(state.user_history_event_time, 1, slot)
+        valid &= item >= 0
+        adjacent = valid[:, 1:] & valid[:, :-1]
+        return int((
+            adjacent
+            & (event_time[:, 1:] < event_time[:, :-1])
+        ).sum())
+
+    def rebuild_history(self, batches: tuple[AppEventBatch, ...]) -> None:
+        """Rebuild retained event-time sequences from delivered partitions."""
+        state = self.state
+        state.user_history_item.fill_(-1)
+        state.user_history_event_type.fill_(-1)
+        state.user_history_surface.fill_(-1)
+        state.user_history_duration_ms.zero_()
+        state.user_history_event_time.fill_(-1)
+        state.user_history_ingest_time.fill_(-1)
+        state.user_history_cursor.zero_()
+        retained = tuple(
+            batch.select(selected)
+            for batch in batches
+            if (selected := self._history_mask(batch)).any()
+        )
+        if retained:
+            self._merge_history(AppEventBatch.concatenate(retained))
+        if self.history_chronology_violations():
+            raise ValueError("history rebuild did not restore chronology")
 
     def _exposures(self, events: AppEventBatch) -> None:
         selected = (

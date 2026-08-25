@@ -19,6 +19,9 @@ from fid_lab.simulation.digital_twin import (
 from fid_lab.simulation.digital_twin.platform.projection import (
     USER_COUNTER_EVENTS,
 )
+from fid_lab.simulation.digital_twin.scenarios.commerce import (
+    audit_commerce_funnel,
+)
 
 
 def build_world():
@@ -76,6 +79,10 @@ def precursor_events(world, event_type, item, rows, surface):
         country=world.users.country[user],
         region=world.users.region[user],
         position=torch.zeros(rows, dtype=torch.long),
+        order_id=(
+            request * 10_000
+            if event_type == EventType.ADD_CART else None
+        ),
         experiment_cell=torch.ones(rows, dtype=torch.long),
         logging_probability=torch.ones(rows),
         assignment_probability=torch.full((rows,), 0.05),
@@ -87,12 +94,21 @@ def test_delayed_commerce_chain_is_scheduled_and_acknowledged_by_ingest_time():
     product = int(torch.where(
         catalog.content_kind == int(ContentKind.PRODUCT)
     )[0][0])
-    details = precursor_events(world, EventType.DETAIL, product, 4_000, 2)
     queue = world.delayed
+    details = precursor_events(world, EventType.DETAIL, product, 4_000, 2)
     queue.schedule_from(
         details, world.users, world.catalog_truth, world.supply.state,
     )
+    assert queue.pending_events == 0
+    carts = precursor_events(world, EventType.ADD_CART, product, 4_000, 2)
+    queue.schedule_from(
+        carts, world.users, world.catalog_truth, world.supply.state,
+    )
     assert queue.pending_events > 0
+    available_units = int(torch.floor(
+        25.0 * world.supply.state.item_inventory[product]
+    ))
+    assert queue.pending_events <= available_units
     order_batches = tuple(queue.due(step) for step in range(1, 13))
     orders = AppEventBatch.concatenate(order_batches)
     assert len(orders.event_id) > 0
@@ -114,6 +130,13 @@ def test_delayed_commerce_chain_is_scheduled_and_acknowledged_by_ingest_time():
         queue.due(step) for step in range(first_due + 1, first_due + 6)
     ))
     assert later.event(EventType.PAYMENT).any()
+    audit = audit_commerce_funnel(AppEventBatch.concatenate((
+        details,
+        carts,
+        orders,
+        later.select(later.event(EventType.PAYMENT)),
+    )))
+    assert audit.carts >= audit.orders >= audit.payments > 0
 
 
 def test_pixel_event_preserves_occurrence_time_and_late_delivery_time():

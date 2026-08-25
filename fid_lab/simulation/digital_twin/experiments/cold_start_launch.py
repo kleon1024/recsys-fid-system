@@ -203,22 +203,26 @@ def _decision(
     return "accept_layer", "traffic, propensity and user guardrails pass"
 
 
-def _run_window(kernel, stream, plan, logical_time, config):
+def _run_window(
+    kernel, stream, plan, logical_time, config, transaction_id,
+):
     counts = None
+    staged_refs = []
     for _ in range(config.experiment_steps):
         tick = kernel.step(logical_time, plan)
-        stream.append(
+        staged_refs.append(stream.stage(
+            transaction_id,
             tick,
             kernel.platform.projection.snapshot(),
             kernel.world.manifest(),
-        )
+        ))
         counts = _merge_counts(
             _window_counts(tick.candidate_trace, kernel.world.catalog), counts,
         )
         logical_time += 1
     if counts is None:
         raise ValueError("cold-start window produced no ticks")
-    return logical_time, counts
+    return logical_time, counts, tuple(staged_refs)
 
 
 def run_cold_start_launch(
@@ -243,14 +247,25 @@ def run_cold_start_launch(
     stream = FactualRequestStream(
         Path(config.request_stream_root) / branch.name, branch,
     )
+    orphaned = stream.reconcile_through(restored.ref.logical_time)
     logical_time = restored.ref.logical_time + 1
     start_time = int(cursor.get("analysis_start_time", logical_time))
     attempt = int(cursor.get("attempt", 0)) + 1
+    transaction_id = (
+        f"{config.launch_id}-attempt-{attempt}-"
+        f"{branch.head_checkpoint_id[:12]}"
+    )
     _sync(device)
     started = time.perf_counter()
-    logical_time, counts = _run_window(
-        kernel, stream, plan, logical_time, config,
-    )
+    try:
+        logical_time, counts, staged_refs = _run_window(
+            kernel, stream, plan, logical_time, config, transaction_id,
+        )
+        stream.commit_staged(transaction_id, staged_refs)
+    except Exception:
+        stream.abort_staged(transaction_id)
+        stream.reconcile_through(restored.ref.logical_time)
+        raise
     counts = _merge_counts(counts, cursor.get("counts"))
     events = kernel.event_log.read(ingested_through=logical_time - 1)
     events = events.select(events.ingest_time >= start_time)
@@ -293,18 +308,22 @@ def run_cold_start_launch(
         plan if decision in {"accept_layer", "hold"}
         else _baseline_plan(_runtime_config(config), active, 11_100)
     )
-    checkpoint = store.save(
-        kernel,
-        logical_time - 1,
-        checkpoint_plan,
-        parent_checkpoint_id=branch.head_checkpoint_id,
-        learning_cursors=cursors,
-    )
-    registry.advance(
-        branch.name,
-        checkpoint.checkpoint_id,
-        expected_head_checkpoint_id=branch.head_checkpoint_id,
-    )
+    try:
+        checkpoint = store.save(
+            kernel,
+            logical_time - 1,
+            checkpoint_plan,
+            parent_checkpoint_id=branch.head_checkpoint_id,
+            learning_cursors=cursors,
+        )
+        registry.advance(
+            branch.name,
+            checkpoint.checkpoint_id,
+            expected_head_checkpoint_id=branch.head_checkpoint_id,
+        )
+    except Exception:
+        stream.reconcile_through(restored.ref.logical_time)
+        raise
     _sync(device)
     return {
         "schema": "cold-start-launch-review/v1",
@@ -316,6 +335,7 @@ def run_cold_start_launch(
         "persistent_layer": decision == "accept_layer",
         "review": review,
         "request_stream_sha256": stream.stream_sha256,
+        "reconciled_orphan_partitions": len(orphaned),
         "elapsed_seconds": time.perf_counter() - started,
         "peak_cuda_gib": (
             torch.cuda.max_memory_allocated(device) / 2**30

@@ -73,42 +73,55 @@ def collect_factual_requests(
         Path(config.request_stream_root) / config.checkpoint_branch,
         branch,
     )
+    orphaned = stream.reconcile_through(restored.ref.logical_time)
     logical_time = restored.ref.logical_time + 1
     started_time = logical_time
     requests = 0
     events = 0
+    transaction_id = (
+        f"factual-{started_time}-{branch.head_checkpoint_id[:12]}"
+    )
+    staged_refs = []
     _sync(device)
     started = time.perf_counter()
-    for _ in range(config.steps):
-        tick = kernel.step(logical_time, restored.experiment)
-        ref = stream.append(
-            tick,
-            kernel.platform.projection.snapshot(),
-            kernel.world.manifest(),
+    try:
+        for _ in range(config.steps):
+            tick = kernel.step(logical_time, restored.experiment)
+            ref = stream.stage(
+                transaction_id,
+                tick,
+                kernel.platform.projection.snapshot(),
+                kernel.world.manifest(),
+            )
+            staged_refs.append(ref)
+            requests += ref.requests
+            events += ref.events
+            logical_time += 1
+        stream.commit_staged(transaction_id, tuple(staged_refs))
+        learning_cursors = dict(restored.learning_cursors)
+        learning_cursors["factual_request_stream"] = {
+            "branch": branch.name,
+            "stream_sha256": stream.stream_sha256,
+            "first_collected_time": started_time,
+            "last_collected_time": logical_time - 1,
+            "partitions": len(stream.refs(training=True)),
+        }
+        checkpoint = store.save(
+            kernel,
+            logical_time - 1,
+            restored.experiment,
+            parent_checkpoint_id=branch.head_checkpoint_id,
+            learning_cursors=learning_cursors,
         )
-        requests += ref.requests
-        events += ref.events
-        logical_time += 1
-    learning_cursors = dict(restored.learning_cursors)
-    learning_cursors["factual_request_stream"] = {
-        "branch": branch.name,
-        "stream_sha256": stream.stream_sha256,
-        "first_collected_time": started_time,
-        "last_collected_time": logical_time - 1,
-        "partitions": len(stream.refs(training=True)),
-    }
-    checkpoint = store.save(
-        kernel,
-        logical_time - 1,
-        restored.experiment,
-        parent_checkpoint_id=branch.head_checkpoint_id,
-        learning_cursors=learning_cursors,
-    )
-    updated = registry.advance(
-        branch.name,
-        checkpoint.checkpoint_id,
-        expected_head_checkpoint_id=branch.head_checkpoint_id,
-    )
+        updated = registry.advance(
+            branch.name,
+            checkpoint.checkpoint_id,
+            expected_head_checkpoint_id=branch.head_checkpoint_id,
+        )
+    except Exception:
+        stream.abort_staged(transaction_id)
+        stream.reconcile_through(restored.ref.logical_time)
+        raise
     _sync(device)
     return {
         "schema": "factual-request-collection-review/v1",
@@ -123,6 +136,7 @@ def collect_factual_requests(
         "events": events,
         "request_partitions": len(stream.refs(training=True)),
         "request_stream_sha256": stream.stream_sha256,
+        "reconciled_orphan_partitions": len(orphaned),
         "elapsed_seconds": time.perf_counter() - started,
         "peak_cuda_gib": (
             torch.cuda.max_memory_allocated(device) / 2**30

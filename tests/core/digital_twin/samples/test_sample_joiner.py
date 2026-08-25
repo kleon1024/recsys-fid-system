@@ -366,6 +366,27 @@ def test_context_is_chronological_heterogeneous_and_point_in_time():
     assert (context.history_event_time[0, valid] <= 10).all()
 
 
+def test_late_event_is_inserted_by_event_time_without_dropping_newer_history():
+    catalog, trace = build_catalog(), build_trace()
+    values = trace.__dict__.copy()
+    values["event_time"] = torch.tensor([40, 40])
+    request = RequestCandidateTrace(**values)
+    projection = ObservableProjection(2, catalog, history_length=4)
+    first = AppEventBatch.concatenate((
+        observed_event(trace, catalog, 0, 0, EventType.PLAY, time=10),
+        observed_event(trace, catalog, 0, 1, EventType.LIKE, time=20),
+    ))
+    projection.ingest(first)
+    late = observed_event(trace, catalog, 0, 0, EventType.DWELL, time=15)
+    late_values = late.__dict__.copy()
+    late_values["ingest_time"] = torch.full_like(late.ingest_time, 30)
+    projection.ingest(AppEventBatch(**late_values))
+    context = capture_request_context(request, projection.snapshot())
+    valid = context.history_item_id[0] >= 0
+    assert context.history_event_time[0, valid].tolist() == [10, 15, 20]
+    assert context.history_ingest_time[0, valid].tolist() == [10, 30, 20]
+
+
 def test_context_capture_rejects_projection_from_the_future():
     catalog, trace = build_catalog(), build_trace()
     projection = ObservableProjection(2, catalog, history_length=4)

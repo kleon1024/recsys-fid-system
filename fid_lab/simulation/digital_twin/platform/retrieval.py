@@ -14,6 +14,7 @@ import torch
 
 from .retrieval_merge import reciprocal_rank_fusion
 from .routes.exposure import exposed_in_current_session, recently_exposed
+from .routes.commerce import inventory_eligible
 
 from ..catalog import PublicCatalog
 from ..contracts import (
@@ -362,6 +363,7 @@ class MultiRouteRetriever:
         surface: Surface,
         *,
         allowed_lifecycle: tuple[int, ...] | None = None,
+        extra_eligible: torch.Tensor | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         rows = len(requests.user_id)
         item = torch.full(
@@ -377,6 +379,8 @@ class MultiRouteRetriever:
         )
         if allowed_lifecycle is not None:
             eligible &= self._lifecycle_mask(state, allowed_lifecycle)
+        if extra_eligible is not None:
+            eligible &= extra_eligible
         count = min(self.config.route_k, int(eligible.sum()))
         if selected.any() and count:
             candidates = torch.where(eligible)[0]
@@ -437,6 +441,8 @@ class MultiRouteRetriever:
         *,
         feed_exposure_dedup_ticks: int = 0,
         feed_session_dedup: bool = False,
+        commerce_require_inventory: bool = False,
+        commerce_min_inventory: float = 0.0,
     ) -> RetrievalResult:
         unknown = set(enabled_routes) - set(ROUTE_NAMES)
         if unknown:
@@ -445,7 +451,12 @@ class MultiRouteRetriever:
             raise ValueError("at least one retrieval route must be enabled")
         if self.faiss.version == "unbuilt":
             self.refresh(state, int(requests.event_time.min()))
-        route_item, route_score = self._route_candidates(requests, state)
+        route_item, route_score = self._route_candidates(
+            requests,
+            state,
+            commerce_require_inventory=commerce_require_inventory,
+            commerce_min_inventory=commerce_min_inventory,
+        )
         route_valid = route_item >= 0
         if feed_exposure_dedup_ticks:
             repeated = recently_exposed(
@@ -468,6 +479,14 @@ class MultiRouteRetriever:
                 ContentKind.SHORT_VIDEO
             )
             route_valid &= ~(repeated & video)
+        inventory_floor = max(
+            commerce_min_inventory,
+            0.0 if not commerce_require_inventory else 1e-12,
+        )
+        if commerce_require_inventory or commerce_min_inventory > 0.0:
+            route_valid &= inventory_eligible(
+                requests, self.catalog, state, route_item, inventory_floor,
+            )
         enabled = torch.tensor(
             [name in enabled_routes for name in ROUTE_NAMES],
             device=self.device,
@@ -507,10 +526,18 @@ class MultiRouteRetriever:
         self,
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
+        *,
+        commerce_require_inventory: bool = False,
+        commerce_min_inventory: float = 0.0,
     ) -> tuple[torch.Tensor, torch.Tensor]:
         routes = {
             **self._feed_route_candidates(requests, state),
-            **self._business_route_candidates(requests, state),
+            **self._business_route_candidates(
+                requests,
+                state,
+                commerce_require_inventory=commerce_require_inventory,
+                commerce_min_inventory=commerce_min_inventory,
+            ),
         }
         missing = set(ROUTE_NAMES) - set(routes)
         extra = set(routes) - set(ROUTE_NAMES)
@@ -632,6 +659,9 @@ class MultiRouteRetriever:
         self,
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
+        *,
+        commerce_require_inventory: bool = False,
+        commerce_min_inventory: float = 0.0,
     ) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
         last_item = self._last_item(requests, state)
         impression = state.item_event_counts[
@@ -673,6 +703,20 @@ class MultiRouteRetriever:
             + 0.35 * state.item_inventory
             + 0.20 * torch.log1p(state.item_bid),
             Surface.COMMERCE,
+            extra_eligible=(
+                (
+                    self.catalog.content_kind != int(ContentKind.PRODUCT)
+                )
+                | (
+                    state.item_inventory
+                    > max(
+                        commerce_min_inventory,
+                        0.0 if not commerce_require_inventory else 1e-12,
+                    )
+                )
+                if commerce_require_inventory or commerce_min_inventory > 0.0
+                else None
+            ),
         )
         live_item, live_score = self._top_for_surface(
             requests,
@@ -709,34 +753,6 @@ class MultiRouteRetriever:
             "search": (search_item, search_score),
             "retarget": (retarget_item, retarget_score),
         }
-
-    def _surface_top(
-        self,
-        requests: PlatformRequestBatch,
-        state: PlatformProjectionState,
-        score: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        item = torch.full(
-            (len(requests.user_id), self.config.route_k),
-            -1,
-            device=self.device,
-            dtype=torch.long,
-        )
-        values = torch.full_like(item, -torch.inf, dtype=torch.float)
-        for surface in torch.unique(requests.surface).tolist():
-            rows = requests.surface == surface
-            eligible = state.item_active & surface_eligibility(
-                surface, self.catalog.content_kind,
-            )
-            count = min(self.config.route_k, int(eligible.sum()))
-            if not count:
-                continue
-            candidates = torch.where(eligible)[0]
-            top = torch.topk(score[candidates], count).indices
-            chosen = candidates[top]
-            item[rows, :count] = chosen[None]
-            values[rows, :count] = score[chosen][None]
-        return item, values
 
     def _filter_and_trim(
         self,

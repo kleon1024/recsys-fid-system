@@ -16,6 +16,10 @@ A subsequent consistency audit separated the 64-event modeling sequence from a
 2% global randomized experiment with logged propensities, but remains HOLD on
 stay non-inferiority; see
 [R-LR-012](docs/launch-reviews/2026-08-25-feed-v5-cold-start.md).
+The first multi-business closure is the Commerce transaction ladder: orders now
+require carts, inventory reservations prevent oversell, failed launch attempts
+cannot publish training partitions, and cross-route eligibility is audited. See
+[C-LR-001..003](docs/launch-reviews/2026-08-25-commerce-transaction-ladder.md).
 
 ## Historical Feed model V4 and governance world V5
 

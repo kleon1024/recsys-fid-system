@@ -170,6 +170,7 @@ def sample_response_tensors(
     examined = valid & (draws[:, :, 0] < _examination_probability(snapshot, slate))
     affinity, utility, experience = _latent_utility(snapshot, catalog, slate)
     style = users.response_style[row]
+    kind = catalog.content_kind[item]
     quality = snapshot.catalog_truth.quality[item]
     risk = snapshot.catalog_truth.risk[item]
     feed = _surface_mask(slate, Surface.FEED)
@@ -231,6 +232,8 @@ def sample_response_tensors(
             draws[:, :, 13] < torch.sigmoid(-2.1 + utility)
         ),
         EventType.ADD_CART: detail & commerce & (
+            kind == int(ContentKind.PRODUCT)
+        ) & (
             draws[:, :, 14] < torch.sigmoid(-2.0 + utility)
         ),
         EventType.CREATE: create,
@@ -285,7 +288,11 @@ def _events_for_mask(
         source_candidate = item
     order_id = (
         slate.request_id[row] * 10_000 + position
-        if event_type in {EventType.ORDER, EventType.PAYMENT}
+        if event_type in {
+            EventType.ADD_CART,
+            EventType.ORDER,
+            EventType.PAYMENT,
+        }
         else torch.full_like(item, -1)
     )
     return make_app_events(

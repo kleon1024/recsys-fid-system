@@ -33,35 +33,37 @@ items.
 surface route 分属不同 owner。修复后的 tick 236-251 产生了 25 个投稿请求、693 个
 投稿召回候选、200 次曝光、18 次开拍、4 次发布和 4 个活跃冷启 item。
 
-## Current gate / 当前门禁
+## Final gate / 最终门禁
 
-The same stable assignment ran for four cumulative windows over ticks 252-315.
-The fourth review used the expanded Feed exposure ledger without resetting the
-world or experiment cursor.
+The same stable assignment ran for five cumulative windows over ticks 252-339.
+The fourth and fifth reviews used the expanded Feed exposure ledger without
+resetting the world or experiment cursor.
 
-同一稳定分流累计运行四个窗口（tick 252-315）。第四个窗口通过 additive migration
-使用扩容后的 Feed 曝光账本，没有重启世界，也没有重置实验游标。
+同一稳定分流累计运行五个窗口（tick 252-339）。第四、第五个窗口使用扩容后的 Feed
+曝光账本，没有重启世界，也没有重置实验游标。
 
 | Evidence | Result |
 |---|---:|
-| Control / treatment triggered users | 772 / 796 |
-| Feed requests | 9,819 |
-| Randomized cold-start exposures | 188 |
+| Control / treatment triggered users | 983 / 990 |
+| Feed requests | 13,061 |
+| Randomized cold-start exposures | 257 |
 | Invalid cold-start exposures | 0 |
-| Global randomized request rate | 1.91% |
-| Within-treatment randomized rate | 9.74% |
-| Treatment candidate support | 99.84% |
-| Logged propensity range | 1.67%-10.00% |
-| Stay delta per triggered user | -1.08% |
-| Stay 95% CI, absolute seconds | [-1.130, 0.944] |
-| Negative-feedback delta | -8.76% |
-| RTX 4090 peak allocation | 5.50 GiB |
+| Global randomized request rate | 1.97% |
+| Within-treatment randomized rate | 10.18% |
+| Treatment candidate support | 99.88% |
+| Logged propensity range | 1.11%-10.00% |
+| Stay delta per triggered user | -3.37% |
+| Stay 95% CI, absolute seconds | [-1.261, 0.651] |
+| Negative-feedback delta | -6.57% |
+| RTX 4090 peak allocation | 5.53 GiB |
 
-Decision: **HOLD**. Assignment, support, route provenance and propensity gates
-pass. The stay point estimate is close to neutral, but its confidence interval
-does not yet prove the preregistered five-percent non-inferiority margin. No
-threshold is relaxed and the layer is not promoted to default traffic.
+Decision: **STOP INCONCLUSIVE** after the preregistered fifth review window.
+Assignment, support, route provenance and propensity gates pass, but stay never
+proved the five-percent non-inferiority margin. No threshold was relaxed. The
+layer was removed and checkpoint
+`e8d7388bfaecb0ad050dc02c0f06896d749d3dfaafc745261e8ecfe9774eff29`
+returned the factual world to `multi-surface-route-isolated-v1`.
 
-决策：**HOLD**。流量、支持度、route provenance 和 propensity 均正确；stay 点估计
-接近中性，但置信区间尚未证明预注册的 -5% 非劣界限。因此不放宽门槛，也不把该层
-提升为默认流量。
+决策：预注册第五窗口后 **STOP INCONCLUSIVE**。流量、支持度、route provenance 和
+propensity 均正确，但 stay 始终没有证明 -5% 非劣界限。门槛未放宽，探索层已撤回，
+事实世界恢复到原基线。

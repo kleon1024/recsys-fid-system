@@ -13,6 +13,8 @@ from io import BytesIO
 import json
 import os
 from pathlib import Path
+import re
+import shutil
 from tempfile import NamedTemporaryFile
 from typing import Mapping
 
@@ -77,16 +79,18 @@ class FactualRequestStream:
         self.root = root
         self.branch = branch
         self.objects = root / "objects"
+        self.staging = root / "staging"
         self.manifest_path = root / "request-stream.json"
         self.lock_path = root / "request-stream.lock"
         self.objects.mkdir(parents=True, exist_ok=True)
+        self.staging.mkdir(parents=True, exist_ok=True)
 
-    def append(
+    def _partition_payload(
         self,
         tick: TickResult,
         projection: ProjectionSnapshot,
         world_manifest: Mapping[str, str],
-    ) -> FactualRequestPartitionRef:
+    ) -> tuple[FactualRequestPartitionRef, bytes]:
         if tick.candidate_trace is None or tick.request_context is None:
             raise ValueError("factual request stream requires a complete trace")
         partition = FactualRequestPartition(
@@ -103,7 +107,7 @@ class FactualRequestStream:
         )
         payload = self._serialize(partition)
         digest = sha256(payload).hexdigest()
-        ref = FactualRequestPartitionRef(
+        return FactualRequestPartitionRef(
             logical_time=tick.logical_time,
             object_sha256=digest,
             requests=len(partition.trace.request_id),
@@ -112,7 +116,18 @@ class FactualRequestStream:
             world_manifest_sha256=self._world_manifest_hash(
                 partition.world_manifest,
             ),
+        ), payload
+
+    def append(
+        self,
+        tick: TickResult,
+        projection: ProjectionSnapshot,
+        world_manifest: Mapping[str, str],
+    ) -> FactualRequestPartitionRef:
+        ref, payload = self._partition_payload(
+            tick, projection, world_manifest,
         )
+        digest = ref.object_sha256
         with FileLock(str(self.lock_path)):
             manifest = self._read_manifest()
             if manifest["schema"] != FACTUAL_REQUEST_STREAM_SCHEMA:
@@ -131,6 +146,101 @@ class FactualRequestStream:
             manifest["stream_sha256"] = self._stream_hash(manifest)
             self._write_json(manifest)
         return ref
+
+    def stage(
+        self,
+        transaction_id: str,
+        tick: TickResult,
+        projection: ProjectionSnapshot,
+        world_manifest: Mapping[str, str],
+    ) -> FactualRequestPartitionRef:
+        """Write an unpublished partition owned by one launch attempt."""
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", transaction_id):
+            raise ValueError("request transaction id is unsafe")
+        ref, payload = self._partition_payload(
+            tick, projection, world_manifest,
+        )
+        directory = self.staging / transaction_id
+        directory.mkdir(parents=True, exist_ok=True)
+        target = directory / f"{ref.logical_time}-{ref.object_sha256}.pt"
+        if target.exists():
+            if sha256(target.read_bytes()).hexdigest() != ref.object_sha256:
+                raise ValueError("staged request partition is corrupted")
+            return ref
+        with NamedTemporaryFile(dir=directory, delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(payload)
+        os.replace(temporary, target)
+        return ref
+
+    def commit_staged(
+        self,
+        transaction_id: str,
+        refs: tuple[FactualRequestPartitionRef, ...],
+    ) -> None:
+        """Publish all staged partitions with one manifest replacement."""
+        if len({ref.logical_time for ref in refs}) != len(refs):
+            raise ValueError("request transaction repeats a logical time")
+        directory = self.staging / transaction_id
+        with FileLock(str(self.lock_path)):
+            manifest = self._read_manifest()
+            for ref in refs:
+                staged = directory / (
+                    f"{ref.logical_time}-{ref.object_sha256}.pt"
+                )
+                if (
+                    not staged.is_file()
+                    or sha256(staged.read_bytes()).hexdigest()
+                    != ref.object_sha256
+                ):
+                    raise ValueError("staged request partition is missing")
+                existing = manifest["partitions"].get(str(ref.logical_time))
+                if existing is not None and existing != asdict(ref):
+                    raise ValueError(
+                        "request partition event time changed content"
+                    )
+            for ref in refs:
+                staged = directory / (
+                    f"{ref.logical_time}-{ref.object_sha256}.pt"
+                )
+                target = self.objects / f"{ref.object_sha256}.pt"
+                if target.exists():
+                    self._verify_object(ref.object_sha256)
+                    staged.unlink()
+                else:
+                    os.replace(staged, target)
+                manifest["partitions"][str(ref.logical_time)] = asdict(ref)
+            manifest["partitions"] = dict(sorted(
+                manifest["partitions"].items(), key=lambda row: int(row[0]),
+            ))
+            manifest["stream_sha256"] = self._stream_hash(manifest)
+            self._write_json(manifest)
+        shutil.rmtree(directory, ignore_errors=True)
+
+    def abort_staged(self, transaction_id: str) -> None:
+        shutil.rmtree(self.staging / transaction_id, ignore_errors=True)
+
+    def reconcile_through(
+        self, checkpoint_logical_time: int,
+    ) -> tuple[FactualRequestPartitionRef, ...]:
+        """Unpublish partitions not backed by the factual branch head."""
+        with FileLock(str(self.lock_path)):
+            manifest = self._read_manifest()
+            orphaned = tuple(
+                FactualRequestPartitionRef(**value)
+                for key, value in manifest["partitions"].items()
+                if int(key) > checkpoint_logical_time
+            )
+            if not orphaned:
+                return ()
+            manifest["partitions"] = {
+                key: value
+                for key, value in manifest["partitions"].items()
+                if int(key) <= checkpoint_logical_time
+            }
+            manifest["stream_sha256"] = self._stream_hash(manifest)
+            self._write_json(manifest)
+        return orphaned
 
     def refs(self, *, training: bool = False) -> tuple[FactualRequestPartitionRef, ...]:
         if training and not self.branch.training_authority:
