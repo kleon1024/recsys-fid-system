@@ -38,17 +38,13 @@ def reciprocal_rank_fusion(
     merged_item.scatter_(1, group, ordered_item)
     merged_score.scatter_add_(1, group, ordered_score)
     merged_bit.scatter_add_(1, group, ordered_bit)
-    valid = merged_item != sentinel
+    valid = (merged_item >= 0) & (merged_item != sentinel)
     merged_score.masked_fill_(~valid, -torch.inf)
-    keep = min(merged_k, width)
+    maximum_candidates = int(valid.sum(dim=1).max())
+    keep = max(1, min(merged_k, width, maximum_candidates))
     position = torch.topk(merged_score, keep, dim=1).indices
     item = torch.gather(merged_item, 1, position)
     value = torch.gather(merged_score, 1, position)
     bits = torch.gather(merged_bit, 1, position)
     item = torch.where(torch.isfinite(value), item, torch.full_like(item, -1))
-    if keep < merged_k:
-        padding = merged_k - keep
-        item = torch.nn.functional.pad(item, (0, padding), value=-1)
-        value = torch.nn.functional.pad(value, (0, padding), value=-torch.inf)
-        bits = torch.nn.functional.pad(bits, (0, padding), value=0)
     return item, value, bits

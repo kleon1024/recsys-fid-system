@@ -580,7 +580,7 @@ def test_random_only_policy_does_not_build_unused_routes(monkeypatch):
         enabled_routes=("random",),
         enabled_business_routes=(),
     )
-    AtomicSimulationKernel(world, platform, log).step(
+    result = AtomicSimulationKernel(world, platform, log).step(
         0,
         ExperimentPlan.ramped_user_ab(
             active_policy=policy,
@@ -591,6 +591,9 @@ def test_random_only_policy_does_not_build_unused_routes(monkeypatch):
         ),
     )
     assert platform.retriever.faiss.version == "unbuilt"
+    assert result.candidate_trace.recall_item_id.shape[1] <= (
+        platform.retriever.config.route_k
+    )
 
 
 def test_installed_learned_retriever_owns_ann_route_and_index_version():

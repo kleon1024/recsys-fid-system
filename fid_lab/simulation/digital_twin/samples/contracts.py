@@ -51,6 +51,53 @@ def _require_stage_subset(
         raise ValueError(f"{child_name} is not a subset of {parent_name}")
 
 
+_NEGATIVE_ONE_PAD_FIELDS = frozenset({
+    "route_item_id", "route_lifecycle_id", "recall_item_id",
+    "recall_lifecycle_id", "coarse_item_id", "fine_item_id",
+    "exposed_item_id",
+})
+_NEGATIVE_INFINITY_PAD_FIELDS = frozenset({
+    "route_score", "recall_score", "coarse_input_score",
+    "coarse_selected_score", "fine_input_score", "fine_selected_score",
+})
+
+
+def _concatenate_padded(
+    name: str,
+    values: tuple[torch.Tensor, ...],
+) -> torch.Tensor:
+    if values[0].ndim == 1:
+        return torch.cat(values)
+    trailing = tuple(
+        max(value.shape[axis] for value in values)
+        for axis in range(1, values[0].ndim)
+    )
+    fill = (
+        -1
+        if name in _NEGATIVE_ONE_PAD_FIELDS
+        else -torch.inf
+        if name in _NEGATIVE_INFINITY_PAD_FIELDS
+        else 0
+    )
+    padded = []
+    for value in values:
+        if value.shape[1:] == trailing:
+            padded.append(value)
+            continue
+        output = torch.full(
+            (len(value), *trailing),
+            fill,
+            dtype=value.dtype,
+            device=value.device,
+        )
+        selected = (slice(None),) + tuple(
+            slice(0, width) for width in value.shape[1:]
+        )
+        output[selected] = value
+        padded.append(output)
+    return torch.cat(tuple(padded))
+
+
 @dataclass(frozen=True)
 class TraceManifest:
     schema_version: str
@@ -265,9 +312,10 @@ class RequestCandidateTrace:
             field.name: (
                 manifest
                 if field.name == "manifest"
-                else torch.cat(tuple(
-                    getattr(trace, field.name) for trace in traces
-                ))
+                else _concatenate_padded(
+                    field.name,
+                    tuple(getattr(trace, field.name) for trace in traces),
+                )
             )
             for field in fields(cls)
         }
