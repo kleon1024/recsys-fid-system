@@ -48,9 +48,9 @@ focused contract is executable; it does not mean the phase, benchmark or launch
 review is accepted.
 
 The accepted implementation baseline is
-`6a3b373d1d5629aaa6ba733b31f96e0b4f09a951`; local and `origin/main` agree.
-P0, P1, the declared Feed scope of P2 and P3-01..05 have content-bound reviews.
-The clean committed source reproduces 202 historical tests, 66 v4 tests and the
+`f71ec908955d853cbf13d361975d7e2be6be47b6`; local and `origin/main` agree.
+P0, P1, the declared Feed scope of P2 and P3-01..06 have content-bound reviews.
+The clean committed source reproduces 202 historical tests, 70 v4 tests and the
 repository gate. Architecture lint has zero errors and one declared warning
 because this project uses its own `AssetGraph`, not Dagster decorators.
 
@@ -61,6 +61,12 @@ candidate lanes, completes in 88.266 seconds and peaks at 8.538 GiB CUDA. This
 is streaming/feature/registry evidence bound to the accepted source. The candidate
 LR probe remains `HOLD` and provides no model or A/B lift claim.
 
+The P3-06 RTX run uses 100K users, 1M items, four event-time partitions,
+255,046 training queries and 10,000 evaluation queries. It finishes in 190.227
+seconds at 14.840 GiB CUDA. Lifecycle remains control; Graph, RRF, Two-Tower and
+Multi-interest reject. Only 89 different evaluation positives expose a severe
+old-policy logging ceiling; randomized retrieval truth remains P3-09.
+
 | Capability | Current evidence | Status | Blocking gap |
 |---|---|---|---|
 | Hidden user world boundary | Platform cannot directly read hidden preference state | Accepted | Non-Feed worlds remain separately gated |
@@ -68,14 +74,14 @@ LR probe remains `HOLD` and provides no model or A/B lift claim.
 | Delayed outcomes | Order/payment/refund/Pixel occurrence and ingestion time are distinct | Implemented | Production-like loss/duplicate/orphan distributions need calibration |
 | Point-in-time projection | Delivered events, lifecycle and exact served feature tensors replay across content-bound partitions | Accepted through P3-05 | Model ladders remain |
 | Request cascade trace | Raw routes, request-time lifecycle, post lineage and every cascade stage are retained | Implemented | Learned artifacts remain |
-| Feed retrieval mechanics | Six lifecycle-owned Feed routes plus six separately owned business routes | Implemented | Learned retrieval starts after P3-04/05 |
+| Feed retrieval mechanics | Lifecycle/Graph plus registry-backed Two-Tower/Multi-interest serving path | Accepted through P3-06 | Every challenger rejected; randomized retrieval truth remains P3-09 |
 | Layered experiments | Ownership, independent assignment, composed policy and numeric served checkpoint logging | Implemented | Model-learning interference remains P4-05 |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
 | Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
 | Behavior realism | v23 passes external, held-out-family, support, anti-exploitation and 100K semantic-shadow gates | Accepted for Feed | Retention, creator supply and every business response remain masked |
 | Full-chain analytical store | Full-flow schema v4 persists exact feature/FID and task vectors; DuckDB and ClickHouse agree | Accepted through P3-05 | P3 evaluators remain |
-| Recall/coarse/fine sample authorities | Source-corrected recall, teacher-aware coarse and PIT fine examples replay from one request authority | Accepted for P3-01..03 | Model consumption remains P3-06..08 |
+| Recall/coarse/fine sample authorities | Source-corrected recall, teacher-aware coarse and PIT fine examples replay from one request authority | Recall consumed by P3-06 | Coarse/fine model consumption remains P3-07/08 |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
 | Model ladder | v4 retrieval ladder compares one factual dataset and budget; every challenger rejected | Accepted through P3-06, no learned retrieval launch | Coarse/fine ladders and randomized retrieval truth remain P3-07..09 |
 | Search/Ads/Commerce/Live/Local/Posting | Surface actions and catalog types exist | Skeleton | Each lacks a closed business workflow and independent launch contract |
