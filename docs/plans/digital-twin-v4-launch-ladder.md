@@ -152,6 +152,30 @@ confidence interval, rollback and which prior reports became invalid. Simulator
 or evaluator defects that do not affect a factual product policy are engineering
 reviews only and cannot claim user-value uplift.
 
+## 5.1 Runtime and scale ladder
+
+Runtime changes are independently reviewed system LRs. Their primary claim is
+bounded cost, reliability or capacity; they may claim business non-inferiority
+only when the served policy and factual assignments are held fixed. An OOMing
+implementation is not a valid long-running control, so unsafe paths first pass
+small-world exact parity and standard-world shadow/replay before replacement.
+
+| ID | Control -> treatment | Fixed budget and acceptance |
+|---|---|---|
+| S-MEM00 | dense 30-day exposure matrix -> rolling segmented Bloom plus 128-item exact session cache | 100K users/1M items; zero session repeats, measured Bloom FPR, bounded RAM/VRAM and exact small-world parity |
+| S-ROUTE00 | eagerly execute every registered route -> execute only enabled routes | byte-identical enabled-route candidates and scores; lower latency/VRAM; disabled routes perform no ANN or business work |
+| S-TRACE00 | fixed-width whole-tick candidate trace -> actual-width trace and projection-free request partitions | exact request/candidate closure and replay hashes; bounded bytes/request |
+| S-IO00 | uncompressed request tensors -> streaming zstd partitions | byte-identical replay, content hash and crash-safe commit; lower storage without a whole-object memory copy |
+| S-EVENT00 | process-resident GPU event history -> CPU/disk-backed event partitions plus bounded hot window | event order/idempotency/watermark and checkpoint restore parity; GPU history memory is constant in elapsed ticks |
+| S-MICRO00 | monolithic request tick -> bounded request microbatches with one atomic tick commit | identical assignments, slates, structural-noise outcomes and next-world state across microbatch sizes; peak RAM/VRAM stays under budget |
+| S-CKPT00 | full raw tensor snapshot each launch -> compressed full base plus incremental state/event generations | restart/branch/hash parity, bounded save/load RSS, measured compression and restore latency, garbage collection retains reachable lineage |
+| S-LONG00 | four-tick launch proof -> 96-tick continuous world soak | no memory growth with elapsed ticks, zero swap/OOM, restart parity, event/sample closure and stable P99 |
+
+Bloom dimensions, hash count, segment duration and rotation are tunable system
+parameters only after S-MEM00. They are never changed inside an algorithm LR.
+The canonical workload is one fixed profile (`feed-standard-v1`: 100K users,
+1M items, 96 ticks/day); smoke/local profiles are tests, not competing evidence.
+
 ## 6. Multi-business extension
 
 After F-M02, Search, Ads, Commerce, Local, Posting, Live and photo/card/article
@@ -162,7 +186,20 @@ permit shared labels or automatic LT exchange.
 
 ## 7. Current ledger
 
-As of 2026-08-25, F-R00 onward have not completed factual v4 A/B. P3-06 is an
+As of 2026-08-25, S-MEM00, S-ROUTE00, S-TRACE00 and S-IO00 have executable
+standard-profile evidence. The standard Random tick renders 65,063 requests in
+1.04 seconds with 7.687 GB peak VRAM; request partitions fell from about
+1.735 GB to 100.5 MB per tick, and the initialization checkpoint fell from
+7.6 GB to 3.1 GB. These are system results, not user-value lift.
+
+F-AA-00 exposed an invalid primary-only A/A gate: dwell covered zero while the
+share family member failed. The immutable review remains failure evidence.
+F-AA-01 added the pre-registered Bonferroni metric-family gate and passed four
+ticks with SRM p=0.19948, zero cross-cell contamination and zero repeated Feed
+impressions. F-R00 was submitted on the RTX host, but its completion is not
+claimed until the immutable remote journal and branch head are readable.
+
+P3-06 is an
 offline equal-budget retrieval review: Lifecycle remains control and Graph, RRF,
 Two-Tower and Multi-interest reject. The P3 LR probe validates registry plumbing
 only and remains `HOLD`. Therefore the current number of learned-model launches

@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (runtime-scale reset; factual LR ladder has not started)
+Updated: 2026-08-25 (bounded runtime landed; factual Feed ladder started)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -53,10 +53,12 @@ before the rolling-Bloom runtime slice began. It contains the canonical clock,
 restart-safe world authority, candidate-level support, request-aware evaluator,
 factual Launch Review transaction and artifact-bound coarse/fine serving.
 
-No current factual Feed LR has passed. Historical route and model reports were
-produced by superseded worlds or diagnostic runners and cannot advance the
-canonical world. The only canonical checkpoint is an initialization snapshot at
-logical time `-1`; F-AA-00 and F-R00 remain unexecuted.
+F-AA-01 is the first accepted factual Feed infrastructure review. F-AA-00 remains
+immutable failure evidence because its old primary-only gate missed a metric-
+family false positive. Historical route and model reports were produced by
+superseded worlds or diagnostic runners and cannot advance the canonical world.
+F-R00 has been submitted to the RTX host but remains unclaimed until its remote
+journal and branch head are readable.
 
 The first 100K-user/1M-item canonical tick exposed the actual critical path. A
 dense `100K × 4096 × (item,time)` int64 Feed exposure ledger consumed about
@@ -65,9 +67,9 @@ dense `100K × 4096 × (item,time)` int64 Feed exposure ledger consumed about
 serving and evidence retention were incompatible with the original 15 GiB WSL
 limit. WSL is now capped at 24 GB, but more memory is not acceptance.
 
-Execution is reset around one invariant: no business surface, feature ladder or
-learned model proceeds until the standard Feed tick is request-microbatched,
-memory-bounded, restart-equivalent and content-bound. The online dedup authority
+Execution is reset around one invariant: no long-horizon, business-surface or
+learned-model progression proceeds until the standard Feed runtime is memory-
+bounded across elapsed ticks, restart-equivalent and content-bound. The online dedup authority
 is a rolling Bloom filter with a measured false-positive budget; a small exact
 session cache remains local. Append-only exposure logs are asynchronous audit
 evidence and are never queried on the serving path.
@@ -89,7 +91,7 @@ evidence and are never queried on the serving path.
 | Full-chain analytical store | Schema v4 persists retained feature/FID and task vectors; DuckDB/ClickHouse agree | Accepted for retained rows | Full scoring-input coverage remains P3-05a |
 | Recall/coarse/fine sample authorities | Recall is source-corrected; coarse covers recall universe; fine covers scorer input with masked factual labels | Implemented | Trainer/evaluator consumption remains P3-07..09 |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
-| Model ladder | Sequential factual runner and registered F-AA/F-R00 specs exist | No canonical factual LR completed | Pass runtime gate, then run A/A→Random→Popular without changing worlds |
+| Model ladder | Sequential factual runner; F-AA-01 passed the corrected familywise gate | F-R00 submitted but unverified while RTX SSH is unavailable | Verify immutable F-R00 journal, then run Popular without changing worlds |
 | Search/Ads/Commerce/Live/Local/Posting | Commerce closes cart→refund; Search closes query→post-search; Ads closes budget→auction→impression/spend→click→Pixel with one-slot load | Commerce, Search and Ads implementations in validation; Local, Posting and Live remain open | C-LR-003, S-LR-001 and A-LR-001 RTX evidence remain pending |
 
 The accepted v23 NeuralSCM is the declared Feed response authority only. Its
@@ -544,7 +546,7 @@ in another document is informative only; it cannot override this register.
 | P5-05 | `scenarios/posting`: add candidate recommendation and supply feedback | Immutable Feed post/lifecycle accepted; posting ranker absent | P1-P4 | draft/media→POI/product/topic candidates→select→publish→qualified future supply; selection, publish and distribution are separate labels; user- and creator-randomized designs declare interference and creator retention horizon |
 | P5-06 | `scenarios/live` and format adapters: own examination/labels | Surface enums and actions only | P2-P4 | Live availability→enter→stay/interact/gift plus delayed outcomes; photo/card/article own examination, dwell and calibration; only content representation/infrastructure is shared; each format has an independent LR |
 | P6-01 | `validation/profiles`: freeze diagnostic/standard/stress manifests | Standard is fixed at 100K users/1M items/96 ticks/day; first canonical tick failed the scale gate | Runtime v5 | standard profile records requests, candidates, events, state/checkpoint bytes and complexity; partition/resume and content hashes are mandatory |
-| P6-02 | `validation/performance`: bounded Feed runtime rewrite | In progress: launch aggregation is streaming; dense exposure state and whole-tick serving remain | P6-01 | rolling Bloom, request microbatching, incremental trace partitions and compact checkpoint pass one tick within 24 GB RAM/24 GB VRAM with restart parity |
+| P6-02 | `validation/performance`: bounded Feed runtime rewrite | Partial: Bloom, enabled-route execution, compact trace, projection-free zstd partitions and streaming checkpoint writes landed; event history, request microbatch and checkpoint generations remain | P6-01 | S-EVENT00, S-MICRO00, S-CKPT00 and 96-tick S-LONG00 pass within 24 GB RAM/24 GB VRAM with restart parity |
 | P6-03 | `validation/failures`: model-quality and recovery campaigns | P0 seeded diagnostics only | P3-P5 | inject index/checkpoint mismatch, bad snapshot, PS shard loss, feature delay, late labels, timeout and overload; registry state, per-head calibration/NE, fallback and business metrics detect impact and return to baseline after rollback |
 | P6-04 | release authority: delete legacy path and publish reproducibly | Missing | all accepted successors | parity manifest proves every retained consumer uses v4; delete superseded `simulation/twin` and duplicate authorities; zero orphan modules, clean public/secret scan, fresh-clone README run and one clean content-bound release commit |
 
@@ -757,16 +759,20 @@ independent experiment owner and documented final-mixer interaction.
 
 ### P6 — Scale, reliability and deletion
 
-Status: critical path. All P3-P5 launch work is frozen until the standard Feed
-tick passes. This is a targeted runtime/data-plane rewrite, not a DGP or model
-rewrite.
+Status: critical path. One standard Feed tick and four-tick A/A now pass, so the
+short Random→Popular proof may proceed. Long-horizon, learned-model and P3-P5
+launch work remains frozen until event history, request microbatching and
+checkpoint generations pass the 96-tick soak. This is a targeted runtime/data-
+plane rewrite, not a DGP or model rewrite.
 
-- Replace dense 30-day Feed history with rolling Bloom plus exact session cache;
+- Keep rolling Bloom plus the bounded exact session cache as the sole online
+  exposure authority; tune Bloom dimensions only through S-MEM system LRs and
   never query the exposure log online.
 - Render requests in bounded microbatches and publish request/trace partitions
   incrementally while the world commits once per factual tick.
-- Compact checkpoints and pass the fixed 100K-user/1M-item single-tick gate under
-  24 GB WSL RAM and 24 GB VRAM before rebuilding the canonical world once.
+- Move historical event batches off GPU, compact checkpoint generations, and
+  pass the fixed 100K-user/1M-item 96-tick soak under 24 GB WSL RAM and 24 GB
+  VRAM without elapsed-time memory growth.
 - Run F-AA-00, F-R00 and F-R01 Popular as the first complete iteration proof.
 - Use four pre-registered ticks for F-AA/F-R00 because each 20% arm exceeds
   5,000 unique users; longer windows are reserved for powered retention/LT tests.
