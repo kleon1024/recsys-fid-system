@@ -40,6 +40,24 @@ def _fixed_list(value: torch.Tensor) -> pa.FixedSizeListArray:
     return pa.FixedSizeListArray.from_arrays(flat, value.shape[1])
 
 
+def _variable_list(value: torch.Tensor, value_type: pa.DataType) -> pa.ListArray:
+    if value.ndim != 2:
+        raise ValueError("variable-list source must be two-dimensional")
+    rows, width = value.shape
+    offsets = pa.array(
+        np.arange(rows + 1, dtype=np.int32) * width, type=pa.int32(),
+    )
+    values = pa.array(_numpy(value).reshape(-1), type=value_type)
+    return pa.ListArray.from_arrays(offsets, values)
+
+
+def _empty_lists(rows: int, value_type: pa.DataType) -> pa.ListArray:
+    return pa.ListArray.from_arrays(
+        pa.array(np.zeros(rows + 1, dtype=np.int32), type=pa.int32()),
+        pa.array([], type=value_type),
+    )
+
+
 def _stage_membership(
     parent: torch.Tensor,
     child: torch.Tensor,
@@ -92,6 +110,9 @@ def _request_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "fid_version": [trace.manifest.fid_version] * len(trace.request_id),
         "lifecycle_version": [
             trace.manifest.lifecycle_version
+        ] * len(trace.request_id),
+        "feature_manifest_hash": [
+            trace.manifest.feature_manifest_hash
         ] * len(trace.request_id),
         "user_event_counts": _fixed_list(context.user_event_counts),
         "user_surface_counts": _fixed_list(context.user_surface_counts),
@@ -286,7 +307,7 @@ def _label_table(snapshot: FullFlowSnapshot) -> pa.Table:
     })
 
 
-def _sample_lineage_defaults(rows: int) -> dict[str, np.ndarray]:
+def _sample_lineage_defaults(rows: int) -> dict[str, object]:
     return {
         "sampling_source": np.full(rows, -1, dtype=np.int64),
         "sampling_expected_count": np.full(rows, np.nan, dtype=np.float32),
@@ -301,6 +322,19 @@ def _sample_lineage_defaults(rows: int) -> dict[str, np.ndarray]:
             rows, np.nan, dtype=np.float32,
         ),
         "ope_supported": np.zeros(rows, dtype=np.bool_),
+        "user_id": np.full(rows, -1, dtype=np.int64),
+        "surface": np.full(rows, -1, dtype=np.int64),
+        "request_time": np.full(rows, -1, dtype=np.int64),
+        "position": np.full(rows, -1, dtype=np.int64),
+        "served_checkpoint_id": np.full(rows, -1, dtype=np.int64),
+        "feature_manifest_hash": np.full(rows, "", dtype=object),
+        "dense_features": _empty_lists(rows, pa.float32()),
+        "sparse_fids": _empty_lists(rows, pa.int64()),
+        "sparse_buckets": _empty_lists(rows, pa.int64()),
+        "task_label_values": _empty_lists(rows, pa.float32()),
+        "task_label_masks": _empty_lists(rows, pa.bool_()),
+        "task_label_applicable": _empty_lists(rows, pa.bool_()),
+        "task_label_mature": _empty_lists(rows, pa.bool_()),
     }
 
 
@@ -399,9 +433,6 @@ def _fine_example_table(fine) -> pa.Table:
     )[None].expand_as(fine.item_id)
     fine_request = fine.request_id[:, None].expand_as(fine.item_id)
     fine_rows = int(fine_valid.sum())
-    fine_value = torch.where(
-        fine.label_mask, fine.labels, torch.zeros_like(fine.labels),
-    ).sum(dim=2)
     fine_data = {
         "request_id": _numpy(fine_request[fine_valid]),
         "item_id": _numpy(fine.item_id[fine_valid]),
@@ -411,8 +442,8 @@ def _fine_example_table(fine) -> pa.Table:
         "sampling_probability": _numpy(
             fine.exposure_probability[fine_valid]
         ),
-        "label_value": _numpy(fine_value[fine_valid]),
-        "label_mask": _numpy(fine.label_mask.any(dim=2)[fine_valid]),
+        "label_value": np.full(fine_rows, np.nan, dtype=np.float32),
+        "label_mask": np.zeros(fine_rows, dtype=np.bool_),
         "teacher_score": _numpy(fine.served_score[fine_valid]),
         "teacher_mask": np.ones(fine_rows, dtype=np.bool_),
         **_sample_lineage_defaults(fine_rows),
@@ -423,6 +454,43 @@ def _fine_example_table(fine) -> pa.Table:
         fine.joint_logging_probability[fine_valid]
     )
     fine_data["ope_supported"] = _numpy(fine.ope_supported[fine_valid])
+    fine_data["user_id"] = _numpy(
+        fine.user_id[:, None].expand_as(fine.item_id)[fine_valid]
+    )
+    fine_data["surface"] = _numpy(
+        fine.surface[:, None].expand_as(fine.item_id)[fine_valid]
+    )
+    fine_data["request_time"] = _numpy(
+        fine.request_time[:, None].expand_as(fine.item_id)[fine_valid]
+    )
+    fine_data["position"] = _numpy(fine.position[fine_valid])
+    fine_data["served_checkpoint_id"] = _numpy(
+        fine.fine_version_id[:, None].expand_as(fine.item_id)[fine_valid]
+    )
+    fine_data["feature_manifest_hash"] = np.full(
+        fine_rows, fine.feature_manifest_hash, dtype=object,
+    )
+    fine_data["dense_features"] = _variable_list(
+        fine.dense_features[fine_valid], pa.float32(),
+    )
+    fine_data["sparse_fids"] = _variable_list(
+        fine.sparse_fids[fine_valid], pa.int64(),
+    )
+    fine_data["sparse_buckets"] = _variable_list(
+        fine.sparse_buckets[fine_valid], pa.int64(),
+    )
+    fine_data["task_label_values"] = _variable_list(
+        fine.labels[fine_valid], pa.float32(),
+    )
+    fine_data["task_label_masks"] = _variable_list(
+        fine.label_mask[fine_valid], pa.bool_(),
+    )
+    fine_data["task_label_applicable"] = _variable_list(
+        fine.label_applicable[fine_valid], pa.bool_(),
+    )
+    fine_data["task_label_mature"] = _variable_list(
+        fine.label_mature[fine_valid], pa.bool_(),
+    )
     return pa.table(fine_data)
 
 
@@ -460,6 +528,9 @@ def _checkpoint_table(records: tuple[CheckpointRecord, ...]) -> pa.Table:
         ("validation_status", pa.string()),
         ("publish_state", pa.string()),
         ("fallback_version", pa.string()),
+        ("serving_version_id", pa.int64()),
+        ("artifact_sha256", pa.string()),
+        ("compatibility_hash", pa.string()),
     ))
     if not records:
         return pa.Table.from_batches([], schema=schema)

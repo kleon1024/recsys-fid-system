@@ -20,7 +20,9 @@ from ..samples.contracts import (
 from ..samples.joiner import capture_request_context
 from .projection import ObservableProjection, ProjectionSnapshot
 from .lifecycle import LIFECYCLE_POLICY_VERSION, LifecycleConfig
+from .features import DEFAULT_FEATURE_MANIFEST, FeatureManifest
 from .ranking import CascadePolicy, CascadeRanker, RankingConfig
+from .ranking import LearnedFineScorer
 from .requests import open_platform_requests
 from .retrieval import MultiRouteRetriever, RetrievalConfig
 
@@ -30,10 +32,8 @@ class ReferencePlatformConfig:
     users: int
     history_length: int = 128
     recall_version_id: int = 1
-    feature_version: str = "observable-features-v1"
     catalog_version: str = "public-catalog-v1"
     policy_registry_version: str = "reference-policy-registry-v1"
-    fid_version: str = "fid-v2"
     ticks_per_day: int = 96
 
     def __post_init__(self):
@@ -56,6 +56,7 @@ class ReferenceRecommendationPlatform:
         catalog: PublicCatalog,
         retrieval_config: RetrievalConfig | None = None,
         ranking_config: RankingConfig | None = None,
+        feature_manifest: FeatureManifest = DEFAULT_FEATURE_MANIFEST,
     ):
         self.config = config
         self.catalog = catalog
@@ -69,7 +70,11 @@ class ReferenceRecommendationPlatform:
             catalog, retrieval_config or RetrievalConfig(),
         )
         self.ranker = CascadeRanker(
-            catalog, self.retriever, ranking_config or RankingConfig(),
+            catalog,
+            self.retriever,
+            ranking_config or RankingConfig(),
+            config.ticks_per_day,
+            feature_manifest,
         )
 
     def ingest(self, events: AppEventBatch) -> None:
@@ -79,6 +84,11 @@ class ReferenceRecommendationPlatform:
             self.retriever.refresh(
                 self.projection.state, int(events.ingest_time.max()),
             )
+
+    def install_fine_scorer(
+        self, serving_version_id: int, scorer: LearnedFineScorer,
+    ) -> None:
+        self.ranker.install_fine_scorer(serving_version_id, scorer)
 
     def snapshot(self) -> PlatformServingSnapshot:
         return PlatformServingSnapshot(
@@ -167,6 +177,9 @@ class ReferenceRecommendationPlatform:
             ),
             fine_item_id=ranked.fine_item_id,
             fine_score=ranked.fine_score,
+            fine_dense_features=ranked.fine_features.dense,
+            fine_sparse_fids=ranked.fine_features.sparse_fids,
+            fine_sparse_buckets=ranked.fine_features.sparse_buckets,
             exposed_item_id=ranked.exposed_item_id,
             exposed_position=ranked.exposed_position,
             exposure_probability=exposure_probability,
@@ -183,14 +196,15 @@ class ReferenceRecommendationPlatform:
                 requests.user_id, policy.mix_version_id,
             ),
             manifest=TraceManifest(
-                schema_version="request-candidate-trace-v2",
-                feature_version=self.config.feature_version,
+                schema_version="request-candidate-trace-v3",
+                feature_version=self.ranker.features.manifest.schema_version,
                 catalog_version=self.config.catalog_version,
                 policy_registry_version=self.config.policy_registry_version,
                 route_names=self.retriever.route_names,
                 index_version=snapshot.index_version,
-                fid_version=self.config.fid_version,
+                fid_version=f"fid-{self.ranker.features.manifest.fid_version}",
                 lifecycle_version=LIFECYCLE_POLICY_VERSION,
+                feature_manifest_hash=ranked.fine_features.manifest_hash,
             ),
         )
         context = capture_request_context(trace, snapshot.projection)

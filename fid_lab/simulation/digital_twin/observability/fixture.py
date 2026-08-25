@@ -157,6 +157,7 @@ def build_full_flow_fixtures(
             events=events,
             samples=samples,
             projection=platform.projection.snapshot(),
+            feature_manifest=platform.ranker.features.manifest,
             checkpoints=(CheckpointRecord(
                 created_time=logical_time,
                 lane="active",

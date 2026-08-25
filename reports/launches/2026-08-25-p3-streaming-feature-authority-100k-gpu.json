@@ -1,0 +1,155 @@
+{
+  "active_lane_cursor": {
+    "consumed": [
+      {
+        "content_sha256": "f34f9489f95165f8390e699aa344b0b182208486ae9b9e2d72b048a7ea828e28",
+        "partition_key": "event_time=0"
+      },
+      {
+        "content_sha256": "8bfa80ccb4353646d141388ed4688ad0aad7095409f5fd10f023b1a0488f1e55",
+        "partition_key": "event_time=1"
+      }
+    ],
+    "contract_hash": "e0d3ab34c353bc39d376321692f656813ccd5fc9b346987c780a9d6cb64110fc",
+    "event_watermark": 1,
+    "lane": "active",
+    "schema": "v4-learning-lane-cursor-v1"
+  },
+  "active_probe": {
+    "device": "cuda",
+    "epochs": 2,
+    "event_watermark": 1,
+    "lane": "active",
+    "loss_first": 2.3671751022338867,
+    "loss_last": 2.342741012573242,
+    "mature_labels": 7808576,
+    "partition_content_hashes": [
+      "f34f9489f95165f8390e699aa344b0b182208486ae9b9e2d72b048a7ea828e28",
+      "8bfa80ccb4353646d141388ed4688ad0aad7095409f5fd10f023b1a0488f1e55"
+    ],
+    "purpose": "infrastructure_only_not_model_launch",
+    "rows": 1267664,
+    "seed": 71
+  },
+  "active_serving_version_id": 1,
+  "candidate_lane_cursor": {
+    "consumed": [
+      {
+        "content_sha256": "f34f9489f95165f8390e699aa344b0b182208486ae9b9e2d72b048a7ea828e28",
+        "partition_key": "event_time=0"
+      },
+      {
+        "content_sha256": "8bfa80ccb4353646d141388ed4688ad0aad7095409f5fd10f023b1a0488f1e55",
+        "partition_key": "event_time=1"
+      }
+    ],
+    "contract_hash": "e0d3ab34c353bc39d376321692f656813ccd5fc9b346987c780a9d6cb64110fc",
+    "event_watermark": 1,
+    "lane": "candidate",
+    "schema": "v4-learning-lane-cursor-v1"
+  },
+  "candidate_probe": {
+    "device": "cuda",
+    "epochs": 2,
+    "event_watermark": 1,
+    "lane": "candidate",
+    "loss_first": 2.3671751022338867,
+    "loss_last": 2.342741012573242,
+    "mature_labels": 7808576,
+    "partition_content_hashes": [
+      "f34f9489f95165f8390e699aa344b0b182208486ae9b9e2d72b048a7ea828e28",
+      "8bfa80ccb4353646d141388ed4688ad0aad7095409f5fd10f023b1a0488f1e55"
+    ],
+    "purpose": "infrastructure_only_not_model_launch",
+    "rows": 1267664,
+    "seed": 71
+  },
+  "candidate_serving_version_id": 2,
+  "candidate_status": "shadow",
+  "checkpoint_records": [
+    {
+      "artifact_sha256": "92edaa006931dedea4147f53e6b70ac9b7a2b17e48be7b8751fc4ed6c35a8c8a",
+      "checkpoint_version": "probe-92edaa006931dedea414",
+      "compatibility_hash": "0d54003356266a1067baab329f96b517bee8bc09e9c45dd41cc58e8bfba91f1b",
+      "created_time": 2,
+      "data_watermark": 1,
+      "fallback_version": "",
+      "feature_version": "observable-feature-manifest-v1",
+      "fid_version": "fid-v2",
+      "index_version": "observable-index-t0",
+      "lane": "active",
+      "model_name": "v4-lr-infrastructure-probe",
+      "publish_state": "active",
+      "sample_manifest": "e0d3ab34c353bc39d376321692f656813ccd5fc9b346987c780a9d6cb64110fc",
+      "serving_version_id": 1,
+      "validation_status": "pass"
+    },
+    {
+      "artifact_sha256": "5febb58a8c58bb5a26770e1b273cb48459b04d30de22924dac1ad5a2d6f56d0a",
+      "checkpoint_version": "probe-5febb58a8c58bb5a2677",
+      "compatibility_hash": "0d54003356266a1067baab329f96b517bee8bc09e9c45dd41cc58e8bfba91f1b",
+      "created_time": 2,
+      "data_watermark": 1,
+      "fallback_version": "",
+      "feature_version": "observable-feature-manifest-v1",
+      "fid_version": "fid-v2",
+      "index_version": "observable-index-t0",
+      "lane": "candidate",
+      "model_name": "v4-lr-infrastructure-probe",
+      "publish_state": "shadow",
+      "sample_manifest": "e0d3ab34c353bc39d376321692f656813ccd5fc9b346987c780a9d6cb64110fc",
+      "serving_version_id": 2,
+      "validation_status": "hold"
+    }
+  ],
+  "config": {
+    "coarse_k": 48,
+    "device": "cuda",
+    "expose_k": 8,
+    "fine_k": 16,
+    "history_length": 32,
+    "items": 1000000,
+    "merged_k": 96,
+    "recall_negatives": 20,
+    "ticks": 2,
+    "users": 100000
+  },
+  "corpus_sha256": "25267d871aa7ab0cda8327a4d4f6d451b3fc66360abc156f1d489c869d768d85",
+  "dataset_content_sha256": "e75cc47646e3056d434d245f3d6207aa0f1f19b1b371ceac7511dfd3883d225c",
+  "dataset_contract_hash": "e0d3ab34c353bc39d376321692f656813ccd5fc9b346987c780a9d6cb64110fc",
+  "dense_feature_width": 11,
+  "evidence_boundary": "P3-04/05 streaming, feature parity and lifecycle infrastructure; the LR probe is not a recommendation model launch or A/B lift.",
+  "fallback_used": false,
+  "feature_drift": {
+    "dense_standardized_mean_shift": 541873.3358383179,
+    "sparse_unseen_bucket_rate": 1.0
+  },
+  "feature_manifest_hash": "0612c9b359471ae0bc2abbf956d50b228b3fe22f0e30ebadd2e754b5db3b3a00",
+  "mature_labels": 7808576,
+  "partitions": [
+    {
+      "dataset_content_sha256": "fc4021fbb0eed56456da34d020c534f32b295c818f472b9cdc1e179d6c69d20a",
+      "partition_content_sha256": "f34f9489f95165f8390e699aa344b0b182208486ae9b9e2d72b048a7ea828e28",
+      "partition_key": "event_time=0",
+      "status": "written"
+    },
+    {
+      "dataset_content_sha256": "e75cc47646e3056d434d245f3d6207aa0f1f19b1b371ceac7511dfd3883d225c",
+      "partition_content_sha256": "8bfa80ccb4353646d141388ed4688ad0aad7095409f5fd10f023b1a0488f1e55",
+      "partition_key": "event_time=1",
+      "status": "written"
+    }
+  ],
+  "peak_cuda_gib": 8.538208961486816,
+  "quality_claim": false,
+  "rows": 1267664,
+  "schema": "p3-streaming-feature-infrastructure-benchmark-v1",
+  "sparse_feature_width": 13,
+  "timing_seconds": {
+    "generation": 46.99420749300043,
+    "loading": 2.1706713320163544,
+    "materialization": 29.56053594101104,
+    "total": 88.26597454200964,
+    "training": 0.7217394530016463
+  }
+}

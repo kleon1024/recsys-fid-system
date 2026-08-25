@@ -8,6 +8,7 @@ from ..catalog import PublicCatalog
 from ..contracts import AppEventBatch
 from ..engine import LayerAssignmentTrace
 from ..platform.projection import ProjectionSnapshot
+from ..platform.features import FeatureManifest
 from ..samples.contracts import (
     JoinedSampleAuthorities,
     RequestCandidateTrace,
@@ -29,6 +30,9 @@ class CheckpointRecord:
     validation_status: str
     publish_state: str
     fallback_version: str = ""
+    serving_version_id: int = -1
+    artifact_sha256: str = ""
+    compatibility_hash: str = ""
 
 
 @dataclass(frozen=True)
@@ -39,6 +43,7 @@ class FullFlowSnapshot:
     events: AppEventBatch
     samples: JoinedSampleAuthorities
     projection: ProjectionSnapshot
+    feature_manifest: FeatureManifest
     checkpoints: tuple[CheckpointRecord, ...] = ()
     layer_assignment: LayerAssignmentTrace | None = None
 
@@ -47,6 +52,10 @@ class FullFlowSnapshot:
             raise ValueError("full-flow trace and context are misaligned")
         if self.samples.manifest != self.trace.manifest:
             raise ValueError("full-flow sample and trace manifests differ")
+        if self.feature_manifest.manifest_hash != (
+            self.trace.manifest.feature_manifest_hash
+        ):
+            raise ValueError("full-flow feature manifest hash differs")
         if self.projection.as_of_ingest_time < int(self.trace.event_time.max()):
             raise ValueError("full-flow projection predates request trace")
         if self.layer_assignment is not None and not self.trace.request_id.equal(

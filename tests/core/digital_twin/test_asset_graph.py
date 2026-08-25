@@ -16,6 +16,15 @@ def test_default_asset_graph_declares_training_and_factual_closure():
         "events.observable"
     )
     assert order.index("samples.fine") < order.index("models.candidate")
+    assert order.index("learning.sample_bus") < order.index(
+        "learning.active_lane"
+    )
+    assert order.index("learning.sample_bus") < order.index(
+        "learning.candidate_lane"
+    )
+    assert order.index("platform.feature_manifest") < order.index(
+        "models.candidate"
+    )
     assert order.index("events.observable") < order.index(
         "world.factual_successor"
     )

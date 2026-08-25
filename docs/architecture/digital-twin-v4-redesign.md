@@ -38,12 +38,16 @@ owns architecture invariants; the execution plan owns delivery status.
 - V4 已支持不同实验层独立分桶、参数所有权校验、请求级 policy 合成和全层 assignment
   trace；每个请求仍只产生一个事实 slate。逐项 Feed 召回 Launch Review runner 已通过本地
   smoke，尚未完成 4090 powered run。
+- P3-04/05 已把 full-flow schema v4、11 个 dense 字段、13 个 sparse FID、持久 sample
+  bus、active/candidate 独立 cursor、content-bound registry 和 learned scorer adapter 闭合。
+  100K 用户、1M item、两 tick 的 4090 验收通过；LR 仅为 infrastructure probe，保持
+  model `HOLD`。
 - RTX 4090 已验证 500K 用户、2M item、16M candidate 的单 event-time 微批；报告见
   `reports/benchmarks/2026-08-24-digital-twin-v4-world-kernel-4090.json`。
 
-尚未落地：基于新 authority 的公平模型 ladder、持续更新的 Joiner/trainer/PS 多 lane、
-powered launch review。真实 serving
-trace 已可作为训练输入，但尚未证明 Two-Tower、LR、XGBoost、W&D、DeepFM、DCNv2 或
+尚未落地：基于新 authority 的公平 retrieval/coarse/fine model ladder、统一 evaluator
+和 powered model Launch Review。真实 serving trace 已成为训练输入，但尚未证明
+Two-Tower、LR、XGBoost、W&D、DeepFM、DCNv2 或
 MMoE 的相对效果。当前证据证明因果边界、候选链路、用户/供给行为、迟到与样本语义；不证明
 模型或业务增量。
 
@@ -52,8 +56,8 @@ MMoE 的相对效果。当前证据证明因果边界、候选链路、用户/�
 | 系统 | 已实现 | 下一步 | 当前可否开可信 LR |
 |---|---|---|---|
 | User/Supply World | 多 surface 行为、session/return、creator/merchant/ads、延迟事件、唯一事实提交 | 稳态 arrival/calendar、trend/drift shock、held-out family calibration | 召回/规则策略可；长期生态仍需更长 horizon |
-| Recommendation Platform | 八种独立 route、RRF、coarse/fine/sequence/diversity、完整 stage trace | learned artifact adapter、calibration、per-business value、VT/COPP/queues | 召回 route 可；模型结构和跨业务混排暂不可 |
-| Continuous Learning & Experimentation | 三类样本 authority、layer ownership、正交 assignment、单 policy 合成 | streaming sample bus、active/candidate trainer/PS、snapshot gate、跨 checkpoint estimator | assignment 机制可；模型/cadence LR 暂不可 |
+| Recommendation Platform | 八种独立 route、RRF、coarse/fine/sequence/diversity、统一 feature/FID 和 learned adapter | retrieval/coarse/fine model ladder、calibration、VT/COPP/queues | 模型 LR 基建已就绪；模型优劣尚未验证 |
+| Continuous Learning & Experimentation | 三类样本、双 lane/cursor、registry、snapshot/fallback、正交 assignment | 跨 checkpoint evaluator 和 daily/hourly/stream cadence ladder | trainer 机制可；model/cadence lift 仍需实验 |
 
 核心 Feed 的基础 route 按 `Popular → Geo → Graph → Fresh → Long-tail → ANN` 逐项开 LR；
 Search/Retarget 只在对应触发场景单独实验。每次只改变一个 layer owner，通过者成为下一轮
@@ -63,9 +67,8 @@ preregistered triggered users 或功效不足必须 fail closed 为 hold。
 V4 的可信实验开放顺序：
 
 ```text
-retrieval strategy LR
-→ streaming Joiner/sample bus parity
-→ active/candidate continuously trained model LR
+accepted streaming Joiner/sample bus/feature parity
+→ retrieval/coarse/fine model LR
 → daily/hourly/event-stream cadence LR
 → calibration/VT/COPP/mix LR
 → Local/Posting/Ads/Commerce ecosystem LR

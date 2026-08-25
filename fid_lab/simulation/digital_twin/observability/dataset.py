@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from hashlib import sha256
 import json
 import os
@@ -15,12 +16,26 @@ import pyarrow.dataset as arrow_dataset
 import pyarrow.parquet as pq
 
 from .contracts import FullFlowSnapshot
-from .store import FULL_FLOW_SCHEMA_VERSION, _replace_json, materialize_full_flow
+from .store import (
+    FULL_FLOW_SCHEMA_VERSION,
+    materialize_full_flow,
+    replace_json_atomic,
+)
 from .tables import TABLE_NAMES
 
 
-DATASET_SCHEMA_VERSION = "digital-twin-full-flow-dataset-v2"
+DATASET_SCHEMA_VERSION = "digital-twin-full-flow-dataset-v3"
 _PARTITION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._=-]{0,127}$")
+
+
+@dataclass(frozen=True)
+class FullFlowPartitionRef:
+    key: str
+    content_sha256: str
+    manifest_sha256: str
+    event_watermark: int
+    event_time_min: int
+    event_time_max: int
 
 
 def _read_json(path: Path) -> dict[str, object]:
@@ -39,6 +54,8 @@ def _partition_content(manifest: dict[str, object]) -> str:
         "ingest_time_min": manifest["ingest_time_min"],
         "ingest_time_max": manifest["ingest_time_max"],
         "trace_manifest": manifest["trace_manifest"],
+        "sample_contract": manifest["sample_contract"],
+        "feature_manifest": manifest["feature_manifest"],
         "tables": {
             name: {
                 "rows": table["rows"],
@@ -56,16 +73,21 @@ def _partition_content(manifest: dict[str, object]) -> str:
 def _dataset_contract(manifest: dict[str, object]) -> dict[str, object]:
     trace = manifest["trace_manifest"]
     return {
-        key: trace[key]
-        for key in (
-            "schema_version",
-            "feature_version",
-            "catalog_version",
-            "policy_registry_version",
-            "route_names",
-            "fid_version",
-            "lifecycle_version",
-        )
+        "sample_contract": manifest["sample_contract"],
+        "feature_manifest": manifest["feature_manifest"],
+        "trace_manifest": {
+            key: trace[key]
+            for key in (
+                "schema_version",
+                "feature_version",
+                "catalog_version",
+                "policy_registry_version",
+                "route_names",
+                "fid_version",
+                "lifecycle_version",
+                "feature_manifest_hash",
+            )
+        },
     }
 
 
@@ -111,7 +133,7 @@ def _write_partition_manifest(
             raise ValueError("event-time partition key does not match data")
     manifest["partition_key"] = partition_key
     manifest["partition_content_sha256"] = _partition_content(manifest)
-    _replace_json(path, manifest)
+    replace_json_atomic(path, manifest)
     return verify_full_flow_partition(directory)
 
 
@@ -190,6 +212,42 @@ def open_full_flow_dataset(
     }
 
 
+def list_full_flow_partitions(root: Path) -> tuple[FullFlowPartitionRef, ...]:
+    """Resolve verified event-time partitions without exposing path conventions."""
+    manifest = verify_full_flow_dataset(root)
+    refs = tuple(
+        FullFlowPartitionRef(
+            key=key,
+            content_sha256=str(partition["content_sha256"]),
+            manifest_sha256=str(partition["manifest_sha256"]),
+            event_watermark=int(partition["event_watermark"]),
+            event_time_min=int(partition["event_time_min"]),
+            event_time_max=int(partition["event_time_max"]),
+        )
+        for key, partition in manifest["partitions"].items()
+    )
+    return tuple(sorted(refs, key=lambda ref: (ref.event_watermark, ref.key)))
+
+
+def read_full_flow_partition_table(
+    root: Path,
+    ref: FullFlowPartitionRef,
+    table_name: str,
+    *,
+    columns: tuple[str, ...] | None = None,
+):
+    """Read one verified logical table from one content-bound partition."""
+    if table_name not in TABLE_NAMES:
+        raise ValueError(f"unknown full-flow table: {table_name}")
+    current = {item.key: item for item in list_full_flow_partitions(root)}
+    if current.get(ref.key) != ref:
+        raise ValueError("partition reference is stale or incompatible")
+    return pq.read_table(
+        root / "partitions" / ref.key / f"{table_name}.parquet",
+        columns=list(columns) if columns is not None else None,
+    )
+
+
 def _install_partition(
     root: Path,
     staging: Path,
@@ -249,7 +307,7 @@ def _install_partition(
     }
     dataset["partitions"] = dict(sorted(dataset["partitions"].items()))
     _recompute_dataset(dataset)
-    _replace_json(manifest_path, dataset)
+    replace_json_atomic(manifest_path, dataset)
     verified = verify_full_flow_dataset(root)
     return {
         "status": "written",

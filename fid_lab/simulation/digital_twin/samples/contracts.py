@@ -61,6 +61,7 @@ class TraceManifest:
     index_version: str = ""
     fid_version: str = ""
     lifecycle_version: str = ""
+    feature_manifest_hash: str = ""
 
 
 @dataclass(frozen=True)
@@ -87,6 +88,9 @@ class RequestCandidateTrace:
     coarse_sampling_probability: torch.Tensor
     fine_item_id: torch.Tensor
     fine_score: torch.Tensor
+    fine_dense_features: torch.Tensor
+    fine_sparse_fids: torch.Tensor
+    fine_sparse_buckets: torch.Tensor
     exposed_item_id: torch.Tensor
     exposed_position: torch.Tensor
     exposure_probability: torch.Tensor
@@ -149,6 +153,16 @@ class RequestCandidateTrace:
             _aligned(name, getattr(self, name), (requests, coarse))
         for name in ("fine_item_id", "fine_score"):
             _aligned(name, getattr(self, name), (requests, fine))
+        for name in (
+            "fine_dense_features", "fine_sparse_fids", "fine_sparse_buckets",
+        ):
+            value = getattr(self, name)
+            if value.ndim != 3 or value.shape[:2] != (requests, fine):
+                raise ValueError(f"{name} must align with fine candidates")
+        if self.fine_sparse_fids.shape != self.fine_sparse_buckets.shape:
+            raise ValueError("fine sparse FIDs and buckets differ")
+        if not self.manifest.feature_manifest_hash:
+            raise ValueError("candidate trace requires a feature manifest hash")
         for name in (
             "exposed_item_id",
             "exposed_position",
@@ -364,10 +378,14 @@ class FineRankExampleBatch:
     label_mask: torch.Tensor
     label_maturity_time: torch.Tensor
     dwell_ms: torch.Tensor
+    dense_features: torch.Tensor
+    sparse_fids: torch.Tensor
+    sparse_buckets: torch.Tensor
     context: RequestContextBatch
     task_names: tuple[str, ...]
     task_maturity_ticks: tuple[int, ...]
     short_sequence_length: int
+    feature_manifest_hash: str
 
     def __post_init__(self):
         requests = len(self.request_id)
@@ -394,6 +412,14 @@ class FineRankExampleBatch:
             "label_maturity_time",
         ):
             _aligned(name, getattr(self, name), task_shape)
+        for name in ("dense_features", "sparse_fids", "sparse_buckets"):
+            value = getattr(self, name)
+            if value.ndim != 3 or value.shape[:2] != item_shape:
+                raise ValueError(f"fine {name} must align with impressions")
+        if self.sparse_fids.shape != self.sparse_buckets.shape:
+            raise ValueError("fine sparse FIDs and buckets differ")
+        if not self.feature_manifest_hash:
+            raise ValueError("fine feature manifest hash is required")
         if len(self.task_names) != self.labels.shape[2]:
             raise ValueError("fine task names do not match label width")
         if len(self.task_maturity_ticks) != len(self.task_names):

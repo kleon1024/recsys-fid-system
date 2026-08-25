@@ -72,6 +72,13 @@ def build_trace():
         coarse_sampling_probability=torch.ones(2, 5),
         fine_item_id=fine,
         fine_score=torch.linspace(0.8, 0.1, 8).reshape(2, 4),
+        fine_dense_features=torch.arange(
+            2 * 4 * 11, dtype=torch.float32,
+        ).reshape(2, 4, 11),
+        fine_sparse_fids=torch.arange(2 * 4 * 13).reshape(2, 4, 13),
+        fine_sparse_buckets=torch.remainder(
+            torch.arange(2 * 4 * 13).reshape(2, 4, 13), 32,
+        ),
         exposed_item_id=exposed,
         exposed_position=torch.tensor([[0, 1], [0, 1]]),
         exposure_probability=torch.ones(2, 2),
@@ -87,6 +94,7 @@ def build_trace():
             catalog_version="catalog-v1",
             policy_registry_version="policy-registry-v1",
             route_names=("fixture",),
+            feature_manifest_hash="a" * 64,
         ),
     )
 
@@ -205,6 +213,11 @@ def test_three_authorities_preserve_observability_and_teacher_boundaries():
         * joined.fine.assignment_probability[:, None],
     )
     assert joined.manifest == trace.manifest
+    assert torch.equal(
+        joined.fine.dense_features,
+        trace.fine_dense_features[:, :2],
+    )
+    assert joined.fine.feature_manifest_hash == "a" * 64
 
 
 def test_recall_sources_carry_q_expected_count_and_false_negative_mask():

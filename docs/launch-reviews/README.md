@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [L-LEARNING-001](2026-08-25-p3-streaming-feature-authority.md) | Persistent dual-lane sample bus, feature/FID parity, registry and 100K/1M scale | Accept P3-04/05 infrastructure; LR probe remains model HOLD |
 | [L-SAMPLES-001](2026-08-25-p3-request-sample-authorities.md) | Recall/Coarse/Fine request authorities and 100K/1M two-tick scale | Accept sample-contract slice; trainer and model launches remain gated |
 | [L-SIMULATOR-010](2026-08-25-p2-neural-world-policy-evidence.md) | Multi-source NeuralSCM, held-out families, OPE and 100K factual shadow | Promote as explicit v4 Feed response authority; all other heads remain gated |
 | [L-GOVERNANCE-001](2026-08-24-content-governance-v5.md) | Observable risk filter, duplicate/author diversity, terminal retention, powered A/B | Continue powered experiment; LT passes, stay NI narrowly misses |

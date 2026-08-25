@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (P3-01..03 accepted; every remaining implementation row researched)
+Updated: 2026-08-25 (all 19 remaining rows research-closed; P3-04/05 freeze pending)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -47,37 +47,39 @@ tree but has not passed the repository acceptance path. `Implemented` means the
 focused contract is executable; it does not mean the phase, benchmark or launch
 review is accepted.
 
-The audited implementation baseline is
-`7ba5c63590d096738a8856a7dbecc5b986497332`; local and `origin/main` agreed and
-the tree was clean. P0, P1, the declared Feed scope of P2 and P3-01..03 have
-content-bound reviews. The synchronized source passes 202 historical tests,
-62 v4 tests and the repository gate. Architecture lint has zero errors and one
-declared warning because this project uses its own `AssetGraph`, not Dagster
-decorators.
+The last committed implementation baseline is
+`88354c3615cb4e23cc566fdafdbfe9854ae1e266`; local and `origin/main` agree.
+P0, P1, the declared Feed scope of P2 and P3-01..03 have content-bound reviews.
+P3-04/05 exist in the current dirty worktree and have passed a synchronized RTX
+gate, but remain `Draft` until one clean, committed, content-bound freeze passes
+the same gate. Test success is evidence for the code path, not acceptance of an
+unfrozen source state. Architecture lint has zero errors and one declared warning
+because this project uses its own `AssetGraph`, not Dagster decorators.
 
-The latest P3 RTX 4090 run covers 100K users, 1M items, two ticks and 191,710
-factual requests at cascade width 96→48→16→8. It records 1,286,014 historical
-events across 19 event types, uses 6.217 GiB peak CUDA memory, and completes the
-cascade/Joiner in 91.389/0.086 seconds. The accepted P0 100K-user/2M-item run
-separately proves 44.7M-row partitioned observability. These are scale and
-contract results, not learned-model or A/B lift claims.
+The latest draft P3 RTX 4090 run covers 100K users, 1M items and two event-time
+partitions at cascade width 96→48→16→8. It persists 1,267,664 fine rows and
+7,808,576 mature labels, consumes both partitions independently in active and
+candidate lanes, completes in 88.266 seconds and peaks at 8.538 GiB CUDA. This
+is executable streaming/feature/registry evidence; it becomes acceptance evidence
+only after the clean freeze above. The candidate LR probe remains `HOLD` and
+provides no model or A/B lift claim.
 
 | Capability | Current evidence | Status | Blocking gap |
 |---|---|---|---|
 | Hidden user world boundary | Platform cannot directly read hidden preference state | Accepted | Non-Feed worlds remain separately gated |
 | Atomic factual A/B world | One request receives one factual policy and commits once | Implemented | Longer-horizon interference tests remain incomplete |
 | Delayed outcomes | Order/payment/refund/Pixel occurrence and ingestion time are distinct | Implemented | Production-like loss/duplicate/orphan distributions need calibration |
-| Point-in-time projection | Delivered events, lifecycle transitions and removals replay across content-bound partitions | Implemented | P3 trainer parity remains |
+| Point-in-time projection | Delivered events/lifecycle are accepted; exact served feature tensors replay in the P3-05 draft | Draft extension passed | Clean P3-04/05 freeze, then model ladders |
 | Request cascade trace | Raw routes, request-time lifecycle, post lineage and every cascade stage are retained | Implemented | Learned artifacts remain |
 | Feed retrieval mechanics | Six lifecycle-owned Feed routes plus six separately owned business routes | Implemented | Learned retrieval starts after P3-04/05 |
-| Layered experiments | Ownership, independent assignment and composed factual policy | Implemented | Learned artifacts and continuous trainers are not connected |
+| Layered experiments | Ownership, independent assignment, composed policy and numeric served checkpoint logging | Implemented | Model-learning interference remains P4-05 |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
 | Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
 | Behavior realism | v23 passes external, held-out-family, support, anti-exploitation and 100K semantic-shadow gates | Accepted for Feed | Retention, creator supply and every business response remain masked |
-| Full-chain analytical store | Seven partitioned Parquet tables plus P1 lifecycle/post fields; DuckDB and ClickHouse agree | Implemented | P3 trainer consumption remains |
-| Recall/coarse/fine sample authorities | Source-corrected recall, teacher-aware coarse and PIT fine examples replay from one request authority | Accepted for P3-01..03 | Trainer consumption remains P3-04 |
-| Continuous learning | Historical demos exist outside v4 | Not connected | No active/candidate streaming lanes, checkpoints or snapshot gates |
+| Full-chain analytical store | Full-flow schema v4 draft persists exact feature/FID and task vectors; DuckDB and ClickHouse agree | Draft extension passed | Clean P3-04/05 freeze, then P3 evaluators |
+| Recall/coarse/fine sample authorities | Source-corrected recall, teacher-aware coarse and PIT fine examples replay from one request authority | Accepted for P3-01..03 | Model consumption remains P3-06..08 |
+| Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Draft; synchronized gate passed | Clean content-bound freeze, then cadence lift remains P4-04 |
 | Model ladder | Historical synthetic ladders exist | Invalid for v4 launch | Must train on the same factual request dataset and serving budget |
 | Search/Ads/Commerce/Live/Local/Posting | Surface actions and catalog types exist | Skeleton | Each lacks a closed business workflow and independent launch contract |
 
@@ -139,8 +141,10 @@ after the conventional cascade is identified; they are not P2 dependencies.
 
 ### 2.3 Backlog research closure
 
-Every backlog row now has a selected implementation path. Twenty-one implementation
-rows remain: P3-04..09, P4-01..05, P5-01..06 and P6-01..04. “Research closed” means
+Every backlog row now has a selected implementation path. Nineteen implementation
+rows remain: P3-06..09, P4-01..05, P5-01..06 and P6-01..04, plus the clean
+freeze required to accept the already implemented P3-04/05 drafts. “Research
+closed” means
 the next falsifiable implementation and rejection boundary are known. It does not
 mean the implementation exists, the chosen model will win, or a phase is accepted.
 The remaining work is empirical execution against section 9.1.
@@ -535,11 +539,11 @@ in another document is informative only; it cannot override this register.
 | P2-06 | Ensemble uncertainty, support and causal noise | Done; 100K shadow support 98.9835%, attack rejection 100%, replay passes | P2-04/05 | 97%/99% frozen gates pass without threshold movement |
 | P2-07 | External evidence adapters | Done; user-disjoint KuaiRand DR-OPE and manifests pass | P2-04 | overlap, ESS, max-weight and unsupported-task boundaries retained |
 | P2-08 | DGP validity and authority shadow | Done for Feed; 100K/1M/8-tick shadow and full repository gate pass | P2-01..07 | Launch Review accepts explicit Feed-only manual promotion |
-| P3-01 | `samples/recall`: source-aware negatives and correction contract | Done for sample authority; P3-04 must consume the stored expected count | P1/P2 | four sources retain q/log-q, expected count, observed status and false-negative mask; exhaustive-softmax and peer-frequency tests pass; 100K scale uses O(requests × draws) memory |
+| P3-01 | `samples/recall`: source-aware negatives and correction contract | Done for sample authority; P3-06 must consume the stored expected count | P1/P2 | four sources retain q/log-q, expected count, observed status and false-negative mask; exhaustive-softmax and peer-frequency tests pass; 100K scale uses O(requests × draws) memory |
 | P3-02 | `samples/coarse`: teacher/order/conflict authority | Done for lineage contract; Top-K model pass-through remains P3-07 | P1/P2 | every factual candidate retains recall/coarse score/rank, fine teacher score/rank and conflict mask; hard-label observation boundary and exact replay tests pass |
-| P3-03 | `samples/fine`: PIT cascade/sequence authority | Done for sample contract; identified DR remains P3-09 | P1/P2 | applicability/maturity/time are separate; heterogeneous long history and declared short suffix are PIT; joint logging probability and support persist in full-flow schema v3 |
-| P3-04 | `learning`: port one persistent sample bus, active/candidate lanes and registry | Reusable legacy trainer only; v4 partitions/checkpoint rows exist | P3-01..03 plus joint P3-05 slice | both lanes idempotently consume one event-time stream with independent cursors; request logs bind numeric served checkpoint; artifact binds data/schema/feature/FID/code/index/corpus hashes; reject, fallback and restart preserve lineage |
-| P3-05 | `platform/features`: compile one feature/FID manifest to train and serve | Split authority: NeuralSCM semantic contract is v4; general FID path is legacy | P3-03 | user/item/creator/context/route/counter/sequence/content fields declare PIT source, transform, namespace, hash/bucket/vocabulary, default and TTL; exact served dense/FID tensors persist in the request sample; collision/drift reports exist; online-vs-replay bytes match |
+| P3-03 | `samples/fine`: PIT cascade/sequence authority | Done for sample contract; identified DR remains P3-09 | P1/P2 | applicability/maturity/time are separate; heterogeneous long history and declared short suffix are PIT; joint logging probability and support persist in full-flow schema v4 |
+| P3-04 | `learning`: persistent sample bus, active/candidate lanes and registry | Draft; synchronized gate passed, freeze pending; LR probe is not a model launch | P3-01..03 plus P3-05 | clean commit reproduces independent cursors, numeric served checkpoint, compatibility rejection, fallback/restart and 100K/1M scale |
+| P3-05 | `platform/features`: one feature/FID manifest for train and serve | Draft; 11 dense and 13 sparse fields compile once, freeze pending | P3-03 | clean commit reproduces full manifest, exact trace→Joiner→Parquet→score replay, collision/drift and TTL/namespace gates |
 | P3-06 | `platform/retrieval` + `learning/retrieval`: migrate retrieval ladder | Historical Two-Tower/Multi-interest code; no v4-trained artifact | P3-01/04/05 | one frozen corpus/query set/Top-K/quota/latency budget compares lifecycle rules, Graph, Two-Tower and Multi-interest; report marginal unique recall, downstream fixed-ranker delta and cost; Semantic-ID waits for an accepted dense baseline |
 | P3-07 | `platform/ranking/coarse`: migrate equal-budget ladder and distillation | Historical implementations only | P3-02/04/05 | Rule/LR/XGBoost/W&D/DeepFM/DCNv2 share factual candidates, feature manifest and tuning budget; distillation preserves teacher Top-K; selection reports effect, calibration, latency, memory and failure slices |
 | P3-08 | `platform/ranking/fine`: migrate multi-task and sequence ladder | Historical implementations only; request-native pairwise/listwise path absent | P3-03/04/05 | pointwise baseline then pairwise/listwise LR/XGBoost/deep-cross/DIN/Transformer/MMoE/PLE on identical requests; per-head calibration, gradient conflict, gate/expert health and latency decide; HSTU requires measured long-sequence gain |
@@ -559,6 +563,34 @@ in another document is informative only; it cannot override this register.
 | P6-02 | `validation/performance`: profile before optimizing | P2 microbatch/RSS defects closed; remaining hot paths unprofiled | P1-P5 | batch-size throughput/latency/RSS/CUDA frontier and profiler trace identify bottlenecks; tensor/compile/Rust/C++ changes require numerical, lineage and semantic parity; no runtime rewrite by intuition |
 | P6-03 | `validation/failures`: model-quality and recovery campaigns | P0 seeded diagnostics only | P3-P5 | inject index/checkpoint mismatch, bad snapshot, PS shard loss, feature delay, late labels, timeout and overload; registry state, per-head calibration/NE, fallback and business metrics detect impact and return to baseline after rollback |
 | P6-04 | release authority: delete legacy path and publish reproducibly | Missing | all accepted successors | parity manifest proves every retained consumer uses v4; delete superseded `simulation/twin` and duplicate authorities; zero orphan modules, clean public/secret scan, fresh-clone README run and one clean content-bound release commit |
+
+### 9.1.1 Research-to-execution contract for every remaining row
+
+This table closes tool selection and prevents each remaining row from reopening as an
+architecture discussion. Existing dependencies are preferred. A new service is
+allowed only after the stated trigger; domain semantics remain repository-owned.
+
+| ID | Reuse first | Required artifact | Reject or defer when |
+|---|---|---|---|
+| P3-06 | PyTorch retrieval modules + FAISS; Graph/lifecycle routes remain deterministic baselines | `retrieval-leaderboard.json` plus frozen query/corpus/candidate manifest | no marginal unique recall or fixed-ranker gain under equal Top-K/latency; TorchRec waits for measured single-GPU embedding pressure |
+| P3-07 | XGBoost GPU `rank:ndcg`/pairwise + existing PyTorch W&D/DeepFM/DCNv2 | `coarse-leaderboard.json` and teacher Top-K pass-through report | teacher/value pass-through misses the frozen gate, or effect does not pay for P99/memory; do not compare pointwise random-negative AUC |
+| P3-08 | Existing PyTorch DIN/Transformer/MMoE/PLE; native masked BCE then request-grouped pairwise/listwise | `fine-leaderboard.json`, per-head model card and gate/expert diagnostics | primary/guardrail Pareto point, calibration, sequence ablation or latency fails; HSTU waits for measured long-sequence headroom |
+| P3-09 | Repository request evaluator; sklearn/scipy for metrics/CI; Open Bandit Pipeline only as a differential oracle after a compatibility spike | `p3-evaluation.json`, replay diff and Launch Review | action propensity/support is not exact, request grouping differs, or model does not change served Top-K |
+| P4-01 | sklearn logistic/isotonic calibration plus repository-owned nonnegative Value Tree | calibration maps, coefficient manifest and sensitivity surface | primitive calibration/NE regresses, monotonicity breaks, or coefficients hide a permanent queue boost |
+| P4-02 | scipy bootstrap/power primitives + existing CUPED implementation | pre-registration, MDE/power file, cohort curves and unified-LT sensitivity report | SRM/A-A fails, horizon is immature, or exchange weights were fitted on the evaluated experiment |
+| P4-03 | Existing deterministic mixer; no public COPP package is an authority for business constraints | final-slate trace and displacement Parquet with dedup/load/quota/diversity reason codes | any queue double-claims exposure, alternative is missing, or final-slate replay is nondeterministic |
+| P4-04 | Clean-frozen sample bus, checkpoint registry and replay; no new stream processor | daily/hourly/streaming cadence matrix with freshness, rank delta, cost and fallback | fresher checkpoints do not change supported rankings/business metrics; Flink waits for external cross-process recovery need |
+| P4-05 | Existing atomic assignment + scipy inference; Google symbiosis designs define the decision tree | namespace compatibility graph, power/SRM report and interference design record | shared learned data invalidates SUTVA and no data-/cluster-/corpus-diverted design has adequate power |
+| P5-01 | FAISS semantic retrieval; add a small BM25 library only after license/dependency smoke | search session dataset, lexical/semantic/blend leaderboard and success/reformulation report | query state or success definition is absent, or post-search behavior is leaked into request features |
+| P5-02 | PyTorch/FAISS for models; repository-owned deterministic auction, pacing and budget ledger | advertiser-market replay, spend reconciliation and Ads/Feed guardrail A/B | spend does not reconcile, delayed attribution is immature, or auction treatment contaminates inventory without measurement |
+| P5-03 | Existing event/Joiner contracts + repository-owned transaction state machine | inventory snapshots and shelf→refund lineage/reconciliation report | PIT inventory/price is missing, conditional labels collapse, or unpaid/refunded value is counted as durable |
+| P5-04 | FAISS/graph routes; add H3 only when measured geo-index scale requires it | POI candidate/anchor/container dataset plus closed/open-loop attribution coverage report | nearest distance substitutes for intent, identity/orphan loss is hidden, or missing Pixel is imputed negative |
+| P5-05 | Existing lifecycle/supply loop + PyTorch/FAISS candidate ranker | posting candidate dataset and select→publish→qualified-supply experiment review | selection, publication and later distribution labels are conflated, or creator/user interference is undeclared |
+| P5-06 | Existing PyTorch content representations with format-specific heads | Live and photo/card/article examination contracts and separate leaderboards | video completion semantics are reused, availability is absent, or one pooled metric masks a format regression |
+| P6-01 | Existing CLI, Arrow/Parquet manifests and RTX runner | immutable 100K/1M/10M profile manifests with row/event/candidate/label complexity | scale changes semantics, resume hash differs, or counts alone are presented as realism |
+| P6-02 | PyTorch profiler then NVIDIA Nsight; `torch.compile` only on a measured tensor hot path | CPU/GPU/IO trace and throughput-latency-memory frontier with numerical parity | optimization has no measured bottleneck, changes lineage/numerics, or Rust/C++ merely duplicates Python authority |
+| P6-03 | Existing failure fixture/registry; deterministic fault campaigns rather than a new chaos platform | detection, fallback, rollback and recovery-to-baseline matrix | HTTP success is the only health signal, rollback cannot reproduce prior scores, or head/business health stays shifted |
+| P6-04 | Existing architecture linter, public scan, Git and fresh-clone gate | consumer parity manifest, deletion ledger and clean release evidence | any consumer still imports legacy authority, generated/private material leaks, or release evidence is not bound to one commit |
 
 The research disposition for every row is settled. Remaining uncertainty is
 empirical and must be resolved by its acceptance artifact, not another design
@@ -587,18 +619,15 @@ P1 Feed supply-consumption closure
           → P6 scale, failures and legacy deletion
 ```
 
-P1, the declared Feed scope of P2 and P3-01..03 are accepted. P3-04/05 is one
-atomic migration slice because a checkpoint cannot be valid before its serving
-feature contract exists. It must consume accepted v4 authorities rather than
-revive the legacy twin path. Its execution order is:
+P1, the declared Feed scope of P2 and P3-01..03 are accepted. The immediate gate
+is the clean P3-04/05 freeze; only then is the next slice P3-06..09. It must use
+the frozen partition, feature and compatibility contracts:
 
 ```text
-accepted RecallExample, CoarseRankExample and FineRankExample authorities
-→ P3-04a: persistent sample bus, independent lane cursors and registry shell
-→ P3-05: platform computes and logs exact dense/FID tensors from one manifest
-→ P3-04b: trainer consumes those tensors, masks and sampling corrections
-→ validate snapshot compatibility, served checkpoint, reject/fallback and restart
-→ run fixed-budget retrieval, coarse and fine model ladders
+clean-frozen sample bus + exact feature/FID bytes + checkpoint registry
+→ P3-06: fixed-budget retrieval ladder
+→ P3-07: factual-candidate coarse ladder and distillation
+→ P3-08: request-aware multi-task and sequence fine ladder
 → diagnose pass, hold and reject from one request-aware evaluator
 → P3 Launch Review
 ```
@@ -704,12 +733,12 @@ before any authority switch.
 
 ### P3 — Streaming learning and learned cascade
 
-Status: sample contracts accepted; trainers and v4 model ladders pending.
+Status: samples accepted; streaming/feature drafts passed synchronized gates but
+await a clean content-bound freeze; model ladders pending.
 
-- Port the existing active/candidate trainer and registry to consume the three
-  accepted v4 sample authorities; do not create a parallel learning framework.
 - Run retrieval, coarse and fine ladders in dependency order.
-- Add FID collision/version and offline-online replay checks.
+- After its clean freeze, use the dual-lane trainer, manifest, collision/drift
+  and replay gates.
 
 Acceptance: at least one learned model passes, one holds and one rejects for a
 diagnosed reason; ranking delta, sample lineage and resource costs are auditable.

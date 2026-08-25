@@ -50,6 +50,7 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
     assert request.index_version.eq("observable-index-t0").all()
     assert request.fid_version.eq("fid-v2").all()
     assert request.lifecycle_version.eq("content-lifecycle-v1").all()
+    assert request.feature_manifest_hash.str.len().eq(64).all()
     assert {
         "history_event_type", "history_surface", "history_duration_ms",
     } <= set(request.columns)
@@ -78,6 +79,23 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
     fine = examples[examples.authority == "fine"]
     assert fine.joint_logging_probability.notna().all()
     assert fine.ope_supported.all()
+    assert fine.label_value.isna().all()
+    assert not fine.label_mask.any()
+    assert fine.feature_manifest_hash.str.len().eq(64).all()
+    expected = snapshot.samples.fine
+    valid = expected.item_id >= 0
+    assert fine.iloc[0].dense_features.tolist() == (
+        expected.dense_features[valid][0].tolist()
+    )
+    assert fine.iloc[0].sparse_fids.tolist() == (
+        expected.sparse_fids[valid][0].tolist()
+    )
+    assert fine.iloc[0].task_label_values.tolist() == (
+        expected.labels[valid][0].tolist()
+    )
+    assert fine.iloc[0].task_label_masks.tolist() == (
+        expected.label_mask[valid][0].tolist()
+    )
 
 
 def test_route_lifecycle_is_request_time_not_post_response_projection():

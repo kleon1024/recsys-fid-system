@@ -15,10 +15,10 @@ from .failure_fixture import seed_diagnostic_failures
 from .tables import iter_full_flow_tables
 
 
-FULL_FLOW_SCHEMA_VERSION = "digital-twin-full-flow-v3"
+FULL_FLOW_SCHEMA_VERSION = "digital-twin-full-flow-v4"
 
 
-def _replace_json(path: Path, value: dict[str, object]) -> None:
+def replace_json_atomic(path: Path, value: dict[str, object]) -> None:
     with NamedTemporaryFile(
         mode="w",
         encoding="utf-8",
@@ -74,7 +74,32 @@ def materialize_full_flow(
             "index_version": snapshot.trace.manifest.index_version,
             "fid_version": snapshot.trace.manifest.fid_version,
             "lifecycle_version": snapshot.trace.manifest.lifecycle_version,
+            "feature_manifest_hash": (
+                snapshot.trace.manifest.feature_manifest_hash
+            ),
         },
+        "sample_contract": {
+            "task_names": list(snapshot.samples.fine.task_names),
+            "task_maturity_ticks": list(
+                snapshot.samples.fine.task_maturity_ticks
+            ),
+            "short_sequence_length": (
+                snapshot.samples.fine.short_sequence_length
+            ),
+            "dense_feature_width": int(
+                snapshot.samples.fine.dense_features.shape[2]
+            ),
+            "sparse_feature_width": int(
+                snapshot.samples.fine.sparse_fids.shape[2]
+            ),
+            "dense_feature_names": list(
+                snapshot.feature_manifest.dense_names
+            ),
+            "sparse_feature_names": list(
+                snapshot.feature_manifest.sparse_names
+            ),
+        },
+        "feature_manifest": snapshot.feature_manifest.canonical_payload(),
         "tables": {},
     }
     for name, table in table_items:
@@ -105,6 +130,6 @@ def materialize_full_flow(
             "sha256": sha256(path.read_bytes()).hexdigest(),
         }
     manifest_path = output_dir / "manifest.json"
-    _replace_json(manifest_path, manifest)
+    replace_json_atomic(manifest_path, manifest)
     manifest["manifest_sha256"] = sha256(manifest_path.read_bytes()).hexdigest()
     return manifest

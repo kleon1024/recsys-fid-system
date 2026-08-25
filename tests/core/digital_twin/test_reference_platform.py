@@ -25,6 +25,10 @@ from fid_lab.simulation.digital_twin.platform.retrieval import (
     ROUTE_NAMES,
     surface_eligibility,
 )
+from fid_lab.simulation.digital_twin.platform.features import (
+    DEFAULT_FEATURE_MANIFEST,
+    FeatureTensorBatch,
+)
 from fid_lab.simulation.digital_twin.contracts import make_app_events
 
 
@@ -91,6 +95,14 @@ def test_reference_cascade_emits_closed_stage_trace_for_partial_ab():
     assert trace.coarse_item_id.shape == (256, 16)
     assert trace.fine_item_id.shape == (256, 8)
     assert trace.exposed_item_id.shape == (256, 4)
+    assert trace.fine_dense_features.shape == (256, 8, 11)
+    assert trace.fine_sparse_fids.shape == (256, 8, 13)
+    assert trace.fine_sparse_buckets.shape == (256, 8, 13)
+    assert trace.manifest.feature_manifest_hash == (
+        DEFAULT_FEATURE_MANIFEST.manifest_hash
+    )
+    valid_fine = trace.fine_item_id >= 0
+    assert (trace.fine_sparse_fids[valid_fine] > 0).all()
     assert set(trace.fine_version_id.tolist()) == {1, 2}
     assert result.baseline_requests > result.experiment_requests
     safe = trace.recall_item_id.clamp_min(0)
@@ -103,6 +115,21 @@ def test_reference_cascade_emits_closed_stage_trace_for_partial_ab():
         result.request_context.feature_as_of_ingest_time
         == trace.event_time
     ).all()
+    report = kernel.platform.ranker.features.collision_report(
+        kernel.platform.open_requests(result.entry_events),
+        kernel.platform.snapshot().projection.state,
+        trace.fine_item_id,
+        kernel.platform.ranker._map_score(
+            trace.fine_item_id,
+            trace.recall_item_id,
+            trace.recall_route_id,
+        ),
+    )
+    assert report["feature_manifest_hash"] == trace.manifest.feature_manifest_hash
+    assert all(
+        field["fid_collisions"] == 0
+        for field in report["fields"].values()
+    )
 
 
 def test_routes_gain_behavioral_graph_and_keep_search_triggered():
@@ -167,6 +194,44 @@ def test_policy_can_change_only_retrieval_routes_and_version():
     cold_start_bit = 1 << ROUTE_NAMES.index("cold_start")
     assert not (trace.recall_route_id[control] & cold_start_bit).any()
     assert (trace.recall_route_id[treated] & cold_start_bit).any()
+
+
+def test_installed_learned_scorer_replays_exact_score_and_version():
+    world, platform, log, _, _, _ = build_system(users=128, items=1_600)
+
+    class AffinityScorer:
+        feature_manifest_hash = DEFAULT_FEATURE_MANIFEST.manifest_hash
+
+        @staticmethod
+        def score(features, surface):
+            del surface
+            return features.dense[:, :, 0]
+
+    serving_version = 77
+    scorer = AffinityScorer()
+    platform.install_fine_scorer(serving_version, scorer)
+    policy = CascadePolicy("learned-probe", 1, serving_version, 1)
+    result = AtomicSimulationKernel(world, platform, log).step(
+        0,
+        ExperimentPlan.ramped_user_ab(
+            active_policy=policy,
+            treatment_policy=policy,
+            experiment_seed=91,
+            control_fraction=0.25,
+            treatment_fraction=0.25,
+        ),
+    )
+    trace = result.candidate_trace
+    assert trace is not None
+    assert (trace.fine_version_id == serving_version).all()
+    replay = scorer.score(FeatureTensorBatch(
+        dense=trace.fine_dense_features,
+        sparse_fids=trace.fine_sparse_fids,
+        sparse_buckets=trace.fine_sparse_buckets,
+        manifest_hash=trace.manifest.feature_manifest_hash,
+    ), trace.surface)
+    valid = trace.fine_item_id >= 0
+    assert torch.allclose(replay[valid], trace.fine_score[valid])
 
 
 def test_real_trace_materializes_three_authorities_without_fake_negatives():

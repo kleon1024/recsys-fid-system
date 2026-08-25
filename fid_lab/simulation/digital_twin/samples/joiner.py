@@ -245,6 +245,30 @@ def _select_context(
     return context.select(selected)
 
 
+def _map_fine_features(
+    trace: RequestCandidateTrace,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    dense, _ = _map_stage(
+        trace.exposed_item_id,
+        trace.fine_item_id,
+        trace.fine_dense_features,
+        0.0,
+    )
+    fids, _ = _map_stage(
+        trace.exposed_item_id,
+        trace.fine_item_id,
+        trace.fine_sparse_fids,
+        0,
+    )
+    buckets, _ = _map_stage(
+        trace.exposed_item_id,
+        trace.fine_item_id,
+        trace.fine_sparse_buckets,
+        0,
+    )
+    return dense, fids, buckets
+
+
 class RequestLevelJoiner:
     def __init__(self, config: JoinerConfig, catalog: PublicCatalog):
         self.config = config
@@ -333,6 +357,7 @@ class RequestLevelJoiner:
             trace.coarse_score,
             0.0,
         )
+        dense_features, sparse_fids, sparse_buckets = _map_fine_features(trace)
         joint_probability = (
             trace.exposure_probability
             * trace.assignment_probability[:, None]
@@ -362,6 +387,9 @@ class RequestLevelJoiner:
             label_mask=label_mask,
             label_maturity_time=label_maturity_time,
             dwell_ms=dwell,
+            dense_features=dense_features,
+            sparse_fids=sparse_fids,
+            sparse_buckets=sparse_buckets,
             context=context,
             task_names=tuple(task.name for task in tasks),
             task_maturity_ticks=tuple(task.maturity_ticks for task in tasks),
@@ -369,6 +397,7 @@ class RequestLevelJoiner:
                 self.config.short_sequence_length,
                 context.history_item_id.shape[1],
             ),
+            feature_manifest_hash=trace.manifest.feature_manifest_hash,
         )
 
     def _coarse(

@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Protocol
 
 import torch
 
 from ..catalog import PublicCatalog
-from ..contracts import EventType, PlatformRequestBatch
-from .projection import ITEM_COUNTER_EVENTS, PlatformProjectionState
+from ..contracts import PlatformRequestBatch
+from .features.encoder import FeatureTensorBatch, PlatformFeatureEncoder
+from .features.manifest import FeatureManifest
+from .projection import PlatformProjectionState
 from .retrieval import ROUTE_NAMES, MultiRouteRetriever, RetrievalResult
 
 
@@ -61,6 +64,17 @@ class RankedStages:
     exposed_item_id: torch.Tensor
     exposed_score: torch.Tensor
     exposed_position: torch.Tensor
+    fine_features: FeatureTensorBatch
+
+
+class LearnedFineScorer(Protocol):
+    feature_manifest_hash: str
+
+    def score(
+        self,
+        features: FeatureTensorBatch,
+        surface: torch.Tensor,
+    ) -> torch.Tensor: ...
 
 
 class CascadeRanker:
@@ -69,90 +83,25 @@ class CascadeRanker:
         catalog: PublicCatalog,
         retriever: MultiRouteRetriever,
         config: RankingConfig,
+        ticks_per_day: int,
+        feature_manifest: FeatureManifest,
     ):
         self.catalog = catalog
         self.retriever = retriever
         self.config = config
+        self.features = PlatformFeatureEncoder(
+            catalog, retriever, ticks_per_day, feature_manifest,
+        )
+        self._fine_scorers: dict[int, LearnedFineScorer] = {}
 
-    def _features(
-        self,
-        requests: PlatformRequestBatch,
-        state: PlatformProjectionState,
-        item_id: torch.Tensor,
-        recall_score: torch.Tensor,
-    ) -> torch.Tensor:
-        item = item_id.clamp_min(0)
-        valid = item_id >= 0
-        query = self.retriever.query_embedding(requests, state)
-        affinity = torch.einsum(
-            "bkd,bd->bk", self.catalog.content_embedding[item], query,
-        )
-        impression = state.item_event_counts[
-            item, ITEM_COUNTER_EVENTS.index(EventType.IMPRESSION)
-        ]
-        engagement = (
-            state.item_event_counts[
-                item, ITEM_COUNTER_EVENTS.index(EventType.LONG_VIEW)
-            ]
-            + state.item_event_counts[
-                item, ITEM_COUNTER_EVENTS.index(EventType.CLICK)
-            ]
-        )
-        engagement_rate = engagement / impression.clamp_min(1.0)
-        age = (
-            requests.event_time[:, None]
-            - state.item_publish_time[item].clamp_max(
-                requests.event_time[:, None]
-            )
-        ).clamp_min(0).float()
-        freshness = torch.exp(-age / 192.0)
-        country = state.user_country[requests.user_id]
-        region = state.user_region[requests.user_id]
-        geo = (
-            0.35 * (self.catalog.country[item] == country[:, None]).float()
-            + 0.65 * (self.catalog.region[item] == region[:, None]).float()
-        )
-        creator = state.item_creator_id[item]
-        creator_rate = state.creator_engagements[creator] / (
-            state.creator_impressions[creator].clamp_min(1.0)
-        )
-        history = state.user_history_item[requests.user_id]
-        repeated = (item[:, :, None] == history[:, None, :]).any(dim=2).float()
-        features = torch.stack((
-            affinity,
-            self.catalog.quality_prior[item],
-            torch.log1p(impression) / 8.0,
-            engagement_rate.clamp_max(1.0),
-            freshness,
-            geo,
-            state.item_inventory[item],
-            recall_score.clamp_min(0.0) * 20.0,
-            creator_rate.clamp_max(1.0),
-            repeated,
-        ), dim=2)
-        return features.masked_fill(~valid[:, :, None], 0.0)
-
-    def _sequence_score(
-        self,
-        requests: PlatformRequestBatch,
-        state: PlatformProjectionState,
-        item_id: torch.Tensor,
-    ) -> torch.Tensor:
-        item = item_id.clamp_min(0)
-        history = state.user_history_item[requests.user_id]
-        history_valid = history >= 0
-        candidate = self.catalog.content_embedding[item]
-        history_embedding = self.catalog.content_embedding[history.clamp_min(0)]
-        similarity = torch.einsum(
-            "bkd,bhd->bkh", candidate, history_embedding,
-        ).masked_fill(~history_valid[:, None, :], -20.0)
-        attention = torch.softmax(similarity, dim=2)
-        attention = attention * history_valid[:, None, :].float()
-        attention /= attention.sum(dim=2, keepdim=True).clamp_min(1e-8)
-        interest = torch.einsum(
-            "bkh,bhd->bkd", attention, history_embedding,
-        )
-        return torch.einsum("bkd,bkd->bk", candidate, interest)
+    def install_fine_scorer(
+        self, serving_version_id: int, scorer: LearnedFineScorer,
+    ) -> None:
+        if serving_version_id <= 0:
+            raise ValueError("learned serving version must be positive")
+        if scorer.feature_manifest_hash != self.features.manifest.manifest_hash:
+            raise ValueError("fine scorer feature manifest is incompatible")
+        self._fine_scorers[serving_version_id] = scorer
 
     @staticmethod
     def _top(
@@ -185,7 +134,7 @@ class CascadeRanker:
         retrieval: RetrievalResult,
         policy: CascadePolicy,
     ) -> RankedStages:
-        coarse_features = self._features(
+        coarse_features = self.features.base_dense(
             requests, state, retrieval.item_id, retrieval.score,
         )
         coarse_weight = torch.tensor(
@@ -203,21 +152,46 @@ class CascadeRanker:
         coarse_recall_score = self._map_score(
             coarse_item, retrieval.item_id, retrieval.score,
         )
-        fine_features = self._features(
-            requests, state, coarse_item, coarse_recall_score,
+        coarse_route_bits = self._map_score(
+            coarse_item, retrieval.item_id, retrieval.route_bits,
         )
-        fine_weight = torch.tensor(
-            policy.fine_weights, device=retrieval.item_id.device,
+        coarse_feature_tensors = self.features.encode(
+            requests,
+            state,
+            coarse_item,
+            coarse_recall_score,
+            coarse_route_bits,
         )
-        fine_raw = torch.einsum("bkd,d->bk", fine_features, fine_weight)
-        fine_raw += policy.cross_weight * torch.sin(
-            1.7 * fine_features[:, :, 0]
-        ) * fine_features[:, :, 1]
-        fine_raw += policy.sequence_weight * self._sequence_score(
-            requests, state, coarse_item,
-        )
+        scorer = self._fine_scorers.get(policy.fine_version_id)
+        if scorer is None:
+            fine_features = coarse_feature_tensors.dense[:, :, :10]
+            fine_weight = torch.tensor(
+                policy.fine_weights, device=retrieval.item_id.device,
+            )
+            fine_raw = torch.einsum("bkd,d->bk", fine_features, fine_weight)
+            fine_raw += policy.cross_weight * torch.sin(
+                1.7 * fine_features[:, :, 0]
+            ) * fine_features[:, :, 1]
+            fine_raw += policy.sequence_weight * (
+                coarse_feature_tensors.dense[:, :, 10]
+            )
+        else:
+            fine_raw = scorer.score(coarse_feature_tensors, requests.surface)
+            if fine_raw.shape != coarse_item.shape:
+                raise ValueError("learned fine scorer returned an invalid shape")
+            fine_raw = fine_raw.to(coarse_item.device)
+        fine_raw = fine_raw.masked_fill(coarse_item < 0, -torch.inf)
         fine_item, fine_score = self._top(
             coarse_item, fine_raw, self.config.fine_k,
+        )
+        fine_recall_score = self._map_score(
+            fine_item, retrieval.item_id, retrieval.score,
+        )
+        fine_route_bits = self._map_score(
+            fine_item, retrieval.item_id, retrieval.route_bits,
+        )
+        feature_tensors = self.features.encode(
+            requests, state, fine_item, fine_recall_score, fine_route_bits,
         )
         exposed_item, exposed_score = self._diversified_top(
             fine_item, fine_score,
@@ -233,6 +207,7 @@ class CascadeRanker:
             exposed_item,
             exposed_score,
             position,
+            feature_tensors,
         )
 
     @staticmethod
