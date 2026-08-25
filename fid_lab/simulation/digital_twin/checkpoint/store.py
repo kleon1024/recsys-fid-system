@@ -13,6 +13,8 @@ from typing import Mapping
 import scipy.sparse
 import torch
 
+from fid_lab.launches.release_resources import file_sha256
+
 from ..catalog import PublicCatalog
 from ..contracts import AppEventBatch
 from ..engine import AtomicSimulationKernel, ExperimentPlan
@@ -23,14 +25,6 @@ from ..world.runtime import UserEcosystemWorld
 
 
 WORLD_CHECKPOINT_SCHEMA = "digital-twin-world-checkpoint-v2"
-
-
-def _file_sha256(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as stream:
-        while chunk := stream.read(8 * 1024 * 1024):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 @dataclass(frozen=True)
@@ -404,7 +398,7 @@ class WorldCheckpointStore:
                 temporary.unlink(missing_ok=True)
                 raise
         try:
-            digest = _file_sha256(temporary)
+            digest = file_sha256(temporary)
         except Exception:
             temporary.unlink(missing_ok=True)
             raise
@@ -413,13 +407,13 @@ class WorldCheckpointStore:
             os.replace(temporary, target)
         else:
             temporary.unlink()
-            if _file_sha256(target) != digest:
+            if file_sha256(target) != digest:
                 raise ValueError("checkpoint object content hash mismatch")
         return digest
 
     def _read_object(self, digest: str) -> object:
         path = self.objects / f"{digest}.pt"
-        if not path.is_file() or _file_sha256(path) != digest:
+        if not path.is_file() or file_sha256(path) != digest:
             raise ValueError("checkpoint object is missing or corrupted")
         return torch.load(path, map_location="cpu", weights_only=False)
 

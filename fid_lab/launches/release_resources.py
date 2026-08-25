@@ -8,7 +8,11 @@ from pathlib import Path
 
 
 def file_sha256(path: Path) -> str:
-    return sha256(path.read_bytes()).hexdigest()
+    digest = sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(8 * 1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def resource(root: Path, relative: str) -> dict[str, str]:

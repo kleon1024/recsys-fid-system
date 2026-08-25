@@ -140,7 +140,7 @@ def test_request_stream_detects_object_corruption(tmp_path):
     ref = stream.append(
         tick, kernel.platform.projection.snapshot(), kernel.world.manifest(),
     )
-    (stream.objects / f"{ref.object_sha256}.pt").write_bytes(b"corrupted")
+    (stream.objects / f"{ref.object_sha256}.pt.zst").write_bytes(b"corrupted")
 
     with pytest.raises(ValueError, match="missing or corrupted"):
         stream.read(ref)

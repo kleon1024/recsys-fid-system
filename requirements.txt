@@ -12,3 +12,4 @@ xgboost>=3.0
 deepctr-torch==0.3.0
 sardine-rec==1.0.8
 requests>=2.32
+zstandard>=0.23,<1

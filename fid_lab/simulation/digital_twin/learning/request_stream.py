@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from hashlib import sha256
-from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -20,6 +19,9 @@ from typing import Mapping
 
 from filelock import FileLock
 import torch
+import zstandard
+
+from fid_lab.launches.release_resources import file_sha256
 
 from ..checkpoint import WorldBranchRef
 from ..contracts import AppEventBatch
@@ -28,10 +30,11 @@ from ..platform.projection import ProjectionSnapshot
 from ..samples.contracts import RequestCandidateTrace, RequestContextBatch
 
 
-FACTUAL_REQUEST_STREAM_SCHEMA = "factual-request-stream/v3"
+FACTUAL_REQUEST_STREAM_SCHEMA = "factual-request-stream/v4"
 READABLE_REQUEST_STREAM_SCHEMAS = frozenset({
     "factual-request-stream/v1",
     "factual-request-stream/v2",
+    "factual-request-stream/v3",
     FACTUAL_REQUEST_STREAM_SCHEMA,
 })
 
@@ -88,12 +91,12 @@ class FactualRequestStream:
         tick: TickResult,
         projection: ProjectionSnapshot,
         world_manifest: Mapping[str, str],
-    ) -> tuple[FactualRequestPartitionRef, bytes]:
+    ) -> FactualRequestPartition:
         if tick.candidate_trace is None or tick.request_context is None:
             raise ValueError("factual request stream requires a complete trace")
         if projection.as_of_ingest_time < tick.logical_time:
             raise ValueError("request partition projection predates requests")
-        partition = FactualRequestPartition(
+        return FactualRequestPartition(
             logical_time=tick.logical_time,
             trace=tick.candidate_trace,
             context=tick.request_context,
@@ -104,10 +107,14 @@ class FactualRequestStream:
             layer_assignment=tick.layer_assignment,
             world_manifest=dict(world_manifest),
         )
-        payload = self._serialize(partition)
-        digest = sha256(payload).hexdigest()
+
+    def _partition_ref(
+        self,
+        partition: FactualRequestPartition,
+        digest: str,
+    ) -> FactualRequestPartitionRef:
         return FactualRequestPartitionRef(
-            logical_time=tick.logical_time,
+            logical_time=partition.logical_time,
             object_sha256=digest,
             requests=len(partition.trace.request_id),
             events=len(partition.events.event_id),
@@ -115,7 +122,7 @@ class FactualRequestStream:
             world_manifest_sha256=self._world_manifest_hash(
                 partition.world_manifest,
             ),
-        ), payload
+        )
 
     def append(
         self,
@@ -123,10 +130,11 @@ class FactualRequestStream:
         projection: ProjectionSnapshot,
         world_manifest: Mapping[str, str],
     ) -> FactualRequestPartitionRef:
-        ref, payload = self._partition_payload(
+        partition = self._partition_payload(
             tick, projection, world_manifest,
         )
-        digest = ref.object_sha256
+        temporary, digest = self._serialize(partition, self.staging)
+        ref = self._partition_ref(partition, digest)
         with FileLock(str(self.lock_path)):
             manifest = self._read_manifest()
             if manifest["schema"] != FACTUAL_REQUEST_STREAM_SCHEMA:
@@ -134,10 +142,17 @@ class FactualRequestStream:
             existing = manifest["partitions"].get(str(tick.logical_time))
             if existing is not None:
                 if existing != asdict(ref):
+                    temporary.unlink(missing_ok=True)
                     raise ValueError("request partition event time changed content")
+                temporary.unlink(missing_ok=True)
                 self._verify_object(digest)
                 return ref
-            self._write_object(digest, payload)
+            target = self.objects / f"{digest}.pt.zst"
+            if target.exists():
+                self._verify_object(digest)
+                temporary.unlink(missing_ok=True)
+            else:
+                os.replace(temporary, target)
             manifest["partitions"][str(tick.logical_time)] = asdict(ref)
             manifest["partitions"] = dict(sorted(
                 manifest["partitions"].items(), key=lambda row: int(row[0]),
@@ -156,19 +171,19 @@ class FactualRequestStream:
         """Write an unpublished partition owned by one launch attempt."""
         if not re.fullmatch(r"[A-Za-z0-9_.-]+", transaction_id):
             raise ValueError("request transaction id is unsafe")
-        ref, payload = self._partition_payload(
+        partition = self._partition_payload(
             tick, projection, world_manifest,
         )
         directory = self.staging / transaction_id
         directory.mkdir(parents=True, exist_ok=True)
-        target = directory / f"{ref.logical_time}-{ref.object_sha256}.pt"
+        temporary, digest = self._serialize(partition, directory)
+        ref = self._partition_ref(partition, digest)
+        target = directory / f"{ref.logical_time}-{digest}.pt.zst"
         if target.exists():
-            if sha256(target.read_bytes()).hexdigest() != ref.object_sha256:
+            temporary.unlink(missing_ok=True)
+            if file_sha256(target) != ref.object_sha256:
                 raise ValueError("staged request partition is corrupted")
             return ref
-        with NamedTemporaryFile(dir=directory, delete=False) as stream:
-            temporary = Path(stream.name)
-            stream.write(payload)
         os.replace(temporary, target)
         return ref
 
@@ -185,11 +200,11 @@ class FactualRequestStream:
             manifest = self._read_manifest()
             for ref in refs:
                 staged = directory / (
-                    f"{ref.logical_time}-{ref.object_sha256}.pt"
+                    f"{ref.logical_time}-{ref.object_sha256}.pt.zst"
                 )
                 if (
                     not staged.is_file()
-                    or sha256(staged.read_bytes()).hexdigest()
+                    or file_sha256(staged)
                     != ref.object_sha256
                 ):
                     raise ValueError("staged request partition is missing")
@@ -200,9 +215,9 @@ class FactualRequestStream:
                     )
             for ref in refs:
                 staged = directory / (
-                    f"{ref.logical_time}-{ref.object_sha256}.pt"
+                    f"{ref.logical_time}-{ref.object_sha256}.pt.zst"
                 )
-                target = self.objects / f"{ref.object_sha256}.pt"
+                target = self.objects / f"{ref.object_sha256}.pt.zst"
                 if target.exists():
                     self._verify_object(ref.object_sha256)
                     staged.unlink()
@@ -261,10 +276,8 @@ class FactualRequestStream:
         device: str | torch.device | None = None,
     ) -> FactualRequestPartition:
         self._verify_object(ref.object_sha256)
-        value = torch.load(
-            self.objects / f"{ref.object_sha256}.pt",
-            map_location="cpu",
-            weights_only=False,
+        value = self._deserialize(
+            self._object_path(ref.object_sha256),
         )
         if not isinstance(value, FactualRequestPartition):
             raise ValueError("request partition object has an invalid type")
@@ -313,20 +326,14 @@ class FactualRequestStream:
             raise ValueError("request stream manifest hash differs")
         return manifest
 
-    def _write_object(self, digest: str, payload: bytes) -> None:
-        path = self.objects / f"{digest}.pt"
-        if path.exists():
-            self._verify_object(digest)
-            return
-        with NamedTemporaryFile(dir=self.objects, delete=False) as stream:
-            temporary = Path(stream.name)
-            stream.write(payload)
-        os.replace(temporary, path)
-
     def _verify_object(self, digest: str) -> None:
-        path = self.objects / f"{digest}.pt"
-        if not path.is_file() or sha256(path.read_bytes()).hexdigest() != digest:
+        path = self._object_path(digest)
+        if not path.is_file() or file_sha256(path) != digest:
             raise ValueError("request partition object is missing or corrupted")
+
+    def _object_path(self, digest: str) -> Path:
+        compressed = self.objects / f"{digest}.pt.zst"
+        return compressed if compressed.exists() else self.objects / f"{digest}.pt"
 
     def _write_json(self, value: dict[str, object]) -> None:
         payload = json.dumps(value, indent=2, sort_keys=True) + "\n"
@@ -338,10 +345,31 @@ class FactualRequestStream:
         os.replace(temporary, self.manifest_path)
 
     @staticmethod
-    def _serialize(value: FactualRequestPartition) -> bytes:
-        stream = BytesIO()
-        torch.save(value, stream)
-        return stream.getvalue()
+    def _serialize(
+        value: FactualRequestPartition,
+        directory: Path,
+    ) -> tuple[Path, str]:
+        with NamedTemporaryFile(dir=directory, delete=False) as stream:
+            temporary = Path(stream.name)
+            try:
+                with zstandard.ZstdCompressor(level=3).stream_writer(
+                    stream, closefd=False,
+                ) as compressed:
+                    torch.save(value, compressed)
+            except Exception:
+                temporary.unlink(missing_ok=True)
+                raise
+        return temporary, file_sha256(temporary)
+
+    @staticmethod
+    def _deserialize(path: Path) -> FactualRequestPartition:
+        if path.suffix == ".pt":
+            return torch.load(path, map_location="cpu", weights_only=False)
+        with path.open("rb") as source, NamedTemporaryFile() as raw:
+            zstandard.ZstdDecompressor().copy_stream(source, raw)
+            raw.flush()
+            raw.seek(0)
+            return torch.load(raw, map_location="cpu", weights_only=False)
 
     @staticmethod
     def _trace_manifest_hash(trace: RequestCandidateTrace) -> str:
