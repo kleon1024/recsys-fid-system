@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (all 19 remaining rows research-closed; P3-04/05 freeze pending)
+Updated: 2026-08-25 (P3-01..05 accepted; all 19 remaining rows research-closed)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -47,29 +47,26 @@ tree but has not passed the repository acceptance path. `Implemented` means the
 focused contract is executable; it does not mean the phase, benchmark or launch
 review is accepted.
 
-The last committed implementation baseline is
-`88354c3615cb4e23cc566fdafdbfe9854ae1e266`; local and `origin/main` agree.
-P0, P1, the declared Feed scope of P2 and P3-01..03 have content-bound reviews.
-P3-04/05 exist in the current dirty worktree and have passed a synchronized RTX
-gate, but remain `Draft` until one clean, committed, content-bound freeze passes
-the same gate. Test success is evidence for the code path, not acceptance of an
-unfrozen source state. Architecture lint has zero errors and one declared warning
+The accepted implementation baseline is
+`6a3b373d1d5629aaa6ba733b31f96e0b4f09a951`; local and `origin/main` agree.
+P0, P1, the declared Feed scope of P2 and P3-01..05 have content-bound reviews.
+The clean committed source reproduces 202 historical tests, 66 v4 tests and the
+repository gate. Architecture lint has zero errors and one declared warning
 because this project uses its own `AssetGraph`, not Dagster decorators.
 
-The latest draft P3 RTX 4090 run covers 100K users, 1M items and two event-time
+The accepted P3 RTX 4090 run covers 100K users, 1M items and two event-time
 partitions at cascade width 96→48→16→8. It persists 1,267,664 fine rows and
 7,808,576 mature labels, consumes both partitions independently in active and
 candidate lanes, completes in 88.266 seconds and peaks at 8.538 GiB CUDA. This
-is executable streaming/feature/registry evidence; it becomes acceptance evidence
-only after the clean freeze above. The candidate LR probe remains `HOLD` and
-provides no model or A/B lift claim.
+is streaming/feature/registry evidence bound to the accepted source. The candidate
+LR probe remains `HOLD` and provides no model or A/B lift claim.
 
 | Capability | Current evidence | Status | Blocking gap |
 |---|---|---|---|
 | Hidden user world boundary | Platform cannot directly read hidden preference state | Accepted | Non-Feed worlds remain separately gated |
 | Atomic factual A/B world | One request receives one factual policy and commits once | Implemented | Longer-horizon interference tests remain incomplete |
 | Delayed outcomes | Order/payment/refund/Pixel occurrence and ingestion time are distinct | Implemented | Production-like loss/duplicate/orphan distributions need calibration |
-| Point-in-time projection | Delivered events/lifecycle are accepted; exact served feature tensors replay in the P3-05 draft | Draft extension passed | Clean P3-04/05 freeze, then model ladders |
+| Point-in-time projection | Delivered events, lifecycle and exact served feature tensors replay across content-bound partitions | Accepted through P3-05 | Model ladders remain |
 | Request cascade trace | Raw routes, request-time lifecycle, post lineage and every cascade stage are retained | Implemented | Learned artifacts remain |
 | Feed retrieval mechanics | Six lifecycle-owned Feed routes plus six separately owned business routes | Implemented | Learned retrieval starts after P3-04/05 |
 | Layered experiments | Ownership, independent assignment, composed policy and numeric served checkpoint logging | Implemented | Model-learning interference remains P4-05 |
@@ -77,9 +74,9 @@ provides no model or A/B lift claim.
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
 | Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
 | Behavior realism | v23 passes external, held-out-family, support, anti-exploitation and 100K semantic-shadow gates | Accepted for Feed | Retention, creator supply and every business response remain masked |
-| Full-chain analytical store | Full-flow schema v4 draft persists exact feature/FID and task vectors; DuckDB and ClickHouse agree | Draft extension passed | Clean P3-04/05 freeze, then P3 evaluators |
+| Full-chain analytical store | Full-flow schema v4 persists exact feature/FID and task vectors; DuckDB and ClickHouse agree | Accepted through P3-05 | P3 evaluators remain |
 | Recall/coarse/fine sample authorities | Source-corrected recall, teacher-aware coarse and PIT fine examples replay from one request authority | Accepted for P3-01..03 | Model consumption remains P3-06..08 |
-| Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Draft; synchronized gate passed | Clean content-bound freeze, then cadence lift remains P4-04 |
+| Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
 | Model ladder | Historical synthetic ladders exist | Invalid for v4 launch | Must train on the same factual request dataset and serving budget |
 | Search/Ads/Commerce/Live/Local/Posting | Surface actions and catalog types exist | Skeleton | Each lacks a closed business workflow and independent launch contract |
 
@@ -142,9 +139,7 @@ after the conventional cascade is identified; they are not P2 dependencies.
 ### 2.3 Backlog research closure
 
 Every backlog row now has a selected implementation path. Nineteen implementation
-rows remain: P3-06..09, P4-01..05, P5-01..06 and P6-01..04, plus the clean
-freeze required to accept the already implemented P3-04/05 drafts. “Research
-closed” means
+rows remain: P3-06..09, P4-01..05, P5-01..06 and P6-01..04. “Research closed” means
 the next falsifiable implementation and rejection boundary are known. It does not
 mean the implementation exists, the chosen model will win, or a phase is accepted.
 The remaining work is empirical execution against section 9.1.
@@ -542,8 +537,8 @@ in another document is informative only; it cannot override this register.
 | P3-01 | `samples/recall`: source-aware negatives and correction contract | Done for sample authority; P3-06 must consume the stored expected count | P1/P2 | four sources retain q/log-q, expected count, observed status and false-negative mask; exhaustive-softmax and peer-frequency tests pass; 100K scale uses O(requests × draws) memory |
 | P3-02 | `samples/coarse`: teacher/order/conflict authority | Done for lineage contract; Top-K model pass-through remains P3-07 | P1/P2 | every factual candidate retains recall/coarse score/rank, fine teacher score/rank and conflict mask; hard-label observation boundary and exact replay tests pass |
 | P3-03 | `samples/fine`: PIT cascade/sequence authority | Done for sample contract; identified DR remains P3-09 | P1/P2 | applicability/maturity/time are separate; heterogeneous long history and declared short suffix are PIT; joint logging probability and support persist in full-flow schema v4 |
-| P3-04 | `learning`: persistent sample bus, active/candidate lanes and registry | Draft; synchronized gate passed, freeze pending; LR probe is not a model launch | P3-01..03 plus P3-05 | clean commit reproduces independent cursors, numeric served checkpoint, compatibility rejection, fallback/restart and 100K/1M scale |
-| P3-05 | `platform/features`: one feature/FID manifest for train and serve | Draft; 11 dense and 13 sparse fields compile once, freeze pending | P3-03 | clean commit reproduces full manifest, exact trace→Joiner→Parquet→score replay, collision/drift and TTL/namespace gates |
+| P3-04 | `learning`: persistent sample bus, active/candidate lanes and registry | Done for infrastructure; LR probe is not a model launch | P3-01..03 plus P3-05 | independent cursors, numeric served checkpoint, compatibility rejection, fallback/restart and 100K/1M scale pass on accepted commit |
+| P3-05 | `platform/features`: one feature/FID manifest for train and serve | Done; 11 dense and 13 sparse fields compile once | P3-03 | full manifest, exact trace→Joiner→Parquet→score replay, collision/drift and TTL/namespace gates pass on accepted commit |
 | P3-06 | `platform/retrieval` + `learning/retrieval`: migrate retrieval ladder | Historical Two-Tower/Multi-interest code; no v4-trained artifact | P3-01/04/05 | one frozen corpus/query set/Top-K/quota/latency budget compares lifecycle rules, Graph, Two-Tower and Multi-interest; report marginal unique recall, downstream fixed-ranker delta and cost; Semantic-ID waits for an accepted dense baseline |
 | P3-07 | `platform/ranking/coarse`: migrate equal-budget ladder and distillation | Historical implementations only | P3-02/04/05 | Rule/LR/XGBoost/W&D/DeepFM/DCNv2 share factual candidates, feature manifest and tuning budget; distillation preserves teacher Top-K; selection reports effect, calibration, latency, memory and failure slices |
 | P3-08 | `platform/ranking/fine`: migrate multi-task and sequence ladder | Historical implementations only; request-native pairwise/listwise path absent | P3-03/04/05 | pointwise baseline then pairwise/listwise LR/XGBoost/deep-cross/DIN/Transformer/MMoE/PLE on identical requests; per-head calibration, gradient conflict, gate/expert health and latency decide; HSTU requires measured long-sequence gain |
@@ -619,12 +614,11 @@ P1 Feed supply-consumption closure
           → P6 scale, failures and legacy deletion
 ```
 
-P1, the declared Feed scope of P2 and P3-01..03 are accepted. The immediate gate
-is the clean P3-04/05 freeze; only then is the next slice P3-06..09. It must use
-the frozen partition, feature and compatibility contracts:
+P1, the declared Feed scope of P2 and P3-01..05 are accepted. The next slice is
+P3-06..09 and must use the frozen partition, feature and compatibility contracts:
 
 ```text
-clean-frozen sample bus + exact feature/FID bytes + checkpoint registry
+accepted sample bus + exact feature/FID bytes + checkpoint registry
 → P3-06: fixed-budget retrieval ladder
 → P3-07: factual-candidate coarse ladder and distillation
 → P3-08: request-aware multi-task and sequence fine ladder
@@ -733,12 +727,10 @@ before any authority switch.
 
 ### P3 — Streaming learning and learned cascade
 
-Status: samples accepted; streaming/feature drafts passed synchronized gates but
-await a clean content-bound freeze; model ladders pending.
+Status: sample, streaming and feature authorities accepted; model ladders pending.
 
 - Run retrieval, coarse and fine ladders in dependency order.
-- After its clean freeze, use the dual-lane trainer, manifest, collision/drift
-  and replay gates.
+- Use the accepted dual-lane trainer, manifest, collision/drift and replay gates.
 
 Acceptance: at least one learned model passes, one holds and one rejects for a
 diagnosed reason; ranking delta, sample lineage and resource costs are auditable.
