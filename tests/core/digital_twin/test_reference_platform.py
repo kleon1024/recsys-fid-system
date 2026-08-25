@@ -33,6 +33,9 @@ from fid_lab.simulation.digital_twin.platform.features import (
     DEFAULT_FEATURE_MANIFEST,
     FeatureTensorBatch,
 )
+from fid_lab.simulation.digital_twin.platform.routes.exposure import (
+    _exact_membership,
+)
 from fid_lab.simulation.digital_twin.contracts import make_app_events
 
 
@@ -542,6 +545,20 @@ def test_installed_learned_coarse_scorer_replays_exact_score_and_version():
         trace.candidate_dense_features[:, :, 1][valid],
         trace.coarse_input_score[valid],
     )
+
+
+def test_exact_exposure_membership_matches_reference_broadcast():
+    generator = torch.Generator().manual_seed(714)
+    route = torch.randint(-1, 30, (7, 3, 5), generator=generator)
+    history = torch.randint(-1, 30, (7, 19), generator=generator)
+    selected = torch.rand((7, 19), generator=generator) > 0.35
+    selected &= history >= 0
+    reference = (
+        (route.reshape(7, -1)[:, :, None] == history[:, None, :])
+        & selected[:, None, :]
+    ).any(dim=2).reshape_as(route)
+
+    assert torch.equal(_exact_membership(route, history, selected), reference)
 
 
 def test_installed_learned_retriever_owns_ann_route_and_index_version():
