@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (P3-01..06 accepted; all 18 remaining rows research-closed)
+Updated: 2026-08-25 (all remaining rows researched; pre-ladder contracts reopened)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -67,21 +67,30 @@ seconds at 14.840 GiB CUDA. Lifecycle remains control; Graph, RRF, Two-Tower and
 Multi-interest reject. Only 89 different evaluation positives expose a severe
 old-policy logging ceiling; randomized retrieval truth remains P3-09.
 
+A semantic audit after P3-06 found four blockers that marker searches could not
+detect. `CoarseRankExample.item_id` starts from old-policy `coarse_item_id`, not
+the recall universe. `FineRankExample` retains only exposed items although the
+scorer sees the wider coarse set. The trace stores features only after fine
+selection. Finally, deterministic selected items receive
+`exposure_probability=1`; this is factual selection, not counterfactual support.
+P3-02/03/05 remain accepted for their earlier mechanics but reopen as
+P3-02a/03a/05a before any learned ranking claim.
+
 | Capability | Current evidence | Status | Blocking gap |
 |---|---|---|---|
 | Hidden user world boundary | Platform cannot directly read hidden preference state | Accepted | Non-Feed worlds remain separately gated |
 | Atomic factual A/B world | One request receives one factual policy and commits once | Implemented | Longer-horizon interference tests remain incomplete |
 | Delayed outcomes | Order/payment/refund/Pixel occurrence and ingestion time are distinct | Implemented | Production-like loss/duplicate/orphan distributions need calibration |
-| Point-in-time projection | Delivered events, lifecycle and exact served feature tensors replay across content-bound partitions | Accepted through P3-05 | Model ladders remain |
-| Request cascade trace | Raw routes, request-time lifecycle, post lineage and every cascade stage are retained | Implemented | Learned artifacts remain |
+| Point-in-time projection | Delivered events, lifecycle and retained feature tensors replay across content-bound partitions | Partial for learned ranking | Full scoring-input tensors are not retained |
+| Request cascade trace | Raw routes, lifecycle, lineage and cascade stages are retained | Implemented | Candidate propensities and scoring-input tensors remain |
 | Feed retrieval mechanics | Lifecycle/Graph plus registry-backed Two-Tower/Multi-interest serving path | Accepted through P3-06 | Every challenger rejected; randomized retrieval truth remains P3-09 |
 | Layered experiments | Ownership, independent assignment, composed policy and numeric served checkpoint logging | Implemented | Model-learning interference remains P4-05 |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
 | Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
 | Behavior realism | v23 passes external, held-out-family, support, anti-exploitation and 100K semantic-shadow gates | Accepted for Feed | Retention, creator supply and every business response remain masked |
-| Full-chain analytical store | Full-flow schema v4 persists exact feature/FID and task vectors; DuckDB and ClickHouse agree | Accepted through P3-05 | P3 evaluators remain |
-| Recall/coarse/fine sample authorities | Source-corrected recall, teacher-aware coarse and PIT fine examples replay from one request authority | Recall consumed by P3-06 | Coarse/fine model consumption remains P3-07/08 |
+| Full-chain analytical store | Schema v4 persists retained feature/FID and task vectors; DuckDB/ClickHouse agree | Accepted for retained rows | Full scoring-input coverage remains P3-05a |
+| Recall/coarse/fine sample authorities | Recall is source-corrected; coarse/fine contracts replay | Recall accepted; coarse/fine reopened | Coarse starts after old Top-K; fine is exposure-only |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
 | Model ladder | v4 retrieval ladder compares one factual dataset and budget; every challenger rejected | Accepted through P3-06, no learned retrieval launch | Coarse/fine ladders and randomized retrieval truth remain P3-07..09 |
 | Search/Ads/Commerce/Live/Local/Posting | Surface actions and catalog types exist | Skeleton | Each lacks a closed business workflow and independent launch contract |
@@ -144,18 +153,15 @@ after the conventional cascade is identified; they are not P2 dependencies.
 
 ### 2.3 Backlog research closure
 
-Every backlog row now has a selected implementation path. Eighteen implementation
-rows remain: P3-07..09, P4-01..05, P5-01..06 and P6-01..04. “Research closed” means
-the next falsifiable implementation and rejection boundary are known. It does not
-mean the implementation exists, the chosen model will win, or a phase is accepted.
-The remaining work is empirical execution against section 9.1.
+Eighteen rows remain, plus P3-02a/03a/05a contract corrections. “Research closed”
+means the next falsifiable implementation and rejection boundary are known, not
+that implementation or acceptance exists. Execution is governed by section 9.1.
 
-A scoped source audit found no executable unfinished marker, unchecked box or
-`NotImplementedError` under `fid_lab`, `tests`, `scripts` or active v4 docs.
+A marker audit found no unchecked box or `NotImplementedError` under active code
+and docs; the semantic audit nevertheless found the three reopened contracts.
 `docs/interview/recommendation-data-contracts.md` now maps request-native
 pairwise/listwise tuning explicitly to P3-08/P3-09 rather than creating another
-backlog. Other occurrences
-of `pending` are delayed-event states or historical report values. The three dated
+backlog. Other `pending` values are event/report states. The three dated
 plan files explicitly defer here and cannot create a second backlog.
 
 | Backlog | Research conclusion | Adopted decision | Rejected shortcut |
@@ -294,7 +300,7 @@ request by data, not by rerunning Python and guessing.
 |---|---|
 | `v4_request_log` | one request; user, surface, event time, context, experiment assignments, policy/artifact versions |
 | `v4_route_candidate_log` | request × route × raw candidate; route score/rank, lifecycle, eligibility, sampling probability |
-| `v4_candidate_decision_log` | request × item; merged rank, coarse/fine/rerank decisions, all scores, drop stage/reason, propensity |
+| `v4_candidate_decision_log` | request × item; every stage admission/rank/score/drop reason, scoring tensors, factual-selection kind and logging propensity only when randomized |
 | `v4_event_log` | one factual event; occurrence/ingestion times, request/item/post/creator/order/payment IDs, dedup key |
 | `v4_mature_label_log` | request × item × task; label, value, maturity time, mask, attribution and censor reason |
 | `v4_training_example_log` | example identity and authority; feature/FID manifest, sequence watermark, label manifest, sampling correction |
@@ -382,11 +388,10 @@ whole experiment used one static artifact.
 
 - `RecallExample`: query context, positive post, proposal source, sampled
   negatives, proposal probability, behavior strength and corpus snapshot.
-- `CoarseRankExample`: real recalled candidates, route provenance/scores,
-  teacher scores/order, hard labels, sampling probability and stage decision.
-- `FineRankExample`: real exposure-space candidates, point-in-time dense/sparse
-  features, short/long sequences, multi-label values, maturity masks, propensity
-  and served scores.
+- `CoarseRankExample`: the full recall universe, route scores, old-stage
+  admission/rank, masked factual labels and typed factual/shadow teacher scores.
+- `FineRankExample`: the full fine-scorer input set, exact PIT tensors and
+  sequences, stage/exposure masks, mature labels and identified propensities.
 
 Unexposed candidates never receive fake behavior negatives. Conditional funnel
 tasks use masks or entire-space factorization. Delayed outcomes remain censored
@@ -541,14 +546,14 @@ in another document is informative only; it cannot override this register.
 | P2-07 | External evidence adapters | Done; user-disjoint KuaiRand DR-OPE and manifests pass | P2-04 | overlap, ESS, max-weight and unsupported-task boundaries retained |
 | P2-08 | DGP validity and authority shadow | Done for Feed; 100K/1M/8-tick shadow and full repository gate pass | P2-01..07 | Launch Review accepts explicit Feed-only manual promotion |
 | P3-01 | `samples/recall`: source-aware negatives and correction contract | Done for sample authority; P3-06 must consume the stored expected count | P1/P2 | four sources retain q/log-q, expected count, observed status and false-negative mask; exhaustive-softmax and peer-frequency tests pass; 100K scale uses O(requests × draws) memory |
-| P3-02 | `samples/coarse`: teacher/order/conflict authority | Done for lineage contract; Top-K model pass-through remains P3-07 | P1/P2 | every factual candidate retains recall/coarse score/rank, fine teacher score/rank and conflict mask; hard-label observation boundary and exact replay tests pass |
-| P3-03 | `samples/fine`: PIT cascade/sequence authority | Done for sample contract; identified DR remains P3-09 | P1/P2 | applicability/maturity/time are separate; heterogeneous long history and declared short suffix are PIT; joint logging probability and support persist in full-flow schema v4 |
+| P3-02 | `samples/coarse`: teacher/order/conflict authority | Reopened as P3-02a: current rows start after old coarse Top-K | P1/P2 | rematerialize every recall candidate with old-stage admission/rank, labels masked when unobserved, and teacher scores explicitly marked factual or shadow |
+| P3-03 | `samples/fine`: PIT cascade/sequence authority | Reopened as P3-03a: exposed-only rows and deterministic probability cannot support challenger OPE | P1/P2 | retain full scorer input set, exposure/admission masks and exact propensities only for randomized actions; deterministic actions declare zero counterfactual support |
 | P3-04 | `learning`: persistent sample bus, active/candidate lanes and registry | Done for infrastructure; LR probe is not a model launch | P3-01..03 plus P3-05 | independent cursors, numeric served checkpoint, compatibility rejection, fallback/restart and 100K/1M scale pass on accepted commit |
-| P3-05 | `platform/features`: one feature/FID manifest for train and serve | Done; 11 dense and 13 sparse fields compile once | P3-03 | full manifest, exact trace→Joiner→Parquet→score replay, collision/drift and TTL/namespace gates pass on accepted commit |
+| P3-05 | `platform/features`: one feature/FID manifest for train and serve | Manifest accepted; reopened as P3-05a because trace retains only post-fine-selection tensors | P3-03 | persist byte-identical tensors for every coarse/fine scoring input, with stage, manifest and checkpoint lineage |
 | P3-06 | `platform/retrieval` + `learning/retrieval`: migrate retrieval ladder | Done; lifecycle control retained, Graph/RRF/Two-Tower/Multi-interest rejected | P3-01/04/05 | persisted RecallExample, retrieval feature contract, registry/serving replay and 100K/1M equal-budget report pass; old-exposure target concentration is explicit; Semantic-ID still waits for an accepted dense baseline |
-| P3-07 | `platform/ranking/coarse`: migrate equal-budget ladder and distillation | Historical implementations only | P3-02/04/05 | Rule/LR/XGBoost/W&D/DeepFM/DCNv2 share factual candidates, feature manifest and tuning budget; distillation preserves teacher Top-K; selection reports effect, calibration, latency, memory and failure slices |
-| P3-08 | `platform/ranking/fine`: migrate multi-task and sequence ladder | Historical implementations only; request-native pairwise/listwise path absent | P3-03/04/05 | pointwise baseline then pairwise/listwise LR/XGBoost/deep-cross/DIN/Transformer/MMoE/PLE on identical requests; per-head calibration, gradient conflict, gate/expert health and latency decide; HSTU requires measured long-sequence gain |
-| P3-09 | `validation/evaluation`: one request-aware evaluator and P3 review | Metrics are fragmented across historical runners | P3-06..08 | exact served-rank replay emits stage pass-through, request/user/surface GAUC, NDCG, PR-AUC, log-loss/NE, ECE, Top-K change, slices and resource cost; identified OPE and paired A/B use the same candidate authority; at least one model passes, holds and rejects |
+| P3-07 | `platform/ranking/coarse`: migrate equal-budget ladder and distillation | Historical implementations only | P3-02a/04/05a/09a | Rule/LR/XGBoost/W&D/DeepFM/DCNv2 share the recall universe and budget; RankDistil-style Top-K preservation, calibration, latency, memory and slices decide |
+| P3-08 | `platform/ranking/fine`: migrate multi-task and sequence ladder | Historical implementations only; request-native listwise path absent | P3-03a/04/05a/09a | pointwise then request-grouped pairwise/listwise deep-cross/DIN/Transformer/MMoE/PLE on identical scorer inputs; per-head calibration, gradient/gate health and latency decide |
+| P3-09 | `validation/evaluation`: support audit first, integrated evaluator and P3 review last | Metrics fragmented; deterministic trace has no challenger support | P3-06 plus P3-02a/03a/05a/07/08 | 09a freezes grouping, pass-through, exploration and support; 09b replays served ranks, GAUC/NDCG/PR-AUC/NE/ECE, slices, cost, identified OPE and factual paired A/B |
 | P4-01 | `platform/ranking/value`: calibrate primitive heads, then compose Value Tree | Legacy value code only | P3 | per-task/slice probability or magnitude calibration is frozen before coefficient tuning; coefficients are versioned and nonnegative; sensitivity and monotonicity tests expose which primitive changed each rank |
 | P4-02 | `experiments/metrics`: measure unified LT after randomization | Historical synthetic metric only; no production exchange authority claimed | P4-01 | pre-register stay/return/DAU/commercial outcomes, horizon, MDE and power; cohort curves distinguish immediate and learned effects; exchange assumptions are fitted on separate experiments and sensitivity-bounded, never used as labels |
 | P4-03 | `platform/mixing`: one COPP/final-slate authority | Legacy mixers exist; v4 has no exposure/session dedup owner | P4-01 | eligibility→dedup→queue load→quota/diversity→final slate is deterministic; every displacement logs source queue, before/after rank, constraint and alternative; no queue can independently claim an exposure |
@@ -573,10 +578,11 @@ allowed only after the stated trigger; domain semantics remain repository-owned.
 
 | ID | Reuse first | Required artifact | Reject or defer when |
 |---|---|---|---|
-| P3-06 | PyTorch retrieval modules + FAISS; Graph/lifecycle routes remain deterministic baselines | `retrieval-leaderboard.json` plus frozen query/corpus/candidate manifest | no marginal unique recall or fixed-ranker gain under equal Top-K/latency; TorchRec waits for measured single-GPU embedding pressure |
-| P3-07 | XGBoost GPU `rank:ndcg`/pairwise + existing PyTorch W&D/DeepFM/DCNv2 | `coarse-leaderboard.json` and teacher Top-K pass-through report | teacher/value pass-through misses the frozen gate, or effect does not pay for P99/memory; do not compare pointwise random-negative AUC |
-| P3-08 | Existing PyTorch DIN/Transformer/MMoE/PLE; native masked BCE then request-grouped pairwise/listwise | `fine-leaderboard.json`, per-head model card and gate/expert diagnostics | primary/guardrail Pareto point, calibration, sequence ablation or latency fails; HSTU waits for measured long-sequence headroom |
-| P3-09 | Repository request evaluator; sklearn/scipy for metrics/CI; Open Bandit Pipeline only as a differential oracle after a compatibility spike | `p3-evaluation.json`, replay diff and Launch Review | action propensity/support is not exact, request grouping differs, or model does not change served Top-K |
+| P3-02a/03a/05a | Existing trace/Joiner/manifest; change one authority, not learner-side reconstruction | full-universe candidate Parquet, stage masks, exact scoring tensors and propensity/support audit | any row silently maps unobserved to negative, deterministic choice to nonzero challenger support, or learner recomputes served features |
+| P3-09a | Repository evaluator shell plus scipy/sklearn; exploration is an explicit policy lane | frozen request grouping, pass-through baseline, randomized-action manifest and support matrix | no positive support for the intended comparison, or factual and shadow scores are conflated |
+| P3-07 | XGBoost GPU request-grouped `rank:ndcg` + existing PyTorch W&D/DeepFM/DCNv2 + top-K distillation | `coarse-leaderboard.json` and teacher Top-K pass-through report | teacher/value pass-through misses the gate, or effect does not pay for P99/memory; never use post-coarse rows as the universe |
+| P3-08 | Existing PyTorch DIN/Transformer/MMoE/PLE; masked BCE then request-grouped pairwise/listwise | `fine-leaderboard.json`, per-head model card and gate/expert diagnostics | primary/guardrail Pareto, calibration, sequence ablation or latency fails; HSTU waits for measured long-sequence headroom |
+| P3-09b | Same evaluator and candidate authority used by 09a; OBP only as differential oracle after compatibility | `p3-evaluation.json`, replay diff and Launch Review | exact action propensity/support absent, grouping differs, or served Top-K does not change |
 | P4-01 | sklearn logistic/isotonic calibration plus repository-owned nonnegative Value Tree | calibration maps, coefficient manifest and sensitivity surface | primitive calibration/NE regresses, monotonicity breaks, or coefficients hide a permanent queue boost |
 | P4-02 | scipy bootstrap/power primitives + existing CUPED implementation | pre-registration, MDE/power file, cohort curves and unified-LT sensitivity report | SRM/A-A fails, horizon is immature, or exchange weights were fitted on the evaluated experiment |
 | P4-03 | Existing deterministic mixer; no public COPP package is an authority for business constraints | final-slate trace and displacement Parquet with dedup/load/quota/diversity reason codes | any queue double-claims exposure, alternative is missing, or final-slate replay is nondeterministic |
@@ -620,15 +626,18 @@ P1 Feed supply-consumption closure
           → P6 scale, failures and legacy deletion
 ```
 
-P1, the declared Feed scope of P2 and P3-01..06 are accepted. The next slice is
-P3-07..09 and must use the frozen partition, feature and compatibility contracts:
+P1, the declared Feed scope of P2 and retrieval through P3-06 are accepted. The
+next slice repairs ranking contracts before training; accepted manifest mechanics
+remain, but their candidate coverage is not sufficient for a model claim:
 
 ```text
 accepted sample bus + exact feature/FID bytes + checkpoint registry
 → accepted P3-06 factual retrieval candidates and rejection diagnostics
-→ P3-07: factual-candidate coarse ladder and distillation
-→ P3-08: request-aware multi-task and sequence fine ladder
-→ diagnose pass, hold and reject from one request-aware evaluator
+→ P3-09a: freeze request grouping, stage baselines and support requirements
+→ P3-02a/03a/05a: full candidate universes, stage masks and scoring-input tensors
+→ P3-07: recall-universe coarse ladder and Top-K distillation
+→ P3-08: scorer-input multi-task and sequence fine ladder
+→ P3-09b: diagnose pass, hold and reject with the same evaluator
 → P3 Launch Review
 ```
 
@@ -733,11 +742,11 @@ before any authority switch.
 
 ### P3 — Streaming learning and learned cascade
 
-Status: sample, streaming, feature and retrieval authorities accepted; coarse/fine
-model ladders pending. No learned retrieval model is active.
+Status: retrieval is accepted; ranking manifests/mechanics are accepted but
+candidate coverage and support are reopened. No learned model is active.
 
-- Run retrieval, coarse and fine ladders in dependency order.
-- Use the accepted dual-lane trainer, manifest, collision/drift and replay gates.
+- Run P3-09a → P3-02a/03a/05a → P3-07/08 → P3-09b.
+- Reuse the dual-lane trainer and manifest; do not reconstruct serving inputs.
 
 Acceptance: at least one learned model passes, one holds and one rejects for a
 diagnosed reason; ranking delta, sample lineage and resource costs are auditable.
