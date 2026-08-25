@@ -120,10 +120,14 @@ def test_orders_ads_and_creator_feedback_change_only_hidden_supply_state():
         item_event(supply, EventType.ORDER, product, 501),
         item_event(supply, EventType.IMPRESSION, ad, 503),
     ))
+    events = supply.materialize_ad_spend(events)
     supply.commit(events)
     assert float(state.creator_motivation[creator]) > 0.5
     assert float(state.item_inventory[product]) < inventory_before
     assert float(state.advertiser_budget[advertiser]) < budget_before
+    spend = events.event(EventType.AD_SPEND)
+    assert int(spend.sum()) == 1
+    assert float(events.value[spend].sum()) <= budget_before
 
 
 def test_publish_failure_distinguishes_capacity_and_creator_exit():

@@ -295,6 +295,16 @@ class MultiRouteRetriever:
             commerce_min_inventory=commerce_min_inventory,
         )
         route_valid = route_item >= 0
+        safe_route_item = route_item.clamp_min(0)
+        ad_candidate = self.catalog.content_kind[safe_route_item] == int(
+            ContentKind.AD
+        )
+        ads_route = torch.zeros(
+            len(ROUTE_NAMES), device=self.device, dtype=torch.bool,
+        )
+        ads_route[ROUTE_NAMES.index("ads_auction")] = True
+        route_valid &= ~(ad_candidate & ~ads_route[None, :, None])
+        route_valid &= ~(~ad_candidate & ads_route[None, :, None])
         if feed_exposure_dedup_ticks:
             repeated = recently_exposed(
                 requests,
@@ -533,17 +543,10 @@ class MultiRouteRetriever:
             posting_region,
             state.item_region,
         )
-        commerce_item, commerce_score = self._top_for_surface(
-            requests,
-            state,
-            0.45 * self.catalog.quality_prior
-            + 0.35 * state.item_inventory
-            + 0.20 * torch.log1p(state.item_bid),
-            Surface.COMMERCE,
-            extra_eligible=(
-                (
-                    self.catalog.content_kind != int(ContentKind.PRODUCT)
-                )
+        commerce_eligible = self.catalog.content_kind != int(ContentKind.AD)
+        if commerce_require_inventory or commerce_min_inventory > 0.0:
+            commerce_eligible &= (
+                (self.catalog.content_kind != int(ContentKind.PRODUCT))
                 | (
                     state.item_inventory
                     > max(
@@ -551,9 +554,15 @@ class MultiRouteRetriever:
                         0.0 if not commerce_require_inventory else 1e-12,
                     )
                 )
-                if commerce_require_inventory or commerce_min_inventory > 0.0
-                else None
-            ),
+            )
+        commerce_item, commerce_score = self._top_for_surface(
+            requests,
+            state,
+            0.45 * self.catalog.quality_prior
+            + 0.35 * state.item_inventory
+            + 0.20 * torch.log1p(state.item_bid),
+            Surface.COMMERCE,
+            extra_eligible=commerce_eligible,
         )
         live_item, live_score = self._top_for_surface(
             requests,
@@ -562,6 +571,7 @@ class MultiRouteRetriever:
             + 0.45 * engagement_rate,
             Surface.LIVE,
         )
+        ads_item, ads_score = self._ads_route_candidates(requests, state)
         search_item, search_score = self._top_by_group(
             requests,
             state,
@@ -601,10 +611,31 @@ class MultiRouteRetriever:
             "posting_context": (posting_item, posting_score),
             "commerce_intent": (commerce_item, commerce_score),
             "live_now": (live_item, live_score),
+            "ads_auction": (ads_item, ads_score),
             "search": (search_item, search_score),
             "search_semantic": (semantic_item, semantic_score),
             "retarget": (retarget_item, retarget_score),
         }
+
+    def _ads_route_candidates(self, requests, state):
+        ad = self.catalog.content_kind == int(ContentKind.AD)
+        advertiser = self.catalog.advertiser_id
+        eligible = (
+            ad
+            & (state.advertiser_bid[advertiser] > 0.0)
+            & (
+                state.advertiser_budget[advertiser]
+                >= state.advertiser_bid[advertiser]
+            )
+        )
+        return self._top_for_surface(
+            requests,
+            state,
+            0.55 * self.catalog.quality_prior
+            + 0.45 * torch.log1p(state.item_bid),
+            Surface.FEED,
+            extra_eligible=eligible,
+        )
 
     def _filter_and_trim(
         self,

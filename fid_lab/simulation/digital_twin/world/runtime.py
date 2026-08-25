@@ -264,7 +264,8 @@ class UserEcosystemWorld:
             slate,
             self.config.environment_seed,
         )
-        return self.supply.materialize_user_posts(events)
+        events = self.supply.materialize_user_posts(events)
+        return self.supply.materialize_ad_spend(events)
 
     def commit(self, events: AppEventBatch) -> None:
         if not len(events.event_id):

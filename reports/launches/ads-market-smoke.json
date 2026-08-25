@@ -1,0 +1,19 @@
+{
+  "audit": {
+    "billed_revenue": 4012.132568359375,
+    "clicks": 116,
+    "impressions": 1099,
+    "maximum_ads_per_request": 1,
+    "over_bid_spend": 0,
+    "overspend_events": 0,
+    "partially_billed_impressions": 0,
+    "pixel_conversions": 10,
+    "spend_events": 1099,
+    "unbudgeted_spend": 0,
+    "unpriced_spend": 0
+  },
+  "items": 8000,
+  "schema": "ads-market-smoke/v1",
+  "ticks": 24,
+  "users": 1024
+}

@@ -7,7 +7,7 @@ from dataclasses import dataclass, fields
 import torch
 
 from ..catalog import PublicCatalog
-from ..contracts import AppEventBatch, EventType, Surface
+from ..contracts import AppEventBatch, ContentKind, EventType, Surface
 from .lifecycle import LifecycleConfig, classify_lifecycle
 
 
@@ -107,6 +107,8 @@ class PlatformProjectionState:
     item_counter_time: torch.Tensor
     item_inventory: torch.Tensor
     item_bid: torch.Tensor
+    advertiser_budget: torch.Tensor
+    advertiser_bid: torch.Tensor
     item_event_counts: torch.Tensor
     creator_impressions: torch.Tensor
     creator_engagements: torch.Tensor
@@ -137,6 +139,7 @@ def build_projection_state(
     device = catalog.item_id.device
     integer_missing = torch.full((users,), -1, device=device, dtype=torch.long)
     creators = int(catalog.creator_id.max()) + 1
+    advertisers = int(catalog.advertiser_id.max()) + 1
     recent_impressions = torch.zeros(len(catalog.item_id), device=device)
     recent_engagements = torch.zeros_like(recent_impressions)
     lifecycle = classify_lifecycle(
@@ -223,6 +226,8 @@ def build_projection_state(
         item_counter_time=torch.tensor(0, device=device, dtype=torch.long),
         item_inventory=catalog.inventory.clone(),
         item_bid=torch.zeros(len(catalog.item_id), device=device),
+        advertiser_budget=torch.zeros(advertisers, device=device),
+        advertiser_bid=torch.zeros(advertisers, device=device),
         item_event_counts=torch.zeros(
             len(catalog.item_id), len(ITEM_COUNTER_EVENTS), device=device,
         ),
@@ -424,7 +429,25 @@ class ObservableProjection:
             inventory
         ]
         bid = events.event(EventType.BID) & (events.item_id >= 0)
-        self.state.item_bid[events.item_id[bid]] = events.value[bid]
+        bid_advertiser = events.advertiser_id[bid]
+        self.state.advertiser_bid[bid_advertiser] = events.value[bid]
+        ad_item = self.catalog.content_kind == int(ContentKind.AD)
+        self.state.item_bid[ad_item] = self.state.advertiser_bid[
+            self.catalog.advertiser_id[ad_item]
+        ]
+        budget = events.event(EventType.AD_BUDGET) & (
+            events.advertiser_id >= 0
+        )
+        self.state.advertiser_budget[events.advertiser_id[budget]] = (
+            events.value[budget].clamp_min(0.0)
+        )
+        spend = events.event(EventType.AD_SPEND) & (events.advertiser_id >= 0)
+        self.state.advertiser_budget.index_add_(
+            0,
+            events.advertiser_id[spend],
+            -events.value[spend].clamp_min(0.0),
+        )
+        self.state.advertiser_budget.clamp_min_(0.0)
         removed = (
             events.event(EventType.MODERATION_REMOVE)
             | events.event(EventType.CONTENT_DELETE)

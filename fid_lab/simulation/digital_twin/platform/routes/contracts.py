@@ -23,9 +23,15 @@ BUSINESS_ROUTE_NAMES = (
     "posting_context",
     "commerce_intent",
     "live_now",
+    "ads_auction",
     "search",
     "search_semantic",
     "retarget",
+)
+
+DEFAULT_BUSINESS_ROUTE_NAMES = tuple(
+    route for route in BUSINESS_ROUTE_NAMES
+    if route not in {"ads_auction", "search_semantic"}
 )
 
 ROUTE_NAMES = (*FEED_ROUTE_NAMES, *BUSINESS_ROUTE_NAMES)

@@ -178,6 +178,52 @@ class SupplyEcosystem:
             events.select(~intent), published, failed,
         ))
 
+    def materialize_ad_spend(self, events: AppEventBatch) -> AppEventBatch:
+        """Attach immutable billed spend without exposing hidden budgets."""
+        impression = (
+            events.event(EventType.IMPRESSION)
+            & (events.content_kind == int(ContentKind.AD))
+            & (events.advertiser_id >= 0)
+        )
+        row = torch.where(impression)[0]
+        if not len(row):
+            return events
+        advertiser = events.advertiser_id[row]
+        count = torch.zeros_like(self.state.advertiser_budget)
+        count.index_add_(
+            0, advertiser, torch.ones_like(advertiser, dtype=torch.float),
+        )
+        charge = torch.minimum(
+            self.state.advertiser_bid[advertiser],
+            self.state.advertiser_budget[advertiser]
+            / count[advertiser].clamp_min(1.0),
+        ).clamp_min(0.0)
+        spend = make_app_events(
+            EventType.AD_SPEND,
+            event_time=events.event_time[row],
+            ingest_time=events.ingest_time[row],
+            request_id=events.request_id[row],
+            user_id=events.user_id[row],
+            surface=events.surface[row],
+            item_id=events.item_id[row],
+            position=events.position[row],
+            creator_id=events.creator_id[row],
+            merchant_id=events.merchant_id[row],
+            advertiser_id=advertiser,
+            product_id=events.product_id[row],
+            poi_id=events.poi_id[row],
+            content_kind=events.content_kind[row],
+            topic_id=events.topic_id[row],
+            country=events.country[row],
+            region=events.region[row],
+            value=charge,
+            experiment_cell=events.experiment_cell[row],
+            logging_probability=events.logging_probability[row],
+            assignment_probability=events.assignment_probability[row],
+            ordinal=events.position[row],
+        )
+        return AppEventBatch.concatenate((events, spend))
+
     def _published_events(
         self,
         intents: AppEventBatch,
@@ -317,6 +363,28 @@ class SupplyEcosystem:
             value=next_bid,
         )
 
+    def _budget_events(self, logical_time: int) -> AppEventBatch:
+        state = self.state
+        advertiser = torch.arange(
+            len(state.advertiser_budget), device=self.catalog.item_id.device,
+        )
+        item = self._representative_ad_item(advertiser)
+        return make_app_events(
+            EventType.AD_BUDGET,
+            event_time=logical_time,
+            request_id=self._request_id(logical_time, advertiser),
+            user_id=torch.full_like(advertiser, -1),
+            surface=torch.full_like(advertiser, -1),
+            item_id=item,
+            advertiser_id=advertiser,
+            content_kind=torch.where(
+                item >= 0,
+                torch.full_like(item, int(ContentKind.AD)),
+                torch.full_like(item, -1),
+            ),
+            value=state.advertiser_budget,
+        )
+
     def _representative_ad_item(
         self, advertiser: torch.Tensor,
     ) -> torch.Tensor:
@@ -417,6 +485,7 @@ class SupplyEcosystem:
     def schedule(self, logical_time: int) -> AppEventBatch:
         return AppEventBatch.concatenate((
             self._inventory_events(logical_time),
+            self._budget_events(logical_time),
             self._bid_events(logical_time),
             self._content_removal_events(logical_time),
             self._creator_exit_events(logical_time),
@@ -453,6 +522,10 @@ class SupplyEcosystem:
         state.item_inventory[events.item_id[inventory]] = events.value[inventory]
         bid = events.event(EventType.BID)
         state.advertiser_bid[events.advertiser_id[bid]] = events.value[bid]
+        budget = events.event(EventType.AD_BUDGET)
+        state.advertiser_budget[events.advertiser_id[budget]] = events.value[
+            budget
+        ]
         moderation = events.event(EventType.MODERATION_REMOVE)
         state.item_active[events.item_id[moderation]] = False
         state.item_removed_reason[events.item_id[moderation]] = 1
@@ -530,12 +603,10 @@ class SupplyEcosystem:
         state.merchant_reliability.sub_(
             0.002 * reliability_loss
         ).clamp_(0.05, 0.999)
-        ad_impression = impression & (
-            events.content_kind == int(ContentKind.AD)
-        )
-        ad = events.advertiser_id[ad_impression]
+        spend_event = events.event(EventType.AD_SPEND)
+        ad = events.advertiser_id[spend_event]
         if len(ad):
-            spend = state.advertiser_bid[ad]
+            spend = events.value[spend_event].clamp_min(0.0)
             state.advertiser_budget.index_add_(0, ad, -spend)
             state.advertiser_budget.clamp_min_(0.0)
         pixel = events.event(EventType.PIXEL_CONVERSION)

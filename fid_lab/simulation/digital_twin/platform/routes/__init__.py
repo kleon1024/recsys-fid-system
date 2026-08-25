@@ -2,6 +2,7 @@
 
 from fid_lab.simulation.digital_twin.platform.routes.contracts import (
     BUSINESS_ROUTE_NAMES,
+    DEFAULT_BUSINESS_ROUTE_NAMES,
     FEED_ROUTE_NAMES,
     ROUTE_NAMES,
     SURFACE_CONTENT,
@@ -15,6 +16,7 @@ from fid_lab.simulation.digital_twin.platform.routes.feed import (
 
 __all__ = (
     "BUSINESS_ROUTE_NAMES",
+    "DEFAULT_BUSINESS_ROUTE_NAMES",
     "FEED_ROUTE_NAMES",
     "MAIN_FEED_LIFECYCLES",
     "ROUTE_NAMES",

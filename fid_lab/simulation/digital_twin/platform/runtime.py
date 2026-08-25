@@ -21,6 +21,7 @@ from ..samples.joiner import capture_request_context
 from .projection import ObservableProjection, ProjectionSnapshot
 from .lifecycle import LIFECYCLE_POLICY_VERSION, LifecycleConfig
 from .features import DEFAULT_FEATURE_MANIFEST, FeatureManifest
+from .markets.ads import enforce_ad_budget
 from .ranking import CascadePolicy, CascadeRanker, RankingConfig
 from .ranking import LearnedFineScorer
 from .requests import open_platform_requests
@@ -118,17 +119,8 @@ class ReferenceRecommendationPlatform:
     ) -> ServingOutput:
         if not isinstance(policy, CascadePolicy):
             raise TypeError("reference platform requires a CascadePolicy")
-        retrieval = self.retriever.retrieve(
-            requests,
-            snapshot.projection.state,
-            policy.effective_routes,
-            feed_exposure_dedup_ticks=policy.feed_exposure_dedup_ticks,
-            feed_session_dedup=policy.feed_session_dedup,
-            commerce_require_inventory=policy.commerce_require_inventory,
-            commerce_min_inventory=policy.commerce_min_inventory,
-        )
-        ranked = self.ranker.rank(
-            requests, snapshot.projection.state, retrieval, policy,
+        retrieval, ranked = self._retrieve_and_rank(
+            snapshot, requests, policy, assignment_probability,
         )
         valid = ranked.exposed_item_id >= 0
         route_lifecycle = torch.where(
@@ -226,3 +218,21 @@ class ReferenceRecommendationPlatform:
         )
         context = capture_request_context(trace, snapshot.projection)
         return ServingOutput(slate, trace, context)
+
+    def _retrieve_and_rank(
+        self, snapshot, requests, policy, assignment_probability,
+    ):
+        state = snapshot.projection.state
+        retrieval = self.retriever.retrieve(
+            requests,
+            state,
+            policy.effective_routes,
+            feed_exposure_dedup_ticks=policy.feed_exposure_dedup_ticks,
+            feed_session_dedup=policy.feed_session_dedup,
+            commerce_require_inventory=policy.commerce_require_inventory,
+            commerce_min_inventory=policy.commerce_min_inventory,
+        )
+        ranked = self.ranker.rank(requests, state, retrieval, policy)
+        return retrieval, enforce_ad_budget(
+            self.catalog, requests, state, ranked, assignment_probability,
+        )

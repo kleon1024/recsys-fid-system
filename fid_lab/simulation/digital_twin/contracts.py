@@ -72,6 +72,8 @@ class EventType(IntEnum):
     SEARCH_SUCCESS = 34
     SEARCH_REFORMULATE = 35
     SEARCH_ABANDON = 36
+    AD_BUDGET = 37
+    AD_SPEND = 38
 
 
 class PublishFailureReason(IntEnum):

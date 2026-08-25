@@ -10,6 +10,11 @@ exact-topic and semantic retrieval, success or reformulation, and query-linked
 post-search Feed continuation. Its independent S-LR-001 implementation has
 passed local smoke; RTX 4090 factual A/B evidence remains pending.
 
+Ads now has a separate market path rather than leaking through organic recall:
+observable budget and bid snapshots, auction-only candidates, probability-scaled
+capacity, immutable spend, one-ad load, organic backfill and delayed Pixel
+lineage. The mechanism replay reconciles exactly; A-LR-001 GPU A/B is pending.
+
 The newest evolving factual-world milestone repairs a previously invalid user
 response loop: exact repeated Feed videos now cause immediate slide pressure,
 session exit, satisfaction loss, and later retention/churn effects. Historical

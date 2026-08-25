@@ -203,7 +203,8 @@ def sample_response_tensors(
     click_probability = torch.sigmoid(
         -1.25 + 1.38 * utility + 0.26 * style[:, 1, None]
     )
-    click = examined & (search | commerce | local | posting) & (
+    feed_ad = feed & (kind == int(ContentKind.AD))
+    click = examined & (search | commerce | local | posting | feed_ad) & (
         draws[:, :, 5] < click_probability
     )
     detail = click & ~posting & (draws[:, :, 6] < torch.sigmoid(

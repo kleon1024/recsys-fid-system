@@ -8,7 +8,7 @@ from typing import Protocol
 import torch
 
 from ..catalog import PublicCatalog
-from ..contracts import PlatformRequestBatch, SelectionPolicyKind
+from ..contracts import ContentKind, PlatformRequestBatch, SelectionPolicyKind
 from .exploration import (
     exploration_mask,
     mixture_admission_probability,
@@ -28,7 +28,11 @@ from .features.encoder import FeatureTensorBatch, PlatformFeatureEncoder
 from .features.manifest import FeatureManifest
 from .projection import PlatformProjectionState
 from .retrieval import ROUTE_NAMES, MultiRouteRetriever, RetrievalResult
-from .routes import BUSINESS_ROUTE_NAMES, FEED_ROUTE_NAMES
+from .routes import (
+    BUSINESS_ROUTE_NAMES,
+    DEFAULT_BUSINESS_ROUTE_NAMES,
+    FEED_ROUTE_NAMES,
+)
 
 
 @dataclass(frozen=True)
@@ -52,7 +56,7 @@ class CascadePolicy:
     mix_version_id: int
     recall_version_id: int = 1
     enabled_routes: tuple[str, ...] = FEED_ROUTE_NAMES
-    enabled_business_routes: tuple[str, ...] = BUSINESS_ROUTE_NAMES
+    enabled_business_routes: tuple[str, ...] = DEFAULT_BUSINESS_ROUTE_NAMES
     coarse_weights: tuple[float, ...] = (
         0.42, 0.16, 0.08, 0.06, 0.08, 0.07, 0.04, 0.04, 0.05, -0.06,
     )
@@ -265,7 +269,7 @@ class CascadeRanker:
                 deterministic_fine=deterministic_fine,
                 deterministic_exposed=deterministic_exposed,
             )
-        random_exposed = self._prefix(random_fine, self.config.expose_k)
+        random_exposed = self._randomized_exposed(random_fine)
         random_exposed_score = self._map_score(
             random_exposed, coarse_item, fine_raw,
         )
@@ -303,6 +307,15 @@ class CascadeRanker:
             *selection[2:],
             candidate_features,
         )
+
+    def _randomized_exposed(self, random_fine: torch.Tensor) -> torch.Tensor:
+        priority = -torch.arange(
+            random_fine.shape[1],
+            device=random_fine.device,
+            dtype=torch.float,
+        )[None].expand(len(random_fine), -1)
+        exposed, _ = self._diversified_top(random_fine, priority)
+        return exposed
 
     def _rank_with_cold_start_exploration(
         self,
@@ -566,11 +579,19 @@ class CascadeRanker:
                 kind[:, :, None]
                 == self.catalog.content_kind[prior_item][:, None, :]
             ) & prior_valid[:, None, :]
+            prior_ad = (
+                (self.catalog.content_kind[prior_item] == int(ContentKind.AD))
+                & prior_valid
+            ).sum(dim=1)
+            ad_blocked = (
+                (kind == int(ContentKind.AD))
+                & (prior_ad >= 1)[:, None]
+            )
             adjusted = (
                 score
                 - self.config.creator_penalty * creator_count.sum(dim=2)
                 - self.config.kind_penalty * kind_count.sum(dim=2)
-            ).masked_fill(~available, -torch.inf)
+            ).masked_fill(~available | ad_blocked, -torch.inf)
             choice = adjusted.argmax(dim=1)
             choice_is_valid = torch.isfinite(adjusted[rows, choice])
             selected_item[:, position] = torch.where(
