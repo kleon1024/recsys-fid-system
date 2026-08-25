@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import json
 import math
 from pathlib import Path
@@ -25,6 +25,7 @@ from ..platform import (
     ReferenceRecommendationPlatform,
     RetrievalConfig,
 )
+from ..profile import STANDARD_FEED_PROFILE, SimulationProfile
 from ..world import UserEcosystemWorld, UserWorldConfig
 from ..world.authority import BehavioralSCMResponseAuthority
 
@@ -54,16 +55,16 @@ COUNT_METRICS = {
 
 @dataclass(frozen=True)
 class RetrievalLadderConfig:
-    users: int = 20_000
-    items: int = 500_000
+    users: int = STANDARD_FEED_PROFILE.users
+    items: int = STANDARD_FEED_PROFILE.items
     burn_in_steps: int = 4
     experiment_steps: int = 8
     control_fraction: float = 0.20
     treatment_fraction: float = 0.20
     device: str = "cuda"
-    seed: int = 809
+    seed: int = STANDARD_FEED_PROFILE.seed
     auto_promote: bool = True
-    ticks_per_day: int = 8
+    ticks_per_day: int = STANDARD_FEED_PROFILE.ticks_per_day
     minimum_triggered_users: int = 500
     checkpoint_root: str | None = None
     checkpoint_branch: str = "main"
@@ -82,6 +83,16 @@ class RetrievalLadderConfig:
             raise ValueError("max_attempts_per_review must be positive")
         if not self.checkpoint_branch:
             raise ValueError("checkpoint_branch must not be empty")
+
+    @property
+    def simulation_profile(self) -> SimulationProfile:
+        return replace(
+            STANDARD_FEED_PROFILE,
+            users=self.users,
+            items=self.items,
+            ticks_per_day=self.ticks_per_day,
+            seed=self.seed,
+        )
 
 
 def _sync(device: torch.device) -> None:
@@ -228,38 +239,48 @@ def _build_kernel(config: RetrievalLadderConfig):
     device = torch.device(config.device)
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats(device)
+    profile = config.simulation_profile
     catalog = build_public_catalog(
-        items=config.items,
-        creators=max(config.items // 20, 1),
-        merchants=max(config.items // 100, 1),
-        advertisers=max(config.items // 200, 1),
-        topics=64,
-        countries=12,
-        regions_per_country=16,
-        embedding_dim=32,
+        items=profile.items,
+        creators=max(profile.items // 20, 1),
+        merchants=max(profile.items // 100, 1),
+        advertisers=max(profile.items // 200, 1),
+        topics=profile.topics,
+        countries=profile.countries,
+        regions_per_country=profile.regions_per_country,
+        embedding_dim=profile.embedding_dim,
         platform_seed=config.seed + 1,
         device=device,
     )
     world = UserEcosystemWorld(UserWorldConfig(
-        users=config.users,
-        topics=64,
-        embedding_dim=32,
-        countries=12,
-        regions_per_country=16,
+        users=profile.users,
+        topics=profile.topics,
+        embedding_dim=profile.embedding_dim,
+        countries=profile.countries,
+        regions_per_country=profile.regions_per_country,
         environment_seed=config.seed + 2,
-        ticks_per_day=config.ticks_per_day,
+        ticks_per_day=profile.ticks_per_day,
         future_signup_fraction=0.35,
     ), catalog, response_authority=BehavioralSCMResponseAuthority())
     platform = ReferenceRecommendationPlatform(
-        ReferencePlatformConfig(users=config.users, history_length=64),
+        ReferencePlatformConfig(
+            users=profile.users,
+            history_length=profile.history_length,
+            feed_exposure_history_length=profile.feed_exposure_history_length,
+            ticks_per_day=profile.ticks_per_day,
+        ),
         catalog,
         RetrievalConfig(
-            route_k=24,
-            merged_k=96,
+            route_k=profile.route_k,
+            merged_k=profile.merged_k,
             graph_neighbors=24,
             refresh_interval=1,
         ),
-        RankingConfig(coarse_k=48, fine_k=16, expose_k=8),
+        RankingConfig(
+            coarse_k=profile.coarse_k,
+            fine_k=profile.fine_k,
+            expose_k=profile.expose_k,
+        ),
     )
     return device, AtomicSimulationKernel(
         world,
@@ -674,6 +695,8 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
         "scope": "v4-feed-sequential-retrieval-launch-reviews",
         "quality_claim": "synthetic-world causal evidence only",
         "config": asdict(config),
+        "simulation_profile": config.simulation_profile.manifest(),
+        "simulation_profile_hash": config.simulation_profile.profile_hash,
         "invariant": (
             "one factual slate per request; hidden world consumes only served "
             "events; coarse/fine/mix remain fixed"
@@ -698,15 +721,18 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--users", type=int, default=20_000)
-    parser.add_argument("--items", type=int, default=500_000)
+    parser.add_argument("--users", type=int, default=STANDARD_FEED_PROFILE.users)
+    parser.add_argument("--items", type=int, default=STANDARD_FEED_PROFILE.items)
     parser.add_argument("--burn-in-steps", type=int, default=4)
     parser.add_argument("--experiment-steps", type=int, default=8)
     parser.add_argument("--control-fraction", type=float, default=0.20)
     parser.add_argument("--treatment-fraction", type=float, default=0.20)
     parser.add_argument("--device", default="cuda")
-    parser.add_argument("--seed", type=int, default=809)
-    parser.add_argument("--ticks-per-day", type=int, default=8)
+    parser.add_argument("--seed", type=int, default=STANDARD_FEED_PROFILE.seed)
+    parser.add_argument(
+        "--ticks-per-day", type=int,
+        default=STANDARD_FEED_PROFILE.ticks_per_day,
+    )
     parser.add_argument("--minimum-triggered-users", type=int, default=500)
     parser.add_argument("--no-auto-promote", action="store_true")
     parser.add_argument("--checkpoint-root", type=Path)

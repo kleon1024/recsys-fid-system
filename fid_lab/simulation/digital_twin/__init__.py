@@ -28,6 +28,7 @@ from .engine import (
     TickResult,
 )
 from .event_log import ObservableEventLog
+from .profile import STANDARD_FEED_PROFILE, SimulationProfile
 from .observability import (
     CheckpointRecord,
     FullFlowSnapshot,
@@ -104,6 +105,8 @@ __all__ = (
     "ReferenceRecommendationPlatform",
     "RenderedSlateBatch",
     "SelectionPolicyKind",
+    "SimulationProfile",
+    "STANDARD_FEED_PROFILE",
     "ServingOutput",
     "Surface",
     "SupplyEcosystem",

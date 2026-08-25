@@ -128,7 +128,10 @@ DEFAULT_FEATURE_MANIFEST = FeatureManifest(
         _dense("quality_prior", "content", "catalog.quality_prior", "identity"),
         _dense("item_impression_log", "counter", "item.impression_count", "log1p/8", ttl_ticks=1),
         _dense("item_engagement_rate", "counter", "item.long_view,item.click,item.impression", "clip((long_view+click)/max(impression,1),0,1)", ttl_ticks=1),
-        _dense("freshness", "item", "request.event_time,item.publish_time", "exp(-age_ticks/192)"),
+        _dense(
+            "freshness", "item", "request.event_time,item.publish_time",
+            "exp(-age_ticks/(2*ticks_per_day))",
+        ),
         _dense("geo_match", "context", "user.country,user.region,item.country,item.region", "0.35*country+0.65*region"),
         _dense("inventory", "item", "projection.item_inventory", "identity", ttl_ticks=1),
         _dense("recall_score_scaled", "route", "retrieval.recall_score", "max(score,0)*20"),

@@ -14,6 +14,7 @@ from ...contracts import Surface
 from ...engine import ExperimentPlan
 from ...experiments.retrieval_ladder import _sync
 from ...platform import CascadePolicy
+from ...profile import STANDARD_FEED_PROFILE
 from ..launch_runtime import open_factual_launch, publish_factual_launch
 from .audit import audit_ads_market
 from .metrics import (
@@ -29,11 +30,11 @@ class AdsLaunchConfig:
     checkpoint_root: str
     request_stream_root: str
     checkpoint_branch: str = "main"
-    users: int = 20_000
-    items: int = 500_000
+    users: int = STANDARD_FEED_PROFILE.users
+    items: int = STANDARD_FEED_PROFILE.items
     device: str = "cuda"
-    seed: int = 809
-    ticks_per_day: int = 8
+    seed: int = STANDARD_FEED_PROFILE.seed
+    ticks_per_day: int = STANDARD_FEED_PROFILE.ticks_per_day
     experiment_steps: int = 32
     control_fraction: float = 0.2
     treatment_fraction: float = 0.2
@@ -214,8 +215,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint-root", required=True)
     parser.add_argument("--request-stream-root", required=True)
-    parser.add_argument("--users", type=int, default=20_000)
-    parser.add_argument("--items", type=int, default=500_000)
+    parser.add_argument("--users", type=int, default=STANDARD_FEED_PROFILE.users)
+    parser.add_argument("--items", type=int, default=STANDARD_FEED_PROFILE.items)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--experiment-steps", type=int, default=32)
     parser.add_argument("--allow-code-migration", action="store_true")

@@ -10,6 +10,7 @@ from pathlib import Path
 from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
 from ..engine import ExperimentPlan
 from ..platform import BUSINESS_ROUTE_NAMES, CascadePolicy
+from ..profile import STANDARD_FEED_PROFILE
 from .layered import LayeredExperimentPlan
 from .retrieval_ladder import (
     RetrievalLadderConfig,
@@ -22,11 +23,11 @@ from .retrieval_ladder import (
 class SurfaceRouteRecoveryConfig:
     checkpoint_root: str
     checkpoint_branch: str = "main"
-    users: int = 20_000
-    items: int = 500_000
+    users: int = STANDARD_FEED_PROFILE.users
+    items: int = STANDARD_FEED_PROFILE.items
     device: str = "cuda"
-    seed: int = 809
-    ticks_per_day: int = 8
+    seed: int = STANDARD_FEED_PROFILE.seed
+    ticks_per_day: int = STANDARD_FEED_PROFILE.ticks_per_day
 
 
 def _runtime_config(config: SurfaceRouteRecoveryConfig) -> RetrievalLadderConfig:
@@ -126,11 +127,14 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint-root", required=True)
     parser.add_argument("--checkpoint-branch", default="main")
-    parser.add_argument("--users", type=int, default=20_000)
-    parser.add_argument("--items", type=int, default=500_000)
+    parser.add_argument("--users", type=int, default=STANDARD_FEED_PROFILE.users)
+    parser.add_argument("--items", type=int, default=STANDARD_FEED_PROFILE.items)
     parser.add_argument("--device", default="cuda")
-    parser.add_argument("--seed", type=int, default=809)
-    parser.add_argument("--ticks-per-day", type=int, default=8)
+    parser.add_argument("--seed", type=int, default=STANDARD_FEED_PROFILE.seed)
+    parser.add_argument(
+        "--ticks-per-day", type=int,
+        default=STANDARD_FEED_PROFILE.ticks_per_day,
+    )
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     report = recover_surface_routes(SurfaceRouteRecoveryConfig(

@@ -13,6 +13,7 @@ import torch
 from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
 from ..engine import ExperimentPlan
 from ..learning.request_stream import FactualRequestStream
+from ..profile import STANDARD_FEED_PROFILE
 from .layered import LayeredExperimentPlan
 from .retrieval_ladder import RetrievalLadderConfig, _build_kernel, _sync
 
@@ -23,11 +24,11 @@ class FactualCollectionConfig:
     request_stream_root: str
     steps: int = 8
     checkpoint_branch: str = "main"
-    users: int = 20_000
-    items: int = 500_000
+    users: int = STANDARD_FEED_PROFILE.users
+    items: int = STANDARD_FEED_PROFILE.items
     device: str = "cuda"
-    seed: int = 809
-    ticks_per_day: int = 8
+    seed: int = STANDARD_FEED_PROFILE.seed
+    ticks_per_day: int = STANDARD_FEED_PROFILE.ticks_per_day
     allow_code_migration: bool = False
     allow_additive_runtime_migration: bool = False
 
@@ -127,6 +128,10 @@ def collect_factual_requests(
         "schema": "factual-request-collection-review/v1",
         "quality_claim": "synthetic-world factual sample lineage only",
         "config": asdict(config),
+        "simulation_profile": _runtime_config(config).simulation_profile.manifest(),
+        "simulation_profile_hash": (
+            _runtime_config(config).simulation_profile.profile_hash
+        ),
         "branch": updated.name,
         "training_authority": updated.training_authority,
         "resumed_from_checkpoint": branch.head_checkpoint_id,
@@ -151,11 +156,14 @@ def main() -> None:
     parser.add_argument("--request-stream-root", required=True)
     parser.add_argument("--steps", type=int, default=8)
     parser.add_argument("--checkpoint-branch", default="main")
-    parser.add_argument("--users", type=int, default=20_000)
-    parser.add_argument("--items", type=int, default=500_000)
+    parser.add_argument("--users", type=int, default=STANDARD_FEED_PROFILE.users)
+    parser.add_argument("--items", type=int, default=STANDARD_FEED_PROFILE.items)
     parser.add_argument("--device", default="cuda")
-    parser.add_argument("--seed", type=int, default=809)
-    parser.add_argument("--ticks-per-day", type=int, default=8)
+    parser.add_argument("--seed", type=int, default=STANDARD_FEED_PROFILE.seed)
+    parser.add_argument(
+        "--ticks-per-day", type=int,
+        default=STANDARD_FEED_PROFILE.ticks_per_day,
+    )
     parser.add_argument("--allow-code-migration", action="store_true")
     parser.add_argument("--allow-additive-runtime-migration", action="store_true")
     parser.add_argument("--output", type=Path)

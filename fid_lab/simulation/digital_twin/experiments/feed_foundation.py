@@ -16,6 +16,7 @@ from ..contracts import ContentKind, Surface
 from ..engine import AtomicSimulationKernel, ExperimentPlan
 from ..learning.request_stream import FactualRequestStream
 from ..platform import CascadePolicy
+from ..profile import STANDARD_FEED_PROFILE
 from .retrieval_ladder import (
     RetrievalLadderConfig,
     _analyze,
@@ -31,11 +32,11 @@ class FeedDedupLaunchConfig:
     checkpoint_root: str
     request_stream_root: str
     checkpoint_branch: str = "main"
-    users: int = 20_000
-    items: int = 500_000
+    users: int = STANDARD_FEED_PROFILE.users
+    items: int = STANDARD_FEED_PROFILE.items
     device: str = "cuda"
-    seed: int = 809
-    ticks_per_day: int = 8
+    seed: int = STANDARD_FEED_PROFILE.seed
+    ticks_per_day: int = STANDARD_FEED_PROFILE.ticks_per_day
     experiment_steps: int = 8
     control_fraction: float = 0.2
     treatment_fraction: float = 0.2
@@ -412,11 +413,14 @@ def main() -> None:
     parser.add_argument("--checkpoint-root", required=True)
     parser.add_argument("--request-stream-root", required=True)
     parser.add_argument("--checkpoint-branch", default="main")
-    parser.add_argument("--users", type=int, default=20_000)
-    parser.add_argument("--items", type=int, default=500_000)
+    parser.add_argument("--users", type=int, default=STANDARD_FEED_PROFILE.users)
+    parser.add_argument("--items", type=int, default=STANDARD_FEED_PROFILE.items)
     parser.add_argument("--device", default="cuda")
-    parser.add_argument("--seed", type=int, default=809)
-    parser.add_argument("--ticks-per-day", type=int, default=8)
+    parser.add_argument("--seed", type=int, default=STANDARD_FEED_PROFILE.seed)
+    parser.add_argument(
+        "--ticks-per-day", type=int,
+        default=STANDARD_FEED_PROFILE.ticks_per_day,
+    )
     parser.add_argument("--experiment-steps", type=int, default=8)
     parser.add_argument("--dedup-ticks", type=int, default=16)
     parser.add_argument("--dedup-mode", choices=("window", "session"), default="window")

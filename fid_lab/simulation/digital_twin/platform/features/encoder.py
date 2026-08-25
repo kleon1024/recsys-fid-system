@@ -85,7 +85,7 @@ class PlatformFeatureEncoder:
             self.catalog.quality_prior[item],
             torch.log1p(impression) / 8.0,
             (engagement / impression.clamp_min(1.0)).clamp_max(1.0),
-            torch.exp(-age / 192.0),
+            torch.exp(-age / (2.0 * self.ticks_per_day)),
             0.35 * (self.catalog.country[item] == country[:, None]).float()
             + 0.65 * (self.catalog.region[item] == region[:, None]).float(),
             state.item_inventory[item],
