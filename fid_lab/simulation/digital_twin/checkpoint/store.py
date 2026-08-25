@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, fields
 from hashlib import sha256
-from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -24,6 +23,14 @@ from ..world.runtime import UserEcosystemWorld
 
 
 WORLD_CHECKPOINT_SCHEMA = "digital-twin-world-checkpoint-v2"
+
+
+def _file_sha256(path: Path) -> str:
+    digest = sha256()
+    with path.open("rb") as stream:
+        while chunk := stream.read(8 * 1024 * 1024):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True)
@@ -389,23 +396,30 @@ class WorldCheckpointStore:
         self.refs.mkdir(parents=True, exist_ok=True)
 
     def _write_object(self, value: object) -> str:
-        buffer = BytesIO()
-        torch.save(value, buffer)
-        payload = buffer.getvalue()
-        digest = sha256(payload).hexdigest()
+        with NamedTemporaryFile(dir=self.objects, delete=False) as stream:
+            temporary = Path(stream.name)
+            try:
+                torch.save(value, stream)
+            except Exception:
+                temporary.unlink(missing_ok=True)
+                raise
+        try:
+            digest = _file_sha256(temporary)
+        except Exception:
+            temporary.unlink(missing_ok=True)
+            raise
         target = self.objects / f"{digest}.pt"
         if not target.exists():
-            with NamedTemporaryFile(dir=self.objects, delete=False) as stream:
-                temporary = Path(stream.name)
-                stream.write(payload)
             os.replace(temporary, target)
-        elif sha256(target.read_bytes()).hexdigest() != digest:
-            raise ValueError("checkpoint object content hash mismatch")
+        else:
+            temporary.unlink()
+            if _file_sha256(target) != digest:
+                raise ValueError("checkpoint object content hash mismatch")
         return digest
 
     def _read_object(self, digest: str) -> object:
         path = self.objects / f"{digest}.pt"
-        if not path.is_file() or sha256(path.read_bytes()).hexdigest() != digest:
+        if not path.is_file() or _file_sha256(path) != digest:
             raise ValueError("checkpoint object is missing or corrupted")
         return torch.load(path, map_location="cpu", weights_only=False)
 
