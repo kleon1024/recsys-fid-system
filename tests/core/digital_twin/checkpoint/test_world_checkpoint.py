@@ -8,6 +8,7 @@ from fid_lab.simulation.digital_twin.checkpoint.store import (
     _is_additive_contract,
     _is_approved_contract_migration,
 )
+from fid_lab.simulation.digital_twin.checkpoint import store as checkpoint_store
 
 from fid_lab.simulation.digital_twin import (
     AtomicSimulationKernel,
@@ -147,6 +148,43 @@ def test_checkpoint_rejects_an_incompatible_catalog(tmp_path):
         assert "catalog" in str(error)
     else:
         raise AssertionError("catalog skew must fail checkpoint restore")
+
+
+def test_platform_code_can_evolve_without_resetting_the_hidden_world(
+    tmp_path, monkeypatch,
+):
+    source, plan = _system()
+    source.step(0, plan)
+    store = WorldCheckpointStore(tmp_path)
+    ref = store.save(source, 0, plan)
+    restored, _ = _system()
+    monkeypatch.setattr(
+        checkpoint_store, "_platform_source_hash", lambda: "platform-v2",
+    )
+
+    result = store.restore(restored, ref.checkpoint_id)
+
+    assert result.ref.checkpoint_id == ref.checkpoint_id
+
+
+def test_hidden_world_code_change_requires_an_explicit_epoch(
+    tmp_path, monkeypatch,
+):
+    source, plan = _system()
+    source.step(0, plan)
+    store = WorldCheckpointStore(tmp_path)
+    ref = store.save(source, 0, plan)
+    restored, _ = _system()
+    monkeypatch.setattr(
+        checkpoint_store, "_world_source_hash", lambda: "world-v2",
+    )
+
+    try:
+        store.restore(restored, ref.checkpoint_id)
+    except ValueError as error:
+        assert "world code closure" in str(error)
+    else:
+        raise AssertionError("a hidden-world code change must open a new epoch")
 
 
 def test_runtime_migration_accepts_only_additive_contract_fields():

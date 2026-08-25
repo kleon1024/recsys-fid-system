@@ -29,6 +29,7 @@ from .engine import (
 )
 from .event_log import ObservableEventLog
 from .profile import STANDARD_FEED_PROFILE, SimulationProfile
+from .runtime_paths import RuntimePaths
 from .observability import (
     CheckpointRecord,
     FullFlowSnapshot,
@@ -107,6 +108,7 @@ __all__ = (
     "SelectionPolicyKind",
     "SimulationProfile",
     "STANDARD_FEED_PROFILE",
+    "RuntimePaths",
     "ServingOutput",
     "Surface",
     "SupplyEcosystem",

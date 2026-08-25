@@ -23,7 +23,7 @@ from ..platform.runtime import ReferenceRecommendationPlatform
 from ..world.runtime import UserEcosystemWorld
 
 
-WORLD_CHECKPOINT_SCHEMA = "digital-twin-world-checkpoint-v1"
+WORLD_CHECKPOINT_SCHEMA = "digital-twin-world-checkpoint-v2"
 
 
 @dataclass(frozen=True)
@@ -35,7 +35,8 @@ class WorldCheckpointRef:
     event_objects: tuple[str, ...]
     catalog_sha256: str
     runtime_sha256: str
-    code_sha256: str
+    world_code_sha256: str
+    platform_code_sha256: str
     experiment_sha256: str
 
 
@@ -107,13 +108,31 @@ def _catalog_hash(catalog: PublicCatalog) -> str:
     return digest.hexdigest()
 
 
-def _source_hash() -> str:
-    package = Path(__file__).resolve().parents[1]
+def _source_closure_hash(files: tuple[Path, ...], root: Path) -> str:
     digest = sha256()
-    for path in sorted(package.rglob("*.py")):
-        digest.update(str(path.relative_to(package)).encode("utf-8"))
+    for path in sorted(files):
+        digest.update(str(path.relative_to(root)).encode("utf-8"))
         digest.update(path.read_bytes())
     return digest.hexdigest()
+
+
+def _world_source_hash() -> str:
+    digital_twin = Path(__file__).resolve().parents[1]
+    simulation = digital_twin.parent
+    files = tuple((digital_twin / "world").rglob("*.py")) + (
+        digital_twin / "catalog.py",
+        digital_twin / "contracts.py",
+    ) + tuple((simulation / "randomness").rglob("*.py"))
+    return _source_closure_hash(files, simulation)
+
+
+def _platform_source_hash() -> str:
+    digital_twin = Path(__file__).resolve().parents[1]
+    files = tuple((digital_twin / "platform").rglob("*.py")) + (
+        digital_twin / "engine.py",
+        digital_twin / "event_log.py",
+    )
+    return _source_closure_hash(files, digital_twin)
 
 
 def _runtime_manifest(
@@ -421,7 +440,8 @@ class WorldCheckpointStore:
             "runtime_sha256": sha256(
                 _canonical_json(runtime_manifest)
             ).hexdigest(),
-            "code_sha256": _source_hash(),
+            "world_code_sha256": _world_source_hash(),
+            "platform_code_sha256": _platform_source_hash(),
             "experiment": experiment_state,
             "experiment_sha256": sha256(
                 _canonical_json(experiment_state)
@@ -469,8 +489,11 @@ class WorldCheckpointStore:
         )
         if not runtime_matches and not (additive or approved):
             raise ValueError("checkpoint runtime contract differs")
-        if require_code_match and manifest["code_sha256"] != _source_hash():
-            raise ValueError("checkpoint code closure differs from runtime")
+        if (
+            require_code_match
+            and manifest["world_code_sha256"] != _world_source_hash()
+        ):
+            raise ValueError("checkpoint world code closure differs from runtime")
         state = self._read_object(manifest["state_object"])
         _restore_world(
             world,
@@ -560,7 +583,8 @@ class WorldCheckpointStore:
             event_objects=tuple(manifest["event_objects"]),
             catalog_sha256=str(manifest["catalog_sha256"]),
             runtime_sha256=str(manifest["runtime_sha256"]),
-            code_sha256=str(manifest["code_sha256"]),
+            world_code_sha256=str(manifest["world_code_sha256"]),
+            platform_code_sha256=str(manifest["platform_code_sha256"]),
             experiment_sha256=str(manifest["experiment_sha256"]),
         )
 
