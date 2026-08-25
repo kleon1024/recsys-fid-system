@@ -410,6 +410,24 @@ class WorldCheckpointStore:
             learning_cursors=dict(manifest["learning_cursors"]),
         )
 
+    def get_ref(self, checkpoint_id: str) -> WorldCheckpointRef:
+        """Return a verified immutable checkpoint reference without restoring it."""
+        return self._ref(checkpoint_id, self._manifest(checkpoint_id))
+
+    def is_ancestor(self, ancestor_id: str, descendant_id: str) -> bool:
+        """Return whether ``ancestor_id`` is on the descendant parent chain."""
+        self._manifest(ancestor_id)
+        current_id = descendant_id
+        visited: set[str] = set()
+        while current_id:
+            if current_id == ancestor_id:
+                return True
+            if current_id in visited:
+                raise ValueError("checkpoint parent lineage contains a cycle")
+            visited.add(current_id)
+            current_id = str(self._manifest(current_id)["parent_checkpoint_id"])
+        return False
+
     def _restore_event_log(
         self, kernel: AtomicSimulationKernel, manifest: Mapping[str, object],
     ) -> None:

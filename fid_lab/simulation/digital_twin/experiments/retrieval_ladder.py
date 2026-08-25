@@ -13,7 +13,7 @@ from typing import Mapping
 import torch
 
 from ..catalog import build_public_catalog
-from ..checkpoint import WorldCheckpointStore
+from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
 from ..contracts import AppEventBatch, EventType, Surface
 from ..engine import AtomicSimulationKernel, ExperimentPlan
 from ..event_log import ObservableEventLog
@@ -65,6 +65,7 @@ class RetrievalLadderConfig:
     ticks_per_day: int = 8
     minimum_triggered_users: int = 500
     checkpoint_root: str | None = None
+    checkpoint_branch: str = "main"
     resume_checkpoint_id: str | None = None
     max_reviews: int | None = None
     allow_code_migration: bool = False
@@ -77,6 +78,8 @@ class RetrievalLadderConfig:
             raise ValueError("max_reviews must be positive when provided")
         if self.max_attempts_per_review <= 0:
             raise ValueError("max_attempts_per_review must be positive")
+        if not self.checkpoint_branch:
+            raise ValueError("checkpoint_branch must not be empty")
 
 
 def _sync(device: torch.device) -> None:
@@ -443,6 +446,8 @@ def _restore_or_burn_in(
     config: RetrievalLadderConfig,
     kernel: AtomicSimulationKernel,
     store: WorldCheckpointStore | None,
+    registry: WorldBranchRegistry | None,
+    resume_checkpoint_id: str | None,
 ) -> tuple[
     CascadePolicy,
     tuple[str, ...],
@@ -455,12 +460,12 @@ def _restore_or_burn_in(
 ]:
     active_routes = BASE_ROUTES
     active = _policy("feed-random-v1", 1, active_routes)
-    if config.resume_checkpoint_id is not None:
+    if resume_checkpoint_id is not None:
         if store is None:
             raise ValueError("resume requires checkpoint_root")
         restored = store.restore(
             kernel,
-            config.resume_checkpoint_id,
+            resume_checkpoint_id,
             require_code_match=not config.allow_code_migration,
         )
         cursor = restored.learning_cursors.get("retrieval_ladder")
@@ -498,6 +503,10 @@ def _restore_or_burn_in(
             },
         },
     )
+    if registry is not None:
+        if config.checkpoint_branch != "main":
+            raise ValueError("a new factual world must start on the main branch")
+        registry.initialize_main(ref.checkpoint_id)
     return (
         active,
         active_routes,
@@ -510,13 +519,85 @@ def _restore_or_burn_in(
     )
 
 
+def _checkpoint_control(
+    config: RetrievalLadderConfig,
+) -> tuple[
+    WorldCheckpointStore | None,
+    WorldBranchRegistry | None,
+    str | None,
+]:
+    if config.checkpoint_root is None:
+        return None, None, config.resume_checkpoint_id
+    store = WorldCheckpointStore(Path(config.checkpoint_root))
+    registry = WorldBranchRegistry(store)
+    resume_checkpoint_id = config.resume_checkpoint_id
+    try:
+        branch = registry.get(config.checkpoint_branch)
+    except KeyError:
+        if resume_checkpoint_id is None:
+            return store, registry, None
+        if config.checkpoint_branch != "main":
+            raise ValueError(
+                "create a diagnostic branch before resuming it",
+            ) from None
+        registry.initialize_main(resume_checkpoint_id)
+        return store, registry, resume_checkpoint_id
+    if (
+        resume_checkpoint_id is not None
+        and resume_checkpoint_id != branch.head_checkpoint_id
+    ):
+        raise ValueError(
+            "resume checkpoint differs from registered branch head",
+        )
+    return store, registry, branch.head_checkpoint_id
+
+
+def _save_review_checkpoint(
+    store: WorldCheckpointStore,
+    registry: WorldBranchRegistry | None,
+    config: RetrievalLadderConfig,
+    kernel: AtomicSimulationKernel,
+    plan: ExperimentPlan,
+    active: CascadePolicy,
+    active_routes: tuple[str, ...],
+    reviews: list[dict[str, object]],
+    pending_review: dict[str, object] | None,
+    next_route_index: int,
+    logical_time: int,
+    index: int,
+    parent_checkpoint_id: str,
+) -> str:
+    checkpoint_plan = (
+        plan
+        if pending_review is not None
+        else _baseline_plan(config, active, 10_000 + index)
+    )
+    ref = store.save(
+        kernel,
+        logical_time - 1,
+        checkpoint_plan,
+        parent_checkpoint_id=parent_checkpoint_id,
+        learning_cursors={
+            "retrieval_ladder": {
+                "next_route_index": next_route_index,
+                "active_routes": list(active_routes),
+                "reviews": reviews,
+                "pending_review": pending_review,
+            },
+        },
+    )
+    if registry is not None:
+        registry.advance(
+            config.checkpoint_branch,
+            ref.checkpoint_id,
+            expected_head_checkpoint_id=parent_checkpoint_id,
+        )
+    return ref.checkpoint_id
+
+
 def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
     device, kernel = _build_kernel(config)
-    store = (
-        None
-        if config.checkpoint_root is None
-        else WorldCheckpointStore(Path(config.checkpoint_root))
-    )
+    store, registry, resume_checkpoint_id = _checkpoint_control(config)
     _sync(device)
     started = time.perf_counter()
     (
@@ -528,7 +609,13 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
         next_route_index,
         pending_review,
         parent_checkpoint_id,
-    ) = _restore_or_burn_in(config, kernel, store)
+    ) = _restore_or_burn_in(
+        config,
+        kernel,
+        store,
+        registry,
+        resume_checkpoint_id,
+    )
     review_windows = 0
     while next_route_index < len(ROUTE_LADDER):
         if config.max_reviews is not None and review_windows >= config.max_reviews:
@@ -553,27 +640,22 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
         if pending_review is None:
             next_route_index += 1
         if store is not None:
-            checkpoint_plan = (
-                plan
-                if pending_review is not None
-                else _baseline_plan(config, active, 10_000 + index)
-            )
-            ref = store.save(
+            parent_checkpoint_id = _save_review_checkpoint(
+                store,
+                registry,
+                config,
                 kernel,
-                logical_time - 1,
-                checkpoint_plan,
-                parent_checkpoint_id=parent_checkpoint_id,
-                learning_cursors={
-                    "retrieval_ladder": {
-                        "next_route_index": next_route_index,
-                        "active_routes": list(active_routes),
-                        "reviews": reviews,
-                        "pending_review": pending_review,
-                    },
-                },
+                plan,
+                active,
+                active_routes,
+                reviews,
+                pending_review,
+                next_route_index,
+                logical_time,
+                index,
+                parent_checkpoint_id,
             )
-            parent_checkpoint_id = ref.checkpoint_id
-            checkpoint_ids.append(ref.checkpoint_id)
+            checkpoint_ids.append(parent_checkpoint_id)
         if pending_review is not None:
             break
     _sync(device)
@@ -594,7 +676,8 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
         "final_active_routes": list(active_routes),
         "checkpoint_ids": checkpoint_ids,
         "final_checkpoint_id": parent_checkpoint_id,
-        "resumed_from_checkpoint": config.resume_checkpoint_id or "",
+        "resumed_from_checkpoint": resume_checkpoint_id or "",
+        "world_branch": config.checkpoint_branch if registry else "",
         "elapsed_seconds": elapsed,
         "peak_cuda_gib": (
             torch.cuda.max_memory_allocated(device) / 2**30
@@ -617,6 +700,7 @@ def main() -> None:
     parser.add_argument("--minimum-triggered-users", type=int, default=500)
     parser.add_argument("--no-auto-promote", action="store_true")
     parser.add_argument("--checkpoint-root", type=Path)
+    parser.add_argument("--checkpoint-branch", default="main")
     parser.add_argument("--resume-checkpoint-id")
     parser.add_argument("--max-reviews", type=int)
     parser.add_argument("--allow-code-migration", action="store_true")
@@ -638,6 +722,7 @@ def main() -> None:
         checkpoint_root=(
             None if args.checkpoint_root is None else str(args.checkpoint_root)
         ),
+        checkpoint_branch=args.checkpoint_branch,
         resume_checkpoint_id=args.resume_checkpoint_id,
         max_reviews=args.max_reviews,
         allow_code_migration=args.allow_code_migration,

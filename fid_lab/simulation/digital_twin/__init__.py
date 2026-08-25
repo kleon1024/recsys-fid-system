@@ -13,8 +13,10 @@ from .contracts import (
     make_app_events,
 )
 from .catalog import PublicCatalog, build_public_catalog
-from fid_lab.simulation.digital_twin.checkpoint.store import (
+from fid_lab.simulation.digital_twin.checkpoint import (
     RestoredWorldCheckpoint,
+    WorldBranchRef,
+    WorldBranchRegistry,
     WorldCheckpointRef,
     WorldCheckpointStore,
 )
@@ -113,6 +115,8 @@ __all__ = (
     "UserWorldSnapshot",
     "WorldCheckpointRef",
     "WorldCheckpointStore",
+    "WorldBranchRef",
+    "WorldBranchRegistry",
     "build_public_catalog",
     "build_full_flow_tables",
     "capture_request_context",

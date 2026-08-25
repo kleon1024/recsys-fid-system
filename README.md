@@ -650,13 +650,17 @@ flowchart LR
     AB1 --> C1["C1 promoted mainline"]
     C1 --> AB2["Cold-start cumulative windows"]
     AB2 --> C2["C2 active policy unchanged"]
-    C2 --> AB3["Recent ANN pending A/B"]
+    C2 --> AB3["Recent ANN rejected"]
+    AB3 --> C3["C3 factual checkpoint"]
+    C3 --> AB4["Graph / Following / Hot / Evergreen"]
+    AB4 --> C4["C4 tick-147 registered main head"]
     C1 -. same-start diagnostic fork .-> Replay["Shadow / counterfactual replay"]
 ```
 
 The current [checkpoint and retrieval Launch Review](docs/launch-reviews/2026-08-25-v4-world-checkpoint-retrieval-mainline.md)
-records Popular promotion, cold-start's inconclusive stop, ANN's pending state
-and the invalidated pre-fix HOLD branch.
+records all seven handcrafted route LRs, Popular's promotion, ANN's rejection,
+five inconclusive stops, the tick-147 factual head and the invalidated pre-fix
+HOLD branch.
 
 ## One atomic publication manifest
 

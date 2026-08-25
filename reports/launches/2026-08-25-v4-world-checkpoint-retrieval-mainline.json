@@ -8,9 +8,20 @@
     "pytorch": "2.7.1+cu126"
   },
   "validation": {
-    "full_repository": "310 passed, 3 subtests passed",
+    "full_repository": "314 passed, 3 subtests passed",
     "architecture": "PASS, 0 errors",
     "restore_equivalence": "next-tick events, candidate trace, hidden users, supply and projection are tensor-equal"
+  },
+  "world_branch_control": {
+    "factual_branch": "main",
+    "training_authority": "main only",
+    "diagnostic_branch_kinds": [
+      "shadow",
+      "replay",
+      "counterfactual"
+    ],
+    "head_update": "locked compare-and-swap over immutable direct-child checkpoints",
+    "resume": "runner resolves the registered branch head when no checkpoint id is supplied"
   },
   "simulation": {
     "users": 20000,
@@ -37,8 +48,24 @@
       "checkpoint_id": "69f5e8da54e20ef4e09a8b0f5818fd70af2a1080ff48beb3232d2b4256903737"
     },
     {
-      "role": "recent_ann_pending_attempt_1",
-      "checkpoint_id": "87f1fa6990584f2db57792d13c81a998ec4ec61dfc98e1f95991f2d54bb13d0c"
+      "role": "recent_ann_rejected",
+      "checkpoint_id": "30d4f2f44db190de6921ac87d675cc75bdbdf9f41b0f581fa90fa8e54b1264c5"
+    },
+    {
+      "role": "recent_graph_stopped_inconclusive",
+      "checkpoint_id": "d16781dda0e474e6c000fb1093fa9df4b7b35eb8ca0eb949e1496cb24c2539b1"
+    },
+    {
+      "role": "following_stopped_inconclusive",
+      "checkpoint_id": "1a19a44cfcd40e2f9d6790bffc7f8f1260273fe7211eac1b72bb708545600f5a"
+    },
+    {
+      "role": "hot_stopped_inconclusive",
+      "checkpoint_id": "f12343212b3a3b4b9d5a2b1403b574c9fbec388d13500831037bd1f93a0ea584"
+    },
+    {
+      "role": "evergreen_stopped_inconclusive_and_current_main_head",
+      "checkpoint_id": "e31caeb662860379bf40e9d597069163d2023eb2cdf462bc31005b039eaeca1e"
     }
   ],
   "invalidated_branch": {
@@ -114,35 +141,159 @@
     {
       "id": "R-LR-003",
       "change": "Random plus Popular to add recent ANN retrieval",
-      "attempts": 1,
-      "analysis_ticks": [36, 43],
+      "attempts": 2,
+      "analysis_ticks": [36, 51],
       "requests": {
-        "control": 1208,
-        "treatment": 1256,
-        "default": 4887
+        "control": 2768,
+        "treatment": 2843,
+        "default": 10592
       },
       "triggered_users": {
-        "control": 319,
-        "treatment": 347
+        "control": 537,
+        "treatment": 589
       },
       "relative_delta": {
-        "dwell_seconds": -0.042455755174160004,
-        "long_view": -0.031063176691532135,
-        "play_3s": -0.011349037289619446,
-        "complete": 0.2060651332139969,
-        "negative": -0.1847642958164215
+        "dwell_seconds": -0.11722,
+        "long_view": -0.11029,
+        "negative": -0.07593
       },
       "dwell_absolute_ci95_seconds": [
-        -7.816030502319336,
-        3.6698131561279297
+        -14.1415,
+        -1.94525
       ],
       "route_pass_rate": {
         "recall": 1.0,
         "coarse": 1.0,
-        "fine": 0.5582276736493936,
-        "exposed": 0.24662348401323042
+        "fine": 0.582908,
+        "exposed": 0.260969
       },
-      "decision": "hold"
+      "decision": "reject"
+    },
+    {
+      "id": "R-LR-004",
+      "change": "Random plus Popular to add recent Graph retrieval",
+      "attempts": 3,
+      "analysis_ticks": [52, 75],
+      "requests": {
+        "control": 4761,
+        "treatment": 4676,
+        "default": 18306
+      },
+      "triggered_users": {
+        "control": 837,
+        "treatment": 809
+      },
+      "relative_delta": {
+        "dwell_seconds": -0.0370076447725296,
+        "long_view": -0.04671427607536316,
+        "play_3s": -0.02912333607673645,
+        "complete": 0.0007682815776206553,
+        "negative": 0.03954523429274559
+      },
+      "dwell_absolute_ci95_seconds": [
+        -8.95967960357666,
+        3.0405054092407227
+      ],
+      "route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 0.9979404893643182,
+        "fine": 0.6995266199434403,
+        "exposed": 0.29328046231402927
+      },
+      "decision": "stop_inconclusive"
+    },
+    {
+      "id": "R-LR-005",
+      "change": "Random plus Popular to add Following retrieval",
+      "attempts": 3,
+      "analysis_ticks": [76, 99],
+      "requests": {
+        "control": 4409,
+        "treatment": 4456,
+        "default": 16856
+      },
+      "triggered_users": {
+        "control": 814,
+        "treatment": 784
+      },
+      "relative_delta": {
+        "dwell_seconds": 0.07006384432315826,
+        "long_view": 0.09636013954877853,
+        "negative": 0.01649516448378563
+      },
+      "dwell_absolute_ci95_seconds": [
+        -0.935908317565918,
+        10.981776237487793
+      ],
+      "route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 0.6625492968226803,
+        "fine": 0.13810551380311034,
+        "exposed": 0.05590073666195401
+      },
+      "decision": "stop_inconclusive"
+    },
+    {
+      "id": "R-LR-006",
+      "change": "Random plus Popular to add Hot retrieval",
+      "attempts": 3,
+      "analysis_ticks": [100, 123],
+      "requests": {
+        "control": 5253,
+        "treatment": 4750,
+        "default": 18874
+      },
+      "triggered_users": {
+        "control": 885,
+        "treatment": 819
+      },
+      "relative_delta": {
+        "dwell_seconds": 0.012690710835158825,
+        "long_view": -0.002670570509508252,
+        "negative": 0.006488715298473835
+      },
+      "dwell_absolute_ci95_seconds": [
+        -5.113458156585693,
+        7.201531887054443
+      ],
+      "route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 0.9961014535096049,
+        "fine": 0.5044646117887663,
+        "exposed": 0.2713643999707837
+      },
+      "decision": "stop_inconclusive"
+    },
+    {
+      "id": "R-LR-007",
+      "change": "Random plus Popular to add Evergreen retrieval",
+      "attempts": 3,
+      "analysis_ticks": [124, 147],
+      "requests": {
+        "control": 3522,
+        "treatment": 3369,
+        "default": 11706
+      },
+      "triggered_users": {
+        "control": 594,
+        "treatment": 605
+      },
+      "relative_delta": {
+        "dwell_seconds": -0.04692651331424713,
+        "long_view": -0.06208013743162155,
+        "negative": 0.0037337427493184805
+      },
+      "dwell_absolute_ci95_seconds": [
+        -11.502464294433594,
+        3.310081958770752
+      ],
+      "route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 0.6438235876125458,
+        "fine": 0.0985455624814485,
+        "exposed": 0.0375482338972989
+      },
+      "decision": "stop_inconclusive"
     }
   ]
 }

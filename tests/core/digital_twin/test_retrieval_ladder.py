@@ -89,7 +89,7 @@ def test_significant_primary_regression_rejects_before_promotion():
     assert reason == "stay significantly decreases"
 
 
-def test_retrieval_ladder_resumes_from_promoted_world_state(tmp_path):
+def test_retrieval_ladder_resumes_from_registered_world_head(tmp_path):
     initial = RetrievalLadderConfig(
         users=128,
         items=1_200,
@@ -109,7 +109,6 @@ def test_retrieval_ladder_resumes_from_promoted_world_state(tmp_path):
     resumed = run_retrieval_ladder(RetrievalLadderConfig(
         **{
             **initial.__dict__,
-            "resume_checkpoint_id": first["final_checkpoint_id"],
             "max_reviews": 1,
         },
     ))
@@ -121,3 +120,4 @@ def test_retrieval_ladder_resumes_from_promoted_world_state(tmp_path):
         first["reviews"][0]["requests"]["control"]
     )
     assert resumed["resumed_from_checkpoint"] == first["final_checkpoint_id"]
+    assert resumed["world_branch"] == "main"
