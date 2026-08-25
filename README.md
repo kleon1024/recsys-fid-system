@@ -5,9 +5,9 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
-## Current Feed model V4 and governance world V5
+## Historical Feed model V4 and governance world V5
 
-The active Feed simulator is now an external sequence world with a hidden
+This retained legacy benchmark uses an external sequence world with a hidden
 four-group user mixture, 64-step online behavior state, conditional watch-time
 distribution, temporal drift, and a consumer-to-creator-to-new-supply loop. The
 same request state feeds logging and online serving. The frozen dataset contains
@@ -759,6 +759,10 @@ The [POI Posting / Supply V4 Launch Review](docs/launch-reviews/2026-08-24-poi-p
 records repeated-creator panels, post-publication label maturity, creator-cluster
 A/B, recall failures, Linear promotion, and the direct rejection of W&D and MMoE
 despite their higher offline AUC.
+
+These figures document the pre-digital-twin-v4 evolution and are not the current
+launch authority. Current scope, accepted evidence and reopened ranking contracts
+are maintained in the [v4 execution plan](docs/plans/digital-twin-v4-execution-plan.md).
 
 ## Run
 
