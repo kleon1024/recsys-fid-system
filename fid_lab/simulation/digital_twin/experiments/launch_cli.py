@@ -11,6 +11,14 @@ from ..runtime_paths import RuntimePaths
 from .launch import FeedLaunchSpec, initialize_canonical_runtime, run_feed_launch
 
 
+def resolve_runtime_paths(root: Path | None) -> RuntimePaths:
+    return (
+        RuntimePaths(root.expanduser())
+        if root is not None
+        else RuntimePaths.standard(STANDARD_FEED_PROFILE)
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--plan", type=Path)
@@ -18,10 +26,7 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--initialize-only", action="store_true")
     args = parser.parse_args()
-    paths = RuntimePaths.standard(
-        STANDARD_FEED_PROFILE,
-        args.runtime_root,
-    )
+    paths = resolve_runtime_paths(args.runtime_root)
     if args.initialize_only:
         result = {
             "checkpoint_id": initialize_canonical_runtime(
