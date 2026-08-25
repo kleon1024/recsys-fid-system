@@ -23,7 +23,7 @@ from .lifecycle import LIFECYCLE_POLICY_VERSION, LifecycleConfig
 from .features import DEFAULT_FEATURE_MANIFEST, FeatureManifest
 from .markets.ads import enforce_ad_budget
 from .ranking import CascadePolicy, CascadeRanker, RankingConfig
-from .ranking import LearnedFineScorer
+from .ranking import LearnedCoarseScorer, LearnedFineScorer
 from .requests import open_platform_requests
 from .retrieval import MultiRouteRetriever, RetrievalConfig
 
@@ -97,6 +97,14 @@ class ReferenceRecommendationPlatform:
         self, serving_version_id: int, scorer: LearnedFineScorer,
     ) -> None:
         self.ranker.install_fine_scorer(serving_version_id, scorer)
+
+    def install_coarse_scorer(
+        self, serving_version_id: int, scorer: LearnedCoarseScorer,
+    ) -> None:
+        self.ranker.install_coarse_scorer(serving_version_id, scorer)
+
+    def validate_policy_artifacts(self, policy: CascadePolicy) -> None:
+        self.ranker.validate_policy_artifacts(policy)
 
     def snapshot(self) -> PlatformServingSnapshot:
         return PlatformServingSnapshot(

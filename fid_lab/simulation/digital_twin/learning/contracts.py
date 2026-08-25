@@ -101,6 +101,28 @@ class ArtifactCompatibility:
 
 
 @dataclass(frozen=True)
+class ServingCompatibility:
+    """Fields that the online scorer can independently verify."""
+
+    feature_manifest_hash: str
+    feature_version: str
+    fid_version: str
+    catalog_version: str
+    index_version: str
+    code_sha256: str
+
+    def __post_init__(self) -> None:
+        for name, value in asdict(self).items():
+            if not value:
+                raise ValueError(f"serving compatibility requires {name}")
+
+    def validate(self, artifact: ArtifactCompatibility) -> None:
+        for name, value in asdict(self).items():
+            if getattr(artifact, name) != value:
+                raise ValueError(f"serving {name} differs from model artifact")
+
+
+@dataclass(frozen=True)
 class ProbeBatch:
     request_id: torch.Tensor
     user_id: torch.Tensor

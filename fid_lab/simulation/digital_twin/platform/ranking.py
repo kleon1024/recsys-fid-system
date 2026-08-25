@@ -130,7 +130,7 @@ class RankedStages:
     candidate_features: FeatureTensorBatch
 
 
-class LearnedFineScorer(Protocol):
+class LearnedRankScorer(Protocol):
     feature_manifest_hash: str
 
     def score(
@@ -138,6 +138,10 @@ class LearnedFineScorer(Protocol):
         features: FeatureTensorBatch,
         surface: torch.Tensor,
     ) -> torch.Tensor: ...
+
+
+LearnedCoarseScorer = LearnedRankScorer
+LearnedFineScorer = LearnedRankScorer
 
 
 class CascadeRanker:
@@ -155,16 +159,51 @@ class CascadeRanker:
         self.features = PlatformFeatureEncoder(
             catalog, retriever, ticks_per_day, feature_manifest,
         )
+        self._coarse_scorers: dict[int, LearnedCoarseScorer] = {}
         self._fine_scorers: dict[int, LearnedFineScorer] = {}
+
+    def install_coarse_scorer(
+        self, serving_version_id: int, scorer: LearnedCoarseScorer,
+    ) -> None:
+        self._install_scorer(
+            self._coarse_scorers, serving_version_id, scorer, "coarse",
+        )
 
     def install_fine_scorer(
         self, serving_version_id: int, scorer: LearnedFineScorer,
     ) -> None:
+        self._install_scorer(
+            self._fine_scorers, serving_version_id, scorer, "fine",
+        )
+
+    def _install_scorer(
+        self,
+        registry: dict[int, LearnedRankScorer],
+        serving_version_id: int,
+        scorer: LearnedRankScorer,
+        stage: str,
+    ) -> None:
         if serving_version_id <= 0:
             raise ValueError("learned serving version must be positive")
         if scorer.feature_manifest_hash != self.features.manifest.manifest_hash:
-            raise ValueError("fine scorer feature manifest is incompatible")
-        self._fine_scorers[serving_version_id] = scorer
+            raise ValueError(f"{stage} scorer feature manifest is incompatible")
+        registry[serving_version_id] = scorer
+
+    def validate_policy_artifacts(self, policy: CascadePolicy) -> None:
+        missing = []
+        if policy.coarse_version_id > 0 and (
+            policy.coarse_version_id not in self._coarse_scorers
+        ):
+            missing.append(f"coarse={policy.coarse_version_id}")
+        if policy.fine_version_id > 0 and (
+            policy.fine_version_id not in self._fine_scorers
+        ):
+            missing.append(f"fine={policy.fine_version_id}")
+        if missing:
+            raise ValueError(
+                "policy references uninstalled model artifacts: "
+                + ", ".join(missing)
+            )
 
     @staticmethod
     def _top(
@@ -204,15 +243,8 @@ class CascadeRanker:
             retrieval.score,
             retrieval.route_bits,
         )
-        coarse_weight = torch.tensor(
-            policy.coarse_weights,
-            device=retrieval.item_id.device,
-        )
-        coarse_dense = candidate_features.dense[:, :, :10]
-        coarse_raw = torch.einsum("bkd,d->bk", coarse_dense, coarse_weight)
-        coarse_raw += policy.cross_weight * (
-            coarse_dense[:, :, 0] * coarse_dense[:, :, 1]
-            + coarse_dense[:, :, 4] * coarse_dense[:, :, 5]
+        coarse_raw = self._coarse_scores(
+            candidate_features, retrieval.item_id, requests, policy,
         )
         deterministic_coarse, _ = self._top(
             retrieval.item_id, coarse_raw, self.config.coarse_k,
@@ -515,6 +547,28 @@ class CascadeRanker:
         score = torch.einsum("bkd,d->bk", dense, weight)
         score += policy.cross_weight * torch.sin(1.7 * dense[:, :, 0]) * dense[:, :, 1]
         score += policy.sequence_weight * features.dense[:, :, 10]
+        return score.masked_fill(item_id < 0, -torch.inf)
+
+    def _coarse_scores(
+        self,
+        features: FeatureTensorBatch,
+        item_id: torch.Tensor,
+        requests: PlatformRequestBatch,
+        policy: CascadePolicy,
+    ) -> torch.Tensor:
+        scorer = self._coarse_scorers.get(policy.coarse_version_id)
+        if scorer is not None:
+            score = scorer.score(features, requests.surface)
+            if score.shape != item_id.shape:
+                raise ValueError("learned coarse scorer returned an invalid shape")
+            return score.to(item_id.device).masked_fill(item_id < 0, -torch.inf)
+        dense = features.dense[:, :, :10]
+        weight = torch.tensor(policy.coarse_weights, device=item_id.device)
+        score = torch.einsum("bkd,d->bk", dense, weight)
+        score += policy.cross_weight * (
+            dense[:, :, 0] * dense[:, :, 1]
+            + dense[:, :, 4] * dense[:, :, 5]
+        )
         return score.masked_fill(item_id < 0, -torch.inf)
 
     @staticmethod

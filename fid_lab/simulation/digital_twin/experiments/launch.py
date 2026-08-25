@@ -17,6 +17,8 @@ from ..evaluation.experiment import aa_decision, factual_ab_report
 from ..evaluation.request import stage_report, support_report
 from ..learning.request_stream import FactualRequestStream
 from ..learning.request_stream import FactualRequestPartitionRef
+from ..learning.contracts import ServingCompatibility, learning_source_hash
+from ..learning.registry import PersistentModelRegistry
 from ..platform import CascadePolicy
 from ..profile import STANDARD_FEED_PROFILE, SimulationProfile
 from ..runtime_paths import RuntimePaths
@@ -177,6 +179,50 @@ def _resolved_policies(
         **spec.treatment_changes,
     )
     return active, treatment
+
+
+def _serving_compatibility(kernel) -> ServingCompatibility:
+    platform = kernel.platform
+    manifest = platform.ranker.features.manifest
+    return ServingCompatibility(
+        feature_manifest_hash=manifest.manifest_hash,
+        feature_version=manifest.schema_version,
+        fid_version=f"fid-{manifest.fid_version}",
+        catalog_version=platform.config.catalog_version,
+        index_version=platform.retriever.index_version,
+        code_sha256=learning_source_hash(),
+    )
+
+
+def _install_policy_artifacts(
+    kernel,
+    paths: RuntimePaths,
+    policies: tuple[CascadePolicy, ...],
+) -> None:
+    registry = PersistentModelRegistry(paths.model_registry)
+    compatibility = _serving_compatibility(kernel)
+    coarse_versions = {
+        policy.coarse_version_id for policy in policies
+        if policy.coarse_version_id > 0
+    }
+    fine_versions = {
+        policy.fine_version_id for policy in policies
+        if policy.fine_version_id > 0
+    }
+    artifacts = {}
+    for version in coarse_versions | fine_versions:
+        _, artifact = registry.load_version_for_serving(
+            version, compatibility,
+        )
+        if not callable(getattr(artifact, "score", None)):
+            raise ValueError("ranking policy references a non-ranking artifact")
+        artifacts[version] = artifact
+    for version in coarse_versions:
+        kernel.platform.install_coarse_scorer(version, artifacts[version])
+    for version in fine_versions:
+        kernel.platform.install_fine_scorer(version, artifacts[version])
+    for policy in policies:
+        kernel.platform.validate_policy_artifacts(policy)
 
 
 def _source_revision(root: Path) -> str:
@@ -357,6 +403,7 @@ def run_feed_launch(
         raise ValueError("launch predecessor has not passed")
     active = _active_policy(restored.experiment)
     control, treatment = _resolved_policies(active, spec)
+    _install_policy_artifacts(kernel, paths, (control, treatment))
     plan = ExperimentPlan.ramped_user_ab(
         active_policy=control,
         treatment_policy=treatment,

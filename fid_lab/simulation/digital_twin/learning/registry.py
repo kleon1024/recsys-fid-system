@@ -14,7 +14,7 @@ from filelock import FileLock
 import torch
 
 from ..observability import CheckpointRecord, replace_json_atomic
-from .contracts import ArtifactCompatibility, Lane
+from .contracts import ArtifactCompatibility, Lane, ServingCompatibility
 from .probe import ProbeArtifact
 
 
@@ -241,6 +241,16 @@ class PersistentModelRegistry:
         corpus=None,
     ) -> tuple[ModelRecord, RegistryArtifact]:
         return self._load_record(self.record(version), expected, corpus=corpus)
+
+    def load_version_for_serving(
+        self,
+        version: int,
+        expected: ServingCompatibility,
+    ) -> tuple[ModelRecord, RegistryArtifact]:
+        record = self.record(version)
+        artifact_compatibility = ArtifactCompatibility(**record.compatibility)
+        expected.validate(artifact_compatibility)
+        return self._load_record(record, artifact_compatibility)
 
     def _load_record(
         self,

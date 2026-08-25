@@ -509,6 +509,41 @@ def test_installed_learned_scorer_replays_exact_score_and_version():
     assert torch.allclose(replay[valid], trace.fine_input_score[valid])
 
 
+def test_installed_learned_coarse_scorer_replays_exact_score_and_version():
+    world, platform, log, _, _, _ = build_system(users=128, items=1_600)
+
+    class QualityScorer:
+        feature_manifest_hash = DEFAULT_FEATURE_MANIFEST.manifest_hash
+
+        @staticmethod
+        def score(features, surface):
+            del surface
+            return features.dense[:, :, 1]
+
+    serving_version = 78
+    scorer = QualityScorer()
+    platform.install_coarse_scorer(serving_version, scorer)
+    policy = CascadePolicy("learned-coarse", serving_version, 1, 1)
+    result = AtomicSimulationKernel(world, platform, log).step(
+        0,
+        ExperimentPlan.ramped_user_ab(
+            active_policy=policy,
+            treatment_policy=policy,
+            experiment_seed=92,
+            control_fraction=0.25,
+            treatment_fraction=0.25,
+        ),
+    )
+    trace = result.candidate_trace
+    assert trace is not None
+    assert (trace.coarse_version_id == serving_version).all()
+    valid = trace.recall_item_id >= 0
+    assert torch.allclose(
+        trace.candidate_dense_features[:, :, 1][valid],
+        trace.coarse_input_score[valid],
+    )
+
+
 def test_installed_learned_retriever_owns_ann_route_and_index_version():
     world, platform, log, _, plan, catalog = build_system(users=128, items=1_600)
 

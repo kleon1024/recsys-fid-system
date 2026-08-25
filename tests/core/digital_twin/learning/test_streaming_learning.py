@@ -14,7 +14,10 @@ from fid_lab.simulation.digital_twin.learning import (
     load_probe_batch,
     train_probe,
 )
-from fid_lab.simulation.digital_twin.learning.contracts import content_hash
+from fid_lab.simulation.digital_twin.learning.contracts import (
+    ServingCompatibility,
+    content_hash,
+)
 from fid_lab.simulation.digital_twin.learning.benchmark import (
     LearningBenchmarkConfig,
     run_learning_benchmark,
@@ -116,6 +119,23 @@ def test_probe_registry_rejects_mismatch_and_preserves_fallback(tmp_path):
     ), batch.surface[:8])
     assert replay_score.shape == (8, 1)
     assert torch.isfinite(replay_score).all()
+    serving = ServingCompatibility(
+        feature_manifest_hash=compatibility.feature_manifest_hash,
+        feature_version=compatibility.feature_version,
+        fid_version=compatibility.fid_version,
+        catalog_version=compatibility.catalog_version,
+        index_version=compatibility.index_version,
+        code_sha256=compatibility.code_sha256,
+    )
+    served, _ = restarted.load_version_for_serving(
+        first.serving_version_id, serving,
+    )
+    assert served.serving_version_id == first.serving_version_id
+    with pytest.raises(ValueError, match="serving index_version"):
+        restarted.load_version_for_serving(
+            first.serving_version_id,
+            replace(serving, index_version="wrong-index"),
+        )
     with pytest.raises(ValueError, match="incompatible"):
         restarted.load(
             "active", replace(compatibility, index_version="wrong-index"),
