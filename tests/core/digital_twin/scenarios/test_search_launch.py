@@ -56,6 +56,7 @@ def test_search_launch_isolates_semantic_route_and_keeps_factual_stream(tmp_path
         users=1_024,
         items=8_000,
         device="cpu",
+        ticks_per_day=8,
         experiment_steps=2,
         minimum_triggered_users=10_000,
         maximum_attempts=1,

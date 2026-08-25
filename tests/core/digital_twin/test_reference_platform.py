@@ -561,6 +561,38 @@ def test_exact_exposure_membership_matches_reference_broadcast():
     assert torch.equal(_exact_membership(route, history, selected), reference)
 
 
+def test_random_only_policy_does_not_build_unused_routes(monkeypatch):
+    world, platform, log, _, _, _ = build_system(users=128, items=1_600)
+
+    def unexpected(*args, **kwargs):
+        del args, kwargs
+        raise AssertionError("disabled route performed serving work")
+
+    monkeypatch.setattr(platform.retriever.faiss, "search", unexpected)
+    monkeypatch.setattr(
+        platform.retriever, "_business_route_candidates", unexpected,
+    )
+    policy = CascadePolicy(
+        "random-only",
+        1,
+        1,
+        1,
+        enabled_routes=("random",),
+        enabled_business_routes=(),
+    )
+    AtomicSimulationKernel(world, platform, log).step(
+        0,
+        ExperimentPlan.ramped_user_ab(
+            active_policy=policy,
+            treatment_policy=policy,
+            experiment_seed=93,
+            control_fraction=0.25,
+            treatment_fraction=0.25,
+        ),
+    )
+    assert platform.retriever.faiss.version == "unbuilt"
+
+
 def test_installed_learned_retriever_owns_ann_route_and_index_version():
     world, platform, log, _, plan, catalog = build_system(users=128, items=1_600)
 
@@ -643,4 +675,5 @@ def test_content_removal_updates_projection_and_rebuilds_ann_index():
     )
     platform.ingest(removal)
     assert not platform.projection.state.item_active[post].any()
+    kernel.step(2, plan)
     assert not platform.retriever.faiss._indexed_active[post].any()

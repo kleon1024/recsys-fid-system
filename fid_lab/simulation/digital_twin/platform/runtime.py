@@ -88,10 +88,6 @@ class ReferenceRecommendationPlatform:
     def ingest(self, events: AppEventBatch) -> None:
         self.retriever.ingest(events)
         self.projection.ingest(events)
-        if len(events.ingest_time):
-            self.retriever.refresh(
-                self.projection.state, int(events.ingest_time.max()),
-            )
 
     def install_fine_scorer(
         self, serving_version_id: int, scorer: LearnedFineScorer,

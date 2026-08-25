@@ -131,6 +131,7 @@ def test_ads_launch_keeps_market_and_factual_stream_transactional(tmp_path):
         users=256,
         items=3_000,
         device="cpu",
+        ticks_per_day=8,
         experiment_steps=2,
         minimum_triggered_users=10_000,
         maximum_attempts=1,

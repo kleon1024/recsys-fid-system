@@ -23,6 +23,7 @@ from ..contracts import (
 from .projection import ITEM_COUNTER_EVENTS, PlatformProjectionState
 from .lifecycle import ContentLifecycle
 from .routes import (
+    BUSINESS_ROUTE_NAMES,
     MAIN_FEED_LIFECYCLES,
     ROUTE_NAMES,
     build_feed_route_signals,
@@ -286,11 +287,13 @@ class MultiRouteRetriever:
             raise ValueError(f"unknown retrieval routes: {sorted(unknown)}")
         if not enabled_routes:
             raise ValueError("at least one retrieval route must be enabled")
-        if self.faiss.version == "unbuilt":
+        indexed_routes = {"recent_ann", "recent_graph", "search_semantic", "retarget"}
+        if set(enabled_routes) & (indexed_routes | set(BUSINESS_ROUTE_NAMES)):
             self.refresh(state, int(requests.event_time.min()))
         route_item, route_score = self._route_candidates(
             requests,
             state,
+            enabled_routes,
             commerce_require_inventory=commerce_require_inventory,
             commerce_min_inventory=commerce_min_inventory,
         )
@@ -373,116 +376,155 @@ class MultiRouteRetriever:
         self,
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
+        enabled_routes: tuple[str, ...],
         *,
         commerce_require_inventory: bool = False,
         commerce_min_inventory: float = 0.0,
     ) -> tuple[torch.Tensor, torch.Tensor]:
-        routes = {
-            **self._feed_route_candidates(requests, state),
-            **self._business_route_candidates(
+        enabled = set(enabled_routes)
+        routes = self._feed_route_candidates(requests, state, enabled)
+        business_enabled = enabled - set(routes)
+        if business_enabled:
+            business = self._business_route_candidates(
                 requests,
                 state,
                 commerce_require_inventory=commerce_require_inventory,
                 commerce_min_inventory=commerce_min_inventory,
-            ),
-        }
-        missing = set(ROUTE_NAMES) - set(routes)
+            )
+            routes.update({
+                name: value for name, value in business.items()
+                if name in business_enabled
+            })
+        missing = enabled - set(routes)
         extra = set(routes) - set(ROUTE_NAMES)
         if missing or extra:
             raise ValueError(
                 f"route registry mismatch: missing={sorted(missing)}, "
                 f"extra={sorted(extra)}"
             )
+        empty_item = torch.full(
+            (len(requests.user_id), self.config.route_k),
+            -1, device=self.device, dtype=torch.long,
+        )
+        empty_score = torch.full_like(empty_item, -torch.inf, dtype=torch.float)
+        empty = (empty_item, empty_score)
         return (
-            torch.stack(tuple(routes[name][0] for name in ROUTE_NAMES), dim=1),
-            torch.stack(tuple(routes[name][1] for name in ROUTE_NAMES), dim=1),
+            torch.stack(tuple(
+                routes.get(name, empty)[0] for name in ROUTE_NAMES
+            ), dim=1),
+            torch.stack(tuple(
+                routes.get(name, empty)[1] for name in ROUTE_NAMES
+            ), dim=1),
         )
 
     def _feed_route_candidates(
         self,
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
+        enabled: set[str],
     ) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
+        feed_enabled = enabled & {
+            "random", "popular", "recent_ann", "recent_graph", "following",
+            "cold_start", "hot", "evergreen",
+        }
+        if not feed_enabled:
+            return {}
+        routes = {}
+        if "recent_ann" in feed_enabled:
+            routes["recent_ann"] = self._recent_ann_candidates(requests, state)
+        if "recent_graph" in feed_enabled:
+            routes["recent_graph"] = self._recent_graph_candidates(requests, state)
+        signal_routes = feed_enabled - {"recent_ann", "recent_graph"}
+        if signal_routes:
+            signals = build_feed_route_signals(
+                self.catalog, state, requests.event_time.max(),
+            )
+            routes.update(self._signal_route_candidates(
+                requests, state, signals, signal_routes,
+            ))
+        return routes
+
+    def _recent_ann_candidates(self, requests, state):
         if self.learned_retriever is None:
             query = self.query_embedding(requests, state)
-            ann_item, ann_score = self.faiss.search(
+            item, score = self.faiss.search(
                 query, self.config.route_k * self.config.ann_oversample,
             )
         else:
-            ann_item, ann_score = self.learned_retriever.retrieve(
+            item, score = self.learned_retriever.retrieve(
                 requests, state, self.config.route_k * self.config.ann_oversample,
             )
-        ann_item, ann_score = self._filter_and_trim(
+        return self._filter_and_trim(
             requests,
             state,
-            ann_item,
-            ann_score,
+            item,
+            score,
             required_surface=Surface.FEED,
             allowed_lifecycle=(int(ContentLifecycle.RECENT),),
         )
+
+    def _recent_graph_candidates(self, requests, state):
         last_item = self._last_item(requests, state)
-        graph_item = self.graph.neighbor[last_item.clamp_min(0)]
-        graph_score = self.graph.score[last_item.clamp_min(0)]
-        graph_item = torch.where(
-            (last_item >= 0)[:, None], graph_item, torch.full_like(graph_item, -1)
+        item = self.graph.neighbor[last_item.clamp_min(0)]
+        score = self.graph.score[last_item.clamp_min(0)]
+        item = torch.where(
+            (last_item >= 0)[:, None], item, torch.full_like(item, -1),
         )
-        graph_item, graph_score = self._filter_and_trim(
+        return self._filter_and_trim(
             requests,
             state,
-            graph_item,
-            graph_score,
+            item,
+            score,
             required_surface=Surface.FEED,
             allowed_lifecycle=(int(ContentLifecycle.RECENT),),
         )
-        signals = build_feed_route_signals(
-            self.catalog, state, requests.event_time.max(),
-        )
-        random_item, random_value = self._rotating_lifecycle_candidates(
-            requests,
-            state,
-            signals.random,
-            MAIN_FEED_LIFECYCLES,
-        )
-        popular_item, popular_value = self._top_for_surface(
-            requests,
-            state,
-            signals.popular,
-            Surface.FEED,
-            allowed_lifecycle=tuple(
-                int(value) for value in MAIN_FEED_LIFECYCLES
-            ),
-        )
-        cold_item, cold_value = self._rotating_lifecycle_candidates(
-            requests,
-            state,
-            signals.cold_start,
-            ContentLifecycle.COLD_START,
-        )
-        hot_item, hot_value = self._top_for_surface(
-            requests,
-            state,
-            signals.hot,
-            Surface.FEED,
-            allowed_lifecycle=(int(ContentLifecycle.HOT),),
-        )
-        evergreen_item, evergreen_value = self._top_for_surface(
-            requests,
-            state,
-            signals.evergreen,
-            Surface.FEED,
-            allowed_lifecycle=(int(ContentLifecycle.EVERGREEN),),
-        )
-        followed_creator = self._last_followed_creator(requests, state)
-        followed_creator = torch.where(
+
+    def _signal_route_candidates(
+        self, requests, state, signals, enabled,
+    ):
+        routes = {}
+        main_lifecycle = tuple(int(value) for value in MAIN_FEED_LIFECYCLES)
+        if "random" in enabled:
+            routes["random"] = self._rotating_lifecycle_candidates(
+                requests, state, signals.random, MAIN_FEED_LIFECYCLES,
+            )
+        if "popular" in enabled:
+            routes["popular"] = self._top_for_surface(
+                requests, state, signals.popular, Surface.FEED,
+                allowed_lifecycle=main_lifecycle,
+            )
+        if "cold_start" in enabled:
+            routes["cold_start"] = self._rotating_lifecycle_candidates(
+                requests, state, signals.cold_start, ContentLifecycle.COLD_START,
+            )
+        if "hot" in enabled:
+            routes["hot"] = self._top_for_surface(
+                requests, state, signals.hot, Surface.FEED,
+                allowed_lifecycle=(int(ContentLifecycle.HOT),),
+            )
+        if "evergreen" in enabled:
+            routes["evergreen"] = self._top_for_surface(
+                requests, state, signals.evergreen, Surface.FEED,
+                allowed_lifecycle=(int(ContentLifecycle.EVERGREEN),),
+            )
+        if "following" in enabled:
+            routes["following"] = self._following_candidates(
+                requests, state, signals.following,
+            )
+        return routes
+
+    def _following_candidates(self, requests, state, score):
+        creator = self._last_followed_creator(requests, state)
+        creator = torch.where(
             requests.surface == int(Surface.FEED),
-            followed_creator,
-            torch.full_like(followed_creator, -1),
+            creator,
+            torch.full_like(creator, -1),
         )
-        following_item, following_score = self._top_by_group(
+        return self._top_by_group(
             requests,
             state,
-            signals.following,
-            followed_creator,
+            score,
+            creator,
             state.item_creator_id,
             allowed_lifecycle=(
                 int(ContentLifecycle.COLD_START),
@@ -491,16 +533,6 @@ class MultiRouteRetriever:
                 int(ContentLifecycle.EVERGREEN),
             ),
         )
-        return {
-            "random": (random_item, random_value),
-            "popular": (popular_item, popular_value),
-            "recent_ann": (ann_item, ann_score),
-            "recent_graph": (graph_item, graph_score),
-            "following": (following_item, following_score),
-            "cold_start": (cold_item, cold_value),
-            "hot": (hot_item, hot_value),
-            "evergreen": (evergreen_item, evergreen_value),
-        }
 
     def _business_route_candidates(
         self,
