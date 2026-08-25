@@ -28,9 +28,10 @@ from ..platform.projection import ProjectionSnapshot
 from ..samples.contracts import RequestCandidateTrace, RequestContextBatch
 
 
-FACTUAL_REQUEST_STREAM_SCHEMA = "factual-request-stream/v2"
+FACTUAL_REQUEST_STREAM_SCHEMA = "factual-request-stream/v3"
 READABLE_REQUEST_STREAM_SCHEMAS = frozenset({
     "factual-request-stream/v1",
+    "factual-request-stream/v2",
     FACTUAL_REQUEST_STREAM_SCHEMA,
 })
 
@@ -51,7 +52,6 @@ class FactualRequestPartition:
     trace: RequestCandidateTrace
     context: RequestContextBatch
     events: AppEventBatch
-    projection: ProjectionSnapshot
     layer_assignment: LayerAssignmentTrace | None
     world_manifest: dict[str, str] = field(default_factory=dict)
 
@@ -64,8 +64,6 @@ class FactualRequestPartition:
             self.trace.event_time == self.logical_time
         ).all():
             raise ValueError("request partition contains another event time")
-        if self.projection.as_of_ingest_time < self.logical_time:
-            raise ValueError("request partition projection predates requests")
         if self.layer_assignment is not None and not torch.equal(
             self.trace.request_id, self.layer_assignment.request_id,
         ):
@@ -93,6 +91,8 @@ class FactualRequestStream:
     ) -> tuple[FactualRequestPartitionRef, bytes]:
         if tick.candidate_trace is None or tick.request_context is None:
             raise ValueError("factual request stream requires a complete trace")
+        if projection.as_of_ingest_time < tick.logical_time:
+            raise ValueError("request partition projection predates requests")
         partition = FactualRequestPartition(
             logical_time=tick.logical_time,
             trace=tick.candidate_trace,
@@ -101,7 +101,6 @@ class FactualRequestStream:
                 tick.entry_events,
                 tick.response_events,
             )),
-            projection=projection,
             layer_assignment=tick.layer_assignment,
             world_manifest=dict(world_manifest),
         )

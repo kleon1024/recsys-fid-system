@@ -113,7 +113,7 @@ def materialize_factual_requests(
             context=request.context,
             events=events,
             samples=samples,
-            projection=request.projection,
+            projection=kernel.platform.projection.snapshot(),
             feature_manifest=kernel.platform.ranker.features.manifest,
             checkpoints=(CheckpointRecord(
                 created_time=restored.ref.logical_time,
