@@ -42,10 +42,10 @@ then calibrate primitive heads and introduce Value Tree and final-slate policy.
 | ID | Control → treatment | Frozen boundary | Launch evidence |
 |---|---|---|---|
 | F-AA-00 | A → identical A | everything | SRM passes; confidence interval covers zero; replay is exact |
-| F-R00 | no recommender → eligible random retrieval and random order | eligibility, corpus, slate width | establishes zero-personalization baseline; no lift claim |
-| F-R01 | eligible random → eligible Popular | order only | stay/session and negative feedback; concentration guardrail |
+| F-R00 | no recommender -> eligible random retrieval and randomized order | eligibility, corpus, slate width | establishes zero-personalization baseline; no lift claim |
+| F-R01 | eligible random -> eligible Popular candidates | randomized order, eligibility and slate width | stay/session and negative feedback; concentration guardrail |
 | F-R02 | Popular → Popular + 30-day recent + locale/language eligibility | popularity formula | freshness/locale slices improve without coverage collapse |
-| F-F00 | retrieval order → direct rule fine rank | small fixed candidate set | served Top-K changes; stay improves within latency budget |
+| F-F00 | randomized candidate order -> direct rule fine rank | small fixed candidate set | served Top-K changes; stay improves within latency budget |
 | F-R03 | current routes → Following/author-affinity route | ranker and route quota | marginal unique relevant recall and creator concentration |
 | F-R04 | current routes → Graph/I2I co-watch route | ranker and route quota | marginal unique recall and fixed-ranker delta, not route recall alone |
 | F-R05 | current routes → cold-start exploration route | all mature-content routes | new-post coverage/quality and Feed guardrails; exact exploration probability |
@@ -197,7 +197,10 @@ share family member failed. The immutable review remains failure evidence.
 F-AA-01 added the pre-registered Bonferroni metric-family gate and passed four
 ticks with SRM p=0.19948, zero cross-cell contamination and zero repeated Feed
 impressions. F-R00 was submitted on the RTX host, but its completion is not
-claimed until the immutable remote journal and branch head are readable.
+claimed until the immutable remote journal and branch head are readable. That
+submission used the superseded personalized-rule baseline and therefore cannot
+establish F-R00; the corrected runtime uses random retrieval plus
+`exploration_rate=1.0`.
 
 P3-06 is an
 offline equal-budget retrieval review: Lifecycle remains control and Graph, RRF,

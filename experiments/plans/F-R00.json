@@ -3,7 +3,7 @@
   "launch_id": "F-R00",
   "kind": "baseline",
   "hypothesis": "Eligible random retrieval establishes an observable zero-personalization Feed baseline.",
-  "isolated_change": "Collect the random retrieval baseline with rolling-Bloom recent-video dedup enabled.",
+  "isolated_change": "Collect random retrieval and randomized order with rolling-Bloom recent-video dedup; rule and learned scores cannot affect exposure.",
   "primary_metric": "dwell_seconds",
   "treatment_changes": {},
   "experiment_seed": 1220,

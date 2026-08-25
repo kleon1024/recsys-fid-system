@@ -1,0 +1,22 @@
+{
+  "schema": "factual-feed-launch-spec/v1",
+  "launch_id": "F-R01",
+  "kind": "policy",
+  "hypothesis": "Popular retrieval improves Feed stay over random retrieval before personalized ranking is introduced.",
+  "isolated_change": "Replace the random candidate route with Popular while preserving randomized candidate order, corpus eligibility, slate width, dedup and all downstream policy.",
+  "primary_metric": "dwell_seconds",
+  "treatment_changes": {
+    "recall_version_id": 1,
+    "enabled_routes": [
+      "popular"
+    ]
+  },
+  "experiment_seed": 1230,
+  "control_fraction": 0.2,
+  "treatment_fraction": 0.2,
+  "minimum_triggered_users": 5000,
+  "minimum_ticks": 4,
+  "maximum_ticks": 4,
+  "mde_relative": 0.005,
+  "predecessor_launch_id": "F-R00"
+}

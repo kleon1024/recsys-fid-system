@@ -82,13 +82,14 @@ class FeedLaunchSpec:
 
 def canonical_random_policy(profile: SimulationProfile) -> CascadePolicy:
     return CascadePolicy(
-        name="feed-random-dedup-v1",
+        name="feed-random-order-dedup-v2",
         recall_version_id=0,
         coarse_version_id=0,
         fine_version_id=0,
         mix_version_id=0,
         enabled_routes=("random",),
         enabled_business_routes=(),
+        exploration_rate=1.0,
         feed_exposure_dedup_ticks=30 * profile.ticks_per_day,
         feed_session_dedup=True,
     )

@@ -11,6 +11,7 @@ from fid_lab.simulation.digital_twin.checkpoint import (
 )
 from fid_lab.simulation.digital_twin.experiments.launch import (
     FeedLaunchSpec,
+    canonical_random_policy,
     initialize_canonical_runtime,
     run_feed_launch,
 )
@@ -40,6 +41,14 @@ def _aa_spec():
         minimum_ticks=2,
         maximum_ticks=4,
     )
+
+
+def test_canonical_baseline_randomizes_order_after_random_retrieval():
+    policy = canonical_random_policy(_profile())
+
+    assert policy.enabled_routes == ("random",)
+    assert policy.enabled_business_routes == ()
+    assert policy.exploration_rate == 1.0
 
 
 def test_feed_launch_advances_one_factual_world_and_keeps_policy_on_aa(tmp_path):

@@ -58,7 +58,10 @@ immutable failure evidence because its old primary-only gate missed a metric-
 family false positive. Historical route and model reports were produced by
 superseded worlds or diagnostic runners and cannot advance the canonical world.
 F-R00 has been submitted to the RTX host but remains unclaimed until its remote
-journal and branch head are readable.
+journal and branch head are readable. Audit then found that the canonical
+"random" policy still used semantic, counter, geo and sequence rule scores.
+That world remains A/A evidence only; the algorithm ladder restarts from a new
+versioned runtime whose random baseline forces randomized order.
 
 The first 100K-user/1M-item canonical tick exposed the actual critical path. A
 dense `100K × 4096 × (item,time)` int64 Feed exposure ledger consumed about
@@ -91,7 +94,7 @@ evidence and are never queried on the serving path.
 | Full-chain analytical store | Schema v4 persists retained feature/FID and task vectors; DuckDB/ClickHouse agree | Accepted for retained rows | Full scoring-input coverage remains P3-05a |
 | Recall/coarse/fine sample authorities | Recall is source-corrected; coarse covers recall universe; fine covers scorer input with masked factual labels | Implemented | Trainer/evaluator consumption remains P3-07..09 |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
-| Model ladder | Sequential factual runner; F-AA-01 passed the corrected familywise gate | F-R00 submitted but unverified while RTX SSH is unavailable | Verify immutable F-R00 journal, then run Popular without changing worlds |
+| Model ladder | Sequential factual runner; F-AA-01 passed the corrected familywise gate | Existing F-R00 submission used a non-random rule ranker and is invalid as the algorithm baseline | Verify the old journal, initialize the corrected versioned runtime, then run A/A→F-R00→Popular |
 | Search/Ads/Commerce/Live/Local/Posting | Commerce closes cart→refund; Search closes query→post-search; Ads closes budget→auction→impression/spend→click→Pixel with one-slot load | Commerce, Search and Ads implementations in validation; Local, Posting and Live remain open | C-LR-003, S-LR-001 and A-LR-001 RTX evidence remain pending |
 
 The accepted v23 NeuralSCM is the declared Feed response authority only. Its
