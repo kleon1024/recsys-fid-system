@@ -3,15 +3,15 @@
   "launch_id": "F-R00",
   "kind": "baseline",
   "hypothesis": "Eligible random retrieval establishes an observable zero-personalization Feed baseline.",
-  "isolated_change": "Collect the random retrieval baseline with exact recent-video dedup enabled.",
+  "isolated_change": "Collect the random retrieval baseline with rolling-Bloom recent-video dedup enabled.",
   "primary_metric": "dwell_seconds",
   "treatment_changes": {},
   "experiment_seed": 1220,
   "control_fraction": 0.2,
   "treatment_fraction": 0.2,
   "minimum_triggered_users": 5000,
-  "minimum_ticks": 96,
-  "maximum_ticks": 96,
+  "minimum_ticks": 4,
+  "maximum_ticks": 4,
   "mde_relative": 0.005,
   "predecessor_launch_id": "F-AA-00"
 }

@@ -768,6 +768,8 @@ rewrite.
 - Compact checkpoints and pass the fixed 100K-user/1M-item single-tick gate under
   24 GB WSL RAM and 24 GB VRAM before rebuilding the canonical world once.
 - Run F-AA-00, F-R00 and F-R01 Popular as the first complete iteration proof.
+- Use four pre-registered ticks for F-AA/F-R00 because each 20% arm exceeds
+  5,000 unique users; longer windows are reserved for powered retention/LT tests.
 - Test index/model mismatch, PS shard loss, feature delay, late labels, fallback,
   overload and recovery.
 - Delete superseded `simulation/twin` execution paths and duplicate legacy
