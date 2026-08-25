@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, fields, is_dataclass, replace
 from hashlib import sha256
 import json
 from pathlib import Path
@@ -339,6 +339,19 @@ def _write_review(
     return path
 
 
+def _offload(value):
+    if isinstance(value, torch.Tensor):
+        return value.detach().cpu()
+    if is_dataclass(value):
+        return type(value)(**{
+            field.name: _offload(getattr(value, field.name))
+            for field in fields(value)
+        })
+    if isinstance(value, tuple):
+        return tuple(_offload(item) for item in value)
+    return value
+
+
 def _execute_window(
     kernel,
     plan: ExperimentPlan,
@@ -365,8 +378,11 @@ def _execute_window(
             kernel.world.manifest(),
         ))
         if tick.candidate_trace is not None:
-            traces.append(tick.candidate_trace)
-        event_batches.extend((tick.entry_events, tick.response_events))
+            traces.append(_offload(tick.candidate_trace))
+        event_batches.extend((
+            _offload(tick.entry_events),
+            _offload(tick.response_events),
+        ))
         logical_time += 1
     return (
         tuple(traces),
