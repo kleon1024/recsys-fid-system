@@ -93,6 +93,10 @@ def build_trace():
         exposed_item_id=exposed,
         exposed_position=torch.tensor([[0, 1], [0, 1]]),
         exposure_probability=torch.ones(2, 2),
+        candidate_exposure_probability=torch.tensor([
+            [1, 1, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0],
+        ], dtype=torch.float),
         selection_policy_kind=torch.zeros(2, dtype=torch.long),
         exploration_rate=torch.zeros(2),
         slate_log_probability=torch.zeros(2),

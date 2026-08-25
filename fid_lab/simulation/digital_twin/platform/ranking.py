@@ -123,6 +123,7 @@ class RankedStages:
     exposed_score: torch.Tensor
     exposed_position: torch.Tensor
     exposure_probability: torch.Tensor
+    candidate_exposure_probability: torch.Tensor
     selection_policy_kind: torch.Tensor
     exploration_rate: torch.Tensor
     slate_log_probability: torch.Tensor
@@ -429,6 +430,9 @@ class CascadeRanker:
             targeted_position_probability(
                 exposed_item, deterministic_exposed, draw, rate,
             ),
+            targeted_admission_probability(
+                retrieval.item_id, deterministic_exposed, draw, rate,
+            ),
             selection_kind,
             torch.full_like(requests.request_id, rate, dtype=torch.float),
             targeted_slate_log_probability(
@@ -460,6 +464,11 @@ class CascadeRanker:
             eligible_count,
             policy.exploration_rate,
         )
+        candidate_exposure_probability = mixture_admission_probability(
+            retrieval.item_id,
+            deterministic_exposed,
+            policy.exploration_rate,
+        )
         slate_probability = mixture_slate_log_probability(
             exposed_item,
             deterministic_exposed,
@@ -482,6 +491,7 @@ class CascadeRanker:
             coarse_probability,
             fine_probability,
             exposure_probability,
+            candidate_exposure_probability,
             selection_kind,
             rate,
             slate_probability,

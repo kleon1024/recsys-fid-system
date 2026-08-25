@@ -413,6 +413,12 @@ class RequestLevelJoiner:
             trace.exposure_probability,
             0.0,
         )
+        candidate_exposure_probability, _ = _map_stage(
+            trace.coarse_item_id,
+            trace.recall_item_id,
+            trace.candidate_exposure_probability,
+            0.0,
+        )
         dense_features, sparse_fids, sparse_buckets = _map_fine_features(trace)
         joint_probability = (
             exposure_probability
@@ -432,12 +438,17 @@ class RequestLevelJoiner:
             fine_admitted=fine_admitted,
             exposed=label.exposed,
             exposure_probability=exposure_probability,
+            candidate_exposure_probability=candidate_exposure_probability,
             selection_policy_kind=trace.selection_policy_kind,
             exploration_rate=trace.exploration_rate,
             slate_log_probability=trace.slate_log_probability,
             assignment_probability=trace.assignment_probability,
             joint_logging_probability=joint_probability,
-            randomized_support=valid & (trace.exploration_rate[:, None] > 0.0),
+            randomized_support=(
+                valid
+                & (trace.exploration_rate[:, None] > 0.0)
+                & (candidate_exposure_probability > 0.0)
+            ),
             recall_version_id=trace.recall_version_id,
             coarse_version_id=trace.coarse_version_id,
             fine_version_id=trace.fine_version_id,

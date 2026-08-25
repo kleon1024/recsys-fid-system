@@ -269,6 +269,9 @@ def _candidate_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "fine_admission_probability": _numpy(
             trace.fine_admission_probability[valid]
         ),
+        "candidate_exposure_probability": _numpy(
+            trace.candidate_exposure_probability[valid]
+        ),
         "exposed": _numpy(exposed[valid]),
         "exposed_position": _numpy(exposed_position[valid]),
         "candidate_dense_features": _variable_list(
@@ -348,6 +351,8 @@ def _sample_lineage_defaults(rows: int) -> dict[str, object]:
         "joint_logging_probability": np.full(
             rows, np.nan, dtype=np.float32,
         ),
+        "factual_exposure_probability": np.zeros(rows, dtype=np.float32),
+        "candidate_exposure_probability": np.zeros(rows, dtype=np.float32),
         "ope_supported": np.zeros(rows, dtype=np.bool_),
         "randomized_support": np.zeros(rows, dtype=np.bool_),
         "coarse_admitted": np.zeros(rows, dtype=np.bool_),
@@ -477,7 +482,7 @@ def _fine_example_table(fine) -> pa.Table:
         "role": ["candidate"] * fine_rows,
         "ordinal": _numpy(fine_rank[fine_valid]),
         "sampling_probability": _numpy(
-            fine.exposure_probability[fine_valid]
+            fine.candidate_exposure_probability[fine_valid]
         ),
         "label_value": np.full(fine_rows, np.nan, dtype=np.float32),
         "label_mask": np.zeros(fine_rows, dtype=np.bool_),
@@ -489,6 +494,12 @@ def _fine_example_table(fine) -> pa.Table:
     fine_data["recall_score"] = _numpy(fine.recall_score[fine_valid])
     fine_data["joint_logging_probability"] = _numpy(
         fine.joint_logging_probability[fine_valid]
+    )
+    fine_data["factual_exposure_probability"] = _numpy(
+        fine.exposure_probability[fine_valid]
+    )
+    fine_data["candidate_exposure_probability"] = _numpy(
+        fine.candidate_exposure_probability[fine_valid]
     )
     fine_data["randomized_support"] = _numpy(
         fine.randomized_support[fine_valid]

@@ -97,6 +97,7 @@ class RequestCandidateTrace:
     exposed_item_id: torch.Tensor
     exposed_position: torch.Tensor
     exposure_probability: torch.Tensor
+    candidate_exposure_probability: torch.Tensor
     selection_policy_kind: torch.Tensor
     exploration_rate: torch.Tensor
     slate_log_probability: torch.Tensor
@@ -155,6 +156,7 @@ class RequestCandidateTrace:
             "coarse_input_score",
             "coarse_admission_probability",
             "fine_admission_probability",
+            "candidate_exposure_probability",
         ):
             _aligned(name, getattr(self, name), (requests, recall))
         for name in (
@@ -215,9 +217,16 @@ class RequestCandidateTrace:
         for name, probability in (
             ("coarse_admission_probability", self.coarse_admission_probability),
             ("fine_admission_probability", self.fine_admission_probability),
+            ("candidate_exposure_probability", self.candidate_exposure_probability),
         ):
             if ((probability < 0.0) | (probability > 1.0)).any():
                 raise ValueError(f"{name} must be in [0, 1]")
+        if (
+            self.candidate_exposure_probability[~valid_recall] != 0.0
+        ).any():
+            raise ValueError(
+                "invalid recall candidates cannot have exposure support"
+            )
         if len(self.assignment_probability) and (
             (self.assignment_probability <= 0.0)
             | (self.assignment_probability > 1.0)
@@ -385,6 +394,7 @@ class FineRankExampleBatch:
     fine_admitted: torch.Tensor
     exposed: torch.Tensor
     exposure_probability: torch.Tensor
+    candidate_exposure_probability: torch.Tensor
     selection_policy_kind: torch.Tensor
     exploration_rate: torch.Tensor
     slate_log_probability: torch.Tensor
@@ -421,7 +431,7 @@ class FineRankExampleBatch:
             "position", "served_score", "recall_route_id", "recall_score",
             "coarse_score", "fine_admitted", "exposed",
             "exposure_probability", "joint_logging_probability",
-            "randomized_support", "dwell_ms",
+            "candidate_exposure_probability", "randomized_support", "dwell_ms",
         ):
             _aligned(name, getattr(self, name), item_shape)
         for name in (
@@ -462,7 +472,11 @@ class FineRankExampleBatch:
             raise ValueError("unexposed candidates cannot have behavior labels")
         if (self.randomized_support & ~valid).any():
             raise ValueError("support requires a valid fine input candidate")
-        expected_support = valid & (self.exploration_rate[:, None] > 0.0)
+        expected_support = (
+            valid
+            & (self.exploration_rate[:, None] > 0.0)
+            & (self.candidate_exposure_probability > 0.0)
+        )
         if not torch.equal(self.randomized_support, expected_support):
             raise ValueError("randomized support disagrees with exploration policy")
         if (self.exposure_probability[self.exposed] <= 0.0).any():

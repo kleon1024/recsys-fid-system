@@ -181,6 +181,9 @@ class ReferenceRecommendationPlatform:
             coarse_selected_score=ranked.coarse_selected_score,
             fine_input_score=ranked.fine_input_score,
             fine_admission_probability=ranked.fine_admission_probability,
+            candidate_exposure_probability=(
+                ranked.candidate_exposure_probability
+            ),
             fine_item_id=ranked.fine_item_id,
             fine_selected_score=ranked.fine_selected_score,
             candidate_dense_features=ranked.candidate_features.dense,
@@ -205,7 +208,7 @@ class ReferenceRecommendationPlatform:
                 requests.user_id, policy.mix_version_id,
             ),
             manifest=TraceManifest(
-                schema_version="request-candidate-trace-v5",
+                schema_version="request-candidate-trace-v6",
                 feature_version=self.ranker.features.manifest.schema_version,
                 catalog_version=self.config.catalog_version,
                 policy_registry_version=self.config.policy_registry_version,
