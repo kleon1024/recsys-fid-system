@@ -24,6 +24,7 @@ BUSINESS_ROUTE_NAMES = (
     "commerce_intent",
     "live_now",
     "search",
+    "search_semantic",
     "retarget",
 )
 

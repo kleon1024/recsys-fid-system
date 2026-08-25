@@ -5,6 +5,11 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
+The current digital twin also closes a first Search session loop: query,
+exact-topic and semantic retrieval, success or reformulation, and query-linked
+post-search Feed continuation. Its independent S-LR-001 implementation has
+passed local smoke; RTX 4090 factual A/B evidence remains pending.
+
 The newest evolving factual-world milestone repairs a previously invalid user
 response loop: exact repeated Feed videos now cause immediate slide pressure,
 session exit, satisfaction loss, and later retention/churn effects. Historical

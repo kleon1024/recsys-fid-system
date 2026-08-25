@@ -6,6 +6,7 @@ boundary that prevents it from being presented as company production evidence.
 
 | Launch | Type | Decision |
 |---|---|---|
+| [S-LR-001](2026-08-25-search-semantic-retrieval.md) | Search query/reformulation/success/post-search loop and semantic retrieval | Implementation passes smoke; RTX 4090 factual A/B pending |
 | [C-LR-001..003](2026-08-25-commerce-transaction-ladder.md) | Commerce cart/order/payment state machine, transactional request stream and inventory eligibility | C-LR-001 no support; C-LR-002 rejected for cross-route leakage; C-LR-003 pending |
 | [R-LR-012](2026-08-25-feed-v5-cold-start.md) | One-slot item cold-start exploration with route recovery and exact propensities | Stop inconclusive after five windows; remove layer and retain base policy |
 | [L-FEED-FOUNDATION-010](2026-08-25-feed-v5-experience-dedup.md) | Hidden experience DGP migration and exact short-video dedup | Promote dedup in the synthetic factual world; cold-start exploration remains gated |

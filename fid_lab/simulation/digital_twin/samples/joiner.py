@@ -57,6 +57,7 @@ class JoinerConfig:
             LabelTask("share", EventType.SHARE, 0, 0.60),
             LabelTask("negative", EventType.NEGATIVE, 0, -0.80),
             LabelTask("detail", EventType.DETAIL, 0, 0.30),
+            LabelTask("search_success", EventType.SEARCH_SUCCESS, 0, 0.55),
             LabelTask("favorite", EventType.FAVORITE, 0, 0.50),
             LabelTask("add_cart", EventType.ADD_CART, 0, 0.70),
             LabelTask("order", EventType.ORDER, 12, 1.00),
@@ -177,6 +178,8 @@ def _task_applicability(
         return feed_or_live
     if task.event_type in {EventType.CLICK, EventType.DETAIL}:
         return decision_surface
+    if task.event_type == EventType.SEARCH_SUCCESS:
+        return surface == int(Surface.SEARCH)
     if task.event_type == EventType.FAVORITE:
         return (
             (surface == int(Surface.SEARCH))

@@ -63,6 +63,8 @@ entry_points = [
   "fid_lab/simulation/digital_twin/experiments/surface_route_recovery.py",
   "fid_lab/simulation/digital_twin/scenarios/commerce/launch.py",
   "fid_lab/simulation/digital_twin/scenarios/commerce/audit.py",
+  "fid_lab/simulation/digital_twin/scenarios/search/audit.py",
+  "fid_lab/simulation/digital_twin/scenarios/search/launch.py",
   "fid_lab/simulation/digital_twin/learning/request_materialization.py",
   "fid_lab/simulation/digital_twin/learning/retrieval/factual_benchmark.py",
   "fid_lab/simulation/local/launch_suite.py",

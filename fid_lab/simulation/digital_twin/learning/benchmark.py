@@ -202,7 +202,7 @@ def main() -> None:
     parser.add_argument("--ticks", type=int, default=2)
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args()
-    report = run_learning_benchmark(LearningBenchmarkConfig(
+    run_learning_benchmark(LearningBenchmarkConfig(
         users=args.users,
         items=args.items,
         ticks=args.ticks,

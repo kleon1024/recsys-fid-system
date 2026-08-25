@@ -3,18 +3,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import importlib
-import os
-import sys
-from typing import Protocol
-
-import numpy as np
-import scipy.sparse
 import torch
 
 from .retrieval_merge import reciprocal_rank_fusion
 from .routes.exposure import exposed_in_current_session, recently_exposed
 from .routes.commerce import inventory_eligible
+from .indexes.ann import FaissItemIndex
+from .indexes.contracts import LearnedRetriever, RetrievalConfig
+from .indexes.graph import CoVisitGraphIndex
 
 from ..catalog import PublicCatalog
 from ..contracts import (
@@ -35,31 +31,6 @@ from .routes import (
 
 
 @dataclass(frozen=True)
-class RetrievalConfig:
-    route_k: int = 32
-    merged_k: int = 128
-    ann_oversample: int = 4
-    graph_neighbors: int = 32
-    reciprocal_rank_constant: float = 20.0
-    refresh_interval: int = 8
-    hnsw_neighbors: int = 24
-    hnsw_ef_search: int = 64
-
-    def __post_init__(self):
-        dimensions = (
-            self.route_k,
-            self.merged_k,
-            self.ann_oversample,
-            self.graph_neighbors,
-            self.refresh_interval,
-            self.hnsw_neighbors,
-            self.hnsw_ef_search,
-        )
-        if any(value <= 0 for value in dimensions):
-            raise ValueError("retrieval dimensions must be positive")
-
-
-@dataclass(frozen=True)
 class RetrievalResult:
     item_id: torch.Tensor
     route_bits: torch.Tensor
@@ -69,156 +40,6 @@ class RetrievalResult:
     route_score: torch.Tensor
     route_valid: torch.Tensor
     index_version: str
-
-
-class LearnedRetriever(Protocol):
-    serving_version_id: int
-
-    @property
-    def index_version(self) -> str: ...
-
-    def retrieve(
-        self,
-        requests: PlatformRequestBatch,
-        state: PlatformProjectionState,
-        top_k: int,
-    ) -> tuple[torch.Tensor, torch.Tensor]: ...
-
-
-class FaissItemIndex:
-    def __init__(self, catalog: PublicCatalog, config: RetrievalConfig):
-        self.catalog = catalog
-        self.config = config
-        self.version = "unbuilt"
-        self.backend = os.environ.get(
-            "FID_ANN_BACKEND", "torch" if sys.platform == "darwin" else "faiss"
-        )
-        if self.backend not in {"faiss", "torch"}:
-            raise ValueError("FID_ANN_BACKEND must be faiss or torch")
-        self._index: object | None = None
-        self._torch_item: torch.Tensor | None = None
-        self._torch_embedding: torch.Tensor | None = None
-        self._indexed_active = torch.zeros_like(catalog.active)
-
-    def sync(self, active: torch.Tensor, version: str) -> None:
-        if self.backend == "torch":
-            self._torch_item = self.catalog.item_id[active]
-            self._torch_embedding = self.catalog.content_embedding[active]
-            self._indexed_active = active.clone()
-        else:
-            faiss = importlib.import_module("faiss")
-            faiss.omp_set_num_threads(int(os.environ.get("FID_FAISS_THREADS", "1")))
-            if (self._indexed_active & ~active).any():
-                self._index = None
-                self._indexed_active.zero_()
-            new_item = active & ~self._indexed_active
-            item = self.catalog.item_id[new_item].detach().cpu().numpy().astype("int64")
-            vectors = self.catalog.content_embedding[new_item].detach().cpu().numpy()
-            vectors = np.ascontiguousarray(vectors.astype("float32"))
-            if self._index is None:
-                base = faiss.IndexHNSWFlat(
-                    self.catalog.content_embedding.shape[1],
-                    self.config.hnsw_neighbors,
-                    faiss.METRIC_INNER_PRODUCT,
-                )
-                base.hnsw.efConstruction = max(
-                    2 * self.config.hnsw_neighbors, 40,
-                )
-                base.hnsw.efSearch = self.config.hnsw_ef_search
-                self._index = faiss.IndexIDMap2(base)
-            if len(item):
-                self._index.add_with_ids(vectors, item)
-                self._indexed_active |= new_item
-        self.version = version
-
-    def search(
-        self, query: torch.Tensor, limit: int,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        if self.backend == "torch":
-            if self._torch_embedding is None or self._torch_item is None:
-                raise ValueError("Torch item index has not been built")
-            count = min(limit, len(self._torch_item))
-            score, location = torch.topk(
-                query @ self._torch_embedding.T, count, dim=1,
-            )
-            return self._torch_item[location], score
-        if self._index is None:
-            raise ValueError("FAISS item index has not been built")
-        query_np = np.ascontiguousarray(
-            query.detach().cpu().numpy().astype("float32")
-        )
-        score, item = self._index.search(query_np, limit)
-        return (
-            torch.from_numpy(item).to(query.device),
-            torch.from_numpy(score).to(query.device),
-        )
-
-
-class CoVisitGraphIndex:
-    """Sparse behavioral graph rebuilt off the request path with SciPy CSR."""
-
-    def __init__(self, items: int, neighbors: int, device: torch.device):
-        self.items = items
-        self.neighbor_count = neighbors
-        self.device = device
-        self._matrix = scipy.sparse.csr_matrix((items, items), dtype=np.float32)
-        self._pending_source: list[np.ndarray] = []
-        self._pending_target: list[np.ndarray] = []
-        self.neighbor = torch.full(
-            (items, neighbors), -1, device=device, dtype=torch.long,
-        )
-        self.score = torch.zeros(items, neighbors, device=device)
-        self.version = "graph-empty"
-
-    def update(self, events: AppEventBatch) -> None:
-        dwell = events.event(EventType.DWELL) & (events.item_id >= 0)
-        if int(dwell.sum()) < 2:
-            return
-        request = events.request_id[dwell]
-        position = events.position[dwell]
-        item = events.item_id[dwell]
-        order = torch.argsort(position, stable=True)
-        order = order[torch.argsort(request[order], stable=True)]
-        request, item = request[order], item[order]
-        adjacent = request[1:] == request[:-1]
-        source, target = item[:-1][adjacent], item[1:][adjacent]
-        valid = source != target
-        source, target = source[valid], target[valid]
-        if not len(source):
-            return
-        self._pending_source.append(torch.cat((source, target)).cpu().numpy())
-        self._pending_target.append(torch.cat((target, source)).cpu().numpy())
-
-    def refresh(self, version: str) -> None:
-        if not self._pending_source:
-            return
-        source = np.concatenate(self._pending_source)
-        target = np.concatenate(self._pending_target)
-        increment = scipy.sparse.coo_matrix(
-            (np.ones(len(source), dtype=np.float32), (source, target)),
-            shape=(self.items, self.items),
-        ).tocsr()
-        self._matrix = self._matrix + increment
-        self._pending_source.clear()
-        self._pending_target.clear()
-        rows = np.unique(source)
-        for row in rows:
-            start, end = self._matrix.indptr[row:row + 2]
-            columns = self._matrix.indices[start:end]
-            values = self._matrix.data[start:end]
-            if not len(columns):
-                continue
-            keep = np.argsort(-values, kind="stable")[: self.neighbor_count]
-            width = len(keep)
-            self.neighbor[row].fill_(-1)
-            self.score[row].zero_()
-            self.neighbor[row, :width] = torch.from_numpy(
-                columns[keep].astype("int64")
-            ).to(self.device)
-            self.score[row, :width] = torch.from_numpy(
-                values[keep]
-            ).to(self.device)
-        self.version = version
 
 
 class MultiRouteRetriever:
@@ -233,6 +54,22 @@ class MultiRouteRetriever:
         self._last_refresh = -1
         self._global_query = torch.nn.functional.normalize(
             catalog.content_embedding.mean(dim=0, keepdim=True), dim=1,
+        )
+        topics = int(catalog.topic_id.max()) + 1
+        topic_embedding = torch.zeros(
+            topics,
+            catalog.content_embedding.shape[1],
+            device=self.device,
+        )
+        topic_count = torch.zeros(topics, device=self.device)
+        topic_embedding.index_add_(
+            0, catalog.topic_id, catalog.content_embedding,
+        )
+        topic_count.index_add_(
+            0, catalog.topic_id, torch.ones_like(catalog.topic_id).float(),
+        )
+        self._topic_query = torch.nn.functional.normalize(
+            topic_embedding / topic_count.clamp_min(1.0)[:, None], dim=1,
         )
         self.learned_retriever: LearnedRetriever | None = None
 
@@ -733,6 +570,20 @@ class MultiRouteRetriever:
             self.catalog.topic_id,
             require_query=True,
         )
+        semantic_query = self._topic_query[requests.query_topic.clamp_min(0)]
+        semantic_item, semantic_score = self.faiss.search(
+            semantic_query, self.config.route_k * self.config.ann_oversample,
+        )
+        semantic_item, semantic_score = self._filter_and_trim(
+            requests,
+            state,
+            semantic_item,
+            semantic_score,
+            required_surface=Surface.SEARCH,
+        )
+        no_query = requests.query_topic < 0
+        semantic_item[no_query] = -1
+        semantic_score[no_query] = -torch.inf
         retarget_query = self.catalog.content_embedding[last_item.clamp_min(0)]
         retarget_item, retarget_score = self.faiss.search(
             retarget_query, self.config.route_k * self.config.ann_oversample,
@@ -751,6 +602,7 @@ class MultiRouteRetriever:
             "commerce_intent": (commerce_item, commerce_score),
             "live_now": (live_item, live_score),
             "search": (search_item, search_score),
+            "search_semantic": (semantic_item, semantic_score),
             "retarget": (retarget_item, retarget_score),
         }
 

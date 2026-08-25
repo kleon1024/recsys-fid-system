@@ -25,6 +25,7 @@ USER_COUNTER_EVENTS = (
     EventType.ORDER,
     EventType.PAYMENT,
     EventType.REFUND,
+    EventType.SEARCH_SUCCESS,
     EventType.PIXEL_CONVERSION,
     EventType.PUBLISH,
 )
@@ -55,6 +56,7 @@ HISTORY_EVENTS = (
     EventType.NEGATIVE,
     EventType.DETAIL,
     EventType.FAVORITE,
+    EventType.SEARCH_SUCCESS,
     EventType.ADD_CART,
     EventType.ORDER,
     EventType.PAYMENT,

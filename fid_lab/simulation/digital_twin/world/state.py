@@ -63,6 +63,10 @@ class HiddenUserState:
     exposure_positive: torch.Tensor
     exposure_cursor: torch.Tensor
     disappointment: torch.Tensor
+    search_followup_topic: torch.Tensor
+    search_reformulation_depth: torch.Tensor
+    post_search_feed_pending: torch.Tensor
+    last_search_query_id: torch.Tensor
     surface_intent: torch.Tensor
     response_style: torch.Tensor
     satisfaction: torch.Tensor
@@ -122,6 +126,15 @@ def topic_prototypes(catalog: PublicCatalog, topics: int) -> torch.Tensor:
     return torch.nn.functional.normalize(
         result / counts.clamp_min(1.0)[:, None], dim=1,
     )
+
+
+def _empty_search_state(user: torch.Tensor) -> dict[str, torch.Tensor]:
+    return {
+        "search_followup_topic": torch.full_like(user, -1),
+        "search_reformulation_depth": torch.zeros_like(user),
+        "post_search_feed_pending": torch.zeros_like(user, dtype=torch.bool),
+        "last_search_query_id": torch.full_like(user, -1),
+    }
 
 
 def build_hidden_catalog_truth(
@@ -250,6 +263,7 @@ def build_hidden_users(
             config.users, device=device, dtype=torch.long,
         ),
         disappointment=torch.zeros(config.users, device=device),
+        **_empty_search_state(user),
         surface_intent=population.surface_intent,
         response_style=population.response_style,
         satisfaction=population.satisfaction,

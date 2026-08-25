@@ -123,6 +123,25 @@ class UserEcosystemWorld:
         gumbel = -torch.log(-torch.log(draw))
         return torch.argmax(logits + 0.42 * gumbel, dim=1)
 
+    def _scheduled_surface(
+        self, user: torch.Tensor, logical_time: int,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        state = self.users
+        surface = self._surface(user, logical_time)
+        followup_search = state.search_followup_topic[user] >= 0
+        post_search_feed = state.post_search_feed_pending[user] & ~followup_search
+        surface = torch.where(
+            followup_search,
+            torch.full_like(surface, int(Surface.SEARCH)),
+            surface,
+        )
+        surface = torch.where(
+            post_search_feed,
+            torch.full_like(surface, int(Surface.FEED)),
+            surface,
+        )
+        return surface, followup_search, post_search_feed
+
     def schedule(self, logical_time: int) -> AppEventBatch:
         self.trends.advance(logical_time)
         state = self.users
@@ -154,7 +173,9 @@ class UserEcosystemWorld:
         requesting = state.active | arrival
         request_user = user[requesting]
         request_id = logical_time * self.config.users + request_user + 1
-        surface = self._surface(request_user, logical_time)
+        surface, _, post_search_feed = self._scheduled_surface(
+            request_user, logical_time,
+        )
         request_time = torch.full_like(request_user, logical_time)
         country = state.country[request_user]
         region = state.region[request_user]
@@ -190,6 +211,11 @@ class UserEcosystemWorld:
             surface=surface,
             country=country,
             region=region,
+            query_id=torch.where(
+                post_search_feed,
+                state.last_search_query_id[request_user],
+                torch.full_like(request_user, -1),
+            ),
         )
         query_row = surface == int(Surface.SEARCH)
         query_user = request_user[query_row]
@@ -197,6 +223,10 @@ class UserEcosystemWorld:
             self.users.short_interest[query_user]
             @ self._topic_prototypes.T,
             dim=1,
+        )
+        pending_topic = state.search_followup_topic[query_user]
+        query_topic = torch.where(
+            pending_topic >= 0, pending_topic, query_topic,
         )
         query_events = make_app_events(
             EventType.QUERY,
@@ -209,6 +239,8 @@ class UserEcosystemWorld:
             query_id=request_id[query_row] * 31 + query_topic,
             topic_id=query_topic,
         )
+        state.search_followup_topic[query_user] = -1
+        state.post_search_feed_pending[request_user[post_search_feed]] = False
         user_events = AppEventBatch.concatenate((
             registration_events,
             session_events,
@@ -242,6 +274,7 @@ class UserEcosystemWorld:
         self._commit_engagement(events)
         self._commit_exposure_memory(events)
         self._commit_sequence(events)
+        self._commit_search_state(events)
         self._commit_session_close(events)
         self.supply.commit(events)
         self.trends.commit(events)
@@ -251,6 +284,28 @@ class UserEcosystemWorld:
             self.catalog_truth,
             self.supply.state,
         )
+
+    def _commit_search_state(self, events: AppEventBatch) -> None:
+        state = self.users
+        query = events.event(EventType.QUERY) & (events.user_id >= 0)
+        state.last_search_query_id[events.user_id[query]] = events.query_id[query]
+        reformulate = events.event(EventType.SEARCH_REFORMULATE) & (
+            events.user_id >= 0
+        )
+        reform_user = events.user_id[reformulate]
+        state.search_followup_topic[reform_user] = events.topic_id[reformulate]
+        state.search_reformulation_depth[reform_user] += 1
+        abandon = events.event(EventType.SEARCH_ABANDON) & (events.user_id >= 0)
+        abandon_user = events.user_id[abandon]
+        state.search_followup_topic[abandon_user] = -1
+        state.search_reformulation_depth[abandon_user] = 0
+        success = events.event(EventType.SEARCH_SUCCESS) & (events.user_id >= 0)
+        if not success.any():
+            return
+        success_user = events.user_id[success]
+        state.post_search_feed_pending[success_user] = True
+        state.search_followup_topic[success_user] = -1
+        state.search_reformulation_depth[success_user] = 0
 
     def _commit_session_open(self, events: AppEventBatch) -> None:
         state = self.users
@@ -292,6 +347,9 @@ class UserEcosystemWorld:
         state.next_return_time[end_user] = (
             events.event_time[end] + outcome.delay_ticks
         )
+        state.search_followup_topic[end_user] = -1
+        state.search_reformulation_depth[end_user] = 0
+        state.post_search_feed_pending[end_user] = False
 
     def _drift_short_interest(
         self, user: torch.Tensor, event_time: torch.Tensor,

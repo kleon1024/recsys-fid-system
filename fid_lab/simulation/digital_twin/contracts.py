@@ -69,6 +69,9 @@ class EventType(IntEnum):
     MODERATION_REMOVE = 31
     CONTENT_DELETE = 32
     CREATOR_EXIT = 33
+    SEARCH_SUCCESS = 34
+    SEARCH_REFORMULATE = 35
+    SEARCH_ABANDON = 36
 
 
 class PublishFailureReason(IntEnum):

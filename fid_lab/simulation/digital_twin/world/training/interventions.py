@@ -11,7 +11,7 @@ from ...contracts import EventType
 from .....feed_loop.world_model.contracts import STRUCTURAL_INTERVENTION_NAMES
 from ..behavior import ResponseTensors, sample_response_tensors
 from ..neural_features import build_neural_scm_batch
-from ..state import HiddenCatalogTruth, UserWorldSnapshot
+from ..state import HiddenCatalogTruth
 
 
 def _selected(values, choice):

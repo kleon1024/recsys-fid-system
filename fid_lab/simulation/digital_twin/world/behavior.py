@@ -212,6 +212,11 @@ def sample_response_tensors(
     create = click & posting & (draws[:, :, 7] < torch.sigmoid(
         -0.7 + 0.95 * utility + 0.75 * users.habit[row, None],
     ))
+    search_success = detail & search & (
+        draws[:, :, 15] < torch.sigmoid(
+            -0.65 + 0.9 * utility + 0.55 * quality,
+        )
+    )
     action = {
         EventType.PLAY: play,
         EventType.PLAY_3S: play_3s,
@@ -237,6 +242,7 @@ def sample_response_tensors(
             draws[:, :, 14] < torch.sigmoid(-2.0 + utility)
         ),
         EventType.CREATE: create,
+        EventType.SEARCH_SUCCESS: search_success,
         EventType.PUBLISH: create & (
             draws[:, :, 16] < torch.sigmoid(-0.45 + 0.85 * utility)
         ),
@@ -357,6 +363,36 @@ def materialize_response_events(
         snapshot,
         duration_ms=sampled.dwell_ms,
     ))
+    search_request = slate.surface == int(Surface.SEARCH)
+    search_success = sampled.action[EventType.SEARCH_SUCCESS].any(dim=1)
+    failed_search = search_request & sampled.examined.any(dim=1) & ~search_success
+    current_depth = snapshot.users.search_reformulation_depth[slate.user_id]
+    reformulate = failed_search & (current_depth < 2)
+    abandon_search = failed_search & ~reformulate
+    next_topic = snapshot.users.secondary_topic[slate.user_id[reformulate]]
+    batches.append(make_app_events(
+        EventType.SEARCH_REFORMULATE,
+        event_time=slate.event_time[reformulate],
+        request_id=slate.request_id[reformulate],
+        user_id=slate.user_id[reformulate],
+        surface=slate.surface[reformulate],
+        topic_id=next_topic,
+        query_id=slate.request_id[reformulate] * 31 + next_topic,
+        experiment_cell=slate.ui_variant[reformulate],
+        assignment_probability=slate.assignment_probability[reformulate],
+    ))
+    batches.append(make_app_events(
+        EventType.SEARCH_ABANDON,
+        event_time=slate.event_time[abandon_search],
+        request_id=slate.request_id[abandon_search],
+        user_id=slate.user_id[abandon_search],
+        surface=slate.surface[abandon_search],
+        query_id=snapshot.users.last_search_query_id[
+            slate.user_id[abandon_search]
+        ],
+        experiment_cell=slate.ui_variant[abandon_search],
+        assignment_probability=slate.assignment_probability[abandon_search],
+    ))
     missing = torch.zeros_like(sampled.examined)
     positive = torch.stack((
         sampled.action[EventType.LONG_VIEW],
@@ -383,6 +419,7 @@ def materialize_response_events(
             - 0.8 * users.satisfaction[slate.user_id]
             + 2.2 * repeated_feed_fraction
             + 0.75 * users.disappointment[slate.user_id]
+            + 1.4 * abandon_search.float()
         )
         leave_draw = _event_draws(slate, 24, seed)[:, 0, 23]
         leave = leave_draw < leave_probability
