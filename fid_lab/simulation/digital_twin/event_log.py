@@ -78,6 +78,10 @@ class ObservableEventLog:
             selected &= result.ingest_time <= ingested_through
         return result.select(selected)
 
+    def partitions(self) -> tuple[AppEventBatch, ...]:
+        """Return immutable batch references in authoritative append order."""
+        return tuple(self._batches)
+
     def manifest(self) -> dict[str, int | str]:
         return {
             "schema": "observable-app-events-v5",

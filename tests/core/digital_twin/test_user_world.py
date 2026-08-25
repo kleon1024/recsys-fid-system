@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import fields
+from dataclasses import fields, replace
 
 import torch
 
@@ -17,6 +17,7 @@ from fid_lab.simulation.digital_twin import (
 )
 from fid_lab.simulation.digital_twin.platform.projection import USER_COUNTER_EVENTS
 from fid_lab.simulation.digital_twin.platform.requests import open_platform_requests
+from fid_lab.simulation.digital_twin.world.behavior import sample_response_tensors
 
 
 def test_tiny_public_catalog_has_safe_missing_business_anchors():
@@ -233,6 +234,49 @@ def test_factual_response_changes_the_next_world_snapshot():
     second_entry = world.schedule(1)
     assert len(second_entry.event_id) > 0
     assert first.baseline_requests > first.experiment_requests
+
+
+def test_repeated_feed_video_is_slid_and_degrades_hidden_experience():
+    world, catalog = build_world(users=2_048, items=4_000)
+    entry = world.schedule(0)
+    world.commit(entry)
+    requests = CatalogPlatform(catalog).open_requests(entry)
+    slate = CatalogPlatform(catalog, width=8).render(0, requests, 3, 0)
+    feed = slate.surface == 0
+    slate = slate.select(feed)
+    video = torch.where(catalog.content_kind == 0)[0]
+    slate = replace(
+        slate,
+        item_ids=video[torch.remainder(slate.item_ids, len(video))],
+    )
+    fresh = sample_response_tensors(
+        world.snapshot(), catalog, slate, world.config.environment_seed,
+    )
+    first_events = world.respond(world.snapshot(), slate)
+    world.commit(first_events)
+    satisfaction_before_repeat = world.users.satisfaction[slate.user_id].clone()
+    fatigue_before_repeat = world.users.fatigue[slate.user_id].clone()
+    repeated = sample_response_tensors(
+        world.snapshot(), catalog, slate, world.config.environment_seed,
+    )
+    assert float(repeated.utility.mean()) < float(fresh.utility.mean()) - 2.0
+    assert float(repeated.action[EventType.PLAY].float().mean()) < (
+        0.1 * float(fresh.action[EventType.PLAY].float().mean())
+    )
+    assert float(repeated.action[EventType.SLIDE].float().mean()) > (
+        float(fresh.action[EventType.SLIDE].float().mean())
+    )
+    repeated_events = world.respond(world.snapshot(), slate)
+    assert int(repeated_events.event(EventType.SESSION_END).sum()) > int(
+        first_events.event(EventType.SESSION_END).sum()
+    )
+    world.commit(repeated_events)
+    assert float(world.users.satisfaction[slate.user_id].mean()) < float(
+        satisfaction_before_repeat.mean()
+    )
+    assert float(world.users.fatigue[slate.user_id].mean()) > float(
+        fatigue_before_repeat.mean()
+    )
 
 
 def test_kernel_delivers_delayed_funnel_into_point_in_time_projection():

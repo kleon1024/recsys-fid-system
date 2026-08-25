@@ -112,7 +112,11 @@ class ReferenceRecommendationPlatform:
         if not isinstance(policy, CascadePolicy):
             raise TypeError("reference platform requires a CascadePolicy")
         retrieval = self.retriever.retrieve(
-            requests, snapshot.projection.state, policy.enabled_routes,
+            requests,
+            snapshot.projection.state,
+            policy.enabled_routes,
+            feed_exposure_dedup_ticks=policy.feed_exposure_dedup_ticks,
+            feed_session_dedup=policy.feed_session_dedup,
         )
         ranked = self.ranker.rank(
             requests, snapshot.projection.state, retrieval, policy,

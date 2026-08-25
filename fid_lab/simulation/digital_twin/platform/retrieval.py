@@ -12,8 +12,17 @@ import numpy as np
 import scipy.sparse
 import torch
 
+from .retrieval_merge import reciprocal_rank_fusion
+from .routes.exposure import exposed_in_current_session, recently_exposed
+
 from ..catalog import PublicCatalog
-from ..contracts import AppEventBatch, EventType, PlatformRequestBatch, Surface
+from ..contracts import (
+    AppEventBatch,
+    ContentKind,
+    EventType,
+    PlatformRequestBatch,
+    Surface,
+)
 from .projection import ITEM_COUNTER_EVENTS, PlatformProjectionState
 from .lifecycle import ContentLifecycle
 from .routes import (
@@ -425,6 +434,9 @@ class MultiRouteRetriever:
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
         enabled_routes: tuple[str, ...] = ROUTE_NAMES,
+        *,
+        feed_exposure_dedup_ticks: int = 0,
+        feed_session_dedup: bool = False,
     ) -> RetrievalResult:
         unknown = set(enabled_routes) - set(ROUTE_NAMES)
         if unknown:
@@ -435,6 +447,27 @@ class MultiRouteRetriever:
             self.refresh(state, int(requests.event_time.min()))
         route_item, route_score = self._route_candidates(requests, state)
         route_valid = route_item >= 0
+        if feed_exposure_dedup_ticks:
+            repeated = recently_exposed(
+                requests,
+                state,
+                route_item,
+                feed_exposure_dedup_ticks,
+            )
+            video = self.catalog.content_kind[route_item.clamp_min(0)] == int(
+                ContentKind.SHORT_VIDEO
+            )
+            route_valid &= ~(repeated & video)
+        if feed_session_dedup:
+            repeated = exposed_in_current_session(
+                requests,
+                state,
+                route_item,
+            )
+            video = self.catalog.content_kind[route_item.clamp_min(0)] == int(
+                ContentKind.SHORT_VIDEO
+            )
+            route_valid &= ~(repeated & video)
         enabled = torch.tensor(
             [name in enabled_routes for name in ROUTE_NAMES],
             device=self.device,
@@ -449,8 +482,11 @@ class MultiRouteRetriever:
             route_score,
             torch.full_like(route_score, -torch.inf),
         )
-        merged_item, merged_score, route_bits = self._rrf(
-            route_item, route_valid,
+        merged_item, merged_score, route_bits = reciprocal_rank_fusion(
+            route_item,
+            route_valid,
+            reciprocal_rank_constant=self.config.reciprocal_rank_constant,
+            merged_k=self.config.merged_k,
         )
         return RetrievalResult(
             item_id=merged_item,
@@ -746,49 +782,3 @@ class MultiRouteRetriever:
                 chosen_score, (0, padding), value=-torch.inf,
             )
         return chosen_item, chosen_score
-
-    def _rrf(
-        self, route_item: torch.Tensor, route_valid: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        requests, routes, route_k = route_item.shape
-        rank = torch.arange(1, route_k + 1, device=self.device).float()
-        contribution = 1.0 / (
-            self.config.reciprocal_rank_constant + rank
-        )
-        score = contribution[None, None].expand(requests, routes, route_k)
-        score = score * route_valid.float()
-        bit = (
-            2 ** torch.arange(routes, device=self.device, dtype=torch.long)
-        )[None, :, None].expand_as(route_item) * route_valid.long()
-        flat_item = torch.where(
-            route_valid, route_item, torch.full_like(route_item, torch.iinfo(torch.long).max)
-        ).reshape(requests, -1)
-        flat_score = score.reshape(requests, -1)
-        flat_bit = bit.reshape(requests, -1)
-        ordered_item, order = torch.sort(flat_item, dim=1)
-        ordered_score = torch.gather(flat_score, 1, order)
-        ordered_bit = torch.gather(flat_bit, 1, order)
-        starts = torch.ones_like(ordered_item, dtype=torch.bool)
-        starts[:, 1:] = ordered_item[:, 1:] != ordered_item[:, :-1]
-        group = torch.cumsum(starts.long(), dim=1) - 1
-        width = ordered_item.shape[1]
-        merged_item = torch.full_like(ordered_item, -1)
-        merged_score = torch.zeros(requests, width, device=self.device)
-        merged_bit = torch.zeros_like(ordered_item)
-        merged_item.scatter_(1, group, ordered_item)
-        merged_score.scatter_add_(1, group, ordered_score)
-        merged_bit.scatter_add_(1, group, ordered_bit)
-        valid = merged_item != torch.iinfo(torch.long).max
-        merged_score.masked_fill_(~valid, -torch.inf)
-        keep = min(self.config.merged_k, width)
-        position = torch.topk(merged_score, keep, dim=1).indices
-        item = torch.gather(merged_item, 1, position)
-        value = torch.gather(merged_score, 1, position)
-        bits = torch.gather(merged_bit, 1, position)
-        item = torch.where(torch.isfinite(value), item, torch.full_like(item, -1))
-        if keep < self.config.merged_k:
-            padding = self.config.merged_k - keep
-            item = torch.nn.functional.pad(item, (0, padding), value=-1)
-            value = torch.nn.functional.pad(value, (0, padding), value=-torch.inf)
-            bits = torch.nn.functional.pad(bits, (0, padding), value=0)
-        return item, value, bits

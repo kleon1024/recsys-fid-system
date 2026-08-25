@@ -7,15 +7,28 @@ import pyarrow as pa
 import pyarrow.compute as pc
 import torch
 
+from ...catalog import PublicCatalog
 from ...observability import FullFlowPartitionRef, FullFlowSnapshot
+from ...platform.projection import ProjectionSnapshot
 from ..arrow import list_column_to_tensor
 from ..sample_bus import PartitionedSampleBus
 from .contracts import RetrievalCorpus, RetrievalQueryBatch
 
 
 def corpus_from_snapshot(snapshot: FullFlowSnapshot) -> RetrievalCorpus:
-    catalog = snapshot.catalog
-    state = snapshot.projection.state
+    return corpus_from_runtime(
+        snapshot.catalog,
+        snapshot.projection,
+        snapshot.trace.manifest.catalog_version,
+    )
+
+
+def corpus_from_runtime(
+    catalog: PublicCatalog,
+    projection: ProjectionSnapshot,
+    catalog_version: str,
+) -> RetrievalCorpus:
+    state = projection.state
     return RetrievalCorpus(
         item_id=catalog.item_id.detach().cpu(),
         content_kind=catalog.content_kind.detach().cpu(),
@@ -28,7 +41,7 @@ def corpus_from_snapshot(snapshot: FullFlowSnapshot) -> RetrievalCorpus:
         quality_prior=catalog.quality_prior.detach().cpu(),
         duration_seconds=catalog.duration_seconds.detach().cpu(),
         active=state.item_active.detach().cpu(),
-        catalog_version=snapshot.trace.manifest.catalog_version,
+        catalog_version=catalog_version,
     )
 
 

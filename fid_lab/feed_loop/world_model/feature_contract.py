@@ -13,10 +13,11 @@ CANONICAL_FEATURE_FIELDS = (
     "content_quality_prior", "recent_topic_match", "same_region",
     "history_engagement_rate", "history_negative_rate", "user_activity",
     "user_habit", "history_fill_ratio", "long_topic_match",
-    "duration_log_seconds", "unused_13", "unused_14", "unused_15",
-    "unused_16", "content_topic", "same_country", "recent_topic_match_copy",
+    "duration_log_seconds", "exact_repeat_log", "creator_repeat_log",
+    "topic_repeat_log", "user_disappointment", "content_topic",
+    "same_country", "recent_topic_match_copy",
     "feed_surface", "bias", "content_age", "user_novelty", "account_age",
-    "user_activity_copy", "user_lifecycle", "unused_27",
+    "user_activity_copy", "user_lifecycle", "repeat_penalty",
 )
 V4_REQUIRED_FEATURES = frozenset(
     index for index, name in enumerate(CANONICAL_FEATURE_FIELDS)

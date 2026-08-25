@@ -17,6 +17,7 @@ from ..contracts import (
     make_app_events,
 )
 from .state import UserWorldSnapshot
+from .experience import CandidateExperience, candidate_experience
 
 
 @dataclass(frozen=True)
@@ -83,7 +84,7 @@ def _latent_utility(
     snapshot: UserWorldSnapshot,
     catalog: PublicCatalog,
     slate: RenderedSlateBatch,
-) -> tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor, CandidateExperience]:
     users = snapshot.users
     truth = snapshot.catalog_truth
     row = slate.user_id
@@ -149,7 +150,10 @@ def _latent_utility(
     utility += live_or_feed * fresh_content * (
         0.12 + 0.30 * users.novelty[row, None]
     ) * freshness * trend
-    return affinity, utility
+    experience = candidate_experience(snapshot, catalog, slate)
+    utility -= experience.repeat_penalty
+    utility -= 0.28 * users.disappointment[row, None]
+    return affinity, utility, experience
 
 
 def sample_response_tensors(
@@ -164,7 +168,7 @@ def sample_response_tensors(
     valid = slate.valid
     draws = _event_draws(slate, 24, seed)
     examined = valid & (draws[:, :, 0] < _examination_probability(snapshot, slate))
-    affinity, utility = _latent_utility(snapshot, catalog, slate)
+    affinity, utility, experience = _latent_utility(snapshot, catalog, slate)
     style = users.response_style[row]
     quality = snapshot.catalog_truth.quality[item]
     risk = snapshot.catalog_truth.risk[item]
@@ -176,6 +180,12 @@ def sample_response_tensors(
     posting = _surface_mask(slate, Surface.POSTING)
     play_probability = torch.sigmoid(
         -0.35 + 1.20 * utility + 0.35 * style[:, 0, None]
+    )
+    repeated_feed_video = feed & (experience.exact_repeat > 0)
+    play_probability = torch.where(
+        repeated_feed_video,
+        0.02 * play_probability,
+        play_probability,
     )
     play = examined & (feed | live) & (draws[:, :, 1] < play_probability)
     play_3s = play & (draws[:, :, 2] < torch.sigmoid(
@@ -354,12 +364,18 @@ def materialize_response_events(
     )
     users = snapshot.users
     if sampled.session_end is None:
+        experience = candidate_experience(snapshot, catalog, slate)
+        repeated_feed_fraction = (
+            (experience.exact_repeat > 0) & slate.valid
+        ).float().sum(dim=1) / slate.valid.float().sum(dim=1).clamp_min(1.0)
         leave_probability = torch.sigmoid(
             -2.4
             + 1.8 * users.fatigue[slate.user_id]
             + 0.10 * users.session_depth[slate.user_id].float()
             - 0.014 * request_value
             - 0.8 * users.satisfaction[slate.user_id]
+            + 2.2 * repeated_feed_fraction
+            + 0.75 * users.disappointment[slate.user_id]
         )
         leave_draw = _event_draws(slate, 24, seed)[:, 0, 23]
         leave = leave_draw < leave_probability

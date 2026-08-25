@@ -8,10 +8,20 @@ from .probe import (
     train_probe,
 )
 from .registry import PersistentModelRegistry
+from .request_stream import (
+    FACTUAL_REQUEST_STREAM_SCHEMA,
+    FactualRequestPartition,
+    FactualRequestPartitionRef,
+    FactualRequestStream,
+)
 from .sample_bus import PartitionedSampleBus
 
 __all__ = (
     "ArtifactCompatibility",
+    "FACTUAL_REQUEST_STREAM_SCHEMA",
+    "FactualRequestPartition",
+    "FactualRequestPartitionRef",
+    "FactualRequestStream",
     "Lane",
     "LaneCursor",
     "PartitionedSampleBus",

@@ -238,6 +238,94 @@ def test_randomized_cascade_logs_exact_support_without_changing_factuality():
     assert (joined.fine.exposure_probability[~joined.fine.exposed] == 0).all()
 
 
+def test_feed_exposure_ledger_blocks_recent_impression_repeats():
+    world, platform, log, _, _, _ = build_system(users=512, items=3_000)
+    baseline = CascadePolicy("exposure-ledger-baseline", 1, 1, 1)
+    kernel = AtomicSimulationKernel(world, platform, log)
+    kernel.step(0, ExperimentPlan.ramped_user_ab(
+        active_policy=baseline,
+        treatment_policy=baseline,
+        experiment_seed=131,
+        control_fraction=0.25,
+        treatment_fraction=0.25,
+    ))
+    before = platform.projection.snapshot().state
+    assert float((before.user_exposure_cursor > 0).float().mean()) > 0.95
+    dedup = CascadePolicy(
+        "feed-exposure-dedup",
+        1,
+        1,
+        1,
+        feed_exposure_dedup_ticks=16,
+    )
+    result = kernel.step(1, ExperimentPlan.ramped_user_ab(
+        active_policy=dedup,
+        treatment_policy=dedup,
+        experiment_seed=137,
+        control_fraction=0.25,
+        treatment_fraction=0.25,
+    ))
+    trace = result.candidate_trace
+    prior = before.user_exposure_item[trace.user_id]
+    prior_time = before.user_exposure_time[trace.user_id]
+    recent = (prior >= 0) & ((trace.event_time[:, None] - prior_time) <= 16)
+    repeated = (
+        (trace.recall_item_id[:, :, None] == prior[:, None, :])
+        & recent[:, None, :]
+    ).any(dim=2)
+    feed = trace.surface == 0
+    video = platform.catalog.content_kind[
+        trace.recall_item_id.clamp_min(0)
+    ] == 0
+    assert not (repeated & video)[feed].any()
+
+
+def test_feed_session_dedup_blocks_only_current_session_repeats():
+    world, platform, log, _, _, _ = build_system(users=512, items=3_000)
+    baseline = CascadePolicy("session-dedup-baseline", 1, 1, 1)
+    kernel = AtomicSimulationKernel(world, platform, log)
+    kernel.step(0, ExperimentPlan.ramped_user_ab(
+        active_policy=baseline,
+        treatment_policy=baseline,
+        experiment_seed=139,
+        control_fraction=0.25,
+        treatment_fraction=0.25,
+    ))
+    before = platform.projection.snapshot().state
+    dedup = CascadePolicy(
+        "feed-session-dedup",
+        1,
+        1,
+        1,
+        feed_session_dedup=True,
+    )
+    result = kernel.step(1, ExperimentPlan.ramped_user_ab(
+        active_policy=dedup,
+        treatment_policy=dedup,
+        experiment_seed=149,
+        control_fraction=0.25,
+        treatment_fraction=0.25,
+    ))
+    trace = result.candidate_trace
+    prior_item = before.user_exposure_item[trace.user_id]
+    prior_time = before.user_exposure_time[trace.user_id]
+    session_start = platform.projection.state.user_session_start_time[
+        trace.user_id
+    ]
+    current_session = (prior_item >= 0) & (
+        prior_time >= session_start[:, None]
+    )
+    repeated = (
+        (trace.recall_item_id[:, :, None] == prior_item[:, None, :])
+        & current_session[:, None, :]
+    ).any(dim=2)
+    feed = trace.surface == 0
+    video = platform.catalog.content_kind[
+        trace.recall_item_id.clamp_min(0)
+    ] == 0
+    assert not (repeated & video)[feed].any()
+
+
 def test_installed_learned_scorer_replays_exact_score_and_version():
     world, platform, log, _, _, _ = build_system(users=128, items=1_600)
 

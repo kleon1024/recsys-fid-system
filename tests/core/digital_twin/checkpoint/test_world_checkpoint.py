@@ -4,6 +4,11 @@ from dataclasses import fields
 
 import torch
 
+from fid_lab.simulation.digital_twin.checkpoint.store import (
+    _is_additive_contract,
+    _is_approved_contract_migration,
+)
+
 from fid_lab.simulation.digital_twin import (
     AtomicSimulationKernel,
     CascadePolicy,
@@ -142,3 +147,35 @@ def test_checkpoint_rejects_an_incompatible_catalog(tmp_path):
         assert "catalog" in str(error)
     else:
         raise AssertionError("catalog skew must fail checkpoint restore")
+
+
+def test_runtime_migration_accepts_only_additive_contract_fields():
+    previous = {
+        "projection": {"history_length": 64},
+        "routes": ["random", "popular"],
+    }
+    assert _is_additive_contract(previous, {
+        **previous,
+        "exposure_ledger": {"length": 64},
+    })
+    assert not _is_additive_contract(previous, {
+        **previous,
+        "projection": {"history_length": 128},
+    })
+    assert not _is_additive_contract(previous, {
+        "projection": previous["projection"],
+    })
+
+
+def test_runtime_migration_accepts_only_preregistered_value_changes():
+    previous = {"world_manifest": {"response": "formula-v1", "trend": "v1"}}
+    current = {"world_manifest": {"response": "behavioral-v2", "trend": "v1"}}
+    approved = {
+        "world_manifest.response": ("formula-v1", "behavioral-v2"),
+    }
+    assert _is_approved_contract_migration(previous, current, approved)
+    assert not _is_approved_contract_migration(
+        previous,
+        {"world_manifest": {"response": "behavioral-v2", "trend": "v2"}},
+        approved,
+    )

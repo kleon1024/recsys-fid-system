@@ -53,6 +53,8 @@ class CascadePolicy:
     sequence_weight: float = 0.18
     exploration_rate: float = 0.0
     exploration_seed: int = 1_991
+    feed_exposure_dedup_ticks: int = 0
+    feed_session_dedup: bool = False
 
     def __post_init__(self):
         if len(self.coarse_weights) != 10 or len(self.fine_weights) != 10:
@@ -64,6 +66,8 @@ class CascadePolicy:
             raise ValueError("at least one retrieval route must be enabled")
         if not 0.0 <= self.exploration_rate <= 1.0:
             raise ValueError("exploration rate must be in [0, 1]")
+        if self.feed_exposure_dedup_ticks < 0:
+            raise ValueError("Feed exposure dedup window cannot be negative")
 
 
 @dataclass(frozen=True)

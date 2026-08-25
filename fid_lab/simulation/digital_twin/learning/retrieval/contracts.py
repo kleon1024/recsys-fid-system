@@ -198,6 +198,7 @@ class RetrievalModelConfig:
     batch_size: int = 1_024
     learning_rate: float = 2e-3
     weight_decay: float = 1e-5
+    daily_ticks: int = 96
     seed: int = 2_026_082_5
 
     def __post_init__(self) -> None:
@@ -211,3 +212,7 @@ class RetrievalModelConfig:
     def config_hash(self) -> str:
         payload = json.dumps(asdict(self), sort_keys=True, separators=(",", ":"))
         return sha256(payload.encode("utf-8")).hexdigest()
+
+    @property
+    def feature_contract(self) -> RetrievalFeatureContract:
+        return RetrievalFeatureContract(daily_ticks=self.daily_ticks)

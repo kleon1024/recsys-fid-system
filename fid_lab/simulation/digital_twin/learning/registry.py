@@ -147,6 +147,19 @@ class PersistentModelRegistry:
             validation_status=validation_status,
         )
 
+    def review_shadow(
+        self, version: int, *, validation_status: str,
+    ) -> ModelRecord:
+        """Record the factual A/B decision for an existing shadow artifact."""
+        if validation_status not in {"pass", "hold", "reject"}:
+            raise ValueError("unsupported shadow review status")
+        return self._transition(
+            version,
+            allowed={"shadow"},
+            status="shadow" if validation_status != "reject" else "rejected",
+            validation_status=validation_status,
+        )
+
     def promote(self, version: int) -> ModelRecord:
         with self.lock:
             state = self._state()
@@ -218,6 +231,24 @@ class PersistentModelRegistry:
         record = self.alias(alias)
         if record is None:
             raise ValueError(f"model alias is not assigned: {alias}")
+        return self._load_record(record, expected, corpus=corpus)
+
+    def load_version(
+        self,
+        version: int,
+        expected: ArtifactCompatibility,
+        *,
+        corpus=None,
+    ) -> tuple[ModelRecord, RegistryArtifact]:
+        return self._load_record(self.record(version), expected, corpus=corpus)
+
+    def _load_record(
+        self,
+        record: ModelRecord,
+        expected: ArtifactCompatibility,
+        *,
+        corpus=None,
+    ) -> tuple[ModelRecord, RegistryArtifact]:
         if record.compatibility != expected.manifest():
             raise ValueError("model artifact is incompatible with serving snapshot")
         path = self.artifacts / record.artifact_file

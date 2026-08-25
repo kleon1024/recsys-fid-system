@@ -543,14 +543,12 @@ def test_external_bridge_cannot_claim_synthetic_policy_order():
 
 
 def test_structural_bridge_uses_disjoint_families_and_paired_test_worlds():
+    config = StructuralBridgeConfig(
+        rows=30, users=300, items=2_000, ticks=32, device="cpu",
+    )
     with TemporaryDirectory() as directory:
         output = Path(directory) / "bridge"
-        manifest = build_structural_bridge(
-            output,
-            StructuralBridgeConfig(
-                rows=30, users=300, items=2_000, ticks=32, device="cpu",
-            ),
-        )
+        manifest = build_structural_bridge(output, config)
         train = load_world_split(output, "train")
         validation = load_world_split(output, "validation")
         test = load_world_split(output, "test")
@@ -560,12 +558,7 @@ def test_structural_bridge_uses_disjoint_families_and_paired_test_worlds():
         structural_validation = load_world_split(
             output, "structural_validation",
         )
-        resumed = build_structural_bridge(
-            output,
-            StructuralBridgeConfig(
-                rows=30, users=300, items=2_000, ticks=32, device="cpu",
-            ),
-        )
+        resumed = build_structural_bridge(output, config)
         with __import__("pytest").raises(ValueError, match="config mismatch"):
             build_structural_bridge(
                 output,
@@ -600,9 +593,11 @@ def test_structural_bridge_uses_disjoint_families_and_paired_test_worlds():
         for rows in manifest["families"].values() for row in rows
     }) == 4
     assert all(
-        32 <= row["simulated_ticks"] <= 96
-        and row["extension_ticks"] == row["simulated_ticks"] - 32
-        and row["capture_tick_max"] >= 32 // 3
+        config.ticks <= row["simulated_ticks"] <= (
+            config.ticks + config.max_extension_ticks
+        )
+        and row["extension_ticks"] == row["simulated_ticks"] - config.ticks
+        and row["capture_tick_max"] >= config.ticks // 3
         for rows in manifest["families"].values() for row in rows
     )
     assert len(train) == 18

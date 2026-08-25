@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .....feed_loop.world_model.contracts import STRUCTURAL_INTERVENTION_NAMES
-
-STRUCTURAL_BRIDGE_SCHEMA = "v4-structural-neural-scm-bridge-v3"
+STRUCTURAL_BRIDGE_SCHEMA = "v5-structural-neural-scm-bridge-v1"
 
 
 @dataclass(frozen=True)
@@ -16,7 +14,7 @@ class StructuralBridgeConfig:
     items: int = 200_000
     slate_width: int = 8
     ticks: int = 192
-    max_extension_ticks: int = 64
+    max_extension_ticks: int = 128
     topics: int = 64
     countries: int = 12
     regions_per_country: int = 16

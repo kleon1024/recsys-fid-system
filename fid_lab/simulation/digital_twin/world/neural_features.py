@@ -23,9 +23,10 @@ from ...randomness.counter import (
 from ..catalog import PublicCatalog
 from ..contracts import RenderedSlateBatch
 from .state import UserWorldSnapshot
+from .experience import candidate_experience
 
 
-NEURAL_FEATURE_VERSION = "v4-kuairand-feed-bridge-v1"
+NEURAL_FEATURE_VERSION = "v5-experience-aware-feed-bridge-v1"
 V4_FEATURE_CONTRACT = feature_contract(CANONICAL_FEATURE_FIELDS)
 V4_FEATURE_COVERAGE = {
     str(index): (
@@ -78,6 +79,15 @@ def build_neural_scm_batch(
     features[:, :, 11] = long_match
     duration = catalog.duration_seconds[item].clamp(1.0, 180.0)
     features[:, :, 12] = torch.log1p(duration) / math.log(181.0)
+    experience = candidate_experience(snapshot, catalog, slate)
+    features[:, :, 13] = torch.log1p(experience.exact_repeat) / math.log(65.0)
+    features[:, :, 14] = torch.log1p(
+        experience.creator_pressure,
+    ) / math.log(65.0)
+    features[:, :, 15] = torch.log1p(
+        experience.topic_pressure,
+    ) / math.log(65.0)
+    features[:, :, 16] = users.disappointment[row, None]
     features[:, :, 17] = topic
     features[:, :, 18] = (
         catalog.country[item] == users.country[row, None]
@@ -99,6 +109,7 @@ def build_neural_scm_batch(
     )[:, None]
     features[:, :, 25] = users.activity[row, None]
     features[:, :, 26] = users.lifecycle_cohort[row, None].float() / 3.0
+    features[:, :, 27] = experience.repeat_penalty.clamp_max(4.0) / 4.0
     features.masked_fill_(~slate.valid[:, :, None], 0.0)
     return {
         "slate_features": features,

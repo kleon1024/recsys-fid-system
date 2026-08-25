@@ -56,6 +56,13 @@ class HiddenUserState:
     long_interest: torch.Tensor
     short_interest: torch.Tensor
     behavior_sequence: torch.Tensor
+    exposure_item: torch.Tensor
+    exposure_creator: torch.Tensor
+    exposure_topic: torch.Tensor
+    exposure_time: torch.Tensor
+    exposure_positive: torch.Tensor
+    exposure_cursor: torch.Tensor
+    disappointment: torch.Tensor
     surface_intent: torch.Tensor
     response_style: torch.Tensor
     satisfaction: torch.Tensor
@@ -224,6 +231,25 @@ def build_hidden_users(
             device=device,
             dtype=torch.float16,
         ),
+        exposure_item=torch.full(
+            (config.users, 64), -1, device=device, dtype=torch.long,
+        ),
+        exposure_creator=torch.full(
+            (config.users, 64), -1, device=device, dtype=torch.long,
+        ),
+        exposure_topic=torch.full(
+            (config.users, 64), -1, device=device, dtype=torch.long,
+        ),
+        exposure_time=torch.full(
+            (config.users, 64), -1, device=device, dtype=torch.long,
+        ),
+        exposure_positive=torch.zeros(
+            (config.users, 64), device=device, dtype=torch.bool,
+        ),
+        exposure_cursor=torch.zeros(
+            config.users, device=device, dtype=torch.long,
+        ),
+        disappointment=torch.zeros(config.users, device=device),
         surface_intent=population.surface_intent,
         response_style=population.response_style,
         satisfaction=population.satisfaction,

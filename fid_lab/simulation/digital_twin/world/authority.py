@@ -24,6 +24,7 @@ from .behavior import (
     materialize_response_events,
     response_events,
 )
+from .experience import EXPERIENCE_DYNAMICS_VERSION
 from .neural_features import (
     NEURAL_FEATURE_VERSION,
     V4_FEATURE_CONTRACT,
@@ -50,6 +51,21 @@ class FormulaResponseAuthority:
     """Deterministic invariant oracle; not the accepted P2 behavioral world."""
 
     version = "formula-invariant-oracle-v1"
+
+    def respond(
+        self,
+        snapshot: UserWorldSnapshot,
+        catalog: PublicCatalog,
+        slate: RenderedSlateBatch,
+        seed: int,
+    ) -> AppEventBatch:
+        return response_events(snapshot, catalog, slate, seed)
+
+
+class BehavioralSCMResponseAuthority:
+    """Nonlinear hidden-state response authority for the factual user world."""
+
+    version = f"behavioral-scm-v2:{EXPERIENCE_DYNAMICS_VERSION}"
 
     def respond(
         self,
@@ -119,7 +135,7 @@ class NeuralFeedResponseAuthority:
         self.feature_coverage = dict(feature_coverage)
         self.support_profile = dict(support_profile)
         self.inference_batch_size = inference_batch_size
-        self.formula = FormulaResponseAuthority()
+        self.formula = BehavioralSCMResponseAuthority()
         self.version = (
             f"neural-feed:{NEURAL_FEATURE_VERSION}:member-{member_index}:"
             f"{artifact_sha256[:12]}"

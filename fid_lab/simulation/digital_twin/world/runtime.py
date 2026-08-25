@@ -15,7 +15,7 @@ from ..contracts import (
     Surface,
     make_app_events,
 )
-from .authority import FormulaResponseAuthority, ResponseAuthority
+from .authority import BehavioralSCMResponseAuthority, ResponseAuthority
 from .dynamics.calendar import (
     CALENDAR_VERSION,
     arrival_hazard,
@@ -51,7 +51,7 @@ class UserEcosystemWorld:
         self.config = config
         self.catalog = catalog
         self.response_authority = (
-            FormulaResponseAuthority()
+            BehavioralSCMResponseAuthority()
             if response_authority is None else response_authority
         )
         self.users = build_hidden_users(config, catalog)
@@ -238,9 +238,11 @@ class UserEcosystemWorld:
         if not len(events.event_id):
             return
         self.delayed.acknowledge(events)
-        self._commit_lifecycle(events)
+        self._commit_session_open(events)
         self._commit_engagement(events)
+        self._commit_exposure_memory(events)
         self._commit_sequence(events)
+        self._commit_session_close(events)
         self.supply.commit(events)
         self.trends.commit(events)
         self.delayed.schedule_from(
@@ -250,7 +252,7 @@ class UserEcosystemWorld:
             self.supply.state,
         )
 
-    def _commit_lifecycle(self, events: AppEventBatch) -> None:
+    def _commit_session_open(self, events: AppEventBatch) -> None:
         state = self.users
         registration = events.event(EventType.REGISTRATION)
         state.registered[events.user_id[registration]] = True
@@ -262,9 +264,13 @@ class UserEcosystemWorld:
         state.session_depth[start_user] = 0
         state.session_count[start_user] += 1
         state.fatigue[start_user] *= 0.72
+        state.disappointment[start_user] *= 0.82
         self._drift_short_interest(start_user, events.event_time[start])
         entry = events.event(EventType.SURFACE_ENTRY)
         state.session_depth[events.user_id[entry]] += 1
+
+    def _commit_session_close(self, events: AppEventBatch) -> None:
+        state = self.users
         end = events.event(EventType.SESSION_END)
         end_user = events.user_id[end]
         if not len(end_user):
@@ -346,18 +352,27 @@ class UserEcosystemWorld:
         negative.scatter_add_(0, event_user, negative_weight[valid_user])
         dwell_by_user.scatter_add_(0, event_user, dwell_value[valid_user])
         examined.scatter_add_(0, event_user, examine[valid_user])
-        touched = (positive + negative + dwell_by_user + examined) > 0
+        disappointment, repeat_pressure, experience_user = (
+            self._experience_outcomes(events)
+        )
+        touched = (
+            (positive + negative + dwell_by_user + examined) > 0
+        ) | experience_user
         next_satisfaction = (
             0.992 * state.satisfaction
             + 0.025 * positive.clamp_max(3.0)
             + 0.008 * dwell_by_user.clamp_max(8.0)
             - 0.10 * negative.clamp_max(2.0)
+            - 0.09 * disappointment
+            - 0.12 * repeat_pressure
         ).clamp(0.0, 1.0)
         next_fatigue = (
             0.975 * state.fatigue
             + 0.012 * examined.clamp_max(12.0)
             + 0.08 * negative.clamp_max(2.0)
             - 0.012 * positive.clamp_max(3.0)
+            + 0.10 * disappointment
+            + 0.16 * repeat_pressure
         ).clamp(0.0, 1.0)
         state.satisfaction[touched] = next_satisfaction[touched]
         state.fatigue[touched] = next_fatigue[touched]
@@ -365,7 +380,157 @@ class UserEcosystemWorld:
             0.996 * state.habit[touched]
             + 0.004 * state.satisfaction[touched]
         ).clamp(0.01, 0.99)
+        state.disappointment[experience_user] = (
+            0.82 * state.disappointment[experience_user]
+            + 0.18 * disappointment[experience_user]
+        ).clamp(0.0, 1.0)
         self._commit_interest(events, positive_weight)
+
+    def _experience_outcomes(
+        self, events: AppEventBatch,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        state = self.users
+        users = len(state.user_id)
+        zero = torch.zeros(users, device=events.event_id.device)
+        impression = (
+            events.event(EventType.IMPRESSION)
+            & (events.user_id >= 0)
+            & (events.item_id >= 0)
+            & (events.surface == int(Surface.FEED))
+        )
+        if not impression.any():
+            return zero, zero.clone(), zero.bool()
+        request_ids = torch.unique(events.request_id[impression], sorted=True)
+        location = torch.searchsorted(request_ids, events.request_id)
+        aligned = (
+            (location < len(request_ids))
+            & (request_ids[location.clamp_max(len(request_ids) - 1)]
+               == events.request_id)
+        )
+        request_user = torch.full(
+            (len(request_ids),), -1,
+            device=events.event_id.device,
+            dtype=torch.long,
+        )
+        request_user.scatter_(
+            0, location[impression], events.user_id[impression],
+        )
+        examined = torch.zeros(len(request_ids), device=events.event_id.device)
+        examined.index_add_(
+            0,
+            location[events.event(EventType.EXAMINE) & aligned],
+            torch.ones_like(events.value[events.event(EventType.EXAMINE) & aligned]),
+        )
+        success_event = (
+            events.event(EventType.PLAY_3S)
+            | events.event(EventType.LONG_VIEW)
+            | events.event(EventType.LIKE)
+            | events.event(EventType.SHARE)
+            | events.event(EventType.FOLLOW)
+        ) & aligned
+        success = torch.zeros_like(examined)
+        success.index_add_(
+            0, location[success_event], torch.ones_like(events.value[success_event]),
+        )
+        disappointed_request = ((examined > 0) & (success == 0)).float()
+        user_requests = torch.zeros_like(zero)
+        user_disappointment = torch.zeros_like(zero)
+        valid_request = request_user >= 0
+        user_requests.index_add_(
+            0, request_user[valid_request], torch.ones_like(request_user[valid_request]).float(),
+        )
+        user_disappointment.index_add_(
+            0, request_user[valid_request], disappointed_request[valid_request],
+        )
+        impression_user = events.user_id[impression]
+        history = state.exposure_item[impression_user]
+        repeated = (
+            events.item_id[impression, None] == history
+        ).any(dim=1).float()
+        repeat_count = torch.zeros_like(zero)
+        impression_count = torch.zeros_like(zero)
+        repeat_count.index_add_(0, impression_user, repeated)
+        impression_count.index_add_(
+            0, impression_user, torch.ones_like(impression_user).float(),
+        )
+        touched = user_requests > 0
+        return (
+            user_disappointment / user_requests.clamp_min(1.0),
+            repeat_count / impression_count.clamp_min(1.0),
+            touched,
+        )
+
+    def rebuild_experience(self, batches: tuple[AppEventBatch, ...]) -> None:
+        """Backfill newly introduced hidden experience memory at a DGP boundary."""
+        state = self.users
+        state.exposure_item.fill_(-1)
+        state.exposure_creator.fill_(-1)
+        state.exposure_topic.fill_(-1)
+        state.exposure_time.fill_(-1)
+        state.exposure_positive.zero_()
+        state.exposure_cursor.zero_()
+        state.disappointment.zero_()
+        for events in batches:
+            disappointment, _, touched = self._experience_outcomes(events)
+            state.disappointment[touched] = (
+                0.82 * state.disappointment[touched]
+                + 0.18 * disappointment[touched]
+            )
+            self._commit_exposure_memory(events)
+
+    def _commit_exposure_memory(self, events: AppEventBatch) -> None:
+        impression = (
+            events.event(EventType.IMPRESSION)
+            & (events.user_id >= 0)
+            & (events.item_id >= 0)
+        )
+        if not impression.any():
+            return
+        positive_event = (
+            events.event(EventType.PLAY_3S)
+            | events.event(EventType.LONG_VIEW)
+            | events.event(EventType.COMPLETE)
+            | events.event(EventType.LIKE)
+            | events.event(EventType.SHARE)
+            | events.event(EventType.FOLLOW)
+            | events.event(EventType.CLICK)
+        ) & (events.position >= 0)
+        event_key = events.request_id * 64 + events.position.clamp_min(0)
+        positive_key = event_key[positive_event]
+        positive = torch.isin(event_key[impression], positive_key)
+        user = events.user_id[impression]
+        item = events.item_id[impression]
+        creator = events.creator_id[impression]
+        topic = events.topic_id[impression]
+        event_time = events.event_time[impression]
+        time_order = torch.argsort(event_time, stable=True)
+        user_order = torch.argsort(user[time_order], stable=True)
+        order = time_order[user_order]
+        user, item = user[order], item[order]
+        creator, topic = creator[order], topic[order]
+        event_time, positive = event_time[order], positive[order]
+        new_user = torch.ones_like(user, dtype=torch.bool)
+        new_user[1:] = user[1:] != user[:-1]
+        starts = torch.where(new_user)[0]
+        group = torch.cumsum(new_user.long(), dim=0) - 1
+        within = torch.arange(len(user), device=user.device) - starts[group]
+        ends = torch.cat((
+            starts[1:], torch.tensor([len(user)], device=user.device),
+        ))
+        group_size = (ends - starts)[group]
+        width = self.users.exposure_item.shape[1]
+        keep = within >= (group_size - width).clamp_min(0)
+        slot = torch.remainder(
+            self.users.exposure_cursor[user] + within, width,
+        )
+        self.users.exposure_item[user[keep], slot[keep]] = item[keep]
+        self.users.exposure_creator[user[keep], slot[keep]] = creator[keep]
+        self.users.exposure_topic[user[keep], slot[keep]] = topic[keep]
+        self.users.exposure_time[user[keep], slot[keep]] = event_time[keep]
+        self.users.exposure_positive[user[keep], slot[keep]] = positive[keep]
+        counts = torch.zeros_like(self.users.exposure_cursor)
+        counts.index_add_(0, user, torch.ones_like(user))
+        self.users.exposure_cursor.add_(counts)
 
     def _commit_interest(
         self, events: AppEventBatch, positive_weight: torch.Tensor,
@@ -407,7 +572,6 @@ class UserEcosystemWorld:
                == events.request_id)
         )
         rows = len(request_ids)
-        event_row = request_location[valid_request]
         request_user = torch.full(
             (rows,), -1, device=events.event_id.device, dtype=torch.long,
         )

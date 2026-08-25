@@ -63,9 +63,16 @@ def _dataclass_tensor_state(value: object) -> dict[str, torch.Tensor]:
     }
 
 
-def _restore_tensor_state(target: object, state: Mapping[str, torch.Tensor]) -> None:
+def _restore_tensor_state(
+    target: object,
+    state: Mapping[str, torch.Tensor],
+    *,
+    allow_additive_fields: bool = False,
+) -> None:
     expected = {field.name for field in fields(target)}
-    if set(state) != expected:
+    actual = set(state)
+    valid = actual.issubset(expected) if allow_additive_fields else actual == expected
+    if not valid:
         raise ValueError("checkpoint tensor state schema differs from runtime")
     for name, saved in state.items():
         current = getattr(target, name)
@@ -132,6 +139,38 @@ def _runtime_manifest(
             }
         ),
     }
+
+
+def _is_additive_contract(previous: object, current: object) -> bool:
+    """Allow only new mapping keys; every historical value stays identical."""
+    if isinstance(previous, Mapping) and isinstance(current, Mapping):
+        return all(
+            key in current and _is_additive_contract(value, current[key])
+            for key, value in previous.items()
+        )
+    return previous == current
+
+
+def _is_approved_contract_migration(
+    previous: object,
+    current: object,
+    approved: Mapping[str, tuple[object, object]],
+    path: str = "",
+) -> bool:
+    """Allow additive keys plus exact, preregistered value transitions."""
+    if isinstance(previous, Mapping) and isinstance(current, Mapping):
+        return all(
+            key in current and _is_approved_contract_migration(
+                value,
+                current[key],
+                approved,
+                f"{path}.{key}" if path else str(key),
+            )
+            for key, value in previous.items()
+        )
+    if previous == current:
+        return True
+    return approved.get(path) == (previous, current)
 
 
 def _policy_state(policy: CascadePolicy) -> dict[str, object]:
@@ -250,10 +289,19 @@ def _platform_state(
 
 
 def _restore_world(
-    world: UserEcosystemWorld, state: Mapping[str, object],
+    world: UserEcosystemWorld,
+    state: Mapping[str, object],
+    *,
+    allow_additive_fields: bool = False,
 ) -> None:
-    _restore_tensor_state(world.users, state["users"])
-    _restore_tensor_state(world.supply.state, state["supply"])
+    _restore_tensor_state(
+        world.users, state["users"],
+        allow_additive_fields=allow_additive_fields,
+    )
+    _restore_tensor_state(
+        world.supply.state, state["supply"],
+        allow_additive_fields=allow_additive_fields,
+    )
     trend = state["trend"]
     world.trends.state.strength.copy_(
         trend["strength"].to(world.trends.state.strength.device)
@@ -289,9 +337,16 @@ def _restore_graph(
 
 
 def _restore_platform(
-    platform: ReferenceRecommendationPlatform, state: Mapping[str, object],
+    platform: ReferenceRecommendationPlatform,
+    state: Mapping[str, object],
+    *,
+    allow_additive_fields: bool = False,
 ) -> None:
-    _restore_tensor_state(platform.projection.state, state["projection"])
+    _restore_tensor_state(
+        platform.projection.state,
+        state["projection"],
+        allow_additive_fields=allow_additive_fields,
+    )
     retriever_state = state["retriever"]
     retriever = platform.retriever
     retriever._last_refresh = int(retriever_state["last_refresh"])
@@ -388,21 +443,45 @@ class WorldCheckpointStore:
         checkpoint_id: str,
         *,
         require_code_match: bool = True,
+        allow_additive_runtime_migration: bool = False,
+        approved_runtime_changes: Mapping[
+            str, tuple[object, object]
+        ] | None = None,
     ) -> RestoredWorldCheckpoint:
         world, platform = self._compatible_runtime(kernel)
         manifest = self._manifest(checkpoint_id)
         if manifest["catalog_sha256"] != _catalog_hash(world.catalog):
             raise ValueError("checkpoint catalog differs from runtime")
         runtime = _runtime_manifest(world, platform)
-        if manifest["runtime_sha256"] != sha256(
+        runtime_matches = manifest["runtime_sha256"] == sha256(
             _canonical_json(runtime)
-        ).hexdigest():
+        ).hexdigest()
+        additive = (
+            allow_additive_runtime_migration
+            and _is_additive_contract(manifest["runtime_manifest"], runtime)
+        )
+        approved = (
+            approved_runtime_changes is not None
+            and _is_approved_contract_migration(
+                manifest["runtime_manifest"], runtime,
+                approved_runtime_changes,
+            )
+        )
+        if not runtime_matches and not (additive or approved):
             raise ValueError("checkpoint runtime contract differs")
         if require_code_match and manifest["code_sha256"] != _source_hash():
             raise ValueError("checkpoint code closure differs from runtime")
         state = self._read_object(manifest["state_object"])
-        _restore_world(world, state["world"])
-        _restore_platform(platform, state["platform"])
+        _restore_world(
+            world,
+            state["world"],
+            allow_additive_fields=allow_additive_runtime_migration,
+        )
+        _restore_platform(
+            platform,
+            state["platform"],
+            allow_additive_fields=allow_additive_runtime_migration,
+        )
         self._restore_event_log(kernel, manifest)
         return RestoredWorldCheckpoint(
             ref=self._ref(checkpoint_id, manifest),

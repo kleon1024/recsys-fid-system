@@ -8,7 +8,6 @@ import torch
 
 from ...samples import corrected_sampled_softmax_loss
 from .contracts import (
-    DEFAULT_RETRIEVAL_FEATURE_CONTRACT,
     RetrievalCorpus,
     RetrievalModelConfig,
     RetrievalQueryBatch,
@@ -84,7 +83,7 @@ def train_retrieval_model(
         "partition_content_hashes": list(batch.partition_content_hashes),
         "feature_manifest_hash": batch.feature_manifest_hash,
         "retrieval_feature_contract_hash": (
-            DEFAULT_RETRIEVAL_FEATURE_CONTRACT.manifest_hash
+            config.feature_contract.manifest_hash
         ),
         "corpus_sha256": corpus.content_sha256,
         "parameters": sum(parameter.numel() for parameter in model.parameters()),

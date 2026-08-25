@@ -26,6 +26,7 @@ from ..platform import (
     RetrievalConfig,
 )
 from ..world import UserEcosystemWorld, UserWorldConfig
+from ..world.authority import BehavioralSCMResponseAuthority
 
 
 BASE_ROUTES = ("random",)
@@ -69,6 +70,7 @@ class RetrievalLadderConfig:
     resume_checkpoint_id: str | None = None
     max_reviews: int | None = None
     allow_code_migration: bool = False
+    allow_additive_runtime_migration: bool = False
     max_attempts_per_review: int = 3
 
     def __post_init__(self):
@@ -242,7 +244,7 @@ def _build_kernel(config: RetrievalLadderConfig):
         environment_seed=config.seed + 2,
         ticks_per_day=config.ticks_per_day,
         future_signup_fraction=0.35,
-    ), catalog)
+    ), catalog, response_authority=BehavioralSCMResponseAuthority())
     platform = ReferenceRecommendationPlatform(
         ReferencePlatformConfig(users=config.users, history_length=64),
         catalog,
@@ -467,6 +469,9 @@ def _restore_or_burn_in(
             kernel,
             resume_checkpoint_id,
             require_code_match=not config.allow_code_migration,
+            allow_additive_runtime_migration=(
+                config.allow_additive_runtime_migration
+            ),
         )
         cursor = restored.learning_cursors.get("retrieval_ladder")
         if not isinstance(cursor, dict):
@@ -704,6 +709,7 @@ def main() -> None:
     parser.add_argument("--resume-checkpoint-id")
     parser.add_argument("--max-reviews", type=int)
     parser.add_argument("--allow-code-migration", action="store_true")
+    parser.add_argument("--allow-additive-runtime-migration", action="store_true")
     parser.add_argument("--max-attempts-per-review", type=int, default=3)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
@@ -726,6 +732,7 @@ def main() -> None:
         resume_checkpoint_id=args.resume_checkpoint_id,
         max_reviews=args.max_reviews,
         allow_code_migration=args.allow_code_migration,
+        allow_additive_runtime_migration=args.allow_additive_runtime_migration,
         max_attempts_per_review=args.max_attempts_per_review,
     ))
     payload = json.dumps(result, indent=2, sort_keys=True)

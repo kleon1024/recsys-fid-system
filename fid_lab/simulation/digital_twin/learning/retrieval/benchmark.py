@@ -54,16 +54,23 @@ class RetrievalBenchmarkConfig:
     batch_size: int = 1_024
     max_evaluation_queries: int = 10_000
     latency_budget_ms: float = 10.0
+    daily_ticks: int = 96
+    candidate_mode: str = "standalone"
     seed: int = 2_026_082_5
 
     def __post_init__(self) -> None:
         numeric = asdict(self)
-        if any(value <= 0 for name, value in numeric.items() if name != "device"):
+        if any(
+            value <= 0 for value in numeric.values()
+            if isinstance(value, (int, float))
+        ):
             raise ValueError("retrieval benchmark configuration must be positive")
         if self.ticks < 2:
             raise ValueError("retrieval benchmark needs train and evaluation ticks")
         if not self.merged_k >= self.coarse_k >= self.fine_k >= self.expose_k:
             raise ValueError("retrieval benchmark cascade budgets differ")
+        if self.candidate_mode not in {"standalone", "additive"}:
+            raise ValueError("retrieval candidate mode is unsupported")
 
 
 def _evaluation_sample(batch, maximum: int, seed: int):
@@ -225,6 +232,7 @@ def _evaluate_architecture(
         architecture=architecture,
         epochs=config.epochs,
         batch_size=config.batch_size,
+        daily_ticks=config.daily_ticks,
         seed=config.seed + offset,
     )
     model, training = train_retrieval_model(
@@ -234,7 +242,7 @@ def _evaluate_architecture(
         model=model,
         config=model_config,
         feature_manifest_hash=train.feature_manifest_hash,
-        retrieval_feature_contract_hash=DEFAULT_RETRIEVAL_FEATURE_CONTRACT.manifest_hash,
+        retrieval_feature_contract_hash=model_config.feature_contract.manifest_hash,
         corpus_sha256=corpus.content_sha256,
         training_report=training,
     )
@@ -253,13 +261,25 @@ def _evaluate_architecture(
     if loaded_record.serving_version_id != record.serving_version_id:
         raise AssertionError("retrieval registry loaded another candidate")
     index = RetrievalANNIndex(loaded, corpus, device=device)
-    candidates, latency = model_candidates(
+    standalone, latency = model_candidates(
         loaded, index, evaluation, top_k=config.top_k,
         batch_size=config.batch_size,
+    )
+    candidates = (
+        merge_candidate_sets((baseline, standalone), config.top_k)
+        if config.candidate_mode == "additive" else standalone
     )
     metrics = retrieval_metrics(
         candidates, evaluation, corpus, downstream_k=config.downstream_k,
         baseline_candidates=baseline, train_frequency=frequency,
+    )
+    standalone_metrics = retrieval_metrics(
+        standalone,
+        evaluation,
+        corpus,
+        downstream_k=config.downstream_k,
+        baseline_candidates=baseline,
+        train_frequency=frequency,
     )
     decision, reason = launch_decision(
         metrics, milliseconds_per_query=latency,
@@ -281,6 +301,8 @@ def _evaluate_architecture(
         ),
         "index_items": len(index.item_ids),
         "embedding_bytes": index.item_embeddings.nbytes,
+        "candidate_mode": config.candidate_mode,
+        "standalone": standalone_metrics,
         "index_version": artifact.index_version,
         "serving_version_id": record.serving_version_id,
         "artifact_sha256": record.artifact_sha256,
@@ -374,14 +396,16 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--epochs", type=int, default=4)
     parser.add_argument("--max-evaluation-queries", type=int, default=10_000)
+    parser.add_argument("--daily-ticks", type=int, default=96)
     args = parser.parse_args()
-    report = run_retrieval_benchmark(RetrievalBenchmarkConfig(
+    run_retrieval_benchmark(RetrievalBenchmarkConfig(
         users=args.users,
         items=args.items,
         ticks=args.ticks,
         device=args.device,
         epochs=args.epochs,
         max_evaluation_queries=args.max_evaluation_queries,
+        daily_ticks=args.daily_ticks,
     ), args.output)
     print((args.output / "retrieval-leaderboard.json").read_text())
 

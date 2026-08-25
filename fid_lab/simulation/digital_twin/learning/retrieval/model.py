@@ -89,8 +89,9 @@ class ObservableRetrievalModel(nn.Module):
     ) -> torch.Tensor:
         contract = DEFAULT_RETRIEVAL_FEATURE_CONTRACT
         angle = (
-            2.0 * math.pi * torch.remainder(event_time, contract.daily_ticks).float()
-            / contract.daily_ticks
+            2.0 * math.pi
+            * torch.remainder(event_time, self.config.daily_ticks).float()
+            / self.config.daily_ticks
         )
         dense = torch.cat((
             torch.log1p(user_counts.float()) / contract.counter_log_scale,

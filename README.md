@@ -5,6 +5,13 @@
 
 An executable reference architecture and public outsourcing RFP for an industrial Feed, search, and recommendation platform.
 
+The newest evolving factual-world milestone repairs a previously invalid user
+response loop: exact repeated Feed videos now cause immediate slide pressure,
+session exit, satisfaction loss, and later retention/churn effects. Historical
+v4 request partitions are excluded from the new DGP epoch. A sequential RTX
+4090 A/B promoted exact short-video dedup before item cold-start exploration;
+see [L-FEED-FOUNDATION-010](docs/launch-reviews/2026-08-25-feed-v5-experience-dedup.md).
+
 ## Historical Feed model V4 and governance world V5
 
 This retained legacy benchmark uses an external sequence world with a hidden
