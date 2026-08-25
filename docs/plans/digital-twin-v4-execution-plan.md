@@ -440,7 +440,8 @@ world fields or a different tuning budget.
 
 ## 8. Experiment program
 
-Every algorithm, policy, sample, feature and cadence change maps to one row in
+Every algorithm, policy, sample, feature, cadence and reliability change maps to
+one row in
 the [Launch Ladder](digital-twin-v4-launch-ladder.md). Observed lift comes only
 from a factual A/B artifact; offline and shadow results remain diagnostics.
 

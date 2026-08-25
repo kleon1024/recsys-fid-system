@@ -1,6 +1,5 @@
 # Production Recommendation System Reference
 
-[![Reference acceptance](https://github.com/kleon1024/recsys-fid-system/actions/workflows/ci.yml/badge.svg)](https://github.com/kleon1024/recsys-fid-system/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 
@@ -769,14 +768,14 @@ cd recsys-fid-system
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e .
+python -m pip install -e ".[test]"
 python -m fid_lab.check
 ```
 
 The single acceptance command runs structural checks, public-document scanning,
-the complete unit and integration suite, deterministic serving demos, the CI-sized model
-ladder, and an A/B estimator calibration smoke. GPU scale runs are intentionally
-separate because GitHub-hosted CI has no RTX 4090:
+the complete unit and integration suite, deterministic serving demos, the smoke
+model ladder, and an A/B estimator calibration check. Scale evidence runs on the
+project RTX 4090 and remains content-bound to the reviewed commit:
 
 ```bash
 python3 -m fid_lab.experiment

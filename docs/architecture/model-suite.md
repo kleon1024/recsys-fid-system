@@ -130,7 +130,10 @@ python3 -m fid_lab.surfaces.demo
 python3 -m fid_lab.check
 ```
 
-The repository uses `unittest` as its single existing gate; the test files are also discoverable by pytest because they use standard `unittest.TestCase` contracts. Adding a second pytest-only gate would create duplicate test authority without improving coverage.
+`python -m fid_lab.check` is the single acceptance entrypoint. It runs the legacy
+`unittest` suite and the focused digital-twin pytest suite; the latter is declared
+through the `test` package extra. Running a second global pytest command is not a
+separate acceptance authority.
 
 ## Public references
 

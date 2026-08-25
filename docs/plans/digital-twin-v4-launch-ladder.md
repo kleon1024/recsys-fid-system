@@ -125,7 +125,32 @@ Faster data movement with unchanged served rankings is a systems benchmark, not 
 successful recommendation LR. Streaming labels remain masked until mature; the
 pipeline never turns recency into fake negatives.
 
-## 5. Multi-business extension
+## 5. Reliability and bug-fix ladder
+
+Bug fixes can be launched and reviewed like business changes, but their claim is
+**recovered correctness or avoided loss**, not new algorithmic lift. A bug that
+invalidates assignment, labels, features or metrics invalidates the affected old
+LR; fix it first and rerun that LR instead of opening a convenient new treatment.
+
+| ID | Control → treatment | Required evidence |
+|---|---|---|
+| B-AB00 | broken/unknown assignment → deterministic atomic assignment | A/A, SRM, one factual commit and contamination audit |
+| B-LOG00 | ambiguous selection probability → typed factual/randomized propensity and support | exact replay and unsupported-policy abstention |
+| B-JOIN00 | premature/default-zero labels → maturity, censor and delayed-attribution masks | label correction counts, no future leakage and recalibration |
+| B-FEAT00 | train/serve divergence → one exact feature/FID authority | byte parity, missing/default/TTL and score replay |
+| B-CAS00 | silent cascade loss → complete candidate/stage decision log | stage closure and restored high-value pass-through |
+| B-MIX00 | duplicate/double-claimed exposure → one final-slate owner | impression reconciliation and displacement trace |
+| B-IDX00 | model/index/corpus mismatch → compatibility-gated snapshot | pre-score rejection, fallback and exact rollback |
+| B-PS00 | stale/lost sparse shard → versioned shard recovery | freshness, checksum, replay and recovery-to-baseline |
+| B-LAT00 | timeout/fallback amplification → bounded latency and explicit fallback | P50/P99, fallback rate, ranking distribution and business recovery |
+
+Urgent correctness fixes may use canary or switchback rather than withholding a
+known fix from half the users. The review still records pre-fix loss, recovery,
+confidence interval, rollback and which prior reports became invalid. Simulator
+or evaluator defects that do not affect a factual product policy are engineering
+reviews only and cannot claim user-value uplift.
+
+## 6. Multi-business extension
 
 After F-M02, Search, Ads, Commerce, Local, Posting, Live and photo/card/article
 repeat the same sequence with independent sample spaces: eligible/random baseline,
@@ -133,7 +158,7 @@ retrieval routes, direct ranker, coarse only under pressure, calibrated primitiv
 value, final-mixer interaction and factual A/B. Shared infrastructure does not
 permit shared labels or automatic LT exchange.
 
-## 6. Current ledger
+## 7. Current ledger
 
 As of 2026-08-25, F-R00 onward have not completed factual v4 A/B. P3-06 is an
 offline equal-budget retrieval review: Lifecycle remains control and Graph, RRF,

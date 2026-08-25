@@ -46,4 +46,3 @@ or Feed posting evidence.
 - focused Local Search request, label, artifact, and stage-isolation tests
 - RTX 4090 multi-seed Launch Review
 - `python -m fid_lab.check` on the complete remote environment
-- GitHub Reference acceptance
