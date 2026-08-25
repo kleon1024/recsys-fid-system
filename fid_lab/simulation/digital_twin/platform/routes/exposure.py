@@ -8,7 +8,7 @@ from ...contracts import PlatformRequestBatch, Surface
 from ..projection import PlatformProjectionState
 
 
-DEDUP_REQUEST_CHUNK = 512
+DEDUP_REQUEST_CHUNK = 2_048
 
 
 def recently_exposed(
@@ -65,22 +65,21 @@ def _exact_membership(
     if route_item.numel() == 0:
         return torch.zeros_like(route_item, dtype=torch.bool)
     flattened = route_item.reshape(rows, -1)
-    maximum = torch.maximum(
-        flattened.clamp_min(0).max(), history_item.clamp_min(0).max(),
-    )
-    item_base = maximum + 1
-    row = torch.arange(rows, device=route_item.device, dtype=torch.long)
-    history_key = (
-        row[:, None] * item_base + history_item.clamp_min(0)
-    )[selected_history]
-    if not len(history_key):
+    if not selected_history.any():
         return torch.zeros_like(route_item, dtype=torch.bool)
-    history_key = torch.sort(history_key).values
+    sentinel = torch.maximum(
+        flattened.clamp_min(0).max(), history_item.clamp_min(0).max(),
+    ) + 1
+    searchable = torch.where(
+        selected_history, history_item, sentinel,
+    ).sort(dim=1).values
     candidate_valid = flattened >= 0
-    candidate_key = row[:, None] * item_base + flattened.clamp_min(0)
-    location = torch.searchsorted(history_key, candidate_key)
-    location = location.clamp_max(len(history_key) - 1)
-    duplicate = candidate_valid & (history_key[location] == candidate_key)
+    candidate = flattened.clamp_min(0).contiguous()
+    location = torch.searchsorted(searchable, candidate)
+    location = location.clamp_max(searchable.shape[1] - 1)
+    duplicate = candidate_valid & (
+        torch.gather(searchable, 1, location) == candidate
+    )
     return duplicate.reshape_as(route_item)
 
 
