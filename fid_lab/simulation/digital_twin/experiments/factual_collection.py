@@ -13,6 +13,7 @@ import torch
 from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
 from ..engine import ExperimentPlan
 from ..learning.request_stream import FactualRequestStream
+from .layered import LayeredExperimentPlan
 from .retrieval_ladder import RetrievalLadderConfig, _build_kernel, _sync
 
 
@@ -64,8 +65,10 @@ def collect_factual_requests(
         require_code_match=not config.allow_code_migration,
         allow_additive_runtime_migration=config.allow_additive_runtime_migration,
     )
-    if not isinstance(restored.experiment, ExperimentPlan):
-        raise ValueError("factual collection requires a non-layered policy")
+    if not isinstance(
+        restored.experiment, (ExperimentPlan, LayeredExperimentPlan),
+    ):
+        raise ValueError("factual collection requires a supported experiment plan")
     stream = FactualRequestStream(
         Path(config.request_stream_root) / config.checkpoint_branch,
         branch,

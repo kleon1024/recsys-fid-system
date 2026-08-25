@@ -11,6 +11,11 @@ session exit, satisfaction loss, and later retention/churn effects. Historical
 v4 request partitions are excluded from the new DGP epoch. A sequential RTX
 4090 A/B promoted exact short-video dedup before item cold-start exploration;
 see [L-FEED-FOUNDATION-010](docs/launch-reviews/2026-08-25-feed-v5-experience-dedup.md).
+A subsequent consistency audit separated the 64-event modeling sequence from a
+1,024-entry Feed-only exposure ledger. The item cold-start layer is now a real
+2% global randomized experiment with logged propensities, but remains HOLD on
+stay non-inferiority; see
+[R-LR-012](docs/launch-reviews/2026-08-25-feed-v5-cold-start.md).
 
 ## Historical Feed model V4 and governance world V5
 

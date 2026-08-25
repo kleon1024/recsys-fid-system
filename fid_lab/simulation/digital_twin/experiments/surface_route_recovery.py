@@ -1,19 +1,16 @@
-"""Migrate the factual world to a new, explicitly versioned DGP epoch."""
+"""Repair route ownership so Feed experiments cannot disable business surfaces."""
 
 from __future__ import annotations
 
 import argparse
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import json
 from pathlib import Path
 
 from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
 from ..engine import ExperimentPlan
-from ..platform import CascadePolicy
-from ..world.authority import (
-    BehavioralSCMResponseAuthority,
-    FormulaResponseAuthority,
-)
+from ..platform import BUSINESS_ROUTE_NAMES, CascadePolicy
+from .layered import LayeredExperimentPlan
 from .retrieval_ladder import (
     RetrievalLadderConfig,
     _baseline_plan,
@@ -21,17 +18,8 @@ from .retrieval_ladder import (
 )
 
 
-DGP_EPOCH_CURSOR = "dgp_epoch_v5"
-DGP_RUNTIME_CHANGES = {
-    "world_manifest.response": (
-        FormulaResponseAuthority.version,
-        BehavioralSCMResponseAuthority.version,
-    ),
-}
-
-
 @dataclass(frozen=True)
-class DGPEpochMigrationConfig:
+class SurfaceRouteRecoveryConfig:
     checkpoint_root: str
     checkpoint_branch: str = "main"
     users: int = 20_000
@@ -41,7 +29,7 @@ class DGPEpochMigrationConfig:
     ticks_per_day: int = 8
 
 
-def _runtime_config(config: DGPEpochMigrationConfig) -> RetrievalLadderConfig:
+def _runtime_config(config: SurfaceRouteRecoveryConfig) -> RetrievalLadderConfig:
     return RetrievalLadderConfig(
         checkpoint_root=config.checkpoint_root,
         checkpoint_branch=config.checkpoint_branch,
@@ -53,8 +41,16 @@ def _runtime_config(config: DGPEpochMigrationConfig) -> RetrievalLadderConfig:
     )
 
 
-def migrate_dgp_epoch(
-    config: DGPEpochMigrationConfig,
+def _base_policy(plan) -> CascadePolicy:
+    if isinstance(plan, ExperimentPlan):
+        return plan.policies[-1]
+    if isinstance(plan, LayeredExperimentPlan):
+        return plan.base_policy
+    raise TypeError("surface recovery requires a supported experiment plan")
+
+
+def recover_surface_routes(
+    config: SurfaceRouteRecoveryConfig,
 ) -> dict[str, object]:
     runtime = _runtime_config(config)
     _, kernel = _build_kernel(runtime)
@@ -62,43 +58,43 @@ def migrate_dgp_epoch(
     registry = WorldBranchRegistry(store)
     branch = registry.get(config.checkpoint_branch)
     if not branch.training_authority:
-        raise ValueError("DGP epoch migration requires the factual branch")
+        raise ValueError("surface recovery requires the factual branch")
     restored = store.restore(
         kernel,
         branch.head_checkpoint_id,
         require_code_match=False,
-        allow_additive_runtime_migration=True,
-        approved_runtime_changes=DGP_RUNTIME_CHANGES,
     )
-    if DGP_EPOCH_CURSOR in restored.learning_cursors:
-        raise ValueError("DGP epoch v5 was already migrated")
-    if not isinstance(restored.experiment, ExperimentPlan):
-        raise ValueError("DGP migration requires a non-layered experiment")
-    active = restored.experiment.policies[-1]
-    if not isinstance(active, CascadePolicy):
-        raise TypeError("DGP migration requires a cascade policy baseline")
-    batches = kernel.event_log.partitions()
-    kernel.world.rebuild_experience(batches)
-    if not int(kernel.platform.projection.state.user_feed_exposure_cursor.sum()):
-        kernel.platform.projection.rebuild_exposures(kernel.event_log.read())
+    if "surface_route_recovery" in restored.learning_cursors:
+        raise ValueError("surface route ownership was already recovered")
+    previous = _base_policy(restored.experiment)
+    active = replace(
+        previous,
+        name="multi-surface-route-isolated-v1",
+        recall_version_id=max(previous.recall_version_id + 1, 12),
+        enabled_business_routes=BUSINESS_ROUTE_NAMES,
+        cold_start_exploration_rate=0.0,
+    )
     cursors = dict(restored.learning_cursors)
-    pending = dict(cursors.get("feed_session_dedup_launch", {}))
-    if pending and not pending.get("completed"):
-        pending.update({
-            "completed": True,
-            "decision": "invalidated_dgp_v4",
-            "validity": "excluded_from_v5_training_and_launch_decisions",
-        })
-        cursors["feed_session_dedup_launch"] = pending
-    cursors[DGP_EPOCH_CURSOR] = {
-        "schema": "dgp-epoch/v1",
-        "effective_after_logical_time": restored.ref.logical_time,
-        "previous_response_authority": FormulaResponseAuthority.version,
-        "response_authority": BehavioralSCMResponseAuthority.version,
-        "historical_request_stream_training_eligible": False,
+    for key in tuple(cursors):
+        if not key.startswith("cold_start_launch"):
+            continue
+        cold = dict(cursors[key])
+        if cold and not cold.get("completed"):
+            cold.update({
+                "completed": True,
+                "decision": "invalidated_missing_business_route_authority",
+            })
+            cursors[key] = cold
+    cursors["surface_route_recovery"] = {
+        "schema": "surface-route-recovery/v1",
+        "logical_time": restored.ref.logical_time,
+        "previous_policy": previous.name,
+        "active_policy": active.name,
+        "fixed_business_routes": list(BUSINESS_ROUTE_NAMES),
+        "invalidated_launch": "R-LR-011",
         "migration_parent": branch.head_checkpoint_id,
     }
-    plan = _baseline_plan(runtime, active, 9_100)
+    plan = _baseline_plan(runtime, active, 12_100)
     checkpoint = store.save(
         kernel,
         restored.ref.logical_time,
@@ -112,21 +108,17 @@ def migrate_dgp_epoch(
         expected_head_checkpoint_id=branch.head_checkpoint_id,
     )
     return {
-        "schema": "dgp-epoch-migration-review/v1",
-        "quality_claim": "synthetic-world authority migration",
+        "schema": "surface-route-recovery-review/v1",
+        "quality_claim": "synthetic serving invariant repair",
         "config": asdict(config),
         "logical_time": restored.ref.logical_time,
         "parent_checkpoint_id": branch.head_checkpoint_id,
         "checkpoint_id": checkpoint.checkpoint_id,
+        "previous_policy": previous.name,
         "active_policy": active.name,
-        "world_manifest": kernel.world.manifest(),
-        "hidden_exposure_rows": int(
-            kernel.world.users.exposure_cursor.sum()
-        ),
-        "users_with_exposure_memory": int(
-            (kernel.world.users.exposure_cursor > 0).sum()
-        ),
-        "historical_samples_training_eligible": False,
+        "feed_routes": list(active.enabled_routes),
+        "business_routes": list(active.enabled_business_routes),
+        "invalidated_launch": "R-LR-011",
     }
 
 
@@ -141,7 +133,7 @@ def main() -> None:
     parser.add_argument("--ticks-per-day", type=int, default=8)
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    report = migrate_dgp_epoch(DGPEpochMigrationConfig(
+    report = recover_surface_routes(SurfaceRouteRecoveryConfig(
         checkpoint_root=args.checkpoint_root,
         checkpoint_branch=args.checkpoint_branch,
         users=args.users,

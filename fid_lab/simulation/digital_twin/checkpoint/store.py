@@ -483,6 +483,17 @@ class WorldCheckpointStore:
             allow_additive_fields=allow_additive_runtime_migration,
         )
         self._restore_event_log(kernel, manifest)
+        projection = platform.projection.state
+        if (
+            allow_additive_runtime_migration
+            and int(projection.user_exposure_cursor.sum()) > 0
+            and int(projection.user_feed_exposure_cursor.sum()) == 0
+        ):
+            platform.projection.rebuild_exposures(
+                kernel.event_log.read(
+                    ingested_through=int(manifest["logical_time"]),
+                ),
+            )
         return RestoredWorldCheckpoint(
             ref=self._ref(checkpoint_id, manifest),
             experiment=_restore_experiment(manifest["experiment"]),

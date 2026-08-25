@@ -154,19 +154,24 @@ def _estimate(
 
 
 def _analyze(
-    batches: list[AppEventBatch], users: int,
+    batches: list[AppEventBatch],
+    users: int,
+    control_cell: int = 0,
+    treatment_cell: int = 1,
 ) -> tuple[dict[str, dict[str, float]], dict[str, int]]:
     events = AppEventBatch.concatenate(tuple(batches))
-    control_users = _cell_users(events, 0, users)
-    treatment_users = _cell_users(events, 1, users)
+    control_users = _cell_users(events, control_cell, users)
+    treatment_users = _cell_users(events, treatment_cell, users)
     metrics = {}
     for name, event_type in {
         "dwell_seconds": EventType.DWELL,
         **COUNT_METRICS,
     }.items():
-        values_control = _user_metric(events, 0, users, event_type)[control_users]
+        values_control = _user_metric(
+            events, control_cell, users, event_type,
+        )[control_users]
         values_treatment = _user_metric(
-            events, 1, users, event_type,
+            events, treatment_cell, users, event_type,
         )[treatment_users]
         metrics[name] = _estimate(values_control, values_treatment)
     return metrics, {

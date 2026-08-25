@@ -16,10 +16,19 @@ from .exploration import (
     mixture_slate_log_probability,
     random_ordered_top,
 )
+from .routes.cold_start_exploration import (
+    ColdStartDraw,
+    draw_cold_start_item,
+    inject_last,
+    targeted_admission_probability,
+    targeted_position_probability,
+    targeted_slate_log_probability,
+)
 from .features.encoder import FeatureTensorBatch, PlatformFeatureEncoder
 from .features.manifest import FeatureManifest
 from .projection import PlatformProjectionState
 from .retrieval import ROUTE_NAMES, MultiRouteRetriever, RetrievalResult
+from .routes import BUSINESS_ROUTE_NAMES, FEED_ROUTE_NAMES
 
 
 @dataclass(frozen=True)
@@ -42,7 +51,8 @@ class CascadePolicy:
     fine_version_id: int
     mix_version_id: int
     recall_version_id: int = 1
-    enabled_routes: tuple[str, ...] = ROUTE_NAMES
+    enabled_routes: tuple[str, ...] = FEED_ROUTE_NAMES
+    enabled_business_routes: tuple[str, ...] = BUSINESS_ROUTE_NAMES
     coarse_weights: tuple[float, ...] = (
         0.42, 0.16, 0.08, 0.06, 0.08, 0.07, 0.04, 0.04, 0.05, -0.06,
     )
@@ -55,6 +65,7 @@ class CascadePolicy:
     exploration_seed: int = 1_991
     feed_exposure_dedup_ticks: int = 0
     feed_session_dedup: bool = False
+    cold_start_exploration_rate: float = 0.0
 
     def __post_init__(self):
         if len(self.coarse_weights) != 10 or len(self.fine_weights) != 10:
@@ -64,10 +75,30 @@ class CascadePolicy:
             raise ValueError(f"unknown retrieval routes: {sorted(unknown)}")
         if not self.enabled_routes:
             raise ValueError("at least one retrieval route must be enabled")
+        unknown_business = set(self.enabled_business_routes) - set(
+            BUSINESS_ROUTE_NAMES
+        )
+        if unknown_business:
+            raise ValueError(
+                f"unknown business retrieval routes: {sorted(unknown_business)}"
+            )
         if not 0.0 <= self.exploration_rate <= 1.0:
             raise ValueError("exploration rate must be in [0, 1]")
         if self.feed_exposure_dedup_ticks < 0:
             raise ValueError("Feed exposure dedup window cannot be negative")
+        if not 0.0 <= self.cold_start_exploration_rate <= 1.0:
+            raise ValueError("cold-start exploration rate must be in [0, 1]")
+        if self.exploration_rate and self.cold_start_exploration_rate:
+            raise ValueError("general and cold-start exploration cannot overlap")
+        if self.cold_start_exploration_rate and "cold_start" not in self.enabled_routes:
+            raise ValueError("cold-start exploration requires its recall route")
+
+    @property
+    def effective_routes(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys((
+            *self.enabled_routes,
+            *self.enabled_business_routes,
+        )))
 
 
 @dataclass(frozen=True)
@@ -222,6 +253,14 @@ class CascadeRanker:
                 deterministic_fine, deterministic_coarse, deterministic_fine_raw,
             ),
         )
+        if policy.cold_start_exploration_rate:
+            return self._rank_with_cold_start_exploration(
+                requests=requests, state=state, retrieval=retrieval, policy=policy,
+                candidate_features=candidate_features,
+                coarse_raw=coarse_raw, deterministic_coarse=deterministic_coarse,
+                deterministic_fine=deterministic_fine,
+                deterministic_exposed=deterministic_exposed,
+            )
         random_exposed = self._prefix(random_fine, self.config.expose_k)
         random_exposed_score = self._map_score(
             random_exposed, coarse_item, fine_raw,
@@ -259,6 +298,125 @@ class CascadeRanker:
             position,
             *selection[2:],
             candidate_features,
+        )
+
+    def _rank_with_cold_start_exploration(
+        self,
+        *,
+        requests: PlatformRequestBatch,
+        state: PlatformProjectionState,
+        retrieval: RetrievalResult,
+        policy: CascadePolicy,
+        candidate_features: FeatureTensorBatch,
+        coarse_raw: torch.Tensor,
+        deterministic_coarse: torch.Tensor,
+        deterministic_fine: torch.Tensor,
+        deterministic_exposed: torch.Tensor,
+    ) -> RankedStages:
+        draw = draw_cold_start_item(
+            requests,
+            state,
+            self.catalog.content_kind,
+            retrieval.item_id,
+            retrieval.route_bits,
+            deterministic_exposed,
+            rate=policy.cold_start_exploration_rate,
+            seed=policy.exploration_seed,
+            cold_route_bit=1 << ROUTE_NAMES.index("cold_start"),
+        )
+        coarse_item = inject_last(
+            deterministic_coarse, draw.item, draw.randomized,
+        )
+        coarse_selected_score = self._map_score(
+            coarse_item, retrieval.item_id, coarse_raw,
+        )
+        fine_input = self._select_features(
+            coarse_item, retrieval.item_id, candidate_features,
+        )
+        fine_raw = self._fine_scores(
+            fine_input, coarse_item, requests, policy,
+        )
+        ranked_fine, _ = self._top(
+            coarse_item, fine_raw, self.config.fine_k,
+        )
+        fine_item = inject_last(ranked_fine, draw.item, draw.randomized)
+        fine_selected_score = self._map_score(
+            fine_item, coarse_item, fine_raw,
+        )
+        ranked_exposed, _ = self._diversified_top(
+            fine_item, fine_selected_score,
+        )
+        exposed_item = inject_last(
+            ranked_exposed, draw.item, draw.randomized,
+        )
+        exposed_score = self._map_score(
+            exposed_item, fine_item, fine_selected_score,
+        )
+        selection = self._cold_start_selection_metadata(
+            requests,
+            retrieval,
+            deterministic_coarse,
+            deterministic_fine,
+            deterministic_exposed,
+            exposed_item,
+            draw,
+            policy,
+        )
+        position = torch.arange(
+            self.config.expose_k, device=fine_item.device,
+        )[None].expand(len(fine_item), -1)
+        return RankedStages(
+            coarse_raw,
+            selection[0],
+            coarse_item,
+            coarse_selected_score,
+            fine_raw,
+            selection[1],
+            fine_item,
+            fine_selected_score,
+            exposed_item,
+            exposed_score,
+            position,
+            *selection[2:],
+            candidate_features,
+        )
+
+    @staticmethod
+    def _cold_start_selection_metadata(
+        requests: PlatformRequestBatch,
+        retrieval: RetrievalResult,
+        deterministic_coarse: torch.Tensor,
+        deterministic_fine: torch.Tensor,
+        deterministic_exposed: torch.Tensor,
+        exposed_item: torch.Tensor,
+        draw: ColdStartDraw,
+        policy: CascadePolicy,
+    ) -> tuple[torch.Tensor, ...]:
+        rate = policy.cold_start_exploration_rate
+        selection_kind = torch.where(
+            draw.randomized,
+            torch.full_like(
+                requests.request_id, int(SelectionPolicyKind.RANDOMIZED),
+            ),
+            torch.full_like(
+                requests.request_id, int(SelectionPolicyKind.DETERMINISTIC),
+            ),
+        )
+        return (
+            targeted_admission_probability(
+                retrieval.item_id, deterministic_coarse, draw, rate,
+            ),
+            targeted_admission_probability(
+                retrieval.item_id, deterministic_fine, draw, rate,
+            ),
+            targeted_position_probability(
+                exposed_item, deterministic_exposed, draw, rate,
+            ),
+            selection_kind,
+            torch.full_like(requests.request_id, rate, dtype=torch.float),
+            targeted_slate_log_probability(
+                exposed_item, deterministic_exposed, draw, rate,
+            ),
         )
 
     @staticmethod

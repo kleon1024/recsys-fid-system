@@ -31,13 +31,19 @@ from .retrieval import MultiRouteRetriever, RetrievalConfig
 class ReferencePlatformConfig:
     users: int
     history_length: int = 128
+    feed_exposure_history_length: int = 1_024
     recall_version_id: int = 1
     catalog_version: str = "public-catalog-v1"
     policy_registry_version: str = "reference-policy-registry-v1"
     ticks_per_day: int = 96
 
     def __post_init__(self):
-        if self.users <= 0 or self.history_length <= 0 or self.ticks_per_day <= 0:
+        if (
+            self.users <= 0
+            or self.history_length <= 0
+            or self.feed_exposure_history_length <= 0
+            or self.ticks_per_day <= 0
+        ):
             raise ValueError("reference platform dimensions must be positive")
 
 
@@ -64,6 +70,7 @@ class ReferenceRecommendationPlatform:
             config.users,
             catalog,
             config.history_length,
+            config.feed_exposure_history_length,
             LifecycleConfig(ticks_per_day=config.ticks_per_day),
         )
         self.retriever = MultiRouteRetriever(
@@ -114,7 +121,7 @@ class ReferenceRecommendationPlatform:
         retrieval = self.retriever.retrieve(
             requests,
             snapshot.projection.state,
-            policy.enabled_routes,
+            policy.effective_routes,
             feed_exposure_dedup_ticks=policy.feed_exposure_dedup_ticks,
             feed_session_dedup=policy.feed_session_dedup,
         )

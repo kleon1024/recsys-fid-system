@@ -68,12 +68,12 @@ exploration or model comparison.
 
 ## F-LR-010 / 视频消重实验
 
-The treatment changes one owner only: exact short-video exposure dedup over the
-64-item observable ledger and a 240-tick retention window. Search, creator-page
-revisit, and other explicit-intent surfaces are unaffected.
+The treatment changed one owner only: exact short-video exposure dedup over the
+then-current 64-item observable ledger and a 240-tick retention window. Search,
+creator-page revisit, and other explicit-intent surfaces were unaffected.
 
-Treatment 只改一个 owner：主 Feed 短视频在 64 条可观测曝光账本和 240 tick 窗口内
-不再重复。搜索、作者页回看和其他主动意图场景不受影响。
+Treatment 当时只改一个 owner：主 Feed 短视频在 64 条可观测曝光账本和 240 tick
+窗口内不再重复。搜索、作者页回看和其他主动意图场景不受影响。
 
 | Final gate, ticks 204-227 | Control | Treatment | Delta |
 |---|---:|---:|---:|
@@ -91,14 +91,27 @@ and the active policy is `feed-window-dedup-v1`.
 
 决策：**仅在合成连续世界中晋级**。新基线已经启用 `feed-window-dedup-v1`。
 
+## Post-launch consistency correction / 上线后一致性修复
+
+The post-launch audit found that the 240-tick policy window was wider than the
+64-entry storage authority. With eight Feed impressions per request, the
+effective memory could collapse to roughly eight recent Feed requests. The
+fix does not change the behavioral objective: it separates the 64-event model
+sequence from a 1,024-entry Feed-only serving ledger. Checkpoint
+`3fa575dc9f52b72657ed8bc2a97dabfc44709ecf5c2940a08b3acb7f81de8a00`
+contains 1,969,936 backfilled Feed impressions for 17,304 users; the maximum
+per-user count is 728. RTX 4090 peak allocation rose from 4.81 to 5.50 GiB.
+
+上线后审计发现，策略虽然配置为 240 tick，但存储只有 64 条；每个请求曝光 8 条时，
+有效记忆可能退化为约 8 个 Feed 请求。修复后，64 条行为序列继续服务模型，新增的
+1,024 条 Feed 专用账本服务强消重。它只记录 Feed 曝光，不受 Search、Posting 等
+场景污染。该修改通过 additive checkpoint migration 回填，并未重启世界或清空用户。
+
 ## What is not complete / 尚未完成
 
-Item cold start is still not implemented as a valid experiment. Dedup creates
-fresh exposure, but deterministic replacement is not randomized support. The
-next launch must enable the cold-start route, reserve at most one exploratory
-slot, log its marginal propensity, and keep total randomized traffic near 2%
-(20% treatment traffic multiplied by 10% within-treatment exploration).
+Item cold start is now implemented as a propensity-logged randomized layer,
+but it is not promoted. Its current evidence and HOLD decision are recorded in
+[R-LR-012](2026-08-25-feed-v5-cold-start.md).
 
-Item 冷启仍未完成。消重带来新鲜曝光，但确定性补位不等于随机探索。下一次上线必须
-启用 cold-start route、最多保留一个探索槽、记录边际 propensity，并把总随机流量
-控制在约 2%（20% treatment × treatment 内 10%）。
+Item 冷启已经实现为记录 propensity 的随机实验层，但尚未晋级。当前证据和 HOLD
+决策见 [R-LR-012](2026-08-25-feed-v5-cold-start.md)。

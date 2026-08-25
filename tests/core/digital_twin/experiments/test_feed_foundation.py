@@ -57,5 +57,7 @@ def test_feed_dedup_launch_backfills_ledger_and_advances_factual_head(tmp_path):
         device="cpu",
     ))
     restored = store.restore(kernel, branch.head_checkpoint_id)
-    assert int(kernel.platform.projection.state.user_exposure_cursor.sum()) > 0
+    assert int(
+        kernel.platform.projection.state.user_feed_exposure_cursor.sum()
+    ) > 0
     assert restored.learning_cursors["feed_dedup_launch"]["completed"]

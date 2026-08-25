@@ -87,6 +87,9 @@ class PlatformProjectionState:
     user_exposure_item: torch.Tensor
     user_exposure_time: torch.Tensor
     user_exposure_cursor: torch.Tensor
+    user_feed_exposure_item: torch.Tensor
+    user_feed_exposure_time: torch.Tensor
+    user_feed_exposure_cursor: torch.Tensor
     user_followed_creator: torch.Tensor
     user_followed_creator_cursor: torch.Tensor
     item_active: torch.Tensor
@@ -124,9 +127,10 @@ def build_projection_state(
     users: int,
     catalog: PublicCatalog,
     history_length: int,
+    feed_exposure_history_length: int,
     lifecycle_config: LifecycleConfig,
 ) -> PlatformProjectionState:
-    if users <= 0 or history_length <= 0:
+    if users <= 0 or history_length <= 0 or feed_exposure_history_length <= 0:
         raise ValueError("projection dimensions must be positive")
     device = catalog.item_id.device
     integer_missing = torch.full((users,), -1, device=device, dtype=torch.long)
@@ -183,6 +187,21 @@ def build_projection_state(
         user_exposure_cursor=torch.zeros(
             users, device=device, dtype=torch.long,
         ),
+        user_feed_exposure_item=torch.full(
+            (users, feed_exposure_history_length),
+            -1,
+            device=device,
+            dtype=torch.long,
+        ),
+        user_feed_exposure_time=torch.full(
+            (users, feed_exposure_history_length),
+            -1,
+            device=device,
+            dtype=torch.long,
+        ),
+        user_feed_exposure_cursor=torch.zeros(
+            users, device=device, dtype=torch.long,
+        ),
         user_followed_creator=torch.full(
             (users, 32), -1, device=device, dtype=torch.long,
         ),
@@ -219,12 +238,17 @@ class ObservableProjection:
         users: int,
         catalog: PublicCatalog,
         history_length: int = 128,
+        feed_exposure_history_length: int = 1_024,
         lifecycle_config: LifecycleConfig | None = None,
     ):
         self.catalog = catalog
         self.lifecycle_config = lifecycle_config or LifecycleConfig()
         self.state = build_projection_state(
-            users, catalog, history_length, self.lifecycle_config,
+            users,
+            catalog,
+            history_length,
+            feed_exposure_history_length,
+            self.lifecycle_config,
         )
 
     def ingest(self, events: AppEventBatch) -> None:
@@ -466,6 +490,9 @@ class ObservableProjection:
         self.state.user_exposure_item.fill_(-1)
         self.state.user_exposure_time.fill_(-1)
         self.state.user_exposure_cursor.zero_()
+        self.state.user_feed_exposure_item.fill_(-1)
+        self.state.user_feed_exposure_time.fill_(-1)
+        self.state.user_feed_exposure_cursor.zero_()
         self.state.user_session_start_time.fill_(-1)
         session_start = events.event(EventType.SESSION_START) & (
             events.user_id >= 0
@@ -488,6 +515,36 @@ class ObservableProjection:
         user = events.user_id[selected]
         item = events.item_id[selected]
         event_time = events.event_time[selected]
+        surface = events.surface[selected]
+        self._append_exposures(
+            user,
+            item,
+            event_time,
+            self.state.user_exposure_item,
+            self.state.user_exposure_time,
+            self.state.user_exposure_cursor,
+        )
+        feed = surface == int(Surface.FEED)
+        self._append_exposures(
+            user[feed],
+            item[feed],
+            event_time[feed],
+            self.state.user_feed_exposure_item,
+            self.state.user_feed_exposure_time,
+            self.state.user_feed_exposure_cursor,
+        )
+
+    @staticmethod
+    def _append_exposures(
+        user: torch.Tensor,
+        item: torch.Tensor,
+        event_time: torch.Tensor,
+        history_item: torch.Tensor,
+        history_time: torch.Tensor,
+        history_cursor: torch.Tensor,
+    ) -> None:
+        if not len(user):
+            return
         time_order = torch.argsort(event_time, stable=True)
         user_order = torch.argsort(user[time_order], stable=True)
         order = time_order[user_order]
@@ -502,18 +559,18 @@ class ObservableProjection:
             [len(user)], device=user.device,
         )))
         group_size = (ends - starts)[group]
-        width = self.state.user_exposure_item.shape[1]
+        width = history_item.shape[1]
         keep = within >= (group_size - width).clamp_min(0)
         slot = torch.remainder(
-            self.state.user_exposure_cursor[user] + within, width,
+            history_cursor[user] + within, width,
         )
-        self.state.user_exposure_item[user[keep], slot[keep]] = item[keep]
-        self.state.user_exposure_time[user[keep], slot[keep]] = event_time[keep]
-        counts = torch.zeros_like(self.state.user_exposure_cursor)
+        history_item[user[keep], slot[keep]] = item[keep]
+        history_time[user[keep], slot[keep]] = event_time[keep]
+        counts = torch.zeros_like(history_cursor)
         counts.index_add_(
             0, user, torch.ones_like(user, dtype=torch.long),
         )
-        self.state.user_exposure_cursor.add_(counts)
+        history_cursor.add_(counts)
 
     def _follows(self, events: AppEventBatch) -> None:
         selected = (

@@ -14,8 +14,8 @@ def recently_exposed(
     route_item: torch.Tensor,
     window_ticks: int,
 ) -> torch.Tensor:
-    history_item = state.user_exposure_item[requests.user_id]
-    history_time = state.user_exposure_time[requests.user_id]
+    history_item = state.user_feed_exposure_item[requests.user_id]
+    history_time = state.user_feed_exposure_time[requests.user_id]
     age = requests.event_time[:, None] - history_time
     recent = (history_item >= 0) & (age >= 0) & (age <= window_ticks)
     return _route_matches_history(requests, route_item, history_item, recent)
@@ -26,8 +26,8 @@ def exposed_in_current_session(
     state: PlatformProjectionState,
     route_item: torch.Tensor,
 ) -> torch.Tensor:
-    history_item = state.user_exposure_item[requests.user_id]
-    history_time = state.user_exposure_time[requests.user_id]
+    history_item = state.user_feed_exposure_item[requests.user_id]
+    history_time = state.user_feed_exposure_time[requests.user_id]
     session_start = state.user_session_start_time[requests.user_id]
     current_session = (
         (history_item >= 0)

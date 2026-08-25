@@ -8,6 +8,8 @@ import torch
 from fid_lab.simulation.digital_twin import (
     AtomicSimulationKernel,
     CascadePolicy,
+    ContentKind,
+    ContentLifecycle,
     EventType,
     ExperimentPlan,
     JoinerConfig,
@@ -197,6 +199,39 @@ def test_policy_can_change_only_retrieval_routes_and_version():
     assert (trace.recall_route_id[treated] & cold_start_bit).any()
 
 
+def test_feed_route_ab_cannot_disable_business_surface_candidates():
+    world, platform, log, _, _, _ = build_system(users=4_096, items=12_000)
+    policy = CascadePolicy(
+        "feed-random-only",
+        1,
+        1,
+        1,
+        enabled_routes=("random",),
+    )
+    result = AtomicSimulationKernel(world, platform, log).step(
+        0,
+        ExperimentPlan.ramped_user_ab(
+            active_policy=policy,
+            treatment_policy=policy,
+            experiment_seed=151,
+            control_fraction=0.2,
+            treatment_fraction=0.2,
+        ),
+    )
+    trace = result.candidate_trace
+    for surface, route_name in (
+        (1, "search"),
+        (2, "commerce_intent"),
+        (3, "live_now"),
+        (4, "local_geo"),
+        (5, "posting_context"),
+    ):
+        rows = trace.surface == surface
+        assert rows.any()
+        route_bit = 1 << ROUTE_NAMES.index(route_name)
+        assert (trace.recall_route_id[rows] & route_bit).any()
+
+
 def test_randomized_cascade_logs_exact_support_without_changing_factuality():
     world, platform, log, _, _, _ = build_system(users=512, items=3_000)
     policy = CascadePolicy(
@@ -238,6 +273,62 @@ def test_randomized_cascade_logs_exact_support_without_changing_factuality():
     assert (joined.fine.exposure_probability[~joined.fine.exposed] == 0).all()
 
 
+def test_cold_start_exploration_uses_one_supported_video_slot():
+    world, platform, log, _, _, _ = build_system(users=1_024, items=8_000)
+    policy = CascadePolicy(
+        "cold-start-one-slot",
+        1,
+        1,
+        1,
+        enabled_routes=("random", "popular", "cold_start"),
+        cold_start_exploration_rate=0.25,
+        exploration_seed=157,
+    )
+    result = AtomicSimulationKernel(world, platform, log).step(
+        0,
+        ExperimentPlan.ramped_user_ab(
+            active_policy=policy,
+            treatment_policy=policy,
+            experiment_seed=163,
+            control_fraction=0.25,
+            treatment_fraction=0.25,
+        ),
+    )
+    trace = result.candidate_trace
+    randomized = (
+        trace.selection_policy_kind == int(SelectionPolicyKind.RANDOMIZED)
+    )
+    assert randomized.any() and (~randomized).any()
+    last = trace.exposed_item_id[randomized, -1]
+    assert (
+        platform.catalog.content_kind[last] == int(ContentKind.SHORT_VIDEO)
+    ).all()
+    match = (
+        last[:, None] == trace.recall_item_id[randomized]
+    )
+    lifecycle = torch.gather(
+        trace.recall_lifecycle_id[randomized],
+        1,
+        match.float().argmax(dim=1)[:, None],
+    ).squeeze(1)
+    assert (lifecycle == int(ContentLifecycle.COLD_START)).all()
+    cold_bit = 1 << ROUTE_NAMES.index("cold_start")
+    route = torch.gather(
+        trace.recall_route_id[randomized],
+        1,
+        match.float().argmax(dim=1)[:, None],
+    ).squeeze(1)
+    assert (route & cold_bit > 0).all()
+    assert (trace.exposure_probability[randomized, :-1] == 1.0).all()
+    assert (
+        (trace.exposure_probability[randomized, -1] > 0.0)
+        & (trace.exposure_probability[randomized, -1] <= 0.25)
+    ).all()
+    assert (
+        trace.exploration_rate[randomized] == 0.25
+    ).all()
+
+
 def test_feed_exposure_ledger_blocks_recent_impression_repeats():
     world, platform, log, _, _, _ = build_system(users=512, items=3_000)
     baseline = CascadePolicy("exposure-ledger-baseline", 1, 1, 1)
@@ -250,7 +341,13 @@ def test_feed_exposure_ledger_blocks_recent_impression_repeats():
         treatment_fraction=0.25,
     ))
     before = platform.projection.snapshot().state
-    assert float((before.user_exposure_cursor > 0).float().mean()) > 0.95
+    # The dedicated Feed ledger only counts Feed impressions; users entering
+    # Search, Posting or another surface must not pollute video dedup state.
+    assert float(
+        (before.user_feed_exposure_cursor > 0).float().mean()
+    ) > 0.60
+    assert before.user_history_item.shape[1] == 16
+    assert before.user_feed_exposure_item.shape[1] == 1_024
     dedup = CascadePolicy(
         "feed-exposure-dedup",
         1,
@@ -266,8 +363,8 @@ def test_feed_exposure_ledger_blocks_recent_impression_repeats():
         treatment_fraction=0.25,
     ))
     trace = result.candidate_trace
-    prior = before.user_exposure_item[trace.user_id]
-    prior_time = before.user_exposure_time[trace.user_id]
+    prior = before.user_feed_exposure_item[trace.user_id]
+    prior_time = before.user_feed_exposure_time[trace.user_id]
     recent = (prior >= 0) & ((trace.event_time[:, None] - prior_time) <= 16)
     repeated = (
         (trace.recall_item_id[:, :, None] == prior[:, None, :])
@@ -307,8 +404,8 @@ def test_feed_session_dedup_blocks_only_current_session_repeats():
         treatment_fraction=0.25,
     ))
     trace = result.candidate_trace
-    prior_item = before.user_exposure_item[trace.user_id]
-    prior_time = before.user_exposure_time[trace.user_id]
+    prior_item = before.user_feed_exposure_item[trace.user_id]
+    prior_time = before.user_feed_exposure_time[trace.user_id]
     session_start = platform.projection.state.user_session_start_time[
         trace.user_id
     ]

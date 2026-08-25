@@ -153,8 +153,8 @@ def _run_experiment_window(
         )
         counts = _repeat_counts(
             tick.candidate_trace,
-            before.user_exposure_item,
-            before.user_exposure_time,
+            before.user_feed_exposure_item,
+            before.user_feed_exposure_time,
             kernel.world.catalog.content_kind,
             dedup_ticks,
             (
@@ -268,7 +268,7 @@ def run_feed_dedup_launch(config: FeedDedupLaunchConfig) -> dict[str, object]:
     if not isinstance(restored.experiment, ExperimentPlan):
         raise ValueError("Feed foundation LR requires a non-layered experiment")
     cursor = _active_cursor(restored.learning_cursors, config.cursor_key)
-    if not int(kernel.platform.projection.state.user_exposure_cursor.sum()):
+    if not int(kernel.platform.projection.state.user_feed_exposure_cursor.sum()):
         kernel.platform.projection.rebuild_exposures(
             kernel.event_log.read(ingested_through=restored.ref.logical_time),
         )
