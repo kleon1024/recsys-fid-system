@@ -8,6 +8,11 @@ import torch
 
 from ..catalog import PublicCatalog
 from ..contracts import AppEventBatch, ContentKind, EventType, Surface
+from .state.exposure_bloom import (
+    ExposureBloomConfig,
+    add_exposures,
+    build_exposure_bloom,
+)
 from .lifecycle import LifecycleConfig, classify_lifecycle
 
 
@@ -92,6 +97,9 @@ class PlatformProjectionState:
     user_feed_exposure_item: torch.Tensor
     user_feed_exposure_time: torch.Tensor
     user_feed_exposure_cursor: torch.Tensor
+    user_feed_exposure_bloom: torch.Tensor
+    feed_exposure_bloom_epoch: torch.Tensor
+    feed_exposure_bloom_segment_ticks: torch.Tensor
     user_followed_creator: torch.Tensor
     user_followed_creator_cursor: torch.Tensor
     item_active: torch.Tensor
@@ -133,6 +141,7 @@ def build_projection_state(
     history_length: int,
     feed_exposure_history_length: int,
     lifecycle_config: LifecycleConfig,
+    exposure_bloom_config: ExposureBloomConfig,
 ) -> PlatformProjectionState:
     if users <= 0 or history_length <= 0 or feed_exposure_history_length <= 0:
         raise ValueError("projection dimensions must be positive")
@@ -151,6 +160,9 @@ def build_projection_state(
         recent_engagements=recent_engagements,
         logical_time=0,
         config=lifecycle_config,
+    )
+    exposure_bloom, exposure_bloom_epoch = build_exposure_bloom(
+        users, exposure_bloom_config, device,
     )
     return PlatformProjectionState(
         user_registered=torch.zeros(users, device=device, dtype=torch.bool),
@@ -207,6 +219,13 @@ def build_projection_state(
         user_feed_exposure_cursor=torch.zeros(
             users, device=device, dtype=torch.long,
         ),
+        user_feed_exposure_bloom=exposure_bloom,
+        feed_exposure_bloom_epoch=exposure_bloom_epoch,
+        feed_exposure_bloom_segment_ticks=torch.tensor(
+            exposure_bloom_config.segment_ticks,
+            dtype=torch.long,
+            device=device,
+        ),
         user_followed_creator=torch.full(
             (users, 32), -1, device=device, dtype=torch.long,
         ),
@@ -250,12 +269,16 @@ class ObservableProjection:
     ):
         self.catalog = catalog
         self.lifecycle_config = lifecycle_config or LifecycleConfig()
+        self.exposure_bloom_config = ExposureBloomConfig(
+            segment_ticks=self.lifecycle_config.ticks_per_day,
+        )
         self.state = build_projection_state(
             users,
             catalog,
             history_length,
             feed_exposure_history_length,
             self.lifecycle_config,
+            self.exposure_bloom_config,
         )
 
     def ingest(self, events: AppEventBatch) -> None:
@@ -569,6 +592,8 @@ class ObservableProjection:
         self.state.user_feed_exposure_item.fill_(-1)
         self.state.user_feed_exposure_time.fill_(-1)
         self.state.user_feed_exposure_cursor.zero_()
+        self.state.user_feed_exposure_bloom.zero_()
+        self.state.feed_exposure_bloom_epoch.fill_(-1)
         self.state.user_session_start_time.fill_(-1)
         session_start = events.event(EventType.SESSION_START) & (
             events.user_id >= 0
@@ -647,6 +672,14 @@ class ObservableProjection:
             self.state.user_feed_exposure_item,
             self.state.user_feed_exposure_time,
             self.state.user_feed_exposure_cursor,
+        )
+        add_exposures(
+            self.state.user_feed_exposure_bloom,
+            self.state.feed_exposure_bloom_epoch,
+            user[feed],
+            item[feed],
+            event_time[feed],
+            self.exposure_bloom_config,
         )
 
     @staticmethod

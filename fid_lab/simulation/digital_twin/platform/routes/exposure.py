@@ -5,6 +5,7 @@ from __future__ import annotations
 import torch
 
 from ...contracts import PlatformRequestBatch, Surface
+from ..state.exposure_bloom import ExposureBloomConfig, contains_exposure
 from ..projection import PlatformProjectionState
 
 
@@ -17,19 +18,21 @@ def recently_exposed(
     route_item: torch.Tensor,
     window_ticks: int,
 ) -> torch.Tensor:
-    duplicate = torch.zeros_like(route_item, dtype=torch.bool)
-    for start in range(0, len(requests.user_id), DEDUP_REQUEST_CHUNK):
-        stop = min(start + DEDUP_REQUEST_CHUNK, len(requests.user_id))
-        user = requests.user_id[start:stop]
-        history_item = state.user_feed_exposure_item[user]
-        history_time = state.user_feed_exposure_time[user]
-        age = requests.event_time[start:stop, None] - history_time
-        selected = (
-            (history_item >= 0) & (age >= 0) & (age <= window_ticks)
-        )
-        duplicate[start:stop] = _exact_membership(
-            route_item[start:stop], history_item, selected,
-        )
+    segments = state.user_feed_exposure_bloom.shape[1]
+    config = ExposureBloomConfig(
+        segments=segments,
+        bits_per_segment=state.user_feed_exposure_bloom.shape[2] * 8,
+        segment_ticks=int(state.feed_exposure_bloom_segment_ticks),
+    )
+    duplicate = contains_exposure(
+        state.user_feed_exposure_bloom,
+        state.feed_exposure_bloom_epoch,
+        requests.user_id,
+        route_item,
+        requests.event_time,
+        config,
+        window_ticks=window_ticks,
+    )
     return _feed_only(requests, duplicate)
 
 

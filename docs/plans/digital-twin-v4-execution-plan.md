@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (pre-ladder contracts reopened; attributable LR ladder frozen)
+Updated: 2026-08-25 (runtime-scale reset; factual LR ladder has not started)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -47,34 +47,30 @@ tree but has not passed the repository acceptance path. `Implemented` means the
 focused contract is executable; it does not mean the phase, benchmark or launch
 review is accepted.
 
-The accepted implementation baseline is
-`f71ec908955d853cbf13d361975d7e2be6be47b6`; local and `origin/main` agree.
-P0, P1, the declared Feed scope of P2 and P3-01..06 have content-bound reviews.
-The clean committed source reproduces 202 historical tests, 70 v4 tests and the
-repository gate. Architecture lint has zero errors and one declared warning
-because this project uses its own `AssetGraph`, not Dagster decorators.
+The last pushed implementation baseline is
+`ba55e5f6ff666e110a76f8aa9935042ca72a0ada`; local and `origin/main` agreed
+before the rolling-Bloom runtime slice began. It contains the canonical clock,
+restart-safe world authority, candidate-level support, request-aware evaluator,
+factual Launch Review transaction and artifact-bound coarse/fine serving.
 
-The accepted P3 RTX 4090 run covers 100K users, 1M items and two event-time
-partitions at cascade width 96→48→16→8. It persists 1,267,664 fine rows and
-7,808,576 mature labels, consumes both partitions independently in active and
-candidate lanes, completes in 88.266 seconds and peaks at 8.538 GiB CUDA. This
-is streaming/feature/registry evidence bound to the accepted source. The candidate
-LR probe remains `HOLD` and provides no model or A/B lift claim.
+No current factual Feed LR has passed. Historical route and model reports were
+produced by superseded worlds or diagnostic runners and cannot advance the
+canonical world. The only canonical checkpoint is an initialization snapshot at
+logical time `-1`; F-AA-00 and F-R00 remain unexecuted.
 
-The P3-06 RTX run uses 100K users, 1M items, four event-time partitions,
-255,046 training queries and 10,000 evaluation queries. It finishes in 190.227
-seconds at 14.840 GiB CUDA. Lifecycle remains control; Graph, RRF, Two-Tower and
-Multi-interest reject. Only 89 different evaluation positives expose a severe
-old-policy logging ceiling; randomized retrieval truth remains P3-09.
+The first 100K-user/1M-item canonical tick exposed the actual critical path. A
+dense `100K × 4096 × (item,time)` int64 Feed exposure ledger consumed about
+6.6 GB and produced a 7.6 GB checkpoint. The old dedup broadcast attempted a
+68.7 GiB CUDA allocation. Even after bounding that allocation, whole-tick
+serving and evidence retention were incompatible with the original 15 GiB WSL
+limit. WSL is now capped at 24 GB, but more memory is not acceptance.
 
-A semantic audit after P3-06 found four blockers that marker searches could not
-detect. `CoarseRankExample.item_id` starts from old-policy `coarse_item_id`, not
-the recall universe. `FineRankExample` retains only exposed items although the
-scorer sees the wider coarse set. The trace stores features only after fine
-selection. Finally, deterministic selected items receive
-`exposure_probability=1`; this is factual selection, not counterfactual support.
-P3-02/03/05 remain accepted for their earlier mechanics but reopen as
-P3-02a/03a/05a before any learned ranking claim.
+Execution is reset around one invariant: no business surface, feature ladder or
+learned model proceeds until the standard Feed tick is request-microbatched,
+memory-bounded, restart-equivalent and content-bound. The online dedup authority
+is a rolling Bloom filter with a measured false-positive budget; a small exact
+session cache remains local. Append-only exposure logs are asynchronous audit
+evidence and are never queried on the serving path.
 
 | Capability | Current evidence | Status | Blocking gap |
 |---|---|---|---|
@@ -84,7 +80,7 @@ P3-02a/03a/05a before any learned ranking claim.
 | Point-in-time projection | Delivered events, lifecycle and full scoring-input tensors replay across content-bound partitions | Implemented | Learned-ranker launch evidence remains P3-07..09 |
 | Request cascade trace | Full recall universe, scorer inputs, stage admission, factual exposure and randomized support are retained | Implemented | Integrated evaluator remains P3-09 |
 | Feed retrieval mechanics | Random and Popular are factual baselines; lifecycle/Graph plus registry-backed Two-Tower/Multi-interest serving paths exist | Handcrafted ladder complete: only Popular promoted; ANN rejected; five routes stopped inconclusive | Train learned retrieval on the request-native sample authority |
-| Durable evolving world | Content-addressed hidden world, supply, delayed queue, platform, index, event, experiment and learning cursor checkpoint; locked main/shadow/replay branch heads | Implemented and exact-fork tested | Incremental/lazy event-log compaction remains a scale optimization |
+| Durable evolving world | Content-addressed hidden world, supply, delayed queue, platform, index, event, experiment and learning cursor checkpoint; locked main/shadow/replay branch heads | Correct at small scale; canonical head is initialization only | Compact state and restart parity under the 24 GB budget |
 | Layered experiments | Ownership, independent assignment, composed policy and numeric served checkpoint logging | Implemented | Model-learning interference remains P4-05 |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
@@ -93,7 +89,7 @@ P3-02a/03a/05a before any learned ranking claim.
 | Full-chain analytical store | Schema v4 persists retained feature/FID and task vectors; DuckDB/ClickHouse agree | Accepted for retained rows | Full scoring-input coverage remains P3-05a |
 | Recall/coarse/fine sample authorities | Recall is source-corrected; coarse covers recall universe; fine covers scorer input with masked factual labels | Implemented | Trainer/evaluator consumption remains P3-07..09 |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
-| Model ladder | Sequential factual retrieval ladder resumes automatically from the registered factual head | Seven route LRs completed through tick 147; active is Random+Popular | Learned retrieval, coarse/fine and integrated evaluation remain P3-06..09 |
+| Model ladder | Sequential factual runner and registered F-AA/F-R00 specs exist | No canonical factual LR completed | Pass runtime gate, then run A/A→Random→Popular without changing worlds |
 | Search/Ads/Commerce/Live/Local/Posting | Commerce closes cart→refund; Search closes query→post-search; Ads closes budget→auction→impression/spend→click→Pixel with one-slot load | Commerce, Search and Ads implementations in validation; Local, Posting and Live remain open | C-LR-003, S-LR-001 and A-LR-001 RTX evidence remain pending |
 
 The accepted v23 NeuralSCM is the declared Feed response authority only. Its
@@ -461,6 +457,15 @@ assignment probability and served checkpoints. Each experiment pre-registers:
 - sample/checkpoint feedback handling;
 - pass, hold and reject thresholds.
 
+Runtime, sampling and exploration changes are Launch Reviews too. A legacy path
+that OOMs at the registered scale is not a valid control: migrate it through
+small-world exact parity, standard-scale shadow and canary reliability gates.
+After the bounded path exists, Bloom size/hash/rotation, request microbatch,
+checkpoint codec, negative sampling and exploration budget each receive an
+independent system LR with fixed resource budgets and ranking/business
+non-inferiority. They cannot be bundled into a model LR or credited as model
+lift.
+
 The iteration cadence is:
 
 ```text
@@ -526,10 +531,10 @@ in another document is informative only; it cannot override this register.
 | P3-06 | `platform/retrieval` + `learning/retrieval`: migrate retrieval ladder | Handcrafted factual ladder complete through tick 147: Popular promoted, ANN rejected, five routes stopped inconclusive | P3-01/04/05 | train/evaluate Two-Tower then Multi-interest from the registered main head under the same corpus, Top-K and latency budget |
 | P3-07 | `platform/ranking/coarse`: migrate equal-budget ladder and distillation | Historical implementations only | P3-02a/04/05a/09a | Rule/LR/XGBoost/W&D/DeepFM/DCNv2 share the recall universe and budget; RankDistil-style Top-K preservation, calibration, latency, memory and slices decide |
 | P3-08 | `platform/ranking/fine`: migrate multi-task and sequence ladder | Historical implementations only; request-native listwise path absent | P3-03a/04/05a/09a | pointwise then request-grouped pairwise/listwise deep-cross/DIN/Transformer/MMoE/PLE on identical scorer inputs; per-head calibration, gradient/gate health and latency decide |
-| P3-09 | `validation/evaluation`: support audit first, integrated evaluator and P3 review last | Metrics fragmented; deterministic trace has no challenger support | P3-06 plus P3-02a/03a/05a/07/08 | 09a freezes grouping, pass-through, exploration and support; 09b replays served ranks, GAUC/NDCG/PR-AUC/NE/ECE, slices, cost, identified OPE and factual paired A/B |
+| P3-09 | `validation/evaluation`: support audit first, integrated evaluator and P3 review last | 09a request grouping, stage/support and surface-pure streaming A/B implemented; GPU launch pending | Runtime gate plus P3-06/07/08 | replay served ranks, GAUC/NDCG/PR-AUC/NE/ECE, slices, cost, identified OPE and factual clustered A/B |
 | P4-01 | `platform/ranking/value`: calibrate primitive heads, then compose Value Tree | Legacy value code only | P3 | per-task/slice probability or magnitude calibration is frozen before coefficient tuning; coefficients are versioned and nonnegative; sensitivity and monotonicity tests expose which primitive changed each rank |
 | P4-02 | `experiments/metrics`: measure unified LT after randomization | Historical synthetic metric only; no production exchange authority claimed | P4-01 | pre-register stay/return/DAU/commercial outcomes, horizon, MDE and power; cohort curves distinguish immediate and learned effects; exchange assumptions are fitted on separate experiments and sensitivity-bounded, never used as labels |
-| P4-03 | `platform/mixing`: one COPP/final-slate authority | Legacy mixers exist; v4 has no exposure/session dedup owner | P4-01 | eligibility→dedup→queue load→quota/diversity→final slate is deterministic; every displacement logs source queue, before/after rank, constraint and alternative; no queue can independently claim an exposure |
+| P4-03 | `platform/mixing`: one COPP/final-slate authority | Rolling Bloom online dedup in migration; final mixer remains legacy | Runtime gate plus P4-01 | Bloom FPR/coverage and exact-session gates pass; eligibility→dedup→queue load→quota/diversity→final slate logs every displacement |
 | P4-04 | `learning/cadence`: daily→hourly→streaming launch ladder | Legacy loop proves mechanics only | P3-04/09 | hold model/features/traffic constant; compare checkpoint age, sample/feature freshness, ranking delta, hot/new-user slices, reject/fallback rate and GPU/IO cost; no ranking/business delta means systems benchmark, not launch |
 | P4-05 | `experiments`: compatibility and interference-aware layered program | Atomic factual assignment exists; shared-data/interference analysis incomplete | P3/P4 | pre-registered namespace/compatibility graph, eligibility, SRM/A-A, power and rollback; normal parameter tests share factual flow, while algorithm-learning tests select data-diverted, clustered or user-corpus co-diverted design and report symbiosis risk |
 | P5-01 | `scenarios/search`: close query and post-search loop | Query, reformulation, success, post-search lineage, Search label, semantic route and independent S-LR-001 runner implemented; GPU evidence pending | P2-P4 | run S-LR-001 on the factual 4090 world; then add lexical query representation and Search-specific ranker only if the stage audit identifies headroom |
@@ -538,8 +543,8 @@ in another document is informative only; it cannot override this register.
 | P5-04 | `scenarios/local`: add POI world and closed/open attribution | POI identity/route skeleton only | P2-P4 | POI video/anchor→detail/map/YMAL→closed order plus separately observed Pixel path; distance/category/graph/diversity are distinct signals; identity loss, duplicates, orphan rate and attribution coverage are measured, not imputed negative |
 | P5-05 | `scenarios/posting`: add candidate recommendation and supply feedback | Immutable Feed post/lifecycle accepted; posting ranker absent | P1-P4 | draft/media→POI/product/topic candidates→select→publish→qualified future supply; selection, publish and distribution are separate labels; user- and creator-randomized designs declare interference and creator retention horizon |
 | P5-06 | `scenarios/live` and format adapters: own examination/labels | Surface enums and actions only | P2-P4 | Live availability→enter→stay/interact/gift plus delayed outcomes; photo/card/article own examination, dwell and calibration; only content representation/infrastructure is shared; each format has an independent LR |
-| P6-01 | `validation/profiles`: freeze diagnostic/standard/stress manifests | 100K P1 and P2 shadows accepted; historical 1M/10M are not v4 evidence | P1-P5 | 100K/1M/10M profiles record users, sessions, corpus, routes, candidates/request, events, labels, checkpoints and business complexity; multi-tick partition/resume and content hashes are mandatory |
-| P6-02 | `validation/performance`: profile before optimizing | P2 microbatch/RSS defects closed; remaining hot paths unprofiled | P1-P5 | batch-size throughput/latency/RSS/CUDA frontier and profiler trace identify bottlenecks; tensor/compile/Rust/C++ changes require numerical, lineage and semantic parity; no runtime rewrite by intuition |
+| P6-01 | `validation/profiles`: freeze diagnostic/standard/stress manifests | Standard is fixed at 100K users/1M items/96 ticks/day; first canonical tick failed the scale gate | Runtime v5 | standard profile records requests, candidates, events, state/checkpoint bytes and complexity; partition/resume and content hashes are mandatory |
+| P6-02 | `validation/performance`: bounded Feed runtime rewrite | In progress: launch aggregation is streaming; dense exposure state and whole-tick serving remain | P6-01 | rolling Bloom, request microbatching, incremental trace partitions and compact checkpoint pass one tick within 24 GB RAM/24 GB VRAM with restart parity |
 | P6-03 | `validation/failures`: model-quality and recovery campaigns | P0 seeded diagnostics only | P3-P5 | inject index/checkpoint mismatch, bad snapshot, PS shard loss, feature delay, late labels, timeout and overload; registry state, per-head calibration/NE, fallback and business metrics detect impact and return to baseline after rollback |
 | P6-04 | release authority: delete legacy path and publish reproducibly | Missing | all accepted successors | parity manifest proves every retained consumer uses v4; delete superseded `simulation/twin` and duplicate authorities; zero orphan modules, clean public/secret scan, fresh-clone README run and one clean content-bound release commit |
 
@@ -752,11 +757,17 @@ independent experiment owner and documented final-mixer interaction.
 
 ### P6 — Scale, reliability and deletion
 
-Status: P0 scale baseline exists; end-state work pending.
+Status: critical path. All P3-P5 launch work is frozen until the standard Feed
+tick passes. This is a targeted runtime/data-plane rewrite, not a DGP or model
+rewrite.
 
-- Run 100K diagnostic, 1M standard and 10M high-complexity RTX 4090 protocols.
-- Tensorize environment and ranking hot paths; measure throughput, memory,
-  numerical/deterministic parity and semantic invariance across batch sizes.
+- Replace dense 30-day Feed history with rolling Bloom plus exact session cache;
+  never query the exposure log online.
+- Render requests in bounded microbatches and publish request/trace partitions
+  incrementally while the world commits once per factual tick.
+- Compact checkpoints and pass the fixed 100K-user/1M-item single-tick gate under
+  24 GB WSL RAM and 24 GB VRAM before rebuilding the canonical world once.
+- Run F-AA-00, F-R00 and F-R01 Popular as the first complete iteration proof.
 - Test index/model mismatch, PS shard loss, feature delay, late labels, fallback,
   overload and recovery.
 - Delete superseded `simulation/twin` execution paths and duplicate legacy
