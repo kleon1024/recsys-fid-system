@@ -32,6 +32,7 @@ from .dynamics.lifecycle import (
     advance_latent_user_state,
     commit_need_and_activation,
     commit_session_start,
+    quantize_dynamic_state,
     update_lifecycle_stage,
 )
 from .delayed import DelayedOutcomeQueue
@@ -348,6 +349,7 @@ class UserEcosystemWorld:
             self.catalog_truth,
             self.supply.state,
         )
+        quantize_dynamic_state(self.users)
 
     def _commit_search_state(self, events: AppEventBatch) -> None:
         state = self.users

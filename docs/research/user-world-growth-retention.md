@@ -21,7 +21,9 @@ It never retains the full event history. Its sufficient state contains bounded
 interest and exposure memory, the current need episode, satisfaction, fatigue,
 habit, activation, lifecycle stage, next-return time, acquisition context, and
 pending delayed outcomes. Counter-based randomness makes the next transition
-independent of request batching and replay order.
+independent of request batching and replay order. Mutable floating state is
+quantized to a declared `1e-5` transition resolution after each commit so CUDA
+atomic reduction noise cannot accumulate into different future worlds.
 
 Historical events belong to the platform data authority. A world checkpoint
 stores only the event-stream identity and committed cursor. The event store owns
@@ -80,4 +82,3 @@ or churn probability.
 
 These sources justify mechanisms, not coefficients. Coefficients remain
 synthetic until fitted against an explicit public or licensed trajectory source.
-

@@ -8,7 +8,8 @@ from ....randomness.counter import uniform
 from .needs import refresh_expired_needs
 
 
-LIFECYCLE_DYNAMICS_VERSION = "activation-retention-state-v1"
+LIFECYCLE_DYNAMICS_VERSION = "activation-retention-state-v2-q1e5"
+STATE_QUANTIZATION_SCALE = 100_000.0
 
 
 def advance_latent_user_state(state, growth, logical_time: int, config):
@@ -113,3 +114,21 @@ def commit_need_and_activation(
     ).clamp(0.0, 1.0)
     state.need_strength[touched] = next_need[touched]
     update_lifecycle_stage(state, torch.where(touched)[0])
+
+
+def quantize_dynamic_state(state) -> None:
+    """Remove sub-resolution CUDA reduction noise from checkpoint state."""
+    for name in (
+        "short_interest",
+        "satisfaction",
+        "fatigue",
+        "habit",
+        "disappointment",
+        "need_strength",
+        "activation_score",
+        "session_value_ema",
+    ):
+        value = getattr(state, name)
+        value.mul_(STATE_QUANTIZATION_SCALE).round_().div_(
+            STATE_QUANTIZATION_SCALE,
+        )
