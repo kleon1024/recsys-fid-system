@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass, field
 
 import torch
 
@@ -118,6 +119,106 @@ def _estimate(
             mde80 / control_mean.abs().clamp_min(1e-12)
         ),
     }
+
+
+@dataclass
+class StreamingExperimentMetrics:
+    """Bounded-memory user-clustered metrics for long or large A/B windows."""
+
+    users: int
+    device: torch.device | str
+    control_cell: int = 0
+    treatment_cell: int = 1
+    _cell_by_user: torch.Tensor = field(init=False)
+    _metrics: dict[str, torch.Tensor] = field(init=False)
+    _cross_request: dict[str, torch.Tensor] = field(init=False)
+
+    def __post_init__(self) -> None:
+        if self.users <= 0:
+            raise ValueError("streaming experiment users must be positive")
+        target = torch.device(self.device)
+        self._cell_by_user = torch.full(
+            (self.users,), -1, dtype=torch.long, device=target,
+        )
+        metric_names = ("dwell_seconds", *COUNT_METRICS)
+        self._metrics = {
+            name: torch.zeros(
+                (2, self.users), dtype=torch.float32, device=target,
+            )
+            for name in metric_names
+        }
+        self._cross_request = {
+            name: torch.zeros(
+                self.users, dtype=torch.float32, device=target,
+            )
+            for name in CROSS_REQUEST_METRICS
+        }
+
+    def append(self, events: AppEventBatch) -> None:
+        if not len(events.event_id):
+            return
+        impression = events.event(EventType.IMPRESSION) & torch.isin(
+            events.experiment_cell,
+            torch.tensor(
+                [self.control_cell, self.treatment_cell],
+                device=events.event_id.device,
+            ),
+        )
+        if impression.any():
+            user = events.user_id[impression]
+            incoming = events.experiment_cell[impression]
+            prior = self._cell_by_user[user]
+            if ((prior >= 0) & (prior != incoming)).any():
+                raise ValueError("user changed experiment cell during A/B")
+            self._cell_by_user[user] = incoming
+        for row, cell in enumerate((self.control_cell, self.treatment_cell)):
+            for name, event_type in {
+                "dwell_seconds": EventType.DWELL,
+                **COUNT_METRICS,
+            }.items():
+                selected = (
+                    (events.experiment_cell == cell)
+                    & (events.user_id >= 0)
+                    & events.event(event_type)
+                )
+                if selected.any():
+                    value = (
+                        events.duration_ms[selected].float() / 1_000.0
+                        if event_type is EventType.DWELL
+                        else torch.ones(int(selected.sum()), device=events.event_id.device)
+                    )
+                    self._metrics[name][row].scatter_add_(
+                        0, events.user_id[selected], value,
+                    )
+        for name, (event_type, surface) in CROSS_REQUEST_METRICS.items():
+            selected = (
+                (events.user_id >= 0)
+                & (events.surface == int(surface))
+                & events.event(event_type)
+            )
+            selected &= self._cell_by_user[events.user_id.clamp_min(0)] >= 0
+            if selected.any():
+                self._cross_request[name].scatter_add_(
+                    0,
+                    events.user_id[selected],
+                    torch.ones(int(selected.sum()), device=events.event_id.device),
+                )
+
+    def analyze(self) -> tuple[dict[str, dict[str, float]], dict[str, int]]:
+        control = self._cell_by_user == self.control_cell
+        treatment = self._cell_by_user == self.treatment_cell
+        metrics = {
+            name: _estimate(value[0][control], value[1][treatment])
+            for name, value in self._metrics.items()
+        }
+        metrics.update({
+            name: _estimate(value[control], value[treatment])
+            for name, value in self._cross_request.items()
+        })
+        return metrics, {
+            "control_triggered_users": int(control.sum()),
+            "treatment_triggered_users": int(treatment.sum()),
+        }
 
 
 def analyze_experiment(

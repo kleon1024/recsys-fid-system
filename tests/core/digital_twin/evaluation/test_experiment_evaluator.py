@@ -17,6 +17,7 @@ from fid_lab.simulation.digital_twin.observability import (
     build_full_flow_fixtures,
 )
 from fid_lab.simulation.digital_twin.experiments.launch_review.metrics import (
+    StreamingExperimentMetrics,
     analyze_experiment,
 )
 
@@ -106,3 +107,10 @@ def test_launch_metrics_join_later_posting_events_by_feed_user_cohort():
     }
     assert metrics["publish"]["control_mean"] == 1.0
     assert metrics["publish"]["treatment_mean"] == 2.0
+
+    streamed = StreamingExperimentMetrics(users=4, device="cpu")
+    streamed.append(impressions)
+    streamed.append(publications)
+    streamed_metrics, streamed_sample = streamed.analyze()
+    assert streamed_sample == sample
+    assert streamed_metrics == metrics
