@@ -9,7 +9,15 @@ import torch
 from ...contracts import AppEventBatch, EventType, Surface
 
 
-MINIMUM_GRAPH_DWELL_MS = 3_000
+STRONG_GRAPH_EVENTS = (
+    EventType.LONG_VIEW,
+    EventType.COMPLETE,
+    EventType.LIKE,
+    EventType.COMMENT,
+    EventType.SHARE,
+    EventType.FOLLOW,
+    EventType.FAVORITE,
+)
 
 
 class CoVisitGraphIndex:
@@ -20,6 +28,7 @@ class CoVisitGraphIndex:
         self._matrix = scipy.sparse.csr_matrix((items, items), dtype=np.float32)
         self._pending_source: list[np.ndarray] = []
         self._pending_target: list[np.ndarray] = []
+        self._last_item_by_user: dict[int, int] = {}
         self.neighbor = torch.full(
             (items, neighbors), -1, device=device, dtype=torch.long,
         )
@@ -27,28 +36,45 @@ class CoVisitGraphIndex:
         self.version = "graph-empty"
 
     def update(self, events: AppEventBatch) -> None:
-        dwell = (
-            events.event(EventType.DWELL)
+        strong = torch.zeros_like(events.event_type, dtype=torch.bool)
+        for event_type in STRONG_GRAPH_EVENTS:
+            strong |= events.event(event_type)
+        selected = (
+            strong
             & (events.surface == int(Surface.FEED))
+            & (events.user_id >= 0)
             & (events.item_id >= 0)
-            & (events.duration_ms >= MINIMUM_GRAPH_DWELL_MS)
         )
-        if int(dwell.sum()) < 2:
+        if not selected.any():
             return
-        request = events.request_id[dwell]
-        position = events.position[dwell]
-        item = events.item_id[dwell]
-        order = torch.argsort(position, stable=True)
-        order = order[torch.argsort(request[order], stable=True)]
-        request, item = request[order], item[order]
-        adjacent = request[1:] == request[:-1]
-        source, target = item[:-1][adjacent], item[1:][adjacent]
-        valid = source != target
-        source, target = source[valid], target[valid]
-        if not len(source):
+        user = events.user_id[selected].cpu().numpy()
+        item = events.item_id[selected].cpu().numpy()
+        request = events.request_id[selected].cpu().numpy()
+        event_time = events.event_time[selected].cpu().numpy()
+        position = events.position[selected].cpu().numpy()
+        order = np.lexsort((position, request, event_time, user))
+        user, item, request = user[order], item[order], request[order]
+        unique = np.ones(len(user), dtype=np.bool_)
+        unique[1:] = (
+            (user[1:] != user[:-1])
+            | (request[1:] != request[:-1])
+            | (item[1:] != item[:-1])
+        )
+        user, item = user[unique], item[unique]
+        source: list[int] = []
+        target: list[int] = []
+        for current_user, current_item in zip(user.tolist(), item.tolist()):
+            previous = self._last_item_by_user.get(current_user)
+            if previous is not None and previous != current_item:
+                source.append(previous)
+                target.append(current_item)
+            self._last_item_by_user[current_user] = current_item
+        if not source:
             return
-        self._pending_source.append(torch.cat((source, target)).cpu().numpy())
-        self._pending_target.append(torch.cat((target, source)).cpu().numpy())
+        source_array = np.asarray(source, dtype=np.int64)
+        target_array = np.asarray(target, dtype=np.int64)
+        self._pending_source.append(np.concatenate((source_array, target_array)))
+        self._pending_target.append(np.concatenate((target_array, source_array)))
 
     def refresh(self, version: str) -> None:
         if not self._pending_source:

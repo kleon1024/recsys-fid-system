@@ -304,6 +304,12 @@ def _graph_state(platform: ReferenceRecommendationPlatform) -> dict[str, object]
         "pending_target": [
             torch.from_numpy(value.copy()) for value in graph._pending_target
         ],
+        "last_user": torch.tensor(
+            list(graph._last_item_by_user), dtype=torch.long,
+        ),
+        "last_item": torch.tensor(
+            list(graph._last_item_by_user.values()), dtype=torch.long,
+        ),
         "neighbor": _tensor_payload(graph.neighbor),
         "score": _tensor_payload(graph.score),
         "version": graph.version,
@@ -390,6 +396,10 @@ def _restore_graph(
     )
     graph._pending_source = [value.numpy() for value in state["pending_source"]]
     graph._pending_target = [value.numpy() for value in state["pending_target"]]
+    graph._last_item_by_user = dict(zip(
+        state.get("last_user", torch.empty(0, dtype=torch.long)).tolist(),
+        state.get("last_item", torch.empty(0, dtype=torch.long)).tolist(),
+    ))
     graph.neighbor.copy_(state["neighbor"].to(graph.device))
     graph.score.copy_(state["score"].to(graph.device))
     graph.version = str(state["version"])
