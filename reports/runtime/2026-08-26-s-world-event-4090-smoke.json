@@ -1,0 +1,38 @@
+{
+  "schema": "digital-twin-runtime-smoke/v1",
+  "source_revision": "dcdc46e579b5f53de77a63f19d76e85d5c6090cb",
+  "device": "NVIDIA GeForce RTX 4090",
+  "scope": {
+    "users": 10000,
+    "items": 100000,
+    "ticks": 96,
+    "ticks_per_day": 16,
+    "response_authority": "formula_oracle",
+    "event_authority": "observable-app-events-v6"
+  },
+  "traffic": {
+    "surface_entries_by_day": [1377, 3065, 2834, 2305, 2248, 2428],
+    "interpretation": "startup residual arrivals settle after day two; this smoke is not the standard-profile stationarity gate"
+  },
+  "event_log": {
+    "events": 412384,
+    "disk_partitions": 192,
+    "resident_hot_batches": 66,
+    "allowed_lateness_ticks": 32,
+    "watermark": 63,
+    "partition_stream_sha256": "5f5154ec0244c5508146e2eb8e957535170926e4516cc291ce96371bf5e00656"
+  },
+  "runtime": {
+    "wall_seconds": 35.665,
+    "peak_cuda_gib": 0.37218713760375977,
+    "bounded_job_result": "success",
+    "host_health_after_run": "pass",
+    "host_swap_used_kib": 0
+  },
+  "decision": "mechanics_pass_standard_scale_pending",
+  "limitations": [
+    "The promoted v23 NeuralSCM weights are absent, so this run does not accept S-AUTH00.",
+    "This is a 10K/100K smoke, not the canonical 100K/1M seven-day stationarity and restart soak.",
+    "S-MICRO00 and generational checkpoints remain outside this run."
+  ]
+}

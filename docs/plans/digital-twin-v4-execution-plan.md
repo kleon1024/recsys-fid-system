@@ -778,6 +778,10 @@ partitions; only the lateness window and exact recent IDs remain resident, and
 checkpoints bind partition hashes instead of copying historical tensors. The
 v23 weights are currently absent, so artifact reconstruction and the 4090
 stationarity/restart/memory soak remain required before any item below advances.
+The bounded 10K-user/100K-item 96-tick CUDA mechanics smoke is recorded in
+`reports/runtime/2026-08-26-s-world-event-4090-smoke.json`: 192 immutable event
+partitions produced 412,384 events while only 66 lateness-window batches stayed
+resident. This accepts the eviction mechanism only, not the standard profile.
 
 - Keep rolling Bloom plus the bounded exact session cache as the sole online
   exposure authority; tune Bloom dimensions only through S-MEM system LRs and
