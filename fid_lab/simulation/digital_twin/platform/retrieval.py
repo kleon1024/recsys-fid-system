@@ -582,17 +582,27 @@ class MultiRouteRetriever:
 
     def _following_candidates(self, requests, state, score):
         creator = self._last_followed_creator(requests, state)
-        creator = torch.where(
-            requests.surface == int(Surface.FEED),
-            creator,
+        country = state.user_country[requests.user_id]
+        countries = int(self.catalog.country.max()) + 1
+        valid = (
+            (requests.surface == int(Surface.FEED))
+            & (creator >= 0)
+            & (country >= 0)
+        )
+        creator_country = torch.where(
+            valid,
+            creator * countries + country,
             torch.full_like(creator, -1),
+        )
+        item_creator_country = (
+            state.item_creator_id * countries + state.item_country
         )
         return self._top_by_group(
             requests,
             state,
             score,
-            creator,
-            state.item_creator_id,
+            creator_country,
+            item_creator_country,
             allowed_lifecycle=(
                 int(ContentLifecycle.COLD_START),
                 int(ContentLifecycle.RECENT),
