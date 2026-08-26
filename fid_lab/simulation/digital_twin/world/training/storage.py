@@ -18,10 +18,37 @@ def _hash(path):
     return sha256(path.read_bytes()).hexdigest()
 
 
+def _fsync_directory(path):
+    descriptor = os.open(path, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
 def _atomic_json(path, payload):
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(json.dumps(payload, indent=2) + "\n")
-    temporary.replace(path)
+    try:
+        with temporary.open("w") as stream:
+            stream.write(json.dumps(payload, indent=2) + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        _fsync_directory(path.parent)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def _atomic_torch_save(path, payload):
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    try:
+        torch.save(payload, temporary)
+        with temporary.open("rb") as stream:
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+        _fsync_directory(path.parent)
+    finally:
+        temporary.unlink(missing_ok=True)
 
 
 def _plan_payload(family_plan):
@@ -109,11 +136,11 @@ def write_family_part(
     parts.mkdir(exist_ok=True)
     key = family_key(family_id, split)
     path = parts / f"{split}-family-{family_id}.pt"
-    torch.save({
+    _atomic_torch_save(path, {
         "tensors": tensors,
         "paired": paired,
         "family": family,
-    }, path)
+    })
     state["completed"][key] = {
         "path": str(path.relative_to(output_dir)),
         "sha256": _hash(path),
