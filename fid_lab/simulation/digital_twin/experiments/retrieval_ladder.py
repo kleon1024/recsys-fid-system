@@ -235,8 +235,8 @@ def _policy(
 ) -> CascadePolicy:
     return CascadePolicy(
         name,
-        coarse_version_id=1,
-        fine_version_id=1,
+        coarse_version_id=0,
+        fine_version_id=0,
         mix_version_id=1,
         recall_version_id=version,
         enabled_routes=routes,

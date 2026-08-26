@@ -536,6 +536,11 @@ class CascadeRanker:
         requests: PlatformRequestBatch,
         policy: CascadePolicy,
     ) -> torch.Tensor:
+        if policy.fine_version_id == 0:
+            priority = -torch.arange(
+                item_id.shape[1], device=item_id.device, dtype=torch.float,
+            )[None].expand_as(item_id)
+            return priority.masked_fill(item_id < 0, -torch.inf)
         scorer = self._fine_scorers.get(policy.fine_version_id)
         if scorer is not None:
             score = scorer.score(features, requests.surface)
@@ -556,6 +561,11 @@ class CascadeRanker:
         requests: PlatformRequestBatch,
         policy: CascadePolicy,
     ) -> torch.Tensor:
+        if policy.coarse_version_id == 0:
+            priority = -torch.arange(
+                item_id.shape[1], device=item_id.device, dtype=torch.float,
+            )[None].expand_as(item_id)
+            return priority.masked_fill(item_id < 0, -torch.inf)
         scorer = self._coarse_scorers.get(policy.coarse_version_id)
         if scorer is not None:
             score = scorer.score(features, requests.surface)
