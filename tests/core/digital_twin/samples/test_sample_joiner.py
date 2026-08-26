@@ -22,6 +22,9 @@ from fid_lab.simulation.digital_twin import (
 from fid_lab.simulation.digital_twin.samples.negative_sampling import (
     build_recall_negatives,
 )
+from fid_lab.simulation.digital_twin.samples.event_closure import (
+    select_joiner_events,
+)
 
 
 def build_catalog():
@@ -278,6 +281,39 @@ def test_publish_queue_attributes_later_posting_outcomes_to_feed_content():
         publish.joint_logging_probability,
         publish.exposure_probability * publish.assignment_probability[:, None],
     )
+
+
+def test_joiner_event_closure_keeps_future_posting_request_for_same_user():
+    trace = build_trace()
+    same_request = make_app_events(
+        EventType.PLAY,
+        event_time=0,
+        request_id=torch.tensor([101]),
+        user_id=torch.tensor([0]),
+        surface=torch.tensor([int(Surface.FEED)]),
+    )
+    future_publish = make_app_events(
+        EventType.PUBLISH,
+        event_time=20,
+        request_id=torch.tensor([301]),
+        user_id=torch.tensor([0]),
+        surface=torch.tensor([int(Surface.POSTING)]),
+    )
+    unrelated = make_app_events(
+        EventType.PUBLISH,
+        event_time=20,
+        request_id=torch.tensor([302]),
+        user_id=torch.tensor([9]),
+        surface=torch.tensor([int(Surface.POSTING)]),
+    )
+    selected = select_joiner_events(
+        AppEventBatch.concatenate((same_request, future_publish, unrelated)),
+        request_id=trace.request_id[:1],
+        user_id=trace.user_id[:1],
+        request_time=trace.event_time[:1],
+        publish_window_ticks=192,
+    )
+    assert set(selected.request_id.tolist()) == {101, 301}
 
 
 def test_recall_sources_carry_q_expected_count_and_false_negative_mask():

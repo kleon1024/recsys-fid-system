@@ -7,10 +7,7 @@ from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
 
-import torch
-
 from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
-from ..contracts import AppEventBatch, EventType, Surface
 from ..experiments.retrieval_ladder import RetrievalLadderConfig, _build_kernel
 from ..observability import (
     CheckpointRecord,
@@ -19,6 +16,7 @@ from ..observability import (
     verify_full_flow_dataset,
 )
 from ..samples.joiner import JoinerConfig, RequestLevelJoiner
+from ..samples.event_closure import select_joiner_events
 from ..samples.publish_queue import PublishQueueConfig
 from ..profile import STANDARD_FEED_PROFILE
 from .request_stream import FactualRequestStream
@@ -44,33 +42,6 @@ class RequestMaterializationConfig:
             self.users, self.items, self.ticks_per_day, self.recall_negatives,
         ) <= 0:
             raise ValueError("request materialization dimensions must be positive")
-
-
-def _events_for_sample_authorities(
-    events: AppEventBatch,
-    request_id: torch.Tensor,
-    user_id: torch.Tensor,
-    request_time: torch.Tensor,
-    publish_window_ticks: int,
-) -> AppEventBatch:
-    if not len(events.request_id) or not len(request_id):
-        return AppEventBatch.empty(events.request_id.device)
-    same_request = torch.isin(events.request_id, request_id)
-    cross_request_publish = (
-        torch.isin(events.user_id, user_id)
-        & (events.surface == int(Surface.POSTING))
-        & torch.isin(events.event_type, torch.tensor(
-            [
-                int(EventType.SURFACE_ENTRY),
-                int(EventType.CREATE),
-                int(EventType.PUBLISH),
-            ],
-            device=events.event_type.device,
-        ))
-        & (events.event_time >= int(request_time.min()))
-        & (events.event_time <= int(request_time.max()) + publish_window_ticks)
-    )
-    return events.select(same_request | cross_request_publish)
 
 
 def materialize_factual_requests(
@@ -123,12 +94,12 @@ def materialize_factual_requests(
     partitions = []
     for ref in refs:
         request = stream.read(ref, device=kernel.world.catalog.item_id.device)
-        events = _events_for_sample_authorities(
+        events = select_joiner_events(
             all_events,
-            request.trace.request_id,
-            request.trace.user_id,
-            request.trace.event_time,
-            publish_window_ticks,
+            request_id=request.trace.request_id,
+            user_id=request.trace.user_id,
+            request_time=request.trace.event_time,
+            publish_window_ticks=publish_window_ticks,
         )
         samples = joiner.materialize(
             request.trace,

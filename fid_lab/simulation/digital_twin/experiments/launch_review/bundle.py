@@ -12,7 +12,9 @@ from ...observability import FullFlowSnapshot, append_full_flow_partition
 from ...observability.launch_diagnose import write_diagnosis
 from ...observability.store import replace_json_atomic
 from ...samples.contracts import RequestCandidateTrace, RequestContextBatch
+from ...samples.event_closure import select_joiner_events
 from ...samples.joiner import JoinerConfig, RequestLevelJoiner
+from ...samples.publish_queue import PublishQueueConfig
 
 
 @dataclass(frozen=True)
@@ -72,6 +74,10 @@ class LaunchEvidenceCollector:
             JoinerConfig(ticks_per_day=ticks_per_day),
             kernel.platform.catalog,
         )
+        publish_window_ticks = max(
+            task.window_ticks
+            for task in PublishQueueConfig(ticks_per_day).tasks
+        )
         full_flow = output_dir / "full-flow-dataset"
         projection = kernel.platform.projection.snapshot()
         feature_manifest = kernel.platform.ranker.features.manifest
@@ -83,9 +89,13 @@ class LaunchEvidenceCollector:
             device = kernel.platform.catalog.item_id.device
             trace = _move_tensor_fields(tick.candidate_trace, device)
             context = _move_tensor_fields(tick.request_context, device)
-            events = all_events.select(torch.isin(
-                all_events.request_id, trace.request_id,
-            ))
+            events = select_joiner_events(
+                all_events,
+                request_id=trace.request_id,
+                user_id=trace.user_id,
+                request_time=trace.event_time,
+                publish_window_ticks=publish_window_ticks,
+            )
             samples = joiner.materialize(
                 trace,
                 context,
