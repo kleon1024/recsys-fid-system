@@ -1,0 +1,387 @@
+{
+  "scope": "v4-feed-sequential-retrieval-launch-reviews",
+  "quality_claim": "synthetic-world causal evidence only",
+  "config": {
+    "users": 10000,
+    "items": 100000,
+    "burn_in_steps": 112,
+    "experiment_steps": 64,
+    "control_fraction": 0.5,
+    "treatment_fraction": 0.5,
+    "device": "cuda",
+    "seed": 809,
+    "auto_promote": true,
+    "ticks_per_day": 16,
+    "minimum_triggered_users": 500,
+    "checkpoint_root": null,
+    "checkpoint_branch": "main",
+    "resume_checkpoint_id": null,
+    "max_reviews": 1,
+    "allow_code_migration": false,
+    "allow_additive_runtime_migration": false,
+    "max_attempts_per_review": 1,
+    "response_authority_mode": "formula_oracle",
+    "response_artifact_dir": null,
+    "response_manifest_sha256": null,
+    "response_member_index": 0,
+    "maximum_support_fallback_rate": 0.03,
+    "event_log_root": null,
+    "launch_bundle_root": "/home/ding/.local/share/recsys-fid-system/fast-lr/semantic-v3-popular-lr-v1",
+    "initial_route": "random",
+    "initial_routes": [],
+    "route_ladder": [
+      "popular"
+    ],
+    "aa_steps": 32
+  },
+  "aa_review": {
+    "analysis_start_time": 112,
+    "analysis_end_time": 143,
+    "policy_routes": [
+      "random"
+    ],
+    "sample": {
+      "control_triggered_users": 2171,
+      "treatment_triggered_users": 2239
+    },
+    "metrics_per_triggered_user": {
+      "dwell_seconds": {
+        "control_mean": 49.71418762207031,
+        "treatment_mean": 50.21103286743164,
+        "absolute_delta": 0.4968452453613281,
+        "relative_delta": 0.009994033724069595,
+        "ci95_low": -2.448397636413574,
+        "ci95_high": 3.4420881271362305,
+        "standard_error": 1.50267493724823,
+        "mde80_absolute": 4.207489967346191,
+        "mde80_relative": 0.08463358879089355
+      },
+      "play_3s": {
+        "control_mean": 7.797327995300293,
+        "treatment_mean": 7.849486351013184,
+        "absolute_delta": 0.052158355712890625,
+        "relative_delta": 0.006689260248094797,
+        "ci95_low": -0.4243168830871582,
+        "ci95_high": 0.5286335945129395,
+        "standard_error": 0.24309960007667542,
+        "mde80_absolute": 0.6806788444519043,
+        "mde80_relative": 0.08729642629623413
+      },
+      "long_view": {
+        "control_mean": 3.111008644104004,
+        "treatment_mean": 3.207235336303711,
+        "absolute_delta": 0.09622669219970703,
+        "relative_delta": 0.030931027606129646,
+        "ci95_low": -0.11627167463302612,
+        "ci95_high": 0.3087250590324402,
+        "standard_error": 0.10841753333806992,
+        "mde80_absolute": 0.30356907844543457,
+        "mde80_relative": 0.0975789874792099
+      },
+      "complete": {
+        "control_mean": 1.5587286949157715,
+        "treatment_mean": 1.6016079187393188,
+        "absolute_delta": 0.04287922382354736,
+        "relative_delta": 0.02750910073518753,
+        "ci95_low": -0.07758073508739471,
+        "ci95_high": 0.16333918273448944,
+        "standard_error": 0.06145916134119034,
+        "mde80_absolute": 0.17208564281463623,
+        "mde80_relative": 0.11040128022432327
+      },
+      "like": {
+        "control_mean": 1.1713495254516602,
+        "treatment_mean": 1.2206342220306396,
+        "absolute_delta": 0.04928469657897949,
+        "relative_delta": 0.04207514226436615,
+        "ci95_low": -0.04601152986288071,
+        "ci95_high": 0.1445809304714203,
+        "standard_error": 0.048620522022247314,
+        "mde80_absolute": 0.136137455701828,
+        "mde80_relative": 0.11622274667024612
+      },
+      "comment": {
+        "control_mean": 0.4320589601993561,
+        "treatment_mean": 0.456900417804718,
+        "absolute_delta": 0.02484145760536194,
+        "relative_delta": 0.05749552696943283,
+        "ci95_low": -0.02116375043988228,
+        "ci95_high": 0.07084666192531586,
+        "standard_error": 0.023472044616937637,
+        "mde80_absolute": 0.06572172045707703,
+        "mde80_relative": 0.15211285650730133
+      },
+      "share": {
+        "control_mean": 0.5591893196105957,
+        "treatment_mean": 0.577489972114563,
+        "absolute_delta": 0.018300652503967285,
+        "relative_delta": 0.032727114856243134,
+        "ci95_low": -0.03811952471733093,
+        "ci95_high": 0.0747208297252655,
+        "standard_error": 0.02878580428659916,
+        "mde80_absolute": 0.08060025423765182,
+        "mde80_relative": 0.1441376805305481
+      },
+      "follow": {
+        "control_mean": 0.718102216720581,
+        "treatment_mean": 0.7020991444587708,
+        "absolute_delta": -0.016003072261810303,
+        "relative_delta": -0.022285228595137596,
+        "ci95_low": -0.08130140602588654,
+        "ci95_high": 0.04929526150226593,
+        "standard_error": 0.03331547603011131,
+        "mde80_absolute": 0.09328333288431168,
+        "mde80_relative": 0.12990258634090424
+      },
+      "negative": {
+        "control_mean": 0.7913403511047363,
+        "treatment_mean": 0.806163489818573,
+        "absolute_delta": 0.01482313871383667,
+        "relative_delta": 0.01873168535530567,
+        "ci95_low": -0.04528774321079254,
+        "ci95_high": 0.07493402063846588,
+        "standard_error": 0.030668817460536957,
+        "mde80_absolute": 0.08587268739938736,
+        "mde80_relative": 0.10851549357175827
+      },
+      "session_end": {
+        "control_mean": 1.0962690114974976,
+        "treatment_mean": 1.095131754875183,
+        "absolute_delta": -0.0011372566223144531,
+        "relative_delta": -0.0010373882250860333,
+        "ci95_low": -0.044177912175655365,
+        "ci95_high": 0.04190339893102646,
+        "standard_error": 0.021959517151117325,
+        "mde80_absolute": 0.06148664653301239,
+        "mde80_relative": 0.0560871884226799
+      }
+    },
+    "valid": true
+  },
+  "simulation_profile": {
+    "schema": "simulation-profile/v1",
+    "name": "feed-semantic-v3",
+    "users": 10000,
+    "items": 100000,
+    "ticks_per_day": 16,
+    "topics": 512,
+    "countries": 12,
+    "regions_per_country": 16,
+    "embedding_dim": 64,
+    "history_length": 512,
+    "feed_exposure_history_length": 256,
+    "route_k": 24,
+    "merged_k": 96,
+    "coarse_k": 48,
+    "fine_k": 16,
+    "expose_k": 8,
+    "seed": 809
+  },
+  "simulation_profile_hash": "8ae6fc770fda1b1dd4cd752e75ac2f503d16e0f637933bed6da4a1dbadc605ec",
+  "invariant": "one factual slate per request; hidden world consumes only served events; coarse/fine/mix remain fixed",
+  "metric_definition": "clustered intent-to-treat means per triggered user over each experiment window; LT exchange is deliberately not invented",
+  "reviews": [
+    {
+      "launch_review": "R-LR-001",
+      "attempt": 1,
+      "analysis_start_time": 144,
+      "analysis_end_time": 207,
+      "changed_owner": "retrieval routes only",
+      "comparison_kind": "route_addition",
+      "merge_policy": "reciprocal_rank_fusion",
+      "control_routes": [
+        "random"
+      ],
+      "treatment_routes": [
+        "random",
+        "popular"
+      ],
+      "control_route_weights": {
+        "random": 0.2
+      },
+      "treatment_route_weights": {
+        "random": 0.1,
+        "popular": 1.0
+      },
+      "added_route": "popular",
+      "requests": {
+        "control": 23437,
+        "treatment": 24834,
+        "default": 6506
+      },
+      "route_request_hits": {
+        "control": 0,
+        "treatment": 24834
+      },
+      "treatment_route_stage_candidates": {
+        "recall": 473933,
+        "coarse": 473933,
+        "fine": 384072,
+        "exposed": 198529
+      },
+      "treatment_route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 1.0,
+        "fine": 0.8103930302384514,
+        "exposed": 0.4188967638885665
+      },
+      "sample": {
+        "control_triggered_users": 2987,
+        "treatment_triggered_users": 3002
+      },
+      "traffic_funnel": {
+        "population_users": 10000,
+        "registered_users": 9513,
+        "non_churned_registered_users": 8700,
+        "request_users": 6497,
+        "feed_request_users": 5989,
+        "feed_exposed_users": 5989,
+        "feed_exposed_population_rate": 0.5989,
+        "feed_exposed_registered_rate": 0.6295595500893514
+      },
+      "metrics_per_triggered_user": {
+        "dwell_seconds": {
+          "control_mean": 66.66930389404297,
+          "treatment_mean": 79.32117462158203,
+          "absolute_delta": 12.651870727539062,
+          "relative_delta": 0.18977054953575134,
+          "ci95_low": 8.694469451904297,
+          "ci95_high": 16.609272003173828,
+          "standard_error": 2.019082546234131,
+          "mde80_absolute": 5.653430938720703,
+          "mde80_relative": 0.08479811251163483
+        },
+        "play_3s": {
+          "control_mean": 10.482423782348633,
+          "treatment_mean": 12.201532363891602,
+          "absolute_delta": 1.7191085815429688,
+          "relative_delta": 0.16399915516376495,
+          "ci95_low": 1.0892854928970337,
+          "ci95_high": 2.3489317893981934,
+          "standard_error": 0.3213382959365845,
+          "mde80_absolute": 0.8997471928596497,
+          "mde80_relative": 0.08583388477563858
+        },
+        "long_view": {
+          "control_mean": 4.125209331512451,
+          "treatment_mean": 5.364757061004639,
+          "absolute_delta": 1.2395477294921875,
+          "relative_delta": 0.3004811704158783,
+          "ci95_low": 0.9622036218643188,
+          "ci95_high": 1.5168918371200562,
+          "standard_error": 0.14150209724903107,
+          "mde80_absolute": 0.396205872297287,
+          "mde80_relative": 0.09604503214359283
+        },
+        "complete": {
+          "control_mean": 2.0609307289123535,
+          "treatment_mean": 2.7684876918792725,
+          "absolute_delta": 0.707556962966919,
+          "relative_delta": 0.3433191478252411,
+          "ci95_low": 0.5531578660011292,
+          "ci95_high": 0.8619560599327087,
+          "standard_error": 0.07877504080533981,
+          "mde80_absolute": 0.22057011723518372,
+          "mde80_relative": 0.10702452063560486
+        },
+        "like": {
+          "control_mean": 1.5433545112609863,
+          "treatment_mean": 1.7938041687011719,
+          "absolute_delta": 0.25044965744018555,
+          "relative_delta": 0.16227616369724274,
+          "ci95_low": 0.13709089159965515,
+          "ci95_high": 0.36380842328071594,
+          "standard_error": 0.057836104184389114,
+          "mde80_absolute": 0.16194109618663788,
+          "mde80_relative": 0.10492799431085587
+        },
+        "comment": {
+          "control_mean": 0.6119852662086487,
+          "treatment_mean": 0.6885409951210022,
+          "absolute_delta": 0.07655572891235352,
+          "relative_delta": 0.12509407103061676,
+          "ci95_low": 0.02298525720834732,
+          "ci95_high": 0.1301262080669403,
+          "standard_error": 0.027331871911883354,
+          "mde80_absolute": 0.07652924209833145,
+          "mde80_relative": 0.12505079805850983
+        },
+        "share": {
+          "control_mean": 0.7716772556304932,
+          "treatment_mean": 0.9143904447555542,
+          "absolute_delta": 0.14271318912506104,
+          "relative_delta": 0.1849389672279358,
+          "ci95_low": 0.07757300138473511,
+          "ci95_high": 0.20785337686538696,
+          "standard_error": 0.033234789967536926,
+          "mde80_absolute": 0.09305740892887115,
+          "mde80_relative": 0.12059109658002853
+        },
+        "follow": {
+          "control_mean": 0.9926347732543945,
+          "treatment_mean": 1.1322451829910278,
+          "absolute_delta": 0.1396104097366333,
+          "relative_delta": 0.1406463086605072,
+          "ci95_low": 0.06092626601457596,
+          "ci95_high": 0.21829456090927124,
+          "standard_error": 0.040144968777894974,
+          "mde80_absolute": 0.11240591108798981,
+          "mde80_relative": 0.11323995143175125
+        },
+        "negative": {
+          "control_mean": 1.0970873832702637,
+          "treatment_mean": 1.084943413734436,
+          "absolute_delta": -0.012143969535827637,
+          "relative_delta": -0.011069281958043575,
+          "ci95_low": -0.07737087458372116,
+          "ci95_high": 0.05308293551206589,
+          "standard_error": 0.03327903151512146,
+          "mde80_absolute": 0.09318128973245621,
+          "mde80_relative": 0.08493515849113464
+        },
+        "session_end": {
+          "control_mean": 1.5935721397399902,
+          "treatment_mean": 1.611925482749939,
+          "absolute_delta": 0.01835334300994873,
+          "relative_delta": 0.011517108418047428,
+          "ci95_low": -0.04163294658064842,
+          "ci95_high": 0.07833963632583618,
+          "standard_error": 0.030605249106884003,
+          "mde80_absolute": 0.08569469302892685,
+          "mde80_relative": 0.05377522110939026
+        }
+      },
+      "decision": "promote",
+      "reason": "stay improves and negative-feedback guardrail passes",
+      "promoted_to_next_baseline": true,
+      "launch_bundle": {
+        "path": "/home/ding/.local/share/recsys-fid-system/fast-lr/semantic-v3-popular-lr-v1/R-LR-001-attempt-1",
+        "dataset_content_sha256": "402b2fe6a60601a7ed908a306ece3faaf87ea913e0c7c29d856309fd1f50b189",
+        "requests": 54777,
+        "events": 1277560,
+        "findings": [
+          {
+            "severity": "warning",
+            "code": "commerce_intent_pool_concentration",
+            "evidence": 25
+          },
+          {
+            "severity": "warning",
+            "code": "live_now_pool_concentration",
+            "evidence": 24
+          }
+        ]
+      }
+    }
+  ],
+  "final_active_routes": [
+    "random",
+    "popular"
+  ],
+  "checkpoint_ids": [],
+  "final_checkpoint_id": "",
+  "resumed_from_checkpoint": "",
+  "world_branch": "",
+  "elapsed_seconds": 193.36880039800053,
+  "peak_cuda_gib": 4.1406168937683105
+}

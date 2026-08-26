@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-26 (semantic-v2 and Launch Bundle rebuild in validation)
+Updated: 2026-08-26 (semantic-v3 accepted; initial learned ranker is next)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -84,7 +84,7 @@ evidence and are never queried on the serving path.
 | Delayed outcomes | Order/payment/refund/Pixel occurrence and ingestion time are distinct | Implemented | Production-like loss/duplicate/orphan distributions need calibration |
 | Point-in-time projection | Delivered events, lifecycle and full scoring-input tensors replay across content-bound partitions | Implemented | Learned-ranker launch evidence remains P3-07..09 |
 | Request cascade trace | Full recall universe, scorer inputs, stage admission, factual exposure and randomized support are retained | Implemented | Integrated evaluator remains P3-09 |
-| Feed retrieval mechanics | ID-independent semantic catalog, unbiased Random and country Popular are implemented | semantic-v2 GPU F-R01 pending | Re-run Random to Popular with single-route passthrough and automatic diagnosis |
+| Feed retrieval mechanics | ID-independent semantic catalog, unbiased Random and country Popular are implemented | semantic-v3 Random to Popular promoted; Interest Popular and Recent ANN held | Freeze Random + Popular and train a route-calibrated initial ranker before adding recall coverage |
 | Durable evolving world | Content-addressed hidden world, supply, delayed queue, platform, index, event, experiment and learning cursor checkpoint | Equilibrium burn-in, bounded event authority and exact next-tick restart parity pass | Complete the 96-tick NeuralSCM factual-runtime soak |
 | Layered experiments | Ownership, independent assignment, composed policy and numeric served checkpoint logging | Implemented | Model-learning interference remains P4-05 |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
@@ -94,7 +94,7 @@ evidence and are never queried on the serving path.
 | Full-chain analytical store | Every LR can write event-time v4 partitions plus automatic DuckDB diagnosis | Local smoke passes | Validate standard GPU Launch Bundle and add ClickHouse publication later |
 | Recall/coarse/fine sample authorities | Recall is source-corrected; coarse covers recall universe; fine covers scorer input with masked factual labels | Implemented | Trainer/evaluator consumption remains P3-07..09 |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
-| Model ladder | Sequential factual runner and corrected random-order policy exist | Existing F-R00 used a rule ranker; v4 has only an LR infrastructure probe and learned retrieval trainer, while deep rankers remain legacy | Pass S-AUTH00/S-WORLD00 and runtime soak, then run corrected A/A→F-R00→Popular and migrate one model family at a time |
+| Model ladder | Sequential factual runner and corrected random-order policy exist | Random + Popular is the accepted semantic-v3 retrieval baseline; the formula fine ranker over-admits weaker personalized candidates | Train the initial observable request-level ranker, calibrate routes, and require Popular preservation before its A/B |
 | Search/Ads/Commerce/Live/Local/Posting | Commerce closes cart→refund; Search closes query→post-search; Ads closes budget→auction→impression/spend→click→Pixel with one-slot load | Commerce, Search and Ads implementations in validation; Local, Posting and Live remain open | C-LR-003, S-LR-001 and A-LR-001 RTX evidence remain pending |
 
 The v23 NeuralSCM is historical evidence, not an executable authority: its

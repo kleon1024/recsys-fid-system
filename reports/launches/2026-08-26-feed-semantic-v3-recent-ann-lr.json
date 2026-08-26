@@ -1,0 +1,395 @@
+{
+  "scope": "v4-feed-sequential-retrieval-launch-reviews",
+  "quality_claim": "synthetic-world causal evidence only",
+  "config": {
+    "users": 10000,
+    "items": 100000,
+    "burn_in_steps": 112,
+    "experiment_steps": 64,
+    "control_fraction": 0.5,
+    "treatment_fraction": 0.5,
+    "device": "cuda",
+    "seed": 809,
+    "auto_promote": true,
+    "ticks_per_day": 16,
+    "minimum_triggered_users": 500,
+    "checkpoint_root": null,
+    "checkpoint_branch": "main",
+    "resume_checkpoint_id": null,
+    "max_reviews": 1,
+    "allow_code_migration": false,
+    "allow_additive_runtime_migration": false,
+    "max_attempts_per_review": 1,
+    "response_authority_mode": "formula_oracle",
+    "response_artifact_dir": null,
+    "response_manifest_sha256": null,
+    "response_member_index": 0,
+    "maximum_support_fallback_rate": 0.03,
+    "event_log_root": null,
+    "launch_bundle_root": "/home/ding/.local/share/recsys-fid-system/fast-lr/semantic-v3-recent-ann-lr-v1",
+    "initial_route": "random",
+    "initial_routes": [
+      "random",
+      "popular"
+    ],
+    "route_ladder": [
+      "recent_ann"
+    ],
+    "aa_steps": 32
+  },
+  "aa_review": {
+    "analysis_start_time": 112,
+    "analysis_end_time": 143,
+    "policy_routes": [
+      "random",
+      "popular"
+    ],
+    "sample": {
+      "control_triggered_users": 2221,
+      "treatment_triggered_users": 2302
+    },
+    "metrics_per_triggered_user": {
+      "dwell_seconds": {
+        "control_mean": 57.809776306152344,
+        "treatment_mean": 58.766265869140625,
+        "absolute_delta": 0.9564895629882812,
+        "relative_delta": 0.016545463353395462,
+        "ci95_low": -2.289058208465576,
+        "ci95_high": 4.202037334442139,
+        "standard_error": 1.6558916568756104,
+        "mde80_absolute": 4.636496543884277,
+        "mde80_relative": 0.08020263910293579
+      },
+      "play_3s": {
+        "control_mean": 8.82125186920166,
+        "treatment_mean": 8.990878105163574,
+        "absolute_delta": 0.16962623596191406,
+        "relative_delta": 0.01922927051782608,
+        "ci95_low": -0.3423442840576172,
+        "ci95_high": 0.6815967559814453,
+        "standard_error": 0.2612094581127167,
+        "mde80_absolute": 0.7313864827156067,
+        "mde80_relative": 0.08291187137365341
+      },
+      "long_view": {
+        "control_mean": 3.778928518295288,
+        "treatment_mean": 3.8792355060577393,
+        "absolute_delta": 0.10030698776245117,
+        "relative_delta": 0.026543764397501945,
+        "ci95_low": -0.14122863113880157,
+        "ci95_high": 0.3418425917625427,
+        "standard_error": 0.12323245406150818,
+        "mde80_absolute": 0.3450508713722229,
+        "mde80_relative": 0.09130918234586716
+      },
+      "complete": {
+        "control_mean": 1.9180549383163452,
+        "treatment_mean": 1.9587316513061523,
+        "absolute_delta": 0.04067671298980713,
+        "relative_delta": 0.02120727300643921,
+        "ci95_low": -0.09718719124794006,
+        "ci95_high": 0.17854061722755432,
+        "standard_error": 0.07033872604370117,
+        "mde80_absolute": 0.19694842398166656,
+        "mde80_relative": 0.10268132388591766
+      },
+      "like": {
+        "control_mean": 1.281404733657837,
+        "treatment_mean": 1.315812349319458,
+        "absolute_delta": 0.034407615661621094,
+        "relative_delta": 0.026851480826735497,
+        "ci95_low": -0.0635993629693985,
+        "ci95_high": 0.13241459429264069,
+        "standard_error": 0.05000355839729309,
+        "mde80_absolute": 0.14000995457172394,
+        "mde80_relative": 0.1092628687620163
+      },
+      "comment": {
+        "control_mean": 0.5177847743034363,
+        "treatment_mean": 0.5208514332771301,
+        "absolute_delta": 0.0030666589736938477,
+        "relative_delta": 0.0059226518496870995,
+        "ci95_low": -0.04849136248230934,
+        "ci95_high": 0.05462468042969704,
+        "standard_error": 0.02630511298775673,
+        "mde80_absolute": 0.07365431636571884,
+        "mde80_relative": 0.14224889874458313
+      },
+      "share": {
+        "control_mean": 0.6303467154502869,
+        "treatment_mean": 0.6802780628204346,
+        "absolute_delta": 0.049931347370147705,
+        "relative_delta": 0.07921251654624939,
+        "ci95_low": -0.010661061853170395,
+        "ci95_high": 0.1105237603187561,
+        "standard_error": 0.030914494767785072,
+        "mde80_absolute": 0.08656058460474014,
+        "mde80_relative": 0.13732217252254486
+      },
+      "follow": {
+        "control_mean": 0.8239531517028809,
+        "treatment_mean": 0.8249348402023315,
+        "absolute_delta": 0.0009816884994506836,
+        "relative_delta": 0.0011914372444152832,
+        "ci95_low": -0.0690486878156662,
+        "ci95_high": 0.07101206481456757,
+        "standard_error": 0.0357297845184803,
+        "mde80_absolute": 0.1000433936715126,
+        "mde80_relative": 0.1214187890291214
+      },
+      "negative": {
+        "control_mean": 0.8311571478843689,
+        "treatment_mean": 0.835794985294342,
+        "absolute_delta": 0.0046378374099731445,
+        "relative_delta": 0.005579976364970207,
+        "ci95_low": -0.05681193619966507,
+        "ci95_high": 0.06608761101961136,
+        "standard_error": 0.03135192394256592,
+        "mde80_absolute": 0.08778538554906845,
+        "mde80_relative": 0.10561827570199966
+      },
+      "session_end": {
+        "control_mean": 1.13282310962677,
+        "treatment_mean": 1.1398783922195435,
+        "absolute_delta": 0.0070552825927734375,
+        "relative_delta": 0.006228053011000156,
+        "ci95_low": -0.037915050983428955,
+        "ci95_high": 0.05202561616897583,
+        "standard_error": 0.022944048047065735,
+        "mde80_absolute": 0.06424333155155182,
+        "mde80_relative": 0.056710824370384216
+      }
+    },
+    "valid": true
+  },
+  "simulation_profile": {
+    "schema": "simulation-profile/v1",
+    "name": "feed-semantic-v3",
+    "users": 10000,
+    "items": 100000,
+    "ticks_per_day": 16,
+    "topics": 512,
+    "countries": 12,
+    "regions_per_country": 16,
+    "embedding_dim": 64,
+    "history_length": 512,
+    "feed_exposure_history_length": 256,
+    "route_k": 24,
+    "merged_k": 96,
+    "coarse_k": 48,
+    "fine_k": 16,
+    "expose_k": 8,
+    "seed": 809
+  },
+  "simulation_profile_hash": "8ae6fc770fda1b1dd4cd752e75ac2f503d16e0f637933bed6da4a1dbadc605ec",
+  "invariant": "one factual slate per request; hidden world consumes only served events; coarse/fine/mix remain fixed",
+  "metric_definition": "clustered intent-to-treat means per triggered user over each experiment window; LT exchange is deliberately not invented",
+  "reviews": [
+    {
+      "launch_review": "R-LR-001",
+      "attempt": 1,
+      "analysis_start_time": 144,
+      "analysis_end_time": 207,
+      "changed_owner": "retrieval routes only",
+      "comparison_kind": "route_addition",
+      "merge_policy": "reciprocal_rank_fusion",
+      "control_routes": [
+        "random",
+        "popular"
+      ],
+      "treatment_routes": [
+        "random",
+        "popular",
+        "recent_ann"
+      ],
+      "control_route_weights": {
+        "random": 0.1,
+        "popular": 1.0
+      },
+      "treatment_route_weights": {
+        "random": 0.1,
+        "popular": 1.0,
+        "recent_ann": 0.2
+      },
+      "added_route": "recent_ann",
+      "requests": {
+        "control": 26439,
+        "treatment": 25296,
+        "default": 6823
+      },
+      "route_request_hits": {
+        "control": 0,
+        "treatment": 18378
+      },
+      "treatment_route_stage_candidates": {
+        "recall": 49478,
+        "coarse": 49478,
+        "fine": 29147,
+        "exposed": 7283
+      },
+      "treatment_route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 1.0,
+        "fine": 0.5890901006507943,
+        "exposed": 0.14719673390193622
+      },
+      "sample": {
+        "control_triggered_users": 3035,
+        "treatment_triggered_users": 3032
+      },
+      "traffic_funnel": {
+        "population_users": 10000,
+        "registered_users": 9513,
+        "non_churned_registered_users": 8710,
+        "request_users": 6587,
+        "feed_request_users": 6067,
+        "feed_exposed_users": 6067,
+        "feed_exposed_population_rate": 0.6067,
+        "feed_exposed_registered_rate": 0.6377588563019027
+      },
+      "metrics_per_triggered_user": {
+        "dwell_seconds": {
+          "control_mean": 81.56842803955078,
+          "treatment_mean": 77.70648956298828,
+          "absolute_delta": -3.8619384765625,
+          "relative_delta": -0.04734599590301514,
+          "ci95_low": -7.971822261810303,
+          "ci95_high": 0.24794530868530273,
+          "standard_error": 2.096879482269287,
+          "mde80_absolute": 5.871262550354004,
+          "mde80_relative": 0.0719795972108841
+        },
+        "play_3s": {
+          "control_mean": 12.578583717346191,
+          "treatment_mean": 11.91062068939209,
+          "absolute_delta": -0.6679630279541016,
+          "relative_delta": -0.05310319736599922,
+          "ci95_low": -1.3149809837341309,
+          "ci95_high": -0.02094501256942749,
+          "standard_error": 0.33011123538017273,
+          "mde80_absolute": 0.9243114590644836,
+          "mde80_relative": 0.0734829530119896
+        },
+        "long_view": {
+          "control_mean": 5.3298187255859375,
+          "treatment_mean": 5.011213779449463,
+          "absolute_delta": -0.3186049461364746,
+          "relative_delta": -0.059777818620204926,
+          "ci95_low": -0.6082789897918701,
+          "ci95_high": -0.0289309024810791,
+          "standard_error": 0.14779287576675415,
+          "mde80_absolute": 0.4138200581073761,
+          "mde80_relative": 0.07764242589473724
+        },
+        "complete": {
+          "control_mean": 2.7163097858428955,
+          "treatment_mean": 2.58905029296875,
+          "absolute_delta": -0.1272594928741455,
+          "relative_delta": -0.046850141137838364,
+          "ci95_low": -0.28999871015548706,
+          "ci95_high": 0.03547970950603485,
+          "standard_error": 0.08303020149469376,
+          "mde80_absolute": 0.23248456418514252,
+          "mde80_relative": 0.08558838069438934
+        },
+        "like": {
+          "control_mean": 1.9130148887634277,
+          "treatment_mean": 1.7753958702087402,
+          "absolute_delta": -0.1376190185546875,
+          "relative_delta": -0.07193829119205475,
+          "ci95_low": -0.2532687187194824,
+          "ci95_high": -0.021969318389892578,
+          "standard_error": 0.059004947543144226,
+          "mde80_absolute": 0.16521385312080383,
+          "mde80_relative": 0.08636307716369629
+        },
+        "comment": {
+          "control_mean": 0.7120263576507568,
+          "treatment_mean": 0.6484169363975525,
+          "absolute_delta": -0.06360942125320435,
+          "relative_delta": -0.08933576941490173,
+          "ci95_low": -0.11740949749946594,
+          "ci95_high": -0.009809345006942749,
+          "standard_error": 0.027449017390608788,
+          "mde80_absolute": 0.07685724645853043,
+          "mde80_relative": 0.10794157534837723
+        },
+        "share": {
+          "control_mean": 0.9235584735870361,
+          "treatment_mean": 0.8931398987770081,
+          "absolute_delta": -0.030418574810028076,
+          "relative_delta": -0.032936275005340576,
+          "ci95_low": -0.09874092787504196,
+          "ci95_high": 0.03790377825498581,
+          "standard_error": 0.0348583422601223,
+          "mde80_absolute": 0.09760335832834244,
+          "mde80_relative": 0.10568183660507202
+        },
+        "follow": {
+          "control_mean": 1.162767767906189,
+          "treatment_mean": 1.0986148118972778,
+          "absolute_delta": -0.06415295600891113,
+          "relative_delta": -0.0551726296544075,
+          "ci95_low": -0.14350628852844238,
+          "ci95_high": 0.01520036906003952,
+          "standard_error": 0.04048638790845871,
+          "mde80_absolute": 0.1133618876338005,
+          "mde80_relative": 0.09749314934015274
+        },
+        "negative": {
+          "control_mean": 1.2046128511428833,
+          "treatment_mean": 1.1507256031036377,
+          "absolute_delta": -0.053887248039245605,
+          "relative_delta": -0.044734079390764236,
+          "ci95_low": -0.12300502508878708,
+          "ci95_high": 0.015230529010295868,
+          "standard_error": 0.03526417165994644,
+          "mde80_absolute": 0.09873967617750168,
+          "mde80_relative": 0.08196797221899033
+        },
+        "session_end": {
+          "control_mean": 1.666886329650879,
+          "treatment_mean": 1.6240105628967285,
+          "absolute_delta": -0.04287576675415039,
+          "relative_delta": -0.025722069665789604,
+          "ci95_low": -0.10437056422233582,
+          "ci95_high": 0.018619034439325333,
+          "standard_error": 0.03137489780783653,
+          "mde80_absolute": 0.08784971386194229,
+          "mde80_relative": 0.0527028813958168
+        }
+      },
+      "decision": "stop_inconclusive",
+      "reason": "maximum review windows reached without conclusive lift",
+      "promoted_to_next_baseline": false,
+      "launch_bundle": {
+        "path": "/home/ding/.local/share/recsys-fid-system/fast-lr/semantic-v3-recent-ann-lr-v1/R-LR-001-attempt-1",
+        "dataset_content_sha256": "8e08e5403d9cad42ded651e635568353918a4ae3ba4e9c2c2f70bd04a24c7e84",
+        "requests": 58558,
+        "events": 1377834,
+        "findings": [
+          {
+            "severity": "warning",
+            "code": "commerce_intent_pool_concentration",
+            "evidence": 25
+          },
+          {
+            "severity": "warning",
+            "code": "live_now_pool_concentration",
+            "evidence": 24
+          }
+        ]
+      }
+    }
+  ],
+  "final_active_routes": [
+    "random",
+    "popular"
+  ],
+  "checkpoint_ids": [],
+  "final_checkpoint_id": "",
+  "resumed_from_checkpoint": "",
+  "world_branch": "",
+  "elapsed_seconds": 200.5051454610002,
+  "peak_cuda_gib": 4.44026517868042
+}

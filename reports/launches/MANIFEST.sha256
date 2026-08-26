@@ -77,3 +77,6 @@ bc95d694c39ca173cb6c7f9750887f7cad15b84b6593863eb980f866e7a97d90  reports/launch
 99e687187b99a27461a6f5ecdb256c3dce4eef915e182b36a53e4880c6c1a449  reports/launches/2026-08-25-p3-streaming-feature-authority-100k-gpu.json
 fd0a1d52ad06ff3972aad2c41bb01acf1b5af3b2fc821e6c818f1da705b311e2  reports/launches/2026-08-25-p3-fixed-budget-retrieval-100k-gpu.json
 afe085dc5e4626e8b34b0110ed326aaa0f36205892feaad2330776cde0c26264  reports/launches/2026-08-25-v4-world-checkpoint-retrieval-mainline.json
+a5bfe6591c1614aefdbd417dbb03afea69b16572eb2dd1c1ef466338d317b9aa  reports/launches/2026-08-26-feed-semantic-v3-interest-popular-lr.json
+19604b9b0f408c381df4aa86ebed6554dfc0cc742d6d3eb765f6961455e8193d  reports/launches/2026-08-26-feed-semantic-v3-popular-lr.json
+679e517f1412f083a4be48847d082e4a73dda8a1b4f7e7fdd1075498b9364d5c  reports/launches/2026-08-26-feed-semantic-v3-recent-ann-lr.json
