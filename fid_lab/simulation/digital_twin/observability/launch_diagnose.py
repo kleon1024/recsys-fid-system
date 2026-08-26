@@ -45,24 +45,45 @@ def _catalog_audit(connection: duckdb.DuckDBPyConnection) -> dict[str, float]:
     }
 
 
+def _dedup_rows(connection: duckdb.DuckDBPyConnection) -> list[dict]:
+    return _rows(connection, """
+        WITH repeated AS (
+            SELECT content_kind, user_id, item_id, count(*) AS impressions
+            FROM v4_event_log
+            WHERE event_name = 'impression' AND surface = 0
+            GROUP BY content_kind, user_id, item_id
+            HAVING count(*) > 1
+        )
+        SELECT content_kind,
+               count(*) AS repeated_user_item_pairs,
+               sum(impressions - 1) AS repeated_impressions
+        FROM repeated GROUP BY content_kind ORDER BY content_kind
+    """)
+
+
+def _open_connection(
+    full_flow_dir: Path,
+) -> tuple[duckdb.DuckDBPyConnection, Path]:
+    connection = duckdb.connect(":memory:")
+    dataset_manifest = full_flow_dir / "dataset-manifest.json"
+    if dataset_manifest.is_file():
+        for name, dataset in open_full_flow_dataset(full_flow_dir).items():
+            connection.register(name, dataset.to_table())
+        return connection, dataset_manifest
+    manifest = full_flow_dir / "manifest.json"
+    for name in TABLE_NAMES:
+        connection.register(
+            name, pq.read_table(full_flow_dir / f"{name}.parquet"),
+        )
+    return connection, manifest
+
+
 def diagnose_full_flow(
     full_flow_dir: Path,
     *,
     review: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    connection = duckdb.connect(":memory:")
-    dataset_manifest = full_flow_dir / "dataset-manifest.json"
-    if dataset_manifest.is_file():
-        tables = open_full_flow_dataset(full_flow_dir)
-        identity_path = dataset_manifest
-        for name, dataset in tables.items():
-            connection.register(name, dataset.to_table())
-    else:
-        identity_path = full_flow_dir / "manifest.json"
-        for name in TABLE_NAMES:
-            connection.register(
-                name, pq.read_table(full_flow_dir / f"{name}.parquet"),
-            )
+    connection, identity_path = _open_connection(full_flow_dir)
     install_diagnostics(connection, DIAGNOSTIC_SQL_ASSET)
     request_cells = _rows(connection, """
         SELECT experiment_cell, count(*) AS requests,
@@ -123,6 +144,7 @@ def diagnose_full_flow(
         WHERE candidate.exposed
         GROUP BY request.experiment_cell ORDER BY request.experiment_cell
     """)
+    dedup = _dedup_rows(connection)
     catalog = _catalog_audit(connection)
     findings = []
     if catalog["adjacent_increment_rate"] > 0.20:
@@ -144,6 +166,15 @@ def diagnose_full_flow(
                 "code": f"{route['route_name']}_pool_concentration",
                 "evidence": route["unique_items"],
             })
+    repeated_impressions = sum(
+        int(row["repeated_impressions"]) for row in dedup
+    )
+    if repeated_impressions:
+        findings.append({
+            "severity": "blocker",
+            "code": "feed_item_repeat",
+            "evidence": repeated_impressions,
+        })
     diagnosis = {
         "schema": "launch-diagnosis/v1",
         "full_flow_manifest_sha256": sha256(identity_path.read_bytes()).hexdigest(),
@@ -153,6 +184,7 @@ def diagnose_full_flow(
         "routes": routes,
         "stages": stages,
         "exposure": exposure,
+        "dedup": dedup,
         "findings": findings,
         "diagnostic_views": list(TABLE_NAMES),
     }

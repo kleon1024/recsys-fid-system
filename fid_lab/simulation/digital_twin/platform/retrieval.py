@@ -370,20 +370,14 @@ class MultiRouteRetriever:
                 route_item,
                 feed_exposure_dedup_ticks,
             )
-            video = self.catalog.content_kind[route_item.clamp_min(0)] == int(
-                ContentKind.SHORT_VIDEO
-            )
-            route_valid &= ~(repeated & video)
+            route_valid &= ~repeated
         if feed_session_dedup:
             repeated = exposed_in_current_session(
                 requests,
                 state,
                 route_item,
             )
-            video = self.catalog.content_kind[route_item.clamp_min(0)] == int(
-                ContentKind.SHORT_VIDEO
-            )
-            route_valid &= ~(repeated & video)
+            route_valid &= ~repeated
         inventory_floor = max(
             commerce_min_inventory,
             0.0 if not commerce_require_inventory else 1e-12,

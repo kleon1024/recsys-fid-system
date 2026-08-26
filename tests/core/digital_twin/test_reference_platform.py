@@ -418,13 +418,10 @@ def test_feed_exposure_ledger_blocks_recent_impression_repeats():
         & recent[:, None, :]
     ).any(dim=2)
     feed = trace.surface == 0
-    video = platform.catalog.content_kind[
-        trace.recall_item_id.clamp_min(0)
-    ] == 0
-    assert not (repeated & video)[feed].any()
+    assert not repeated[feed].any()
 
 
-def test_feed_session_dedup_blocks_only_current_session_repeats():
+def test_feed_session_dedup_blocks_all_current_session_repeats():
     world, platform, log, _, _, _ = build_system(users=512, items=3_000)
     baseline = CascadePolicy("session-dedup-baseline", 1, 1, 1)
     kernel = AtomicSimulationKernel(world, platform, log)
@@ -464,10 +461,7 @@ def test_feed_session_dedup_blocks_only_current_session_repeats():
         & current_session[:, None, :]
     ).any(dim=2)
     feed = trace.surface == 0
-    video = platform.catalog.content_kind[
-        trace.recall_item_id.clamp_min(0)
-    ] == 0
-    assert not (repeated & video)[feed].any()
+    assert not repeated[feed].any()
 
 
 def test_installed_learned_scorer_replays_exact_score_and_version():
