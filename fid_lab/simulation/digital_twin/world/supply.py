@@ -160,9 +160,7 @@ class SupplyEcosystem:
             ready = event_time[rows] >= self.state.creator_next_publish[creator_id]
             failure[rows[~ready]] = int(PublishFailureReason.CREATOR_COOLDOWN)
             rows = rows[ready]
-            items = torch.where(
-                available & (self.state.item_creator_id == creator_id)
-            )[0]
+            items = torch.where(available)[0]
             for row in rows:
                 if not len(items):
                     break
@@ -172,6 +170,7 @@ class SupplyEcosystem:
                 selected_item = items[0]
                 assigned[row] = selected_item
                 failure[row] = 0
+                available[selected_item] = False
                 items = items[1:]
         return assigned, failure
 

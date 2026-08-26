@@ -42,7 +42,7 @@ def item_event(supply, event_type, item, request_id):
         user_id=torch.tensor([3]),
         surface=torch.tensor([0]),
         item_id=item_id,
-        creator_id=catalog.creator_id[item_id],
+        creator_id=supply.state.item_creator_id[item_id],
         merchant_id=catalog.merchant_id[item_id],
         advertiser_id=catalog.advertiser_id[item_id],
         content_kind=catalog.content_kind[item_id],
@@ -150,9 +150,10 @@ def test_publish_failure_distinguishes_capacity_and_creator_exit():
     catalog = supply.catalog
     post_kind = catalog.content_kind <= int(ContentKind.CARD)
     creator = int(supply.state.item_creator_id[torch.where(post_kind)[0][0]])
-    supply.state.item_active[
-        post_kind & (supply.state.item_creator_id == creator)
-    ] = True
+    never_published = supply.state.item_publish_time == torch.iinfo(
+        torch.long,
+    ).max
+    supply.state.item_active[post_kind & never_published] = True
     source = torch.where(
         supply.state.item_active
         & (catalog.content_kind == int(ContentKind.POI))
