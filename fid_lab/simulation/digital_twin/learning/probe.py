@@ -36,6 +36,10 @@ def load_probe_batch(
     ))
 
     def scalar(name: str, dtype: torch.dtype) -> torch.Tensor:
+        if name not in table.column_names:
+            if name == "dwell_ms":
+                return torch.zeros(len(table), dtype=dtype)
+            raise ValueError(f"probe sample column is missing: {name}")
         values = table[name].to_numpy(zero_copy_only=False)[order]
         return torch.as_tensor(values.copy(), dtype=dtype)
 
