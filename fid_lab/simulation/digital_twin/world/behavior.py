@@ -180,6 +180,16 @@ def _latent_utility(
     utility += local * 0.34 * local_match
     utility += commerce * 0.30 * affordability
     utility += posting * 0.22 * local_match
+    inspired = (
+        users.creation_inspiration_expiry[row, None] >= event_time
+    ).float()
+    inspiration_match = (
+        catalog.topic_id[item]
+        == users.creation_inspiration_topic[row, None]
+    ).float()
+    utility += posting * inspired * users.creation_inspiration_strength[
+        row, None
+    ] * (0.35 + 0.55 * inspiration_match)
     utility += feed * local_anchor * (
         0.10 + 0.22 * users.response_style[row, 7, None].sigmoid()
     ) * local_match
@@ -260,8 +270,14 @@ def sample_response_tensors(
     detail = click & ~posting & (draws[:, :, 6] < torch.sigmoid(
         -0.15 + 0.85 * utility + 0.3 * quality,
     ))
+    inspiration = torch.where(
+        users.creation_inspiration_expiry[row] >= slate.event_time,
+        users.creation_inspiration_strength[row],
+        torch.zeros_like(users.creation_inspiration_strength[row]),
+    )[:, None]
     create = click & posting & (draws[:, :, 7] < torch.sigmoid(
-        -0.7 + 0.95 * utility + 0.75 * users.habit[row, None],
+        -0.7 + 0.95 * utility + 0.75 * users.habit[row, None]
+        + 0.90 * inspiration,
     ))
     search_success = detail & search & (
         draws[:, :, 15] < torch.sigmoid(
@@ -295,7 +311,9 @@ def sample_response_tensors(
         EventType.CREATE: create,
         EventType.SEARCH_SUCCESS: search_success,
         EventType.PUBLISH: create & (
-            draws[:, :, 16] < torch.sigmoid(-0.45 + 0.85 * utility)
+            draws[:, :, 16] < torch.sigmoid(
+                -0.45 + 0.85 * utility + 0.70 * inspiration,
+            )
         ),
     }
     action[EventType.SLIDE] = examined & feed & ~complete

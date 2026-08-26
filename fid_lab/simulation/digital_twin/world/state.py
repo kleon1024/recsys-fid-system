@@ -85,6 +85,10 @@ class HiddenUserState:
     exposure_positive: torch.Tensor
     exposure_cursor: torch.Tensor
     disappointment: torch.Tensor
+    creation_inspiration_topic: torch.Tensor
+    creation_inspiration_strength: torch.Tensor
+    creation_inspiration_expiry: torch.Tensor
+    creation_source_item: torch.Tensor
     search_followup_topic: torch.Tensor
     search_reformulation_depth: torch.Tensor
     post_search_feed_pending: torch.Tensor
@@ -317,6 +321,12 @@ def _empty_behavior_memory(config, user, device):
         ),
         "exposure_cursor": torch.zeros_like(user),
         "disappointment": torch.zeros(config.users, device=device),
+        "creation_inspiration_topic": torch.full_like(user, -1),
+        "creation_inspiration_strength": torch.zeros(
+            config.users, device=device,
+        ),
+        "creation_inspiration_expiry": torch.full_like(user, -1),
+        "creation_source_item": torch.full_like(user, -1),
         "session_value_ema": torch.zeros(config.users, device=device),
         "last_active_time": torch.full_like(user, -1),
         "last_active_day": torch.full_like(user, -1),

@@ -155,6 +155,13 @@ class UserEcosystemWorld:
         ).remainder(24.0)
         logits = torch.log(state.surface_intent[user].clamp_min(1e-5))
         logits[:, int(Surface.FEED)] += 0.35
+        inspired = state.creation_inspiration_expiry[user] >= logical_time
+        inspiration = torch.where(
+            inspired,
+            state.creation_inspiration_strength[user],
+            torch.zeros_like(state.creation_inspiration_strength[user]),
+        )
+        logits[:, int(Surface.POSTING)] += 1.45 * inspiration
         if self.config.initialization_mode == "equilibrium":
             need = state.need_kind[user]
             strength = state.need_strength[user]
@@ -349,6 +356,7 @@ class UserEcosystemWorld:
         self.delayed.acknowledge(events)
         self._commit_session_open(events)
         self._commit_engagement(events)
+        self._commit_creation_inspiration(events)
         self._commit_exposure_memory(events)
         self._commit_sequence(events)
         self._commit_search_state(events)
@@ -363,6 +371,52 @@ class UserEcosystemWorld:
             self.supply.state,
         )
         quantize_dynamic_state(self.users)
+
+    def _commit_creation_inspiration(self, events: AppEventBatch) -> None:
+        state = self.users
+        user = events.user_id
+        valid_user = user >= 0
+        signal = torch.zeros(len(events.event_id), device=user.device)
+        signal[events.event(EventType.PLAY_3S)] = 0.16
+        signal[events.event(EventType.LIKE)] = 0.32
+        signal[events.event(EventType.LONG_VIEW)] = 0.46
+        signal[events.event(EventType.SHARE)] = 0.72
+        eligible = (
+            valid_user
+            & (events.surface == int(Surface.FEED))
+            & (events.item_id >= 0)
+            & (signal > 0.0)
+        )
+        if eligible.any():
+            row = torch.where(eligible)[0]
+            candidate_user = user[row]
+            candidate_score = signal[row] * (
+                0.65 + 0.35 * self.catalog_truth.quality[events.item_id[row]]
+            )
+            best = torch.zeros_like(state.creation_inspiration_strength)
+            best.scatter_reduce_(
+                0, candidate_user, candidate_score, reduce="amax",
+                include_self=False,
+            )
+            winner = candidate_score == best[candidate_user]
+            winner_row = row[winner]
+            winner_user = user[winner_row]
+            state.creation_inspiration_strength[winner_user] = torch.maximum(
+                0.82 * state.creation_inspiration_strength[winner_user],
+                signal[winner_row],
+            ).clamp_max(1.0)
+            state.creation_inspiration_topic[winner_user] = events.topic_id[
+                winner_row
+            ]
+            state.creation_source_item[winner_user] = events.item_id[winner_row]
+            state.creation_inspiration_expiry[winner_user] = (
+                events.event_time[winner_row] + 2 * self.config.ticks_per_day
+            )
+        published = events.event(EventType.PUBLISH) & valid_user
+        if published.any():
+            published_user = user[published]
+            state.creation_inspiration_strength[published_user] *= 0.20
+            state.creation_source_item[published_user] = -1
 
     def _commit_search_state(self, events: AppEventBatch) -> None:
         state = self.users

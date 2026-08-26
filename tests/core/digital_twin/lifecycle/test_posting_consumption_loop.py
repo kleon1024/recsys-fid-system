@@ -111,3 +111,14 @@ def test_posting_creates_the_exact_post_consumed_by_next_feed():
         world.supply.state.creator_motivation[impressed_creator]
         != motivation_before_feed[impressed_creator]
     ).any()
+    assert (world.users.creation_inspiration_strength > 0.0).any()
+    inspired = world.users.creation_inspiration_strength.clone()
+    _force_surface(world, Surface.POSTING)
+    inspired_posting = kernel.step(2, plan)
+    published_again = inspired_posting.response_events.event(EventType.PUBLISH)
+    assert published_again.any()
+    published_user = inspired_posting.response_events.user_id[published_again]
+    assert (
+        world.users.creation_inspiration_strength[published_user]
+        < inspired[published_user]
+    ).any()

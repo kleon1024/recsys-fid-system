@@ -127,6 +127,7 @@ def quantize_dynamic_state(state) -> None:
         "need_strength",
         "activation_score",
         "session_value_ema",
+        "creation_inspiration_strength",
     ):
         value = getattr(state, name)
         value.mul_(STATE_QUANTIZATION_SCALE).round_().div_(
