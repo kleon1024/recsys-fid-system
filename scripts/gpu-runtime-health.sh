@@ -18,6 +18,13 @@ IFS=',' read -r gpu_free_mib gpu_total_mib gpu_utilization gpu_temperature \
 
 ssh_state="$(systemctl is-active ssh || true)"
 tailscale_state="$(systemctl is-active tailscaled || true)"
+root_writable=true
+write_probe="$(mktemp /tmp/recsys-root-write.XXXXXX 2>/dev/null || true)"
+if [[ -z "${write_probe}" ]]; then
+  root_writable=false
+else
+  rm -f "${write_probe}" || root_writable=false
+fi
 status=pass
 
 if (( available_ram_kib < minimum_ram_kib \
@@ -26,7 +33,8 @@ if (( available_ram_kib < minimum_ram_kib \
       || gpu_free_mib < minimum_gpu_mib )); then
   status=fail
 fi
-if [[ "${ssh_state}" != active || "${tailscale_state}" != active ]]; then
+if [[ "${ssh_state}" != active || "${tailscale_state}" != active \
+      || "${root_writable}" != true ]]; then
   status=fail
 fi
 
@@ -36,7 +44,9 @@ printf '"root_free_kib":%s,"windows_free_kib":%s,' \
   "${root_free_kib}" "${windows_free_kib}"
 printf '"gpu_free_mib":%s,"gpu_total_mib":%s,"gpu_utilization":%s,' \
   "${gpu_free_mib}" "${gpu_total_mib}" "${gpu_utilization}"
-printf '"gpu_temperature_c":%s,"ssh":"%s","tailscale":"%s"}\n' \
-  "${gpu_temperature}" "${ssh_state}" "${tailscale_state}"
+printf '"gpu_temperature_c":%s,"root_writable":%s,' \
+  "${gpu_temperature}" "${root_writable}"
+printf '"ssh":"%s","tailscale":"%s"}\n' \
+  "${ssh_state}" "${tailscale_state}"
 
 [[ "${status}" == pass ]]

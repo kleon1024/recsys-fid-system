@@ -25,6 +25,7 @@ root-cause evidence.
 | Offline and served XGBoost devices differ | Device-fallback warning and latency jump | Serve the accepted CPU path | Use a device-matched input/runtime and gate P99 plus score replay |
 | PS shard unavailable | Missing shard and lookup errors | Use compatible cached snapshot | Replication, checkpoint and staleness policy |
 | Remote GPU job survives its SSH session | Duplicate PIDs and abnormal QPS/memory contention | Kill the stale owned PID and invalidate timing evidence | Job manifest records PID, source hash, output path, and terminal state |
+| WSL root becomes read-only | Write probe fails and `hv_storvsc` / aborted ext4 journal appears in kernel log | Stop the owned job and terminate the distro | Windows keepalive performs a bounded write-probe recovery; resume only content-verified partitions |
 
 ```mermaid
 flowchart LR

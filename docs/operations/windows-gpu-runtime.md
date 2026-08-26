@@ -30,6 +30,12 @@ so an HKCU login startup entry launches the checked-in hidden PowerShell
 keepalive and probes WSL every five minutes. User lingering keeps user-level job
 and health units alive without an SSH session.
 
+The Windows keepalive performs an actual Linux-root write probe, not only
+`/bin/true`. A Hyper-V storage interruption can leave the distro reachable while
+ext4 has aborted its journal and rejects every write. The keepalive terminates
+and starts that distro at most twice consecutively; persistent storage failure
+remains stopped for operator inspection instead of entering a reboot loop.
+
 Install the per-user Windows keepalive from WSL:
 
 ```bash
