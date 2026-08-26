@@ -42,6 +42,7 @@ class LinearRankLaunchConfig:
     replay_partition_fraction: float = 0.20
     run_aa: bool = False
     candidate_fine_checkpoint: str = ""
+    candidate_stay_weight: float | None = None
 
 
 _ROW_TENSORS = (
@@ -323,6 +324,16 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
             weights_only=True,
         )
         artifact = ProbeArtifact.from_checkpoint(checkpoint)
+        if config.candidate_stay_weight is not None:
+            if config.candidate_stay_weight < 0.0:
+                raise ValueError("candidate stay weight must be non-negative")
+            weights = list(artifact.serving_task_weights or ())
+            if not weights or "stay_value" not in artifact.task_names:
+                raise ValueError("candidate artifact has no Stay value target")
+            weights[artifact.task_names.index("stay_value")] = (
+                config.candidate_stay_weight
+            )
+            artifact = replace(artifact, serving_task_weights=tuple(weights))
         offline = _evaluate_resumed_candidate(config, artifact)
     else:
         artifact, offline = _train_candidate(config)
