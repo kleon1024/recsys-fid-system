@@ -34,7 +34,7 @@ BUSINESS_ROUTE_NAMES = (
 
 DEFAULT_BUSINESS_ROUTE_NAMES = tuple(
     route for route in BUSINESS_ROUTE_NAMES
-    if route not in {"ads_auction", "search_semantic"}
+    if route not in {"ads_auction", "search_semantic", "posting_diverse"}
 )
 
 ROUTE_NAMES = (*FEED_ROUTE_NAMES, *BUSINESS_ROUTE_NAMES)
