@@ -227,7 +227,12 @@ def _decision(
     return "promote", "stay improves and negative-feedback guardrail passes"
 
 
-def _policy(name: str, version: int, routes: tuple[str, ...]) -> CascadePolicy:
+def _policy(
+    name: str,
+    version: int,
+    routes: tuple[str, ...],
+    ticks_per_day: int,
+) -> CascadePolicy:
     return CascadePolicy(
         name,
         coarse_version_id=1,
@@ -235,6 +240,8 @@ def _policy(name: str, version: int, routes: tuple[str, ...]) -> CascadePolicy:
         mix_version_id=1,
         recall_version_id=version,
         enabled_routes=routes,
+        feed_exposure_dedup_ticks=30 * ticks_per_day,
+        feed_session_dedup=True,
     )
 
 
@@ -420,6 +427,7 @@ def _run_one_review(
     proposed_routes = (*active_routes, route)
     treatment = _policy(
         f"feed-add-{route}-v{index + 1}", index + 1, proposed_routes,
+        config.ticks_per_day,
     )
     plan = ExperimentPlan.ramped_user_ab(
         active_policy=active,
@@ -521,7 +529,9 @@ def _restore_or_burn_in(
     str,
 ]:
     active_routes = BASE_ROUTES
-    active = _policy("feed-random-v1", 1, active_routes)
+    active = _policy(
+        "feed-random-v1", 1, active_routes, config.ticks_per_day,
+    )
     if resume_checkpoint_id is not None:
         if store is None:
             raise ValueError("resume requires checkpoint_root")
