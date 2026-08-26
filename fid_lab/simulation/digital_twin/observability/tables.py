@@ -152,6 +152,9 @@ def _route_table(snapshot: FullFlowSnapshot) -> pa.Table:
     route_id = _numpy(route[valid])
     names = np.asarray(trace.manifest.route_names, dtype=object)[route_id]
     item = trace.route_item_id[valid]
+    request_time = trace.event_time[:, None, None].expand_as(
+        trace.route_item_id
+    )[valid]
     lifecycle = trace.route_lifecycle_id[valid]
     post = torch.where(
         post_content_mask(catalog.content_kind[item]),
@@ -172,6 +175,14 @@ def _route_table(snapshot: FullFlowSnapshot) -> pa.Table:
         "country": _numpy(state.item_country[item]),
         "region": _numpy(state.item_region[item]),
         "publish_time": _numpy(state.item_publish_time[item]),
+        "content_age": _numpy(
+            (request_time - state.item_publish_time[item]).clamp_min(0)
+        ),
+        "duration_seconds": _numpy(catalog.duration_seconds[item]),
+        "quality_prior": _numpy(catalog.quality_prior[item]),
+        "recent_impressions": _numpy(state.item_recent_impressions[item]),
+        "recent_engagements": _numpy(state.item_recent_engagements[item]),
+        "recent_negatives": _numpy(state.item_recent_negatives[item]),
         "product_id": _numpy(state.item_product_id[item]),
         "poi_id": _numpy(state.item_poi_id[item]),
         "lifecycle_id": _numpy(lifecycle),

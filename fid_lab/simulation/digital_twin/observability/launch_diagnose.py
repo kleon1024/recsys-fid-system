@@ -78,7 +78,14 @@ def diagnose_full_flow(
                    route.country = request.user_country AS DOUBLE
                )) AS country_match_rate,
                avg(per_request.topics) AS topics_per_request,
-               avg(per_request.items) AS items_per_request
+               avg(per_request.items) AS items_per_request,
+               avg(route.content_age) AS mean_age_ticks,
+               avg(route.duration_seconds) AS mean_duration_seconds,
+               avg(route.quality_prior) AS mean_quality_prior,
+               avg(route.recent_engagements /
+                   greatest(route.recent_impressions, 1.0)) AS engagement_rate,
+               avg(route.recent_negatives /
+                   greatest(route.recent_impressions, 1.0)) AS negative_rate
         FROM v4_route_candidate_log AS route
         JOIN v4_request_log AS request USING (request_id)
         JOIN (

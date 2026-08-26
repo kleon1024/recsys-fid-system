@@ -7,9 +7,8 @@ from dataclasses import dataclass
 import torch
 
 from ...catalog import PublicCatalog
-from ...contracts import EventType
 from ..lifecycle import ContentLifecycle
-from ..projection import ITEM_COUNTER_EVENTS, PlatformProjectionState
+from ..projection import PlatformProjectionState
 
 
 MAIN_FEED_LIFECYCLES = (
@@ -38,16 +37,15 @@ def build_feed_route_signals(
     engagement_rate = state.item_recent_engagements / (
         state.item_recent_impressions.clamp_min(1.0)
     )
-    impression = state.item_event_counts[
-        :, ITEM_COUNTER_EVENTS.index(EventType.IMPRESSION)
-    ]
-    negative = state.item_event_counts[
-        :, ITEM_COUNTER_EVENTS.index(EventType.NEGATIVE)
-    ]
     smoothed_engagement = (
         state.item_recent_engagements + 1.0
     ) / (state.item_recent_impressions + 20.0)
-    smoothed_negative = (negative + 1.0) / (impression + 50.0)
+    smoothed_negative = (
+        state.item_recent_negatives + 0.5
+    ) / (state.item_recent_impressions + 20.0)
+    confidence = state.item_recent_impressions / (
+        state.item_recent_impressions + 20.0
+    )
     age = (
         current_time - state.item_publish_time.clamp_max(current_time)
     ).clamp_min(0).float()
@@ -55,9 +53,10 @@ def build_feed_route_signals(
         engagement_rate=engagement_rate,
         random=torch.zeros_like(catalog.quality_prior),
         popular=(
-            torch.log1p(state.item_recent_impressions)
-            * smoothed_engagement
-            - 0.50 * smoothed_negative
+            confidence * (
+                smoothed_engagement - 3.0 * smoothed_negative
+            )
+            + 0.015 * torch.log1p(state.item_recent_impressions)
         ),
         cold_start=(
             0.65 * catalog.quality_prior

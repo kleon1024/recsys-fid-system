@@ -112,6 +112,7 @@ class PlatformProjectionState:
     item_lifecycle: torch.Tensor
     item_recent_impressions: torch.Tensor
     item_recent_engagements: torch.Tensor
+    item_recent_negatives: torch.Tensor
     item_counter_time: torch.Tensor
     item_inventory: torch.Tensor
     item_bid: torch.Tensor
@@ -242,6 +243,7 @@ def build_projection_state(
         item_lifecycle=lifecycle,
         item_recent_impressions=recent_impressions,
         item_recent_engagements=recent_engagements,
+        item_recent_negatives=torch.zeros_like(recent_impressions),
         item_counter_time=torch.tensor(0, device=device, dtype=torch.long),
         item_inventory=catalog.inventory.clone(),
         item_bid=torch.zeros(len(catalog.item_id), device=device),
@@ -307,6 +309,7 @@ class ObservableProjection:
         )
         self.state.item_recent_impressions.mul_(decay)
         self.state.item_recent_engagements.mul_(decay)
+        self.state.item_recent_negatives.mul_(decay)
         self.state.item_counter_time.fill_(logical_time)
 
     def _refresh_lifecycle(self, logical_time: int) -> None:
@@ -427,6 +430,12 @@ class ObservableProjection:
             0,
             events.item_id[engagement],
             torch.ones_like(events.item_id[engagement], dtype=torch.float),
+        )
+        negative = valid_item & events.event(EventType.NEGATIVE)
+        self.state.item_recent_negatives.index_add_(
+            0,
+            events.item_id[negative],
+            torch.ones_like(events.item_id[negative], dtype=torch.float),
         )
         self.state.creator_engagements.index_add_(
             0,

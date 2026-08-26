@@ -129,8 +129,8 @@ def decide_launch(
         return "hold", "non-finite experiment metric"
     if dwell["ci95_high"] < 0.0:
         return "reject", "stay significantly decreases"
-    if dwell["ci95_low"] <= 0.0:
-        return "hold", "stay confidence interval crosses zero"
     if negative["ci95_low"] > 0.0:
         return "reject", "negative feedback significantly increases"
+    if dwell["ci95_low"] <= 0.0:
+        return "hold", "stay confidence interval crosses zero"
     return "promote", "stay improves and negative-feedback guardrail passes"
