@@ -105,8 +105,8 @@ def test_linear_launch_auc_uses_average_rank_for_ties():
 
 
 def test_feed_value_tree_penalizes_negative_feedback():
-    weights = task_value_weights(("long_view", "negative", "payment"))
-    assert weights == (0.45, -0.35, 0.0)
+    weights = task_value_weights(("stay_value", "long_view", "negative", "payment"))
+    assert weights == (0.30, 0.35, -0.35, 0.0)
 
 
 def test_aa_gate_fails_when_primary_or_guardrail_excludes_zero():

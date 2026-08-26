@@ -76,6 +76,10 @@ def test_probe_registry_rejects_mismatch_and_preserves_fallback(tmp_path):
     assert torch.equal(
         batch.label_mask, batch.label_applicable & batch.label_mature,
     )
+    stay = batch.task_names.index("stay_value")
+    feed_exposure = batch.exposed & (batch.surface == 0)
+    assert torch.equal(batch.label_mask[:, stay], feed_exposure)
+    assert torch.all((batch.labels[:, stay] >= 0.0) & (batch.labels[:, stay] <= 1.0))
     no_drift = feature_drift_report(batch, batch)
     assert max(
         row["standardized_mean_shift"]

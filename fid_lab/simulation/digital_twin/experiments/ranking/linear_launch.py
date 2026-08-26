@@ -14,7 +14,7 @@ import torch
 from ...contracts import Surface
 from ...engine import ExperimentPlan
 from ...learning import Lane, PartitionedSampleBus
-from ...learning.probe import load_probe_batch, train_probe
+from ...learning.probe import ProbeArtifact, load_probe_batch, train_probe
 from ...observability.store import replace_json_atomic
 from ...value_tree import FEED_VALUE_TREE_VERSION, task_value_weights
 from ..launch_review import LaunchEvidenceCollector
@@ -37,6 +37,7 @@ class LinearRankLaunchConfig:
     epochs: int = 24
     learning_rate: float = 1e-2
     minimum_triggered_users: int = 2_000
+    control_fine_checkpoint: str = ""
 
 
 def _auc(label: torch.Tensor, score: torch.Tensor) -> float:
@@ -247,10 +248,22 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
         response_authority_mode="formula_oracle",
     )
     _, kernel = _build_kernel(runtime)
+    control_version = 0
+    control_name = "feed-random-popular-formula"
+    if config.control_fine_checkpoint:
+        checkpoint = torch.load(
+            config.control_fine_checkpoint, map_location="cpu", weights_only=True,
+        )
+        kernel.platform.install_fine_scorer(
+            1, ProbeArtifact.from_checkpoint(checkpoint),
+        )
+        control_version = 1
+        control_name = "feed-random-popular-accepted-vt"
     control = _policy(
-        "feed-random-popular-formula", 1, ("random", "popular"),
+        control_name, 1, ("random", "popular"),
         config.ticks_per_day,
     )
+    control = replace(control, fine_version_id=control_version)
     baseline = ExperimentPlan.ramped_user_ab(
         active_policy=control,
         treatment_policy=control,
@@ -290,9 +303,12 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
         }
         replace_json_atomic(output / "report.json", report)
         return report
-    kernel.platform.install_fine_scorer(1, artifact)
+    candidate_version = control_version + 1
+    kernel.platform.install_fine_scorer(candidate_version, artifact)
     treatment = replace(
-        control, name="feed-random-popular-dense-lr-v1", fine_version_id=1,
+        control,
+        name="feed-random-popular-dense-lr-stay-v2",
+        fine_version_id=candidate_version,
     )
     experiment = ExperimentPlan.ramped_user_ab(
         active_policy=control,
@@ -316,8 +332,8 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
         "analysis_start_time": start,
         "analysis_end_time": logical_time - 1,
         "changed_owner": "fine ranker only",
-        "control_fine_version": 0,
-        "treatment_fine_version": 1,
+        "control_fine_version": control_version,
+        "treatment_fine_version": candidate_version,
         "sample": sample,
         "metrics_per_triggered_user": metrics,
         "decision": decision,

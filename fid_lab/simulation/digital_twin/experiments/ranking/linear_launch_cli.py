@@ -16,6 +16,7 @@ def main() -> None:
     parser.add_argument("--items", type=int, default=100_000)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--seed", type=int, default=1_809)
+    parser.add_argument("--control-fine-checkpoint", default="")
     args = parser.parse_args()
     report = run_linear_rank_launch(LinearRankLaunchConfig(
         dataset_root=args.dataset_root,
@@ -24,6 +25,7 @@ def main() -> None:
         items=args.items,
         device=args.device,
         seed=args.seed,
+        control_fine_checkpoint=args.control_fine_checkpoint,
     ))
     summary = {
         "offline": report["offline"],

@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 
-FEED_VALUE_TREE_VERSION = "feed-engagement-v1"
+FEED_VALUE_TREE_VERSION = "feed-engagement-v2-stay"
 
 FEED_TASK_VALUE_WEIGHTS = {
     "play_3s": 0.15,
-    "long_view": 0.45,
+    "stay_value": 0.30,
+    "long_view": 0.35,
     "complete": 0.15,
     "like": 0.08,
     "comment": 0.03,

@@ -53,21 +53,30 @@ def load_probe_batch(
     mature = list_column_to_tensor(
         table["task_label_mature"], torch.bool,
     )[order]
+    surface = scalar("surface", torch.long)
+    exposed = scalar("exposed", torch.bool)
+    dwell_ms = scalar("dwell_ms", torch.float32)
+    feed_exposure = exposed & (surface == 0)
+    stay_value = torch.log1p(dwell_ms.clamp_min(0.0) / 1_000.0) / np.log1p(300.0)
+    labels = torch.cat((labels, stay_value.clamp_max(1.0)[:, None]), dim=1)
+    masks = torch.cat((masks, feed_exposure[:, None]), dim=1)
+    applicable = torch.cat((applicable, feed_exposure[:, None]), dim=1)
+    mature = torch.cat((mature, feed_exposure[:, None]), dim=1)
     return ProbeBatch(
         request_id=scalar("request_id", torch.long),
         user_id=scalar("user_id", torch.long),
-        surface=scalar("surface", torch.long),
+        surface=surface,
         request_time=scalar("request_time", torch.long),
         item_id=scalar("item_id", torch.long),
         position=scalar("position", torch.long),
         route_id=scalar("route_id", torch.long),
         recall_score=scalar("recall_score", torch.float32),
-        exposed=scalar("exposed", torch.bool),
+        exposed=exposed,
         candidate_exposure_probability=scalar(
             "candidate_exposure_probability", torch.float32,
         ),
         randomized_support=scalar("randomized_support", torch.bool),
-        dwell_ms=scalar("dwell_ms", torch.float32),
+        dwell_ms=dwell_ms,
         dense_features=dense,
         sparse_buckets=sparse,
         labels=labels,
@@ -77,7 +86,7 @@ def load_probe_batch(
         joint_logging_probability=scalar(
             "joint_logging_probability", torch.float32,
         ),
-        task_names=tuple(sample["task_names"]),
+        task_names=tuple(sample["task_names"]) + ("stay_value",),
         dense_feature_names=tuple(sample["dense_feature_names"]),
         sparse_feature_names=tuple(sample["sparse_feature_names"]),
         feature_manifest_hash=str(trace["feature_manifest_hash"]),
@@ -293,6 +302,8 @@ def train_probe(
     positive_weight = (
         (observed - positive) / positive.clamp_min(1.0)
     ).clamp(1.0, 50.0)
+    if "stay_value" in batch.task_names:
+        positive_weight[batch.task_names.index("stay_value")] = 1.0
     losses = []
     model.train()
     generator = torch.Generator(device=target).manual_seed(seed + 1)
