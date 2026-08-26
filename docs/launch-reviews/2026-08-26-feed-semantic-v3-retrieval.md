@@ -89,3 +89,32 @@ gate passes.
 - `reports/launches/2026-08-26-feed-semantic-v3-interest-popular-lr.json`
 - `reports/launches/2026-08-26-feed-semantic-v3-recent-ann-lr.json`
 - `reports/launches/2026-08-26-feed-semantic-v3-vt-lr.json`
+
+## Incremental Stay target review
+
+The next ranker inherited all 20 task heads from the accepted value-tree
+checkpoint, initialized only the new bounded `stay_value` target, and trained
+for eight epochs on 1,642,124 newly returned candidate rows plus 371,321
+historical replay rows. Feature-normalization changes were algebraically folded
+into the inherited LR weights so the warm-start scorer preserved the accepted
+model before its first optimizer step. Per-launch A/A was removed; platform
+A/A is a separate periodic experiment-health responsibility.
+
+Against the accepted value-tree ranker, Stay increased 1.64%, Long View 3.99%
+and Negative decreased 3.47%. The Stay confidence interval was
+`[-3.48s, +7.16s]`, while the experiment could only detect a 6.77% relative
+change. The decision is Hold for insufficient power, not Reject. The accepted
+ranker remains active.
+
+## Recent ANN on the accepted ranker
+
+Recent ANN was then tested as the only treatment change on top of Random,
+Popular and the accepted value-tree ranker. It hit 15,720 treatment requests,
+produced 32,858 candidates, and 53.5% of its candidates reached exposure, so
+coverage was not the failure. Stay changed -2.48%, Long View -2.77%, and
+Negative -3.64%; confidence intervals crossed zero. The route is not promoted.
+Its next iteration must improve candidate value or lower the RRF weight rather
+than merely increase retrieval volume.
+
+- `reports/launches/2026-08-26-feed-semantic-v3-stay-vt-lr.json`
+- `reports/launches/2026-08-26-feed-semantic-v3-vt-recent-ann-lr.json`

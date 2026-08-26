@@ -1,0 +1,282 @@
+{
+  "scope": "v4-feed-sequential-retrieval-launch-reviews",
+  "quality_claim": "synthetic-world causal evidence only",
+  "config": {
+    "users": 10000,
+    "items": 100000,
+    "burn_in_steps": 112,
+    "experiment_steps": 64,
+    "control_fraction": 0.5,
+    "treatment_fraction": 0.5,
+    "device": "cuda",
+    "seed": 1809,
+    "auto_promote": true,
+    "ticks_per_day": 16,
+    "minimum_triggered_users": 500,
+    "checkpoint_root": null,
+    "checkpoint_branch": "main",
+    "resume_checkpoint_id": null,
+    "max_reviews": 1,
+    "allow_code_migration": false,
+    "allow_additive_runtime_migration": false,
+    "max_attempts_per_review": 1,
+    "response_authority_mode": "formula_oracle",
+    "response_artifact_dir": null,
+    "response_manifest_sha256": null,
+    "response_member_index": 0,
+    "maximum_support_fallback_rate": 0.03,
+    "event_log_root": null,
+    "launch_bundle_root": "/home/ding/.local/share/recsys-fid-system/fast-lr/semantic-v3-vt-recent-ann-lr-v1",
+    "initial_route": "random",
+    "initial_routes": [
+      "random",
+      "popular"
+    ],
+    "route_ladder": [
+      "recent_ann"
+    ],
+    "aa_steps": 0,
+    "fine_ranker_checkpoint": "/home/ding/.local/share/recsys-fid-system/fast-lr/semantic-v3-vt-lr-v1/fine-ranker.pt"
+  },
+  "aa_review": null,
+  "simulation_profile": {
+    "schema": "simulation-profile/v1",
+    "name": "feed-semantic-v3",
+    "users": 10000,
+    "items": 100000,
+    "ticks_per_day": 16,
+    "topics": 512,
+    "countries": 12,
+    "regions_per_country": 16,
+    "embedding_dim": 64,
+    "history_length": 512,
+    "feed_exposure_history_length": 256,
+    "route_k": 24,
+    "merged_k": 96,
+    "coarse_k": 48,
+    "fine_k": 16,
+    "expose_k": 8,
+    "seed": 1809
+  },
+  "simulation_profile_hash": "6cd45b20318b7500f67343f44b70cdba3fa0d47c0ccbc9344d0c95e61fcd4dbd",
+  "invariant": "one factual slate per request; hidden world consumes only served events; coarse/fine/mix remain fixed",
+  "metric_definition": "clustered intent-to-treat means per triggered user over each experiment window; LT exchange is deliberately not invented",
+  "reviews": [
+    {
+      "launch_review": "R-LR-001",
+      "attempt": 1,
+      "analysis_start_time": 112,
+      "analysis_end_time": 175,
+      "changed_owner": "retrieval routes only",
+      "comparison_kind": "route_addition",
+      "merge_policy": "reciprocal_rank_fusion",
+      "control_routes": [
+        "random",
+        "popular"
+      ],
+      "treatment_routes": [
+        "random",
+        "popular",
+        "recent_ann"
+      ],
+      "control_route_weights": {
+        "random": 0.1,
+        "popular": 1.0
+      },
+      "treatment_route_weights": {
+        "random": 0.1,
+        "popular": 1.0,
+        "recent_ann": 0.2
+      },
+      "added_route": "recent_ann",
+      "requests": {
+        "control": 32762,
+        "treatment": 30677,
+        "default": 8943
+      },
+      "route_request_hits": {
+        "control": 0,
+        "treatment": 15720
+      },
+      "treatment_route_stage_candidates": {
+        "recall": 32858,
+        "coarse": 32858,
+        "fine": 27076,
+        "exposed": 17572
+      },
+      "treatment_route_pass_rate": {
+        "recall": 1.0,
+        "coarse": 1.0,
+        "fine": 0.824030677460588,
+        "exposed": 0.5347860490595897
+      },
+      "sample": {
+        "control_triggered_users": 3206,
+        "treatment_triggered_users": 3108
+      },
+      "traffic_funnel": {
+        "population_users": 10000,
+        "registered_users": 9485,
+        "non_churned_registered_users": 8931,
+        "request_users": 6722,
+        "feed_request_users": 6314,
+        "feed_exposed_users": 6314,
+        "feed_exposed_population_rate": 0.6314,
+        "feed_exposed_registered_rate": 0.6656826568265682
+      },
+      "metrics_per_triggered_user": {
+        "dwell_seconds": {
+          "control_mean": 116.02022552490234,
+          "treatment_mean": 113.14727020263672,
+          "absolute_delta": -2.872955322265625,
+          "relative_delta": -0.024762539193034172,
+          "ci95_low": -8.159879684448242,
+          "ci95_high": 2.413969039916992,
+          "standard_error": 2.6974103450775146,
+          "mde80_absolute": 7.552748680114746,
+          "mde80_relative": 0.06509855389595032
+        },
+        "play_3s": {
+          "control_mean": 17.19432258605957,
+          "treatment_mean": 16.632883071899414,
+          "absolute_delta": -0.5614395141601562,
+          "relative_delta": -0.032652609050273895,
+          "ci95_low": -1.3637380599975586,
+          "ci95_high": 0.24085909128189087,
+          "standard_error": 0.40933600068092346,
+          "mde80_absolute": 1.1461408138275146,
+          "mde80_relative": 0.06665809452533722
+        },
+        "long_view": {
+          "control_mean": 8.1721773147583,
+          "treatment_mean": 7.945624351501465,
+          "absolute_delta": -0.22655296325683594,
+          "relative_delta": -0.027722472324967384,
+          "ci95_low": -0.6242160797119141,
+          "ci95_high": 0.1711101233959198,
+          "standard_error": 0.2028893232345581,
+          "mde80_absolute": 0.5680900812149048,
+          "mde80_relative": 0.06951514631509781
+        },
+        "complete": {
+          "control_mean": 4.34747314453125,
+          "treatment_mean": 4.216537952423096,
+          "absolute_delta": -0.1309351921081543,
+          "relative_delta": -0.030117539688944817,
+          "ci95_low": -0.35449421405792236,
+          "ci95_high": 0.09262384474277496,
+          "standard_error": 0.11406072974205017,
+          "mde80_absolute": 0.3193700313568115,
+          "mde80_relative": 0.07346107065677643
+        },
+        "like": {
+          "control_mean": 2.6126012802124023,
+          "treatment_mean": 2.5994207859039307,
+          "absolute_delta": -0.01318049430847168,
+          "relative_delta": -0.005044969730079174,
+          "ci95_low": -0.15756520628929138,
+          "ci95_high": 0.13120421767234802,
+          "standard_error": 0.07366567105054855,
+          "mde80_absolute": 0.20626387000083923,
+          "mde80_relative": 0.07894961535930634
+        },
+        "comment": {
+          "control_mean": 1.009669303894043,
+          "treatment_mean": 1.0466538667678833,
+          "absolute_delta": 0.03698456287384033,
+          "relative_delta": 0.03663037344813347,
+          "ci95_low": -0.031823739409446716,
+          "ci95_high": 0.10579286515712738,
+          "standard_error": 0.03510627523064613,
+          "mde80_absolute": 0.09829756617546082,
+          "mde80_relative": 0.09735620021820068
+        },
+        "share": {
+          "control_mean": 1.3293824195861816,
+          "treatment_mean": 1.2902188301086426,
+          "absolute_delta": -0.03916358947753906,
+          "relative_delta": -0.029459986835718155,
+          "ci95_low": -0.12282907217741013,
+          "ci95_high": 0.044501893222332,
+          "standard_error": 0.04268646985292435,
+          "mde80_absolute": 0.11952211707830429,
+          "mde80_relative": 0.08990800380706787
+        },
+        "follow": {
+          "control_mean": 1.6718652248382568,
+          "treatment_mean": 1.673423409461975,
+          "absolute_delta": 0.0015581846237182617,
+          "relative_delta": 0.0009320037206634879,
+          "ci95_low": -0.0998101457953453,
+          "ci95_high": 0.10292651504278183,
+          "standard_error": 0.051718536764383316,
+          "mde80_absolute": 0.14481189846992493,
+          "mde80_relative": 0.08661697059869766
+        },
+        "negative": {
+          "control_mean": 1.2928882837295532,
+          "treatment_mean": 1.2458173036575317,
+          "absolute_delta": -0.047070980072021484,
+          "relative_delta": -0.03640761598944664,
+          "ci95_low": -0.11762116849422455,
+          "ci95_high": 0.02347920835018158,
+          "standard_error": 0.0359949916601181,
+          "mde80_absolute": 0.10078597813844681,
+          "mde80_relative": 0.07795412838459015
+        },
+        "session_end": {
+          "control_mean": 1.8178415298461914,
+          "treatment_mean": 1.7438867092132568,
+          "absolute_delta": -0.07395482063293457,
+          "relative_delta": -0.04068276658654213,
+          "ci95_low": -0.13778872787952423,
+          "ci95_high": -0.01012091338634491,
+          "standard_error": 0.032568320631980896,
+          "mde80_absolute": 0.09119129925966263,
+          "mde80_relative": 0.0501646026968956
+        }
+      },
+      "decision": "stop_inconclusive",
+      "reason": "maximum review windows reached without conclusive lift",
+      "promoted_to_next_baseline": false,
+      "launch_bundle": {
+        "path": "/home/ding/.local/share/recsys-fid-system/fast-lr/semantic-v3-vt-recent-ann-lr-v1/R-LR-001-attempt-1",
+        "dataset_content_sha256": "c870b54d77b7e2bf464e08e86bb7548f4484d1e11c9b75ca5c7f39b86f9fc7de",
+        "requests": 72382,
+        "events": 1780607,
+        "findings": [
+          {
+            "severity": "warning",
+            "code": "commerce_intent_pool_concentration",
+            "evidence": 24
+          },
+          {
+            "severity": "warning",
+            "code": "live_now_pool_concentration",
+            "evidence": 24
+          },
+          {
+            "severity": "warning",
+            "code": "coarse_stage_has_no_candidate_pressure",
+            "evidence": 0.9758917963029482
+          },
+          {
+            "severity": "warning",
+            "code": "fine_labels_have_no_randomized_support",
+            "evidence": 579056
+          }
+        ]
+      }
+    }
+  ],
+  "final_active_routes": [
+    "random",
+    "popular"
+  ],
+  "checkpoint_ids": [],
+  "final_checkpoint_id": "",
+  "resumed_from_checkpoint": "",
+  "world_branch": "",
+  "elapsed_seconds": 216.84924258200044,
+  "peak_cuda_gib": 4.424448013305664
+}
