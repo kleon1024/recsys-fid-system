@@ -11,7 +11,7 @@ import torch
 
 from ..catalog import build_public_catalog
 from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
-from ..contracts import Surface
+from ..contracts import EventType, Surface
 from ..engine import AtomicSimulationKernel, ExperimentPlan
 from ..event_log import ObservableEventLog
 from ..platform import (
@@ -326,6 +326,31 @@ def _route_weight_manifest(
     }
 
 
+def _traffic_funnel(kernel, events) -> dict[str, int | float]:
+    users = kernel.world.users
+    surface_entry = events.event(EventType.SURFACE_ENTRY) & (events.user_id >= 0)
+    feed_entry = surface_entry & (events.surface == int(Surface.FEED))
+    feed_impression = events.event(EventType.IMPRESSION) & (
+        events.surface == int(Surface.FEED)
+    )
+    registered = int(users.registered.sum())
+    request_users = int(torch.unique(events.user_id[surface_entry]).numel())
+    feed_users = int(torch.unique(events.user_id[feed_entry]).numel())
+    exposed_users = int(torch.unique(events.user_id[feed_impression]).numel())
+    return {
+        "population_users": len(users.user_id),
+        "registered_users": registered,
+        "non_churned_registered_users": int(
+            (users.registered & ~users.churned).sum()
+        ),
+        "request_users": request_users,
+        "feed_request_users": feed_users,
+        "feed_exposed_users": exposed_users,
+        "feed_exposed_population_rate": exposed_users / max(len(users.user_id), 1),
+        "feed_exposed_registered_rate": exposed_users / max(registered, 1),
+    }
+
+
 def _review_route_weights(active, active_routes, treatment, proposed_routes):
     return {
         "control_route_weights": _route_weight_manifest(active, active_routes),
@@ -373,8 +398,7 @@ def _run_one_review(
     dict[str, object] | None,
     ExperimentPlan,
 ]:
-    replacement = False
-    proposed_routes = (route,) if replacement else (*active_routes, route)
+    proposed_routes = (*active_routes, route)
     treatment = _policy(
         f"feed-add-{route}-v{index + 1}", index + 1, proposed_routes,
         config.ticks_per_day,
@@ -425,11 +449,7 @@ def _run_one_review(
         "analysis_start_time": start_time,
         "analysis_end_time": logical_time - 1,
         "changed_owner": "retrieval routes only",
-        "comparison_kind": (
-            "single_route_replacement"
-            if replacement
-            else "route_addition"
-        ),
+        "comparison_kind": "route_addition",
         "merge_policy": (
             "single_route_passthrough"
             if len(active_routes) == 1 and len(proposed_routes) == 1
@@ -447,6 +467,7 @@ def _run_one_review(
             for stage, count in stage_candidates.items()
         },
         "sample": sample,
+        "traffic_funnel": _traffic_funnel(kernel, events),
         "metrics_per_triggered_user": metrics,
         "decision": decision,
         "reason": reason,
