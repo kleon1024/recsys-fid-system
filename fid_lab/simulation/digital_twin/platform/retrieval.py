@@ -369,13 +369,14 @@ class MultiRouteRetriever:
                 torch.zeros_like(merged_item),
             )
         else:
+            merge_weight = torch.tensor(
+                route_weights or (1.0,) * len(ROUTE_NAMES),
+                device=self.device,
+            )
             merged_item, merged_score, route_bits = reciprocal_rank_fusion(
                 route_item,
-                route_valid,
-                torch.tensor(
-                    route_weights or (1.0,) * len(ROUTE_NAMES),
-                    device=self.device,
-                ),
+                route_valid & (merge_weight > 0.0)[None, :, None],
+                merge_weight,
                 reciprocal_rank_constant=self.config.reciprocal_rank_constant,
                 merged_k=self.config.merged_k,
             )

@@ -136,6 +136,7 @@ def _policy(
     weights = tuple(
         0.10 if name == "random" and len(routes) > 1
         else 1.00 if name == "popular"
+        else 0.00 if name == "cold_start"
         else 0.20 if name in routes
         else 1.00
         for name in ROUTE_NAMES
@@ -151,6 +152,9 @@ def _policy(
         enabled_business_routes=FIXED_NON_FEED_ROUTES,
         feed_exposure_dedup_ticks=30 * ticks_per_day,
         feed_session_dedup=True,
+        cold_start_exploration_rate=(
+            0.05 if "cold_start" in routes else 0.0
+        ),
     )
 
 
