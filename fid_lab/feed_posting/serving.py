@@ -2,15 +2,10 @@
 
 from __future__ import annotations
 
+from ..scoring import request_standardize
+
 
 BLEND_MODES = ("legacy_convex", "standardized_residual")
-
-
-def request_standardize(values):
-    return (values - values.mean(1, keepdim=True)) / (
-        values.std(1, keepdim=True).clamp_min(1e-4)
-    )
-
 
 def blend_score(baseline, learned, blend, mode):
     if mode == "legacy_convex":

@@ -29,7 +29,7 @@ PUBLIC_DOCS = (
     "docs/architecture/poi-posting.md",
     "docs/architecture/model-suite.md",
     "docs/architecture/model-evolution.md",
-    "docs/architecture/multi-surface-digital-twin.md",
+    "docs/architecture/digital-twin-v4-current-audit.md",
     "docs/operations/failure-runbook.md",
     "docs/interview/project-deep-dive.md",
 )

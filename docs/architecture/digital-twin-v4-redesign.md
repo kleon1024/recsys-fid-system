@@ -6,9 +6,9 @@ The ordered implementation status, work register and acceptance gates live in
 the [v4 execution plan](../plans/digital-twin-v4-execution-plan.md). This document
 owns architecture invariants; the execution plan owns delivery status.
 
-本文件是后续模拟器重构的唯一架构依据。当前 `simulation/twin` v2/v3 只保留为
-迁移输入和历史工程证据，不再通过局部修补继续扩展。任何新代码必须指向本文定义的
-边界、事件语义、DAG 节点和验收项。
+本文件是后续模拟器重构的唯一架构依据。旧 `simulation/twin` v2/v3 runtime、CLI
+和专属测试已经删除。仍被 v4 引用的 NeuralSCM 与模型架构只作为明确的共享库或迁移
+输入存在，不得恢复第二套 world、experiment、training 或 registry authority。
 
 ### 当前实现状态（2026-08-24）
 
@@ -641,7 +641,7 @@ scenario/profile，不手写第二套执行顺序。
 
 - 冻结当前 v3 report 为 `INVALID_MODEL_EVIDENCE`，保留 throughput evidence。
 - 为本表每个 P0 建立会在旧实现失败的 regression/mutation test。
-- 不再给 `simulation/twin` 添加新 surface 或新 model。
+- 不得恢复 `simulation/twin` 或另一套 world/experiment/training authority。
 
 Acceptance：P0 inventory 完整；旧行为能被测试实际击穿，而不是只检查命名/import。
 
@@ -723,8 +723,8 @@ rollback、MDE、guardrail 和 interference 均闭合。
 ### Phase 7 — Scale and deletion
 
 - 100K screen、1M standard、10M/高复杂度 GPU evidence。
-- v4 达到 parity 后删除旧 `simulation/twin` executable CLI、旧 direct mutation world、
-  guessed propensity 和 duplicate score-composition helpers。
+- `simulation/twin` executable CLI、direct-mutation world 与专属测试已经删除；
+  guessed propensity 和 duplicate score-composition helpers 按消费者闭包继续删除。
 
 Acceptance：architecture linter、full tests、multi-family heldout、GPU benchmark、manifest/hash、
 public scan 全通过；文档与运行 manifest 同版本。

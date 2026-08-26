@@ -162,6 +162,8 @@ small-world exact parity and standard-world shadow/replay before replacement.
 
 | ID | Control -> treatment | Fixed budget and acceptance |
 |---|---|---|
+| S-AUTH00 | implicit formula fallback -> explicit artifact-bound factual response authority | formula remains test-only; factual quality runs fail closed without the declared NeuralSCM artifact; support fallback is logged and bounded |
+| S-WORLD00 | tick-zero registration surge -> equilibrium population initialization and burn-in | stable hour/weekday/locale/cohort traffic, restart parity and experiment duration powered from steady-state users rather than bootstrap traffic |
 | S-MEM00 | dense 30-day exposure matrix -> rolling segmented Bloom plus 128-item exact session cache | 100K users/1M items; zero session repeats, measured Bloom FPR, bounded RAM/VRAM and exact small-world parity |
 | S-ROUTE00 | eagerly execute every registered route -> execute only enabled routes | byte-identical enabled-route candidates and scores; lower latency/VRAM; disabled routes perform no ANN or business work |
 | S-TRACE00 | fixed-width whole-tick candidate trace -> actual-width trace and projection-free request partitions | exact request/candidate closure and replay hashes; bounded bytes/request |

@@ -103,9 +103,9 @@ kernel. The later v23 NeuralSCM is separately accepted as the v4 Feed response
 authority; retention, creator supply, commercialization and every business head
 remain held or measurement-only. The serving policy is a separate authority.
 
-The [scale and orchestration decision](docs/architecture/simulation-scale-and-orchestration.md)
-keeps a future asset DAG outside the GPU request hot path. The refactored tensor
-runtime has a measured ten-million-user RTX 4090 scale report.
+The [current v4 architecture audit](docs/architecture/digital-twin-v4-current-audit.md)
+keeps a future asset DAG outside the GPU request hot path and records the exact
+runtime, stationarity, state-growth, learning and generative-retrieval gaps.
 
 ## What the checked evidence says
 
@@ -173,21 +173,12 @@ never executable sample plans. See the
 [unified launch protocol](docs/operations/launch-protocol.md) and
 [registered experiment plans](experiments/README.md).
 
-The v2 multi-surface continuous-learning twin is implemented under
-[`fid_lab/simulation/twin`](fid_lab/simulation/twin/). One user and supply state
-spans Feed, Search, Commerce, Live, Local, and Posting, but hidden user truth is
-physically separated from platform-observable state. Short video, photo,
-article, card, live room, product, POI, ad, and creator-prompt items share one
-versioned catalog and cross-request exposure ledger. A pre-period is
-materialized once. Pure control and treatment branches are disposable shadow
-counterfactuals; the factual future is always the shared mixed-A/B world, so
-experiment exposure changes later users, supply, and training samples. See the bilingual
-[multi-surface architecture](docs/architecture/multi-surface-digital-twin.md).
-
-The latest full-chain audit found that executable closure was not sufficient
-for credible model comparison. The causal/event-driven replacement, failure
-inventory, migration DAG, deletion boundary, and acceptance matrix are defined
-in [Recommendation Digital Twin v4](docs/architecture/digital-twin-v4-redesign.md).
+The former v2 `simulation/twin` authority has been deleted. Its hidden/platform
+separation, factual mixed-A/B rule and continuous-learning contracts are owned
+only by `simulation/digital_twin`; model architecture implementations that still
+need migration remain under the existing `feed_loop/scale/model_ladder` library.
+The causal/event-driven architecture, failure inventory and acceptance matrix
+are defined in [Recommendation Digital Twin v4](docs/architecture/digital-twin-v4-redesign.md).
 The current implementation order, audited work register, evidence boundaries and
 phase acceptance gates are maintained in the
 [v4 execution plan](docs/plans/digital-twin-v4-execution-plan.md). Attributable
@@ -791,7 +782,7 @@ Start with the bilingual [system evolution review](docs/architecture/system-evol
 for the complete strategy → algorithm → model → feature → sample → consistency
 → launch-review narrative.
 
-The [execution and scale boundary](docs/architecture/execution-and-scale.md)
+The [current v4 architecture audit](docs/architecture/digital-twin-v4-current-audit.md)
 explains why the tensorized GPU path does not yet depend on Dagster, and names
 the measurable conditions that justify a DAG. The latest [POI Detail Launch
 Review](docs/launch-reviews/2026-08-24-poi-detail-request-ladder.md) closes the

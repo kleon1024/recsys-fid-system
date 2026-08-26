@@ -85,16 +85,16 @@ evidence and are never queried on the serving path.
 | Point-in-time projection | Delivered events, lifecycle and full scoring-input tensors replay across content-bound partitions | Implemented | Learned-ranker launch evidence remains P3-07..09 |
 | Request cascade trace | Full recall universe, scorer inputs, stage admission, factual exposure and randomized support are retained | Implemented | Integrated evaluator remains P3-09 |
 | Feed retrieval mechanics | Random and Popular are factual baselines; lifecycle/Graph plus registry-backed Two-Tower/Multi-interest serving paths exist | Handcrafted ladder complete: only Popular promoted; ANN rejected; five routes stopped inconclusive | Train learned retrieval on the request-native sample authority |
-| Durable evolving world | Content-addressed hidden world, supply, delayed queue, platform, index, event, experiment and learning cursor checkpoint; locked main/shadow/replay branch heads | Correct at small scale; canonical head is initialization only | Compact state and restart parity under the 24 GB budget |
+| Durable evolving world | Content-addressed hidden world, supply, delayed queue, platform, index, event, experiment and learning cursor checkpoint | Restart works, but tick-zero registration creates a non-stationary traffic surge and event history grows with elapsed time | S-WORLD00 equilibrium initialization, bounded event authority and 96-tick restart parity |
 | Layered experiments | Ownership, independent assignment, composed policy and numeric served checkpoint logging | Implemented | Model-learning interference remains P4-05 |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
 | Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
-| Behavior realism | v23 passes external, held-out-family, support, anti-exploitation and 100K semantic-shadow gates | Accepted for Feed | Retention, creator supply and every business response remain masked |
+| Behavior realism | v23 passes external, held-out-family, support, anti-exploitation and 100K semantic-shadow gates | Shadow artifact accepted, but canonical factual runtime still calls the formula response path; retention and most sparse heads lack support | S-AUTH00 explicitly loads the hashed Feed artifact and fails closed; calendar/business authorities remain separate |
 | Full-chain analytical store | Schema v4 persists retained feature/FID and task vectors; DuckDB/ClickHouse agree | Accepted for retained rows | Full scoring-input coverage remains P3-05a |
 | Recall/coarse/fine sample authorities | Recall is source-corrected; coarse covers recall universe; fine covers scorer input with masked factual labels | Implemented | Trainer/evaluator consumption remains P3-07..09 |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
-| Model ladder | Sequential factual runner; F-AA-01 passed the corrected familywise gate | Existing F-R00 submission used a non-random rule ranker and is invalid as the algorithm baseline | Verify the old journal, initialize the corrected versioned runtime, then run A/A→F-R00→Popular |
+| Model ladder | Sequential factual runner and corrected random-order policy exist | Existing F-R00 used a rule ranker; v4 has only an LR infrastructure probe and learned retrieval trainer, while deep rankers remain legacy | Pass S-AUTH00/S-WORLD00 and runtime soak, then run corrected A/A→F-R00→Popular and migrate one model family at a time |
 | Search/Ads/Commerce/Live/Local/Posting | Commerce closes cart→refund; Search closes query→post-search; Ads closes budget→auction→impression/spend→click→Pixel with one-slot load | Commerce, Search and Ads implementations in validation; Local, Posting and Live remain open | C-LR-003, S-LR-001 and A-LR-001 RTX evidence remain pending |
 
 The accepted v23 NeuralSCM is the declared Feed response authority only. Its
@@ -138,7 +138,7 @@ world.
 |---|---|---|
 | Neural user world | `fid_lab/feed_loop/world_model`: slate attention, censored stay mixture, multi-action heads, latent transition, ensemble and paired structural noise | Adapt these components behind the v4 hidden-world boundary. The current unified challenger is `HOLD`, so it cannot silently replace `world/behavior.py`. |
 | External falsification | KuaiRand standard/random adapters, sequence benchmarks, shadow worlds and DR OPE under `world_model/external/kuairand` | Reuse the content-bound pipeline. KuaiRand constrains Feed behavior only; it does not validate Local, supply, retention, ads or LT exchange. |
-| Continuous learning | `fid_lab/simulation/twin/training`: event window, Joiner, LR/W&D/DeepFM/DCNv2/MMoE trainer, registry and mixed-world loop | Port the trainer and registry behind v4 samples/checkpoints, then delete the legacy execution path. Do not create another trainer stack. |
+| Continuous learning | `feed_loop/scale/model_ladder` retains reusable ranker architectures; v4 owns request stream, sample bus and registry | Adapt model architectures behind v4 trainer/artifact interfaces. The duplicate `simulation/twin` runtime and tests are deleted; do not create another trainer stack. |
 | Model implementations | Historical retrieval, coarse, fine, posting and Local ladders | Reuse architecture code only. Every model is retrained on the same v4 factual request dataset, corpus, candidates and budget; historical lifts remain non-authoritative. |
 | Value and LT | `fid_lab/value`, historical mixer and LT reports | Reuse formula/metric code after contract review. Value Tree ranks calibrated primitives; unified LT measures A/B outcomes and is never a supervised target. Historical Local-to-LT conversion is invalid. |
 | Experimentation | v4 atomic assignment/composition plus legacy CUPED launch analysis | Extend one experiment authority with compatibility, power, SRM, interference and shared-training-data checks. Control and treatment never execute sequentially on one factual user world. |
@@ -549,9 +549,9 @@ in another document is informative only; it cannot override this register.
 | P5-05 | `scenarios/posting`: add candidate recommendation and supply feedback | Immutable Feed post/lifecycle accepted; posting ranker absent | P1-P4 | draft/media→POI/product/topic candidates→select→publish→qualified future supply; selection, publish and distribution are separate labels; user- and creator-randomized designs declare interference and creator retention horizon |
 | P5-06 | `scenarios/live` and format adapters: own examination/labels | Surface enums and actions only | P2-P4 | Live availability→enter→stay/interact/gift plus delayed outcomes; photo/card/article own examination, dwell and calibration; only content representation/infrastructure is shared; each format has an independent LR |
 | P6-01 | `validation/profiles`: freeze diagnostic/standard/stress manifests | Standard is fixed at 100K users/1M items/96 ticks/day; first canonical tick failed the scale gate | Runtime v5 | standard profile records requests, candidates, events, state/checkpoint bytes and complexity; partition/resume and content hashes are mandatory |
-| P6-02 | `validation/performance`: bounded Feed runtime rewrite | Partial: Bloom, enabled-route execution, compact trace, projection-free zstd partitions and streaming checkpoint writes landed; event history, request microbatch and checkpoint generations remain | P6-01 | S-EVENT00, S-MICRO00, S-CKPT00 and 96-tick S-LONG00 pass within 24 GB RAM/24 GB VRAM with restart parity |
+| P6-02 | `validation/performance`: bounded Feed runtime rewrite | Partial: Bloom, enabled-route execution, compact trace, projection-free zstd partitions and streaming checkpoint writes landed; authority mismatch, startup surge, event history, request microbatch and checkpoint generations remain | P6-01 | S-AUTH00/S-WORLD00 plus S-EVENT00, S-MICRO00, S-CKPT00 and 96-tick S-LONG00 pass within 24 GB RAM/24 GB VRAM |
 | P6-03 | `validation/failures`: model-quality and recovery campaigns | P0 seeded diagnostics only | P3-P5 | inject index/checkpoint mismatch, bad snapshot, PS shard loss, feature delay, late labels, timeout and overload; registry state, per-head calibration/NE, fallback and business metrics detect impact and return to baseline after rollback |
-| P6-04 | release authority: delete legacy path and publish reproducibly | Missing | all accepted successors | parity manifest proves every retained consumer uses v4; delete superseded `simulation/twin` and duplicate authorities; zero orphan modules, clean public/secret scan, fresh-clone README run and one clean content-bound release commit |
+| P6-04 | release authority: delete legacy path and publish reproducibly | `simulation/twin`, its tests/CLIs and historical duplicate plans deleted; other legacy packages remain only where v4 has an explicit consumer or migration input | all accepted successors | parity manifest proves every retained consumer uses v4; zero orphan modules, clean public/secret scan, fresh-clone README run and one clean content-bound release commit |
 
 ### 9.1.1 Research-to-execution contract for every remaining row
 
@@ -762,11 +762,11 @@ independent experiment owner and documented final-mixer interaction.
 
 ### P6 — Scale, reliability and deletion
 
-Status: critical path. One standard Feed tick and four-tick A/A now pass, so the
-short Random→Popular proof may proceed. Long-horizon, learned-model and P3-P5
-launch work remains frozen until event history, request microbatching and
-checkpoint generations pass the 96-tick soak. This is a targeted runtime/data-
-plane rewrite, not a DGP or model rewrite.
+Status: critical path. The prior four-tick A/A tested assignment mechanics, but
+its traffic came from a tick-zero registration surge and its factual response
+path was formula-based. Algorithm promotion is frozen until explicit response
+authority, equilibrium traffic, bounded event history, request microbatching and
+checkpoint generations pass the 96-tick soak.
 
 - Keep rolling Bloom plus the bounded exact session cache as the sole online
   exposure authority; tune Bloom dimensions only through S-MEM system LRs and
@@ -781,8 +781,8 @@ plane rewrite, not a DGP or model rewrite.
   5,000 unique users; longer windows are reserved for powered retention/LT tests.
 - Test index/model mismatch, PS shard loss, feature delay, late labels, fallback,
   overload and recovery.
-- Delete superseded `simulation/twin` execution paths and duplicate legacy
-  authorities after parity.
+- Continue deleting superseded execution paths only after import-closure and
+  replacement evidence; `simulation/twin` is already removed.
 
 Acceptance: repository gate, multi-family calibration, full-flow SQL fixtures,
 GPU evidence, replay hashes, rollback and public-information scan pass on one

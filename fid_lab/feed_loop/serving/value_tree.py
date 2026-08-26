@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import torch
 
+from ...scoring import request_standardize
 from .contracts import CandidateScoreBundle, CompositeValueTreeConfig
 from ..scale.model_ladder.v4.serving import TensorV4RequestPolicy
 
@@ -12,13 +13,6 @@ LOCAL_ORDER = (
     "anchor_click", "poi_detail", "poi_favorite", "conversion",
     "stay_norm", "negative_feedback",
 )
-
-
-def request_standardize(values):
-    return (values - values.mean(dim=1, keepdim=True)) / (
-        values.std(dim=1, keepdim=True).clamp_min(1e-4)
-    )
-
 
 class CompositeValueTree:
     def __init__(
