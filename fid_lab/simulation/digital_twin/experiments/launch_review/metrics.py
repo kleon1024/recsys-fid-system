@@ -68,6 +68,7 @@ def _estimate(
             for name in (
                 "control_mean", "treatment_mean", "absolute_delta",
                 "relative_delta", "ci95_low", "ci95_high",
+                "standard_error", "mde80_absolute", "mde80_relative",
             )
         }
     control_mean = control.mean()
@@ -77,6 +78,7 @@ def _estimate(
         control.var(unbiased=True) / len(control)
         + treatment.var(unbiased=True) / len(treatment)
     )
+    mde80 = 2.80 * standard_error
     return {
         "control_mean": float(control_mean),
         "treatment_mean": float(treatment_mean),
@@ -84,6 +86,11 @@ def _estimate(
         "relative_delta": float(delta / control_mean.clamp_min(1e-12)),
         "ci95_low": float(delta - 1.96 * standard_error),
         "ci95_high": float(delta + 1.96 * standard_error),
+        "standard_error": float(standard_error),
+        "mde80_absolute": float(mde80),
+        "mde80_relative": float(
+            mde80 / control_mean.abs().clamp_min(1e-12)
+        ),
     }
 
 
