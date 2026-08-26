@@ -284,6 +284,7 @@ class UserEcosystemWorld:
             request_id=request_id,
             user_id=request_user,
             surface=surface,
+            creator_id=state.creator_id[request_user],
             country=country,
             region=region,
             query_id=torch.where(

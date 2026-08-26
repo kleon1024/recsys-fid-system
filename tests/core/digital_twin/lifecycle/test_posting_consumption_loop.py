@@ -78,6 +78,10 @@ def test_posting_creates_the_exact_post_consumed_by_next_feed():
     _force_surface(world, Surface.POSTING)
     world.users.habit.fill_(1.0)
     posting = kernel.step(0, plan)
+    assert torch.equal(
+        platform.projection.state.user_creator_id,
+        world.users.creator_id,
+    )
     published = posting.response_events.event(EventType.PUBLISH)
     assert int(published.sum()) > 0
     posts = posting.response_events.post_id[published]
