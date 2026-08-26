@@ -67,7 +67,11 @@ def _check_runtime_pressure(config: PublishQueueCanaryConfig) -> None:
         )
     if torch.device(config.device).type != "cuda":
         return
-    free, _ = torch.cuda.mem_get_info(torch.device(config.device))
+    device = torch.device(config.device)
+    device_index = (
+        torch.cuda.current_device() if device.index is None else device.index
+    )
+    free, _ = torch.cuda.mem_get_info(device_index)
     free_gib = free / 2**30
     if free_gib < config.minimum_cuda_free_gib:
         raise RuntimeError(
@@ -102,8 +106,12 @@ def run_publish_queue_canary(
     started = time.perf_counter()
     device = torch.device(config.device)
     if device.type == "cuda":
+        device_index = (
+            torch.cuda.current_device()
+            if device.index is None else device.index
+        )
         torch.cuda.set_per_process_memory_fraction(
-            config.cuda_memory_fraction, device,
+            config.cuda_memory_fraction, device_index,
         )
     output = Path(config.output)
     runtime = RetrievalLadderConfig(
