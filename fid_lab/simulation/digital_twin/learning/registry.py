@@ -277,6 +277,7 @@ class PersistentModelRegistry:
         if schema in {
             "v4-lr-infrastructure-probe-v1",
             "v4-lr-infrastructure-probe-v2",
+            "v4-lr-infrastructure-probe-v3",
         }:
             return ProbeArtifact.from_checkpoint(checkpoint)
         if schema == "v4-retrieval-artifact-v1":

@@ -149,6 +149,8 @@ class ProbeArtifact:
     training_report: dict[str, object]
     dense_mean: torch.Tensor
     dense_scale: torch.Tensor
+    serving_task_weights: tuple[float, ...] | None = None
+    task_logit_offsets: torch.Tensor | None = None
 
     @property
     def model_name(self) -> str:
@@ -179,13 +181,27 @@ class ProbeArtifact:
         mean = self.dense_mean.to(parameter.device, parameter.dtype)
         scale = self.dense_scale.to(parameter.device, parameter.dtype)
         logits = self.model((dense - mean) / scale, expanded_surface)
-        task = self.task_names.index("long_view")
-        score = torch.sigmoid(logits[:, task]).reshape(requests, candidates)
+        offset = (
+            torch.zeros(logits.shape[1], device=logits.device)
+            if self.task_logit_offsets is None
+            else self.task_logit_offsets.to(logits.device, logits.dtype)
+        )
+        probability = torch.sigmoid(logits - offset)
+        if self.serving_task_weights is None:
+            score = probability[:, self.task_names.index("long_view")]
+        else:
+            weight = torch.tensor(
+                self.serving_task_weights,
+                device=logits.device,
+                dtype=logits.dtype,
+            )
+            score = (probability * weight).sum(dim=1).clamp_min(0.0)
+        score = score.reshape(requests, candidates)
         return score.to(features.dense.device)
 
     def checkpoint(self) -> dict[str, object]:
         return {
-            "schema": "v4-lr-infrastructure-probe-v2",
+            "schema": "v4-lr-infrastructure-probe-v3",
             "inputs": self.model.inputs,
             "tasks": self.model.tasks,
             "surfaces": self.model.surfaces,
@@ -198,6 +214,11 @@ class ProbeArtifact:
             "training_report": self.training_report,
             "dense_mean": self.dense_mean.detach().cpu().clone(),
             "dense_scale": self.dense_scale.detach().cpu().clone(),
+            "serving_task_weights": self.serving_task_weights,
+            "task_logit_offsets": (
+                None if self.task_logit_offsets is None
+                else self.task_logit_offsets.detach().cpu().clone()
+            ),
         }
 
     @classmethod
@@ -206,6 +227,7 @@ class ProbeArtifact:
         if schema not in {
             "v4-lr-infrastructure-probe-v1",
             "v4-lr-infrastructure-probe-v2",
+            "v4-lr-infrastructure-probe-v3",
         }:
             raise ValueError("probe checkpoint schema is unsupported")
         model = ProbeRanker(
@@ -225,6 +247,16 @@ class ProbeArtifact:
             dict(value["training_report"]),
             dense_mean.detach().cpu().float(),
             dense_scale.detach().cpu().float(),
+            (
+                None
+                if value.get("serving_task_weights") is None
+                else tuple(value["serving_task_weights"])
+            ),
+            (
+                None
+                if value.get("task_logit_offsets") is None
+                else value["task_logit_offsets"].detach().cpu().float()
+            ),
         )
 
 
@@ -311,4 +343,5 @@ def train_probe(
         },
         dense_mean=dense_mean.detach().cpu(),
         dense_scale=dense_scale.detach().cpu(),
+        task_logit_offsets=torch.log(positive_weight).detach().cpu(),
     )

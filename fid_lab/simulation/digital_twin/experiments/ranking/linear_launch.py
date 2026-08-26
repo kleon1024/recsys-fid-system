@@ -16,6 +16,7 @@ from ...engine import ExperimentPlan
 from ...learning import Lane, PartitionedSampleBus
 from ...learning.probe import load_probe_batch, train_probe
 from ...observability.store import replace_json_atomic
+from ...value_tree import FEED_VALUE_TREE_VERSION, task_value_weights
 from ..launch_review import LaunchEvidenceCollector
 from ..launch_review.metrics import analyze_experiment, decide_launch, validate_aa
 from ..retrieval_ladder import RetrievalLadderConfig, _build_kernel, _policy
@@ -129,6 +130,10 @@ def _train_candidate(config: LinearRankLaunchConfig):
         device=config.device,
         seed=config.seed + 71,
     )
+    artifact = replace(
+        artifact,
+        serving_task_weights=task_value_weights(artifact.task_names),
+    )
     task = validation.task_names.index("long_view")
     mask = validation.label_mask[:, task] & (
         validation.surface == int(Surface.FEED)
@@ -170,6 +175,12 @@ def _train_candidate(config: LinearRankLaunchConfig):
             int(validation.request_time.min()), int(validation.request_time.max()),
         ],
         "artifact": artifact.training_report,
+        "value_tree_version": FEED_VALUE_TREE_VERSION,
+        "serving_task_weights": dict(zip(
+            artifact.task_names,
+            artifact.serving_task_weights or (),
+            strict=True,
+        )),
     }
 
 

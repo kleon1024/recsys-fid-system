@@ -22,6 +22,7 @@ from fid_lab.simulation.digital_twin.learning.probe import (
 from fid_lab.simulation.digital_twin.platform.features import (
     DEFAULT_FEATURE_MANIFEST,
 )
+from fid_lab.simulation.digital_twin.value_tree import task_value_weights
 
 
 def test_retrieval_launches_change_one_route_and_preserve_factual_world():
@@ -67,6 +68,8 @@ def test_retrieval_ladder_can_freeze_a_learned_fine_ranker(tmp_path):
         training_report={"purpose": "test"},
         dense_mean=torch.zeros(inputs),
         dense_scale=torch.ones(inputs),
+        serving_task_weights=(0.45,),
+        task_logit_offsets=torch.zeros(1),
     )
     checkpoint = tmp_path / "fine-ranker.pt"
     saved = _save_serving_artifact(artifact, tmp_path)
@@ -99,6 +102,11 @@ def test_linear_launch_auc_uses_average_rank_for_ties():
     request = torch.tensor((1, 1, 2, 2))
     score = torch.tensor((0.0, 1.0, 1.0, 0.0))
     assert _gauc(request, label, score) == 0.5
+
+
+def test_feed_value_tree_penalizes_negative_feedback():
+    weights = task_value_weights(("long_view", "negative", "payment"))
+    assert weights == (0.45, -0.35, 0.0)
 
 
 def test_aa_gate_fails_when_primary_or_guardrail_excludes_zero():
