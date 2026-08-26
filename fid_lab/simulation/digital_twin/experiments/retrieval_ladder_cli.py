@@ -22,7 +22,7 @@ def main() -> None:
     parser.add_argument("--initial-route", default="random")
     parser.add_argument("--initial-routes", default="")
     parser.add_argument("--candidate-route", default="popular")
-    parser.add_argument("--aa-steps", type=int, default=8)
+    parser.add_argument("--aa-steps", type=int, default=0)
     parser.add_argument("--fine-ranker-checkpoint")
     args = parser.parse_args()
     report = run_retrieval_ladder(RetrievalLadderConfig(
