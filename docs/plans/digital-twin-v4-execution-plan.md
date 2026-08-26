@@ -801,6 +801,14 @@ diagnosed reason; ranking delta, sample lineage and resource costs are auditable
 
 Status: research complete; implementation pending on accepted P3 predictions.
 
+The first accepted value-tree ranker exposed a supply/support boundary. A
+four-day 10K-user/100K-item review emitted only 241 new posts, and the accepted
+ranker had zero labeled exposure support for ANN or graph routes. Background
+creator supply is therefore a versioned environment input shared by all cells,
+never a treatment. Dormant item IDs are immutable and capacity exhaustion is
+observable. New routes must first receive bounded exploration support and then
+train a route-aware ranker before ItemCF or Swing can claim an online test.
+
 - Calibrate primitive predictions; add Value Tree, COPP, dedup/diversity, queues
   and cross-business load ownership.
 - Launch daily→hourly→streaming cadence independently.

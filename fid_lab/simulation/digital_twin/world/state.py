@@ -33,6 +33,7 @@ class UserWorldConfig:
     future_signup_fraction: float = 0.08
     arrival_intensity: float = 8.0
     initialization_mode: Literal["equilibrium", "bootstrap"] = "equilibrium"
+    background_posts_per_day: float = 0.0
 
     def __post_init__(self):
         integer_fields = (
@@ -49,6 +50,8 @@ class UserWorldConfig:
             raise ValueError("future signup fraction must be in [0, 1)")
         if self.arrival_intensity <= 0.0:
             raise ValueError("arrival intensity must be positive")
+        if self.background_posts_per_day < 0.0:
+            raise ValueError("background posts per day must be non-negative")
         if self.initialization_mode not in {"equilibrium", "bootstrap"}:
             raise ValueError("world initialization mode is unsupported")
 

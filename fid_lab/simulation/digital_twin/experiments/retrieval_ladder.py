@@ -86,6 +86,7 @@ class RetrievalLadderConfig:
     route_ladder: tuple[str, ...] = ROUTE_LADDER
     aa_steps: int = 0
     fine_ranker_checkpoint: str | None = None
+    background_posts_per_day: float = 0.0
 
     def __post_init__(self):
         if self.ticks_per_day <= 0 or self.minimum_triggered_users <= 1:
@@ -104,6 +105,8 @@ class RetrievalLadderConfig:
             raise ValueError("retrieval route ladder is empty or unknown")
         if self.aa_steps < 0:
             raise ValueError("A/A steps must be non-negative")
+        if self.background_posts_per_day < 0.0:
+            raise ValueError("background posts per day must be non-negative")
         if not self.checkpoint_branch:
             raise ValueError("checkpoint_branch must not be empty")
         if self.response_authority_mode not in {"formula_oracle", "neural_feed"}:
@@ -216,6 +219,7 @@ def _build_kernel(config: RetrievalLadderConfig):
         ticks_per_day=profile.ticks_per_day,
         future_signup_fraction=0.08,
         arrival_intensity=8.0,
+        background_posts_per_day=config.background_posts_per_day,
     ), catalog, response_authority=response_authority)
     platform = ReferenceRecommendationPlatform(
         ReferencePlatformConfig(

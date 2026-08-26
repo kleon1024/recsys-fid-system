@@ -98,6 +98,21 @@ def test_posting_intent_materializes_one_immutable_reserved_post():
     assert supply.state.item_active[events.item_id[published]].all()
 
 
+def test_background_creators_add_deterministic_external_supply():
+    supply = build_supply()
+    supply.background_posts_per_day = 96.0
+    before = supply.state.item_active.clone()
+    events = supply.schedule(0)
+    published = events.event(EventType.PUBLISH)
+    assert int(published.sum()) == 1
+    assert int(events.user_id[published][0]) == -1
+    assert int(events.source_candidate_id[published][0]) == -1
+    item = events.item_id[published]
+    assert not before[item].any()
+    supply.commit(events)
+    assert supply.state.item_active[item].all()
+
+
 def test_orders_ads_and_creator_feedback_change_only_hidden_supply_state():
     supply = build_supply()
     catalog, state = supply.catalog, supply.state

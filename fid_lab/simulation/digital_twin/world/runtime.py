@@ -45,7 +45,7 @@ from .state import (
     build_hidden_users,
     topic_prototypes,
 )
-from .supply import SupplyEcosystem
+from .supply import SUPPLY_DYNAMICS_VERSION, SupplyEcosystem
 from .dynamics.trends import TREND_VERSION, TrendProcess
 
 
@@ -85,7 +85,10 @@ class UserEcosystemWorld:
             catalog.item_id.device,
         )
         self.supply = SupplyEcosystem(
-            catalog, config.environment_seed, config.ticks_per_day,
+            catalog,
+            config.environment_seed,
+            config.ticks_per_day,
+            config.background_posts_per_day,
         )
         self.delayed = DelayedOutcomeQueue(
             catalog, config.environment_seed, config.ticks_per_day,
@@ -106,6 +109,10 @@ class UserEcosystemWorld:
             "lifecycle": LIFECYCLE_DYNAMICS_VERSION,
             "response": self.response_authority.version,
             "response_authority": self.response_authority.manifest(),
+            "supply": {
+                "version": SUPPLY_DYNAMICS_VERSION,
+                "background_posts_per_day": self.config.background_posts_per_day,
+            },
         }
 
     def snapshot(self) -> UserWorldSnapshot:

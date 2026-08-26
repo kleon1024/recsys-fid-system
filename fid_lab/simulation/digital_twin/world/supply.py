@@ -18,6 +18,9 @@ from ..contracts import (
 )
 
 
+SUPPLY_DYNAMICS_VERSION = "background-creator-supply-v1"
+
+
 @dataclass
 class HiddenSupplyState:
     creator_motivation: torch.Tensor
@@ -108,11 +111,16 @@ def build_hidden_supply(
 
 class SupplyEcosystem:
     def __init__(
-        self, catalog: PublicCatalog, environment_seed: int, ticks_per_day: int,
+        self,
+        catalog: PublicCatalog,
+        environment_seed: int,
+        ticks_per_day: int,
+        background_posts_per_day: float = 0.0,
     ):
         self.catalog = catalog
         self.seed = environment_seed
         self.ticks_per_day = ticks_per_day
+        self.background_posts_per_day = background_posts_per_day
         self.state = build_hidden_supply(catalog, environment_seed)
 
     def _request_id(
@@ -296,6 +304,63 @@ class SupplyEcosystem:
             assignment_probability=intents.assignment_probability[failed],
             value=failure_reason[failed].float(),
             ordinal=intents.position[failed],
+        )
+
+    def _background_publish_events(self, logical_time: int) -> AppEventBatch:
+        rate = self.background_posts_per_day / self.ticks_per_day
+        count = int(rate * (logical_time + 1)) - int(rate * logical_time)
+        if count <= 0:
+            return AppEventBatch.empty(self.catalog.item_id.device)
+        state = self.state
+        post_kind = (
+            (self.catalog.content_kind == int(ContentKind.SHORT_VIDEO))
+            | (self.catalog.content_kind == int(ContentKind.PHOTO))
+            | (self.catalog.content_kind == int(ContentKind.ARTICLE))
+            | (self.catalog.content_kind == int(ContentKind.CARD))
+        )
+        creator = state.item_creator_id
+        eligible = (
+            ~state.item_active
+            & post_kind
+            & state.creator_retained[creator]
+            & (state.creator_next_publish[creator] <= logical_time)
+        )
+        available = torch.where(eligible)[0]
+        if not len(available):
+            return AppEventBatch.empty(self.catalog.item_id.device)
+        priority = uniform(available, logical_time, 1_469, self.seed)
+        pool_size = min(len(available), max(count * 4, count))
+        ordered = available[torch.topk(priority, pool_size).indices]
+        selected: list[int] = []
+        selected_creators: set[int] = set()
+        for candidate in ordered.tolist():
+            creator_id = int(creator[candidate])
+            if creator_id in selected_creators:
+                continue
+            selected.append(candidate)
+            selected_creators.add(creator_id)
+            if len(selected) == count:
+                break
+        item = torch.tensor(
+            selected, device=self.catalog.item_id.device, dtype=torch.long,
+        )
+        if not len(item):
+            return AppEventBatch.empty(self.catalog.item_id.device)
+        return make_app_events(
+            EventType.PUBLISH,
+            event_time=logical_time,
+            request_id=self._request_id(logical_time, item),
+            user_id=torch.full_like(item, -1),
+            surface=torch.full_like(item, int(Surface.POSTING)),
+            item_id=item,
+            post_id=item,
+            creator_id=state.item_creator_id[item],
+            product_id=state.item_product_id[item],
+            poi_id=state.item_poi_id[item],
+            content_kind=self.catalog.content_kind[item],
+            topic_id=self.catalog.topic_id[item],
+            country=state.item_country[item],
+            region=state.item_region[item],
         )
 
     def _inventory_events(self, logical_time: int) -> AppEventBatch:
@@ -495,6 +560,7 @@ class SupplyEcosystem:
 
     def schedule(self, logical_time: int) -> AppEventBatch:
         return AppEventBatch.concatenate((
+            self._background_publish_events(logical_time),
             self._inventory_events(logical_time),
             self._budget_events(logical_time),
             self._bid_events(logical_time),
