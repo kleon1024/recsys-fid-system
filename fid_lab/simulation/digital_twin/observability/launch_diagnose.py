@@ -68,7 +68,7 @@ def _open_connection(
     dataset_manifest = full_flow_dir / "dataset-manifest.json"
     if dataset_manifest.is_file():
         for name, dataset in open_full_flow_dataset(full_flow_dir).items():
-            connection.register(name, dataset.to_table())
+            connection.register(name, dataset)
         return connection, dataset_manifest
     manifest = full_flow_dir / "manifest.json"
     for name in TABLE_NAMES:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 
 import torch
@@ -10,18 +10,48 @@ import torch
 from ...engine import TickResult
 from ...observability import FullFlowSnapshot, append_full_flow_partition
 from ...observability.launch_diagnose import write_diagnosis
+from ...observability.store import replace_json_atomic
+from ...samples.contracts import RequestCandidateTrace, RequestContextBatch
 from ...samples.joiner import JoinerConfig, RequestLevelJoiner
+
+
+@dataclass(frozen=True)
+class EvidenceTick:
+    logical_time: int
+    candidate_trace: RequestCandidateTrace
+    request_context: RequestContextBatch
+
+
+def _move_tensor_fields(value, device: torch.device):
+    return type(value)(**{
+        item.name: (
+            getattr(value, item.name).detach().to(device)
+            if isinstance(getattr(value, item.name), torch.Tensor)
+            else getattr(value, item.name)
+        )
+        for item in fields(value)
+    })
 
 
 @dataclass
 class LaunchEvidenceCollector:
     """Bounded lifetime collector; durable ownership moves to Parquet."""
 
-    ticks: list[TickResult] = field(default_factory=list)
+    ticks: list[EvidenceTick] = field(default_factory=list)
 
     def append(self, tick: TickResult) -> None:
         if tick.candidate_trace is not None:
-            self.ticks.append(tick)
+            self.ticks.append(
+                EvidenceTick(
+                    tick.logical_time,
+                    _move_tensor_fields(
+                        tick.candidate_trace, torch.device("cpu"),
+                    ),
+                    _move_tensor_fields(
+                        tick.request_context, torch.device("cpu"),
+                    ),
+                )
+            )
 
     def materialize(
         self,
@@ -33,6 +63,8 @@ class LaunchEvidenceCollector:
     ) -> dict[str, object]:
         if not self.ticks:
             raise ValueError("launch review emitted no candidate evidence")
+        output_dir.mkdir(parents=True, exist_ok=True)
+        replace_json_atomic(output_dir / "ab-result.json", review)
         all_events = kernel.event_log.read(
             ingested_through=int(review["analysis_end_time"]),
         )
@@ -41,12 +73,16 @@ class LaunchEvidenceCollector:
             kernel.platform.catalog,
         )
         full_flow = output_dir / "full-flow-dataset"
+        projection = kernel.platform.projection.snapshot()
+        feature_manifest = kernel.platform.ranker.features.manifest
         requests = 0
         event_count = 0
         manifest = None
-        for tick in self.ticks:
-            trace = tick.candidate_trace
-            context = tick.request_context
+        while self.ticks:
+            tick = self.ticks.pop(0)
+            device = kernel.platform.catalog.item_id.device
+            trace = _move_tensor_fields(tick.candidate_trace, device)
+            context = _move_tensor_fields(tick.request_context, device)
             events = all_events.select(torch.isin(
                 all_events.request_id, trace.request_id,
             ))
@@ -62,14 +98,15 @@ class LaunchEvidenceCollector:
                 context=context,
                 events=events,
                 samples=samples,
-                projection=kernel.platform.projection.snapshot(),
-                feature_manifest=kernel.platform.ranker.features.manifest,
+                projection=projection,
+                feature_manifest=feature_manifest,
             )
             manifest = append_full_flow_partition(
                 snapshot, full_flow, f"event_time={tick.logical_time}",
             )
             requests += len(trace.request_id)
             event_count += len(events.event_id)
+            del samples, snapshot, events, trace, context, tick
         diagnosis = write_diagnosis(full_flow, output_dir, review=review)
         return {
             "path": str(output_dir),

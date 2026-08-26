@@ -21,6 +21,12 @@ if [[ -z "${RECSYS_COMMAND:-}" ]]; then
 fi
 
 mkdir -p "${HOME}/.local/state/recsys/jobs"
+lock_file="${HOME}/.local/state/recsys/jobs/gpu-exclusive.lock"
+exec 9>"${lock_file}"
+if ! flock -n 9; then
+  echo "another bounded recommendation GPU job owns ${lock_file}" >&2
+  exit 75
+fi
 printf '%s start job=%s command=%s\n' \
   "$(date --iso-8601=seconds)" "${job_name}" "${RECSYS_COMMAND}"
 exec bash -lc "${RECSYS_COMMAND}"
