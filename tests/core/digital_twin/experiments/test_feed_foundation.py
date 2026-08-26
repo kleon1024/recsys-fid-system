@@ -36,7 +36,7 @@ def test_feed_dedup_launch_backfills_ledger_and_advances_factual_head(tmp_path):
         users=256,
         items=2_400,
         device="cpu",
-        experiment_steps=1,
+        experiment_steps=16,
         control_fraction=0.4,
         treatment_fraction=0.4,
         minimum_triggered_users=10_000,

@@ -17,9 +17,9 @@ from ..engine import AtomicSimulationKernel, ExperimentPlan
 from ..learning.request_stream import FactualRequestStream
 from ..platform import CascadePolicy
 from ..profile import STANDARD_FEED_PROFILE
+from .launch_review.metrics import analyze_experiment
 from .retrieval_ladder import (
     RetrievalLadderConfig,
-    _analyze,
     _baseline_plan,
     _build_kernel,
     _decision,
@@ -149,6 +149,9 @@ def _run_experiment_window(
     for _ in range(steps):
         before = kernel.platform.projection.snapshot().state
         tick = kernel.step(logical_time, plan)
+        if tick.candidate_trace is None or tick.request_context is None:
+            logical_time += 1
+            continue
         staged_refs.append(stream.stage(
             transaction_id,
             tick,
@@ -179,7 +182,7 @@ def _review_window(
     maximum_attempts: int,
     attempt: int,
 ) -> tuple[dict[str, float], dict[str, int], str, str]:
-    metrics, sample = _analyze([events], users)
+    metrics, sample = analyze_experiment(events, users)
     decision, reason = _decision(metrics, sample, minimum_triggered_users)
     if decision == "hold" and attempt >= maximum_attempts:
         return (

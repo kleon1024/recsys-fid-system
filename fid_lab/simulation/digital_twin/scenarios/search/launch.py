@@ -125,6 +125,9 @@ def _run_staged_window(
     staged_refs = []
     for _ in range(config.experiment_steps):
         tick = kernel.step(logical_time, plan)
+        if tick.candidate_trace is None or tick.request_context is None:
+            logical_time += 1
+            continue
         staged_refs.append(stream.stage(
             transaction_id,
             tick,

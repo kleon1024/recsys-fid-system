@@ -61,6 +61,7 @@ def build_system(users=256, items=2_400):
         regions_per_country=6,
         environment_seed=607,
         future_signup_fraction=0.0,
+        initialization_mode="bootstrap",
     ), catalog)
     platform = ReferenceRecommendationPlatform(
         ReferencePlatformConfig(users=users, history_length=16),

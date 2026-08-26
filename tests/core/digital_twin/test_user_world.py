@@ -6,11 +6,13 @@ import torch
 
 from fid_lab.simulation.digital_twin import (
     AtomicSimulationKernel,
+    ContentKind,
     EventType,
     ExperimentPlan,
     ObservableEventLog,
     ObservableProjection,
     RenderedSlateBatch,
+    Surface,
     UserEcosystemWorld,
     UserWorldConfig,
     build_public_catalog,
@@ -114,6 +116,18 @@ class CatalogPlatform:
             requests.user_id[:, None] * 13 + position * 29 + int(policy),
             len(self.catalog.item_id),
         )
+        commerce = requests.surface == int(Surface.COMMERCE)
+        if commerce.any():
+            products = self.catalog.item_id[
+                self.catalog.content_kind == int(ContentKind.PRODUCT)
+            ]
+            location = torch.remainder(
+                requests.user_id[commerce, None] * 13
+                + position[commerce] * 29
+                + int(policy),
+                len(products),
+            )
+            item[commerce] = products[location]
         return RenderedSlateBatch(
             request_id=requests.request_id,
             user_id=requests.user_id,

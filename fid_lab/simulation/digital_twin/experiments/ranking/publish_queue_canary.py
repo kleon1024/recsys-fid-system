@@ -13,6 +13,7 @@ from ...engine import ExperimentPlan
 from ...learning import ProbeArtifact, SparseLinearArtifact
 from ...observability.store import replace_json_atomic
 from ...profile import STANDARD_FEED_PROFILE
+from ...samples.publish_queue import PublishQueueConfig
 from ..launch_review.metrics import StreamingExperimentMetrics
 from ..retrieval_ladder import RetrievalLadderConfig, _build_kernel, _policy
 from .publish_queue_launch import _publish_decision
@@ -35,6 +36,7 @@ class PublishQueueCanaryConfig:
     cuda_memory_fraction: float = 0.60
     minimum_wsl_available_gib: float = 4.0
     minimum_cuda_free_gib: float = 2.0
+    followup_steps: int | None = None
 
     def __post_init__(self) -> None:
         if self.items * STANDARD_FEED_PROFILE.users < (
@@ -50,6 +52,23 @@ class PublishQueueCanaryConfig:
             self.minimum_cuda_free_gib,
         ) <= 0.0:
             raise ValueError("runtime memory guards must be positive")
+        if (
+            self.followup_steps is not None
+            and self.followup_steps < self.required_followup_steps
+        ):
+            raise ValueError("Publish follow-up cannot be shorter than maturity")
+
+    @property
+    def required_followup_steps(self) -> int:
+        return max(
+            task.window_ticks
+            for task in PublishQueueConfig(self.ticks_per_day).tasks
+            if task.name == "publish_48h"
+        )
+
+    @property
+    def resolved_followup_steps(self) -> int:
+        return self.followup_steps or self.required_followup_steps
 
 
 def _memory_available_gib() -> float:
@@ -89,13 +108,19 @@ def _load_artifact(path: str):
 
 def _run_steps(
     kernel, plan, logical_time, steps, config, accumulator=None,
+    *,
+    cross_request_only: bool = False,
 ) -> int:
     for _ in range(steps):
         _check_runtime_pressure(config)
         tick = kernel.step(logical_time, plan)
         if accumulator is not None:
-            accumulator.append(tick.entry_events)
-            accumulator.append(tick.response_events)
+            accumulator.append(
+                tick.entry_events, cross_request_only=cross_request_only,
+            )
+            accumulator.append(
+                tick.response_events, cross_request_only=cross_request_only,
+            )
         logical_time += 1
     return logical_time
 
@@ -169,12 +194,29 @@ def run_publish_queue_canary(
         kernel, experiment, logical_time, config.experiment_steps,
         config, metrics,
     )
+    exposure_end = logical_time - 1
+    frozen_sample = metrics.freeze_cohort()
+    logical_time = _run_steps(
+        kernel,
+        baseline,
+        logical_time,
+        config.resolved_followup_steps,
+        config,
+        metrics,
+        cross_request_only=True,
+    )
     estimates, sample = metrics.analyze()
+    if sample != frozen_sample:
+        raise AssertionError("Publish follow-up changed the frozen cohort")
     decision, reason = _publish_decision(
         estimates, sample, config.minimum_triggered_users,
     )
+    diagnostics = metrics.diagnostics()
+    if diagnostics["publish_failure_reasons"]["no_capacity"]:
+        decision = "invalid"
+        reason = "Publish supply capacity failed during the review"
     report = {
-        "schema": "feed-publish-queue-expanded-canary/v1",
+        "schema": "feed-publish-queue-expanded-canary/v2",
         "quality_claim": "synthetic factual-world evidence only",
         "config": asdict(config),
         "artifact": {
@@ -182,14 +224,17 @@ def run_publish_queue_canary(
             "source": config.publish_checkpoint,
         },
         "review": {
-            "launch_review": "PUBLISH-LR-002",
+            "launch_review": "PUBLISH-LR-003",
             "analysis_start_time": analysis_start,
-            "analysis_end_time": logical_time - 1,
+            "exposure_end_time": exposure_end,
+            "followup_end_time": logical_time - 1,
+            "followup_steps": config.resolved_followup_steps,
             "changed_owner": "Feed Publish Queue score and mixer weight only",
             "sample": sample,
             "metrics_per_triggered_user": estimates,
             "decision": decision,
             "reason": reason,
+            "diagnostics": diagnostics,
         },
         "event_authority": kernel.event_log.manifest(),
         "elapsed_seconds": time.perf_counter() - started,

@@ -79,6 +79,7 @@ def collect_factual_requests(
     started_time = logical_time
     requests = 0
     events = 0
+    empty_ticks = 0
     transaction_id = (
         f"factual-{started_time}-{branch.head_checkpoint_id[:12]}"
     )
@@ -86,8 +87,20 @@ def collect_factual_requests(
     _sync(device)
     started = time.perf_counter()
     try:
-        for _ in range(config.steps):
+        maximum_scanned_ticks = config.steps * config.ticks_per_day
+        scanned_ticks = 0
+        while len(staged_refs) < config.steps:
+            if scanned_ticks >= maximum_scanned_ticks:
+                raise RuntimeError(
+                    "factual collection could not fill request partitions "
+                    "within the bounded scan window"
+                )
             tick = kernel.step(logical_time, restored.experiment)
+            scanned_ticks += 1
+            logical_time += 1
+            if tick.candidate_trace is None or tick.request_context is None:
+                empty_ticks += 1
+                continue
             ref = stream.stage(
                 transaction_id,
                 tick,
@@ -97,7 +110,6 @@ def collect_factual_requests(
             staged_refs.append(ref)
             requests += ref.requests
             events += ref.events
-            logical_time += 1
         stream.commit_staged(transaction_id, tuple(staged_refs))
         learning_cursors = dict(restored.learning_cursors)
         learning_cursors["factual_request_stream"] = {
@@ -139,6 +151,8 @@ def collect_factual_requests(
         "logical_time": [started_time, logical_time - 1],
         "requests": requests,
         "events": events,
+        "empty_ticks": empty_ticks,
+        "scanned_ticks": scanned_ticks,
         "request_partitions": len(stream.refs(training=True)),
         "request_stream_sha256": stream.stream_sha256,
         "reconciled_orphan_partitions": len(orphaned),

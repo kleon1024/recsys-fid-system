@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import torch
 
 from fid_lab.simulation.digital_twin.experiments.retrieval_ladder import (
@@ -226,7 +228,7 @@ def test_retrieval_ladder_resumes_from_registered_world_head(tmp_path):
         users=128,
         items=1_200,
         burn_in_steps=1,
-        experiment_steps=1,
+        experiment_steps=16,
         control_fraction=0.4,
         treatment_fraction=0.4,
         device="cpu",
@@ -244,7 +246,9 @@ def test_retrieval_ladder_resumes_from_registered_world_head(tmp_path):
             "max_reviews": 1,
         },
     ))
-    assert resumed["reviews"][:1] == first["reviews"]
+    assert json.dumps(
+        resumed["reviews"][:1], sort_keys=True,
+    ) == json.dumps(first["reviews"], sort_keys=True)
     assert len(resumed["reviews"]) == 2
     assert resumed["reviews"][1]["added_route"] == "popular"
     assert resumed["reviews"][1]["attempt"] == 2

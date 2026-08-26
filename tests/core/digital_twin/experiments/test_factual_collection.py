@@ -109,9 +109,8 @@ def test_factual_collection_resumes_main_and_persists_training_requests(tmp_path
     )
     assert shadow["world_checkpoint_id"] == second["final_checkpoint_id"]
     assert shadow["train_partitions"] == [
-        f"event_time={time}" for time in range(*(
-            first["logical_time"][0], second["logical_time"][1],
-        ))
+        f"event_time={ref.logical_time}"
+        for ref in stream.refs(training=True)[:-1]
     ]
     assert set(shadow["models"]) == {"two_tower", "multi_interest"}
     assert all(

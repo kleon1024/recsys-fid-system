@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from hashlib import sha256
 import json
-import os
+import sys
 from time import perf_counter
 
 import numpy as np
@@ -120,14 +120,12 @@ class RetrievalANNIndex:
         device: str | torch.device,
         item_batch_size: int = 65_536,
     ) -> None:
-        import faiss
-
         if artifact.corpus_sha256 != corpus.content_sha256:
             raise ValueError("retrieval index corpus differs from model")
         self.artifact = artifact
         self.corpus = corpus
         self.device = torch.device(device)
-        self.backend = "faiss-flat"
+        self.backend = "torch-flat" if sys.platform == "darwin" else "faiss-flat"
         self.nlist = 1
         self.nprobe = 1
         self.artifact.model.to(self.device).eval()
@@ -143,13 +141,20 @@ class RetrievalANNIndex:
             for start in range(0, len(self.item_ids), item_batch_size):
                 item = self.item_ids[start:start + item_batch_size].to(self.device)
                 states.append(self.artifact.model.encode_items(item).cpu())
-        self.item_embeddings = torch.cat(states).numpy().astype(np.float32)
+        item_embeddings = torch.cat(states)
+        self.item_embeddings = item_embeddings.numpy().astype(np.float32)
+        self._torch_embeddings = item_embeddings if sys.platform == "darwin" else None
         dimension = self.item_embeddings.shape[1]
-        faiss.omp_set_num_threads(int(os.environ.get("FID_RETRIEVAL_FAISS_THREADS", "8")))
-        if len(self.item_ids) < 10_000:
+        if self._torch_embeddings is not None:
+            self.index = None
+        elif len(self.item_ids) < 10_000:
+            import faiss
+
             base = faiss.IndexFlatIP(dimension)
             self.index = faiss.IndexIDMap2(base)
         else:
+            import faiss
+
             self.backend = "faiss-ivf-flat"
             self.nlist = min(2_048, max(64, int(np.sqrt(len(self.item_ids)))))
             self.nprobe = min(32, self.nlist)
@@ -167,18 +172,30 @@ class RetrievalANNIndex:
             )
             self.index.train(self.item_embeddings[location])
             self.index.nprobe = self.nprobe
-        self.index.add_with_ids(
-            self.item_embeddings,
-            self.item_ids.numpy().astype(np.int64),
-        )
+        if self.index is not None:
+            self.index.add_with_ids(
+                self.item_embeddings,
+                self.item_ids.numpy().astype(np.int64),
+            )
         self.build_seconds = perf_counter() - started
 
     def search(self, query: torch.Tensor, top_k: int) -> tuple[torch.Tensor, torch.Tensor]:
         if top_k <= 0:
             raise ValueError("retrieval search Top-K must be positive")
         interests = query.shape[1] if query.ndim == 3 else 1
-        flat = query.reshape(-1, query.shape[-1]).detach().cpu().numpy().astype(np.float32)
-        scores, items = self.index.search(flat, min(top_k, len(self.item_ids)))
+        limit = min(top_k, len(self.item_ids))
+        flat_tensor = query.reshape(-1, query.shape[-1]).detach().cpu()
+        if self._torch_embeddings is not None:
+            score_tensor, location = torch.topk(
+                flat_tensor @ self._torch_embeddings.T,
+                limit,
+                dim=1,
+            )
+            items = self.item_ids[location].numpy()
+            scores = score_tensor.numpy()
+        else:
+            flat = flat_tensor.numpy().astype(np.float32)
+            scores, items = self.index.search(flat, limit)
         if interests == 1:
             return torch.from_numpy(items), torch.from_numpy(scores)
         items = items.reshape(-1, interests, items.shape[1])

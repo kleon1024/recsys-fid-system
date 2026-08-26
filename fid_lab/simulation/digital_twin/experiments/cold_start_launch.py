@@ -18,10 +18,10 @@ from ..engine import ExperimentPlan
 from ..learning.request_stream import FactualRequestStream
 from ..platform import CascadePolicy, ContentLifecycle
 from ..profile import STANDARD_FEED_PROFILE
+from .launch_review.metrics import analyze_experiment
 from .layered import LayeredExperimentPlan, PolicyLayer
 from .retrieval_ladder import (
     RetrievalLadderConfig,
-    _analyze,
     _baseline_plan,
     _build_kernel,
     _sync,
@@ -211,6 +211,9 @@ def _run_window(
     staged_refs = []
     for _ in range(config.experiment_steps):
         tick = kernel.step(logical_time, plan)
+        if tick.candidate_trace is None or tick.request_context is None:
+            logical_time += 1
+            continue
         staged_refs.append(stream.stage(
             transaction_id,
             tick,
@@ -270,8 +273,8 @@ def run_cold_start_launch(
     counts = _merge_counts(counts, cursor.get("counts"))
     events = kernel.event_log.read(ingested_through=logical_time - 1)
     events = events.select(events.ingest_time >= start_time)
-    metrics, sample = _analyze(
-        [events], config.users, control_cell=1, treatment_cell=2,
+    metrics, sample = analyze_experiment(
+        events, config.users, control_cell=1, treatment_cell=2,
     )
     rates = _rates(counts)
     decision, reason = _decision(metrics, sample, counts, rates, config)

@@ -28,6 +28,7 @@ def main() -> None:
     parser.add_argument("--cuda-memory-fraction", type=float, default=0.60)
     parser.add_argument("--minimum-wsl-available-gib", type=float, default=4.0)
     parser.add_argument("--minimum-cuda-free-gib", type=float, default=2.0)
+    parser.add_argument("--followup-steps", type=int)
     args = parser.parse_args()
     report = run_publish_queue_canary(PublishQueueCanaryConfig(
         publish_checkpoint=args.publish_checkpoint,
@@ -45,6 +46,7 @@ def main() -> None:
         cuda_memory_fraction=args.cuda_memory_fraction,
         minimum_wsl_available_gib=args.minimum_wsl_available_gib,
         minimum_cuda_free_gib=args.minimum_cuda_free_gib,
+        followup_steps=args.followup_steps,
     ))
     print(json.dumps(report, indent=2))
 

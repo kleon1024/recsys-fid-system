@@ -408,13 +408,13 @@ def _execute_window(
     logical_time = start
     for _ in range(ticks):
         tick = kernel.step(logical_time, plan)
-        staged.append(stream.stage(
-            transaction_id,
-            tick,
-            kernel.platform.projection.snapshot(),
-            kernel.world.manifest(),
-        ))
         if tick.candidate_trace is not None:
+            staged.append(stream.stage(
+                transaction_id,
+                tick,
+                kernel.platform.projection.snapshot(),
+                kernel.world.manifest(),
+            ))
             events = AppEventBatch.concatenate((
                 tick.entry_events, tick.response_events,
             ))

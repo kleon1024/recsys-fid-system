@@ -89,6 +89,9 @@ def _run_window(runtime, plan, logical_time, config, transaction_id, counts):
     staged_refs = []
     for _ in range(config.experiment_steps):
         tick = runtime.kernel.step(logical_time, plan)
+        if tick.candidate_trace is None or tick.request_context is None:
+            logical_time += 1
+            continue
         staged_refs.append(runtime.stream.stage(
             transaction_id,
             tick,

@@ -7,7 +7,12 @@ from dataclasses import dataclass, field
 
 import torch
 
-from ...contracts import AppEventBatch, EventType, Surface
+from ...contracts import (
+    AppEventBatch,
+    EventType,
+    PublishFailureReason,
+    Surface,
+)
 
 
 COUNT_METRICS = {
@@ -132,6 +137,9 @@ class StreamingExperimentMetrics:
     _cell_by_user: torch.Tensor = field(init=False)
     _metrics: dict[str, torch.Tensor] = field(init=False)
     _cross_request: dict[str, torch.Tensor] = field(init=False)
+    _funnel_counts: dict[str, int] = field(init=False)
+    _publish_failures: dict[str, int] = field(init=False)
+    _cohort_frozen: bool = field(init=False, default=False)
 
     def __post_init__(self) -> None:
         if self.users <= 0:
@@ -153,17 +161,34 @@ class StreamingExperimentMetrics:
             )
             for name in CROSS_REQUEST_METRICS
         }
+        self._funnel_counts = {
+            "posting_entry": 0,
+            "create": 0,
+            "publish": 0,
+            "publish_failed": 0,
+        }
+        self._publish_failures = {
+            reason.name.lower(): 0 for reason in PublishFailureReason
+        }
 
-    def append(self, events: AppEventBatch) -> None:
+    def append(
+        self,
+        events: AppEventBatch,
+        *,
+        cross_request_only: bool = False,
+    ) -> None:
         if not len(events.event_id):
             return
-        impression = events.event(EventType.IMPRESSION) & torch.isin(
-            events.experiment_cell,
-            torch.tensor(
-                [self.control_cell, self.treatment_cell],
-                device=events.event_id.device,
-            ),
-        )
+        self._append_funnel_diagnostics(events)
+        impression = torch.zeros_like(events.event_type, dtype=torch.bool)
+        if not self._cohort_frozen:
+            impression = events.event(EventType.IMPRESSION) & torch.isin(
+                events.experiment_cell,
+                torch.tensor(
+                    [self.control_cell, self.treatment_cell],
+                    device=events.event_id.device,
+                ),
+            )
         if impression.any():
             user = events.user_id[impression]
             incoming = events.experiment_cell[impression]
@@ -171,25 +196,8 @@ class StreamingExperimentMetrics:
             if ((prior >= 0) & (prior != incoming)).any():
                 raise ValueError("user changed experiment cell during A/B")
             self._cell_by_user[user] = incoming
-        for row, cell in enumerate((self.control_cell, self.treatment_cell)):
-            for name, event_type in {
-                "dwell_seconds": EventType.DWELL,
-                **COUNT_METRICS,
-            }.items():
-                selected = (
-                    (events.experiment_cell == cell)
-                    & (events.user_id >= 0)
-                    & events.event(event_type)
-                )
-                if selected.any():
-                    value = (
-                        events.duration_ms[selected].float() / 1_000.0
-                        if event_type is EventType.DWELL
-                        else torch.ones(int(selected.sum()), device=events.event_id.device)
-                    )
-                    self._metrics[name][row].scatter_add_(
-                        0, events.user_id[selected], value,
-                    )
+        if not cross_request_only:
+            self._append_feed_metrics(events)
         for name, (event_type, surface) in CROSS_REQUEST_METRICS.items():
             selected = (
                 (events.user_id >= 0)
@@ -204,6 +212,68 @@ class StreamingExperimentMetrics:
                     torch.ones(int(selected.sum()), device=events.event_id.device),
                 )
 
+    def freeze_cohort(self) -> dict[str, int]:
+        self._cohort_frozen = True
+        return self.sample()
+
+    def sample(self) -> dict[str, int]:
+        return {
+            "control_triggered_users": int(
+                (self._cell_by_user == self.control_cell).sum()
+            ),
+            "treatment_triggered_users": int(
+                (self._cell_by_user == self.treatment_cell).sum()
+            ),
+        }
+
+    def diagnostics(self) -> dict[str, object]:
+        return {
+            "funnel_event_counts": dict(self._funnel_counts),
+            "publish_failure_reasons": dict(self._publish_failures),
+        }
+
+    def _append_feed_metrics(self, events: AppEventBatch) -> None:
+        for row, cell in enumerate((self.control_cell, self.treatment_cell)):
+            for name, event_type in {
+                "dwell_seconds": EventType.DWELL,
+                **COUNT_METRICS,
+            }.items():
+                selected = (
+                    (events.experiment_cell == cell)
+                    & (events.user_id >= 0)
+                    & events.event(event_type)
+                )
+                if not selected.any():
+                    continue
+                value = (
+                    events.duration_ms[selected].float() / 1_000.0
+                    if event_type is EventType.DWELL
+                    else torch.ones(
+                        int(selected.sum()), device=events.event_id.device,
+                    )
+                )
+                self._metrics[name][row].scatter_add_(
+                    0, events.user_id[selected], value,
+                )
+
+    def _append_funnel_diagnostics(self, events: AppEventBatch) -> None:
+        event_specs = {
+            "posting_entry": (EventType.SURFACE_ENTRY, Surface.POSTING),
+            "create": (EventType.CREATE, Surface.POSTING),
+            "publish": (EventType.PUBLISH, Surface.POSTING),
+            "publish_failed": (EventType.PUBLISH_FAILED, Surface.POSTING),
+        }
+        for name, (event_type, surface) in event_specs.items():
+            selected = events.event(event_type) & (
+                events.surface == int(surface)
+            )
+            self._funnel_counts[name] += int(selected.sum())
+        failed = events.event(EventType.PUBLISH_FAILED)
+        for reason in PublishFailureReason:
+            self._publish_failures[reason.name.lower()] += int((
+                failed & (events.value == int(reason))
+            ).sum())
+
     def analyze(self) -> tuple[dict[str, dict[str, float]], dict[str, int]]:
         control = self._cell_by_user == self.control_cell
         treatment = self._cell_by_user == self.treatment_cell
@@ -215,10 +285,7 @@ class StreamingExperimentMetrics:
             name: _estimate(value[control], value[treatment])
             for name, value in self._cross_request.items()
         })
-        return metrics, {
-            "control_triggered_users": int(control.sum()),
-            "treatment_triggered_users": int(treatment.sum()),
-        }
+        return metrics, self.sample()
 
 
 def analyze_experiment(

@@ -192,7 +192,6 @@ def build_recall_negatives(
     sources = torch.cat(source_parts, dim=1)
     expected = torch.cat(expected_parts, dim=1)
     valid = items >= 0
-    sources = torch.where(valid, sources, torch.full_like(sources, -1))
     in_history = (
         (items[:, :, None] == history_item_id[:, None, :])
         & (history_item_id[:, None, :] >= 0)
