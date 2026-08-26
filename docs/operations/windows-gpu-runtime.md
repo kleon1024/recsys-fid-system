@@ -25,9 +25,22 @@ growth ultimately depend on it.
 ## Service recovery
 
 WSL uses systemd. `ssh.service` and `tailscaled.service` are enabled and already
-use `Restart=on-failure`. A Windows scheduled task starts the Ubuntu distribution
-at logon and probes it every five minutes. User lingering keeps user-level job
+use `Restart=on-failure`. The host policy rejects user-created Scheduled Tasks,
+so an HKCU login startup entry launches the checked-in hidden PowerShell
+keepalive and probes WSL every five minutes. User lingering keeps user-level job
 and health units alive without an SSH session.
+
+Install the per-user Windows keepalive from WSL:
+
+```bash
+mkdir -p /mnt/c/Users/1995d/.recsys
+install -m 0644 ops/windows-wsl/wsl-keepalive.ps1 \
+  /mnt/c/Users/1995d/.recsys/wsl-keepalive.ps1
+/mnt/c/Windows/System32/reg.exe add \
+  'HKCU\Software\Microsoft\Windows\CurrentVersion\Run' \
+  /v RecsysWSLKeepalive /t REG_SZ \
+  /d 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File C:\Users\1995d\.recsys\wsl-keepalive.ps1' /f
+```
 
 Install the checked-in units:
 
