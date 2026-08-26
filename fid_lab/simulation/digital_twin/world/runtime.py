@@ -212,7 +212,10 @@ class UserEcosystemWorld:
         )
         eligible = state.registered | registration
         arrival_probability = arrival_hazard(
-            state, logical_time, self.config.ticks_per_day,
+            state,
+            logical_time,
+            self.config.ticks_per_day,
+            self.config.arrival_intensity,
         )
         reactivation = (
             state.churned

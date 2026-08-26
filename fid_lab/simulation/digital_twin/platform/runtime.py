@@ -234,6 +234,7 @@ class ReferenceRecommendationPlatform:
             requests,
             state,
             policy.effective_routes,
+            policy.route_weights,
             feed_exposure_dedup_ticks=policy.feed_exposure_dedup_ticks,
             feed_session_dedup=policy.feed_session_dedup,
             commerce_require_inventory=policy.commerce_require_inventory,

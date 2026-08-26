@@ -24,6 +24,7 @@ def arrival_hazard(
     users: HiddenUserState,
     logical_time: int,
     ticks_per_day: int,
+    intensity: float = 1.0,
 ) -> torch.Tensor:
     local_hour = (
         logical_time * 24.0 / ticks_per_day
@@ -53,6 +54,7 @@ def arrival_hazard(
         * (0.38 + 0.62 * users.habit)
         * (0.48 + 0.52 * users.satisfaction)
         * (1.0 - 0.38 * users.fatigue)
+        * intensity
         / ticks_per_day
     ).clamp(0.0, 0.55)
 

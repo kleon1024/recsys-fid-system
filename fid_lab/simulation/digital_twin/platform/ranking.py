@@ -57,6 +57,7 @@ class CascadePolicy:
     recall_version_id: int = 1
     enabled_routes: tuple[str, ...] = FEED_ROUTE_NAMES
     enabled_business_routes: tuple[str, ...] = DEFAULT_BUSINESS_ROUTE_NAMES
+    route_weights: tuple[float, ...] = ()
     coarse_weights: tuple[float, ...] = (
         0.42, 0.16, 0.08, 0.06, 0.08, 0.07, 0.04, 0.04, 0.05, -0.06,
     )
@@ -81,6 +82,10 @@ class CascadePolicy:
             raise ValueError(f"unknown retrieval routes: {sorted(unknown)}")
         if not self.enabled_routes:
             raise ValueError("at least one retrieval route must be enabled")
+        if self.route_weights and len(self.route_weights) != len(ROUTE_NAMES):
+            raise ValueError("route weights must align with the route registry")
+        if any(weight < 0.0 for weight in self.route_weights):
+            raise ValueError("route weights must be non-negative")
         unknown_business = set(self.enabled_business_routes) - set(
             BUSINESS_ROUTE_NAMES
         )

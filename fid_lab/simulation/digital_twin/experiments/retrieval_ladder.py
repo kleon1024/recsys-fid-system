@@ -42,8 +42,6 @@ FIXED_NON_FEED_ROUTES = tuple(
 )
 ROUTE_LADDER = (
     "popular",
-    "interest_popular",
-    "blended_popular",
     "cold_start",
     "recent_ann",
     "recent_graph",
@@ -132,6 +130,13 @@ def _policy(
     routes: tuple[str, ...],
     ticks_per_day: int,
 ) -> CascadePolicy:
+    weights = tuple(
+        0.10 if name == "random" and len(routes) > 1
+        else 1.00 if name == "popular"
+        else 0.20 if name in routes
+        else 1.00
+        for name in ROUTE_NAMES
+    )
     return CascadePolicy(
         name,
         coarse_version_id=0,
@@ -139,6 +144,7 @@ def _policy(
         mix_version_id=1,
         recall_version_id=version,
         enabled_routes=routes,
+        route_weights=weights,
         enabled_business_routes=FIXED_NON_FEED_ROUTES,
         feed_exposure_dedup_ticks=30 * ticks_per_day,
         feed_session_dedup=True,
@@ -156,16 +162,6 @@ def _baseline_plan(
         treatment_fraction=config.treatment_fraction,
         eligible_surfaces=(int(Surface.FEED),),
     )
-
-
-def _is_single_route_replacement(
-    active_routes: tuple[str, ...], route: str,
-) -> bool:
-    return len(active_routes) == 1 and (active_routes[0], route) in {
-        ("random", "popular"),
-        ("popular", "interest_popular"),
-        ("popular", "blended_popular"),
-    }
 
 
 def _build_kernel(config: RetrievalLadderConfig):
@@ -208,7 +204,8 @@ def _build_kernel(config: RetrievalLadderConfig):
         regions_per_country=profile.regions_per_country,
         environment_seed=config.seed + 2,
         ticks_per_day=profile.ticks_per_day,
-        future_signup_fraction=0.35,
+        future_signup_fraction=0.08,
+        arrival_intensity=4.0,
     ), catalog, response_authority=response_authority)
     platform = ReferenceRecommendationPlatform(
         ReferencePlatformConfig(
@@ -320,6 +317,24 @@ def _pending_review(
     }
 
 
+def _route_weight_manifest(
+    policy: CascadePolicy, routes: tuple[str, ...],
+) -> dict[str, float]:
+    return {
+        name: policy.route_weights[ROUTE_NAMES.index(name)]
+        for name in routes
+    }
+
+
+def _review_route_weights(active, active_routes, treatment, proposed_routes):
+    return {
+        "control_route_weights": _route_weight_manifest(active, active_routes),
+        "treatment_route_weights": _route_weight_manifest(
+            treatment, proposed_routes,
+        ),
+    }
+
+
 def _attach_launch_bundle(
     review: dict[str, object],
     evidence: LaunchEvidenceCollector | None,
@@ -358,7 +373,7 @@ def _run_one_review(
     dict[str, object] | None,
     ExperimentPlan,
 ]:
-    replacement = _is_single_route_replacement(active_routes, route)
+    replacement = False
     proposed_routes = (route,) if replacement else (*active_routes, route)
     treatment = _policy(
         f"feed-add-{route}-v{index + 1}", index + 1, proposed_routes,
@@ -422,6 +437,7 @@ def _run_one_review(
         ),
         "control_routes": list(active_routes),
         "treatment_routes": list(proposed_routes),
+        **_review_route_weights(active, active_routes, treatment, proposed_routes),
         "added_route": route,
         "requests": requests,
         "route_request_hits": route_hits,

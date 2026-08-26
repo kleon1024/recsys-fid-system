@@ -25,8 +25,8 @@ def main() -> None:
     args = parser.parse_args()
     report = run_retrieval_ladder(RetrievalLadderConfig(
         users=args.users, items=args.items, burn_in_steps=args.burn_in_steps,
-        experiment_steps=args.steps, control_fraction=0.45,
-        treatment_fraction=0.45, minimum_triggered_users=500,
+        experiment_steps=args.steps, control_fraction=0.50,
+        treatment_fraction=0.50, minimum_triggered_users=500,
         max_reviews=1, max_attempts_per_review=1,
         response_authority_mode="formula_oracle", ticks_per_day=16,
         launch_bundle_root=str(

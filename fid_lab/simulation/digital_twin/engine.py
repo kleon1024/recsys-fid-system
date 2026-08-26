@@ -124,8 +124,8 @@ class ExperimentPlan:
             raise ValueError("default and analysis cells must have policies")
         if self.default_cell in self.analysis_cells:
             raise ValueError("default traffic cannot enter experiment analysis")
-        if self.assignment_unit not in {"user", "request"}:
-            raise ValueError("assignment unit must be user or request")
+        if self.assignment_unit not in {"user", "request", "creator"}:
+            raise ValueError("assignment unit must be user, request or creator")
 
     @classmethod
     def ramped_user_ab(
@@ -154,10 +154,15 @@ class ExperimentPlan:
             eligible.zero_()
             for surface in self.eligible_surfaces:
                 eligible |= requests.surface == surface
-        entity = (
-            requests.user_id
-            if self.assignment_unit == "user" else requests.request_id
-        )
+        entity = requests.request_id
+        if self.assignment_unit == "user":
+            entity = requests.user_id
+        elif self.assignment_unit == "creator":
+            entity = torch.where(
+                requests.user_creator_id >= 0,
+                requests.user_creator_id,
+                requests.user_id,
+            )
         draw = uniform(entity, 0, 811, self.experiment_seed)
         cell = torch.full_like(requests.user_id, -1)
         control = eligible & (draw < self.control_fraction)

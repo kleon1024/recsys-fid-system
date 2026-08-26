@@ -8,6 +8,7 @@ import torch
 def reciprocal_rank_fusion(
     route_item: torch.Tensor,
     route_valid: torch.Tensor,
+    route_weight: torch.Tensor,
     *,
     reciprocal_rank_constant: float,
     merged_k: int,
@@ -17,6 +18,7 @@ def reciprocal_rank_fusion(
     rank = torch.arange(1, route_k + 1, device=route_item.device).float()
     contribution = 1.0 / (reciprocal_rank_constant + rank)
     score = contribution[None, None].expand(requests, routes, route_k)
+    score = score * route_weight[None, :, None]
     score = score * route_valid.float()
     bit = (
         2 ** torch.arange(routes, device=route_item.device, dtype=torch.long)

@@ -25,6 +25,7 @@ class UserWorldConfig:
     environment_seed: int
     ticks_per_day: int = 96
     future_signup_fraction: float = 0.08
+    arrival_intensity: float = 4.0
     initialization_mode: Literal["equilibrium", "bootstrap"] = "equilibrium"
 
     def __post_init__(self):
@@ -40,6 +41,8 @@ class UserWorldConfig:
             raise ValueError("world dimensions must be positive")
         if not 0.0 <= self.future_signup_fraction < 1.0:
             raise ValueError("future signup fraction must be in [0, 1)")
+        if self.arrival_intensity <= 0.0:
+            raise ValueError("arrival intensity must be positive")
         if self.initialization_mode not in {"equilibrium", "bootstrap"}:
             raise ValueError("world initialization mode is unsupported")
 

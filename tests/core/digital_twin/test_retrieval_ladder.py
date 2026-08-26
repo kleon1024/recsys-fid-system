@@ -26,9 +26,13 @@ def test_retrieval_launches_change_one_route_and_preserve_factual_world():
         control = review["control_routes"]
         treatment = review["treatment_routes"]
         assert control == ["random"]
-        assert treatment == ["popular"]
-        assert review["comparison_kind"] == "single_route_replacement"
-        assert review["merge_policy"] == "single_route_passthrough"
+        assert treatment == ["random", "popular"]
+        assert review["comparison_kind"] == "route_addition"
+        assert review["merge_policy"] == "reciprocal_rank_fusion"
+        assert review["treatment_route_weights"] == {
+            "random": 0.1,
+            "popular": 1.0,
+        }
         assert review["changed_owner"] == "retrieval routes only"
         stages = review["treatment_route_stage_candidates"]
         assert stages["recall"] >= stages["coarse"]
@@ -53,7 +57,7 @@ def test_empty_or_nonfinite_launch_cannot_promote():
     assert result["final_active_routes"] == ["random"]
 
 
-def test_popular_baseline_can_run_aa_then_replace_with_interest_popular():
+def test_popular_baseline_can_run_aa_then_add_a_personalized_route():
     result = run_retrieval_ladder(RetrievalLadderConfig(
         users=512,
         items=12_000,
@@ -73,8 +77,8 @@ def test_popular_baseline_can_run_aa_then_replace_with_interest_popular():
     assert result["aa_review"]["policy_routes"] == ["popular"]
     review = result["reviews"][0]
     assert review["control_routes"] == ["popular"]
-    assert review["treatment_routes"] == ["interest_popular"]
-    assert review["comparison_kind"] == "single_route_replacement"
+    assert review["treatment_routes"] == ["popular", "interest_popular"]
+    assert review["comparison_kind"] == "route_addition"
 
 
 def test_inconclusive_launch_stops_at_preregistered_window_limit():

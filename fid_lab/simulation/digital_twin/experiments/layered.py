@@ -47,8 +47,8 @@ class LayeredExperimentPlan:
     def __post_init__(self):
         if not self.layers:
             raise ValueError("layered experiment plan requires at least one layer")
-        if self.assignment_unit not in {"user", "request"}:
-            raise ValueError("assignment unit must be user or request")
+        if self.assignment_unit not in {"user", "request", "creator"}:
+            raise ValueError("assignment unit must be user, request or creator")
         names = [layer.name for layer in self.layers]
         if len(names) != len(set(names)):
             raise ValueError("policy layer names must be unique")
@@ -63,10 +63,15 @@ class LayeredExperimentPlan:
                 owners[parameter] = layer.name
 
     def assign(self, requests: PlatformRequestBatch) -> ExperimentAssignment:
-        entity = (
-            requests.user_id
-            if self.assignment_unit == "user" else requests.request_id
-        )
+        entity = requests.request_id
+        if self.assignment_unit == "user":
+            entity = requests.user_id
+        elif self.assignment_unit == "creator":
+            entity = torch.where(
+                requests.user_creator_id >= 0,
+                requests.user_creator_id,
+                requests.user_id,
+            )
         cells = []
         probabilities = []
         for layer in self.layers:

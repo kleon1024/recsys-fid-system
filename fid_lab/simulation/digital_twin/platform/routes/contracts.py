@@ -23,6 +23,7 @@ FEED_ROUTE_NAMES = (
 BUSINESS_ROUTE_NAMES = (
     "local_geo",
     "posting_context",
+    "posting_diverse",
     "commerce_intent",
     "live_now",
     "ads_auction",

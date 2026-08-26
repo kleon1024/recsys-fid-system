@@ -9,6 +9,7 @@ from ...randomness.counter import uniform
 from .retrieval_merge import reciprocal_rank_fusion
 from .routes.exposure import exposed_in_current_session, recently_exposed
 from .routes.popular import interest_popular_candidates, popular_candidates
+from .routes.posting import posting_route_scores
 from .routes.commerce import inventory_eligible
 from .indexes.ann import FaissItemIndex
 from .indexes.contracts import LearnedRetriever, RetrievalConfig
@@ -286,6 +287,7 @@ class MultiRouteRetriever:
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
         enabled_routes: tuple[str, ...] = ROUTE_NAMES,
+        route_weights: tuple[float, ...] = (),
         *,
         feed_exposure_dedup_ticks: int = 0,
         feed_session_dedup: bool = False,
@@ -297,6 +299,8 @@ class MultiRouteRetriever:
             raise ValueError(f"unknown retrieval routes: {sorted(unknown)}")
         if not enabled_routes:
             raise ValueError("at least one retrieval route must be enabled")
+        if route_weights and len(route_weights) != len(ROUTE_NAMES):
+            raise ValueError("route weights must align with the route registry")
         indexed_routes = {"recent_ann", "recent_graph", "search_semantic", "retarget"}
         if set(enabled_routes) & (indexed_routes | set(BUSINESS_ROUTE_NAMES)):
             self.refresh(state, int(requests.event_time.min()))
@@ -368,6 +372,10 @@ class MultiRouteRetriever:
             merged_item, merged_score, route_bits = reciprocal_rank_fusion(
                 route_item,
                 route_valid,
+                torch.tensor(
+                    route_weights or (1.0,) * len(ROUTE_NAMES),
+                    device=self.device,
+                ),
                 reciprocal_rank_constant=self.config.reciprocal_rank_constant,
                 merged_k=self.config.merged_k,
             )
@@ -589,17 +597,8 @@ class MultiRouteRetriever:
             local_region,
             state.item_region,
         )
-        posting_region = torch.where(
-            requests.surface == int(Surface.POSTING),
-            region,
-            torch.full_like(region, -1),
-        )
-        posting_item, posting_score = self._top_by_group(
-            requests,
-            state,
-            self.catalog.quality_prior + 0.15 * torch.log1p(impression),
-            posting_region,
-            state.item_region,
+        posting, posting_diverse = self._posting_candidates(
+            requests, state, impression, region,
         )
         commerce_eligible = self.catalog.content_kind != int(ContentKind.AD)
         if commerce_require_inventory or commerce_min_inventory > 0.0:
@@ -666,7 +665,8 @@ class MultiRouteRetriever:
         )
         return {
             "local_geo": (local_item, local_score),
-            "posting_context": (posting_item, posting_score),
+            "posting_context": posting,
+            "posting_diverse": posting_diverse,
             "commerce_intent": (commerce_item, commerce_score),
             "live_now": (live_item, live_score),
             "ads_auction": (ads_item, ads_score),
@@ -674,6 +674,24 @@ class MultiRouteRetriever:
             "search_semantic": (semantic_item, semantic_score),
             "retarget": (retarget_item, retarget_score),
         }
+
+    def _posting_candidates(self, requests, state, impression, region):
+        posting_region = torch.where(
+            requests.surface == int(Surface.POSTING),
+            region,
+            torch.full_like(region, -1),
+        )
+        baseline, diverse = posting_route_scores(
+            self.catalog, state, impression,
+        )
+        return (
+            self._top_by_group(
+                requests, state, baseline, posting_region, state.item_region,
+            ),
+            self._top_by_group(
+                requests, state, diverse, posting_region, state.item_region,
+            ),
+        )
 
     def _ads_route_candidates(self, requests, state):
         ad = self.catalog.content_kind == int(ContentKind.AD)

@@ -125,6 +125,7 @@ class SupplyEcosystem:
     def _allocate_posts(
         self,
         creator: torch.Tensor,
+        source_candidate: torch.Tensor,
         event_id: torch.Tensor,
         event_time: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor]:
@@ -151,9 +152,16 @@ class SupplyEcosystem:
             items = torch.where(
                 available & (self.state.item_creator_id == creator_id)
             )[0]
-            count = min(len(rows), len(items))
-            assigned[rows[:count]] = items[:count]
-            failure[rows[:count]] = 0
+            for row in rows:
+                if not len(items):
+                    break
+                source_topic = self.catalog.topic_id[source_candidate[row]]
+                topic_match = self.catalog.topic_id[items] == source_topic
+                items = torch.cat((items[topic_match], items[~topic_match]))
+                selected_item = items[0]
+                assigned[row] = selected_item
+                failure[row] = 0
+                items = items[1:]
         return assigned, failure
 
     def materialize_user_posts(self, events: AppEventBatch) -> AppEventBatch:
@@ -167,7 +175,10 @@ class SupplyEcosystem:
             return events
         intents = events.select(intent)
         post, failure_reason = self._allocate_posts(
-            intents.creator_id, intents.event_id, intents.event_time,
+            intents.creator_id,
+            intents.source_candidate_id,
+            intents.event_id,
+            intents.event_time,
         )
         fulfilled = post >= 0
         published = self._published_events(intents, post, fulfilled)
