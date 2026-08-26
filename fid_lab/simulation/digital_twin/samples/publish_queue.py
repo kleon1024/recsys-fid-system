@@ -49,6 +49,37 @@ class PublishQueueJoiner:
     def __init__(self, config: PublishQueueConfig):
         self.config = config
 
+    @staticmethod
+    def _source_index(events: AppEventBatch):
+        source_strength = {
+            event_type: strength
+            for strength, event_type in enumerate(PUBLISH_QUEUE_SOURCE_TYPES)
+        }
+        source = (
+            (events.surface == int(Surface.FEED))
+            & (events.user_id >= 0)
+            & (events.item_id >= 0)
+            & torch.isin(events.event_type, torch.tensor(
+                [int(event_type) for event_type in PUBLISH_QUEUE_SOURCE_TYPES],
+                device=events.event_type.device,
+            ))
+        )
+        by_user: dict[int, list[tuple[int, int, int, int, int]]] = {}
+        for row in torch.where(source)[0].detach().cpu().tolist():
+            event_type = EventType(int(events.event_type[row]))
+            by_user.setdefault(int(events.user_id[row]), []).append((
+                int(events.event_time[row]),
+                source_strength[event_type],
+                int(events.event_id[row]),
+                int(events.request_id[row]),
+                int(events.item_id[row]),
+            ))
+        times = {}
+        for outcome_user, values in by_user.items():
+            values.sort()
+            times[outcome_user] = [value[0] for value in values]
+        return by_user, times
+
     def materialize(
         self,
         fine: FineRankExampleBatch,
@@ -87,33 +118,7 @@ class PublishQueueJoiner:
                 int(item[row, column]),
             )] = (row, column)
 
-        source_strength = {
-            event_type: strength
-            for strength, event_type in enumerate(PUBLISH_QUEUE_SOURCE_TYPES)
-        }
-        source = (
-            (events.surface == int(Surface.FEED))
-            & (events.user_id >= 0)
-            & (events.item_id >= 0)
-            & torch.isin(events.event_type, torch.tensor(
-                [int(event_type) for event_type in PUBLISH_QUEUE_SOURCE_TYPES],
-                device=events.event_type.device,
-            ))
-        )
-        source_by_user: dict[int, list[tuple[int, int, int, int, int]]] = {}
-        for row in torch.where(source)[0].detach().cpu().tolist():
-            event_type = EventType(int(events.event_type[row]))
-            source_by_user.setdefault(int(events.user_id[row]), []).append((
-                int(events.event_time[row]),
-                source_strength[event_type],
-                int(events.event_id[row]),
-                int(events.request_id[row]),
-                int(events.item_id[row]),
-            ))
-        source_times = {}
-        for outcome_user, values in source_by_user.items():
-            values.sort()
-            source_times[outcome_user] = [value[0] for value in values]
+        source_by_user, source_times = self._source_index(events)
 
         for task_index, task in enumerate(tasks):
             outcome = (

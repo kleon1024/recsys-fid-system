@@ -18,18 +18,21 @@ from ...engine import ExperimentPlan
 from ...learning import (
     Lane,
     PartitionedSampleBus,
-    PUBLISH_QUEUE_VALUE_VERSION,
     ProbeArtifact,
     SparseLinearArtifact,
+    train_probe,
+)
+from ...learning.publish_queue import (
+    PUBLISH_QUEUE_VALUE_VERSION,
     load_publish_queue_batch,
     publish_queue_task_weights,
-    train_probe,
-    train_sparse_linear,
 )
+from ...learning.sparse_linear import train_sparse_linear
 from ...observability.store import replace_json_atomic
 from ..launch_review import LaunchEvidenceCollector
 from ..launch_review.metrics import analyze_experiment
 from ..retrieval_ladder import RetrievalLadderConfig, _build_kernel, _policy
+from .window import run_window
 
 
 @dataclass(frozen=True)
@@ -167,17 +170,6 @@ def _save_artifact(artifact, output: Path) -> dict[str, str]:
     return {"path": str(target), "sha256": digest, "model": artifact.model_name}
 
 
-def _run_window(kernel, plan, logical_time, steps, evidence=None):
-    start = logical_time
-    for _ in range(steps):
-        tick = kernel.step(logical_time, plan)
-        if evidence is not None:
-            evidence.append(tick)
-        logical_time += 1
-    events = kernel.event_log.read(ingested_through=logical_time - 1)
-    return logical_time, events.select(events.ingest_time >= start)
-
-
 def _publish_decision(metrics, sample, minimum_users):
     if min(sample.values()) < minimum_users:
         return "hold", "triggered-user sample is below the gate"
@@ -234,7 +226,7 @@ def run_publish_queue_launch(
         treatment_fraction=0.5,
         eligible_surfaces=(int(Surface.FEED),),
     )
-    logical_time, _ = _run_window(kernel, baseline, 0, config.burn_in_steps)
+    logical_time, _ = run_window(kernel, baseline, 0, config.burn_in_steps)
     experiment = ExperimentPlan.ramped_user_ab(
         active_policy=control,
         treatment_policy=treatment,
@@ -245,7 +237,7 @@ def run_publish_queue_launch(
     )
     evidence = LaunchEvidenceCollector()
     analysis_start = logical_time
-    logical_time, events = _run_window(
+    logical_time, events = run_window(
         kernel, experiment, logical_time, config.experiment_steps, evidence,
     )
     metrics, sample = analyze_experiment(events, config.users)

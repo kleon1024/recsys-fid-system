@@ -20,6 +20,7 @@ from ...value_tree import FEED_VALUE_TREE_VERSION, task_value_weights
 from ..launch_review import LaunchEvidenceCollector
 from ..launch_review.metrics import analyze_experiment, decide_launch, validate_aa
 from ..retrieval_ladder import RetrievalLadderConfig, _build_kernel, _policy
+from .window import run_window
 
 
 @dataclass(frozen=True)
@@ -304,17 +305,6 @@ def _save_serving_artifact(artifact, output: Path) -> dict[str, str]:
     }
 
 
-def _run_window(kernel, plan, logical_time, steps, evidence=None):
-    start = logical_time
-    for _ in range(steps):
-        tick = kernel.step(logical_time, plan)
-        if evidence is not None:
-            evidence.append(tick)
-        logical_time += 1
-    events = kernel.event_log.read(ingested_through=logical_time - 1)
-    return logical_time, events.select(events.ingest_time >= start)
-
-
 def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
     started = time.perf_counter()
     if config.candidate_fine_checkpoint:
@@ -389,7 +379,7 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
         treatment_fraction=0.5,
         eligible_surfaces=(int(Surface.FEED),),
     )
-    logical_time, _ = _run_window(
+    logical_time, _ = run_window(
         kernel, baseline, 0, config.burn_in_steps,
     )
     aa_metrics: dict[str, object] = {}
@@ -397,7 +387,7 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
     aa_valid = True
     aa_reason = "handled by the experiment-platform health monitor"
     if config.run_aa:
-        logical_time, aa_events = _run_window(
+        logical_time, aa_events = run_window(
             kernel, baseline, logical_time, config.aa_steps,
         )
         aa_metrics, aa_sample = analyze_experiment(aa_events, config.users)
@@ -442,7 +432,7 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
     )
     evidence = LaunchEvidenceCollector()
     start = logical_time
-    logical_time, events = _run_window(
+    logical_time, events = run_window(
         kernel, experiment, logical_time, config.experiment_steps, evidence,
     )
     metrics, sample = analyze_experiment(events, config.users)

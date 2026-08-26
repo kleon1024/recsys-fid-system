@@ -5,8 +5,8 @@ from copy import deepcopy
 
 import torch
 
-from fid_lab.simulation.digital_twin import AppEventBatch
-from fid_lab.simulation.digital_twin.contracts import Surface
+from fid_lab.simulation.digital_twin import AppEventBatch, EventType
+from fid_lab.simulation.digital_twin.contracts import Surface, make_app_events
 from fid_lab.simulation.digital_twin.evaluation import (
     FactualABAccumulator,
     aa_decision,
@@ -15,6 +15,9 @@ from fid_lab.simulation.digital_twin.evaluation import (
 from fid_lab.simulation.digital_twin.observability import (
     FullFlowFixtureConfig,
     build_full_flow_fixtures,
+)
+from fid_lab.simulation.digital_twin.experiments.launch_review.metrics import (
+    analyze_experiment,
 )
 
 
@@ -73,3 +76,33 @@ def test_factual_ab_uses_request_assignment_and_user_clusters():
         "ci95_high": 0.03,
     })
     assert aa_decision(imbalanced)["decision"] == "hold"
+
+
+def test_launch_metrics_join_later_posting_events_by_feed_user_cohort():
+    users = torch.tensor([0, 1, 2, 3])
+    impressions = make_app_events(
+        EventType.IMPRESSION,
+        event_time=0,
+        request_id=torch.tensor([10, 11, 12, 13]),
+        user_id=users,
+        surface=torch.full((4,), int(Surface.FEED)),
+        experiment_cell=torch.tensor([0, 0, 1, 1]),
+    )
+    publishing_users = torch.tensor([0, 1, 2, 2, 3, 3])
+    publications = make_app_events(
+        EventType.PUBLISH,
+        event_time=2,
+        request_id=torch.arange(20, 26),
+        user_id=publishing_users,
+        surface=torch.full((6,), int(Surface.POSTING)),
+        experiment_cell=torch.full((6,), -1),
+    )
+    metrics, sample = analyze_experiment(
+        AppEventBatch.concatenate((impressions, publications)), users=4,
+    )
+    assert sample == {
+        "control_triggered_users": 2,
+        "treatment_triggered_users": 2,
+    }
+    assert metrics["publish"]["control_mean"] == 1.0
+    assert metrics["publish"]["treatment_mean"] == 2.0
