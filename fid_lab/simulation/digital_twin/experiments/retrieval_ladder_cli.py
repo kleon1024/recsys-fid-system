@@ -17,6 +17,7 @@ def main() -> None:
     parser.add_argument("--burn-in-steps", type=int, default=112)
     parser.add_argument("--steps", type=int, default=16)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--seed", type=int, default=809)
     parser.add_argument("--bundle-root", type=Path)
     args = parser.parse_args()
     report = run_retrieval_ladder(RetrievalLadderConfig(
@@ -28,6 +29,7 @@ def main() -> None:
         launch_bundle_root=str(
             args.bundle_root or args.output.with_suffix("")
         ),
+        seed=args.seed,
         device=args.device,
     ))
     args.output.parent.mkdir(parents=True, exist_ok=True)
