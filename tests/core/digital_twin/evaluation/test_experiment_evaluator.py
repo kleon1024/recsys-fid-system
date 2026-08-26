@@ -129,3 +129,13 @@ def test_expanded_canary_preserves_standard_supply_ratio():
             users=100_000,
             items=100_000,
         )
+
+
+def test_expanded_canary_rejects_unsafe_memory_guards():
+    with pytest.raises(ValueError, match="CUDA memory fraction"):
+        PublishQueueCanaryConfig(
+            publish_checkpoint="publish.pt",
+            control_fine_checkpoint="fine.pt",
+            output="out",
+            cuda_memory_fraction=1.1,
+        )

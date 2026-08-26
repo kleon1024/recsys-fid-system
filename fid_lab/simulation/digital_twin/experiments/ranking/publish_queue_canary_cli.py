@@ -25,6 +25,9 @@ def main() -> None:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--publish-weight", type=float, default=0.12)
     parser.add_argument("--minimum-triggered-users", type=int, default=30_000)
+    parser.add_argument("--cuda-memory-fraction", type=float, default=0.60)
+    parser.add_argument("--minimum-wsl-available-gib", type=float, default=4.0)
+    parser.add_argument("--minimum-cuda-free-gib", type=float, default=2.0)
     args = parser.parse_args()
     report = run_publish_queue_canary(PublishQueueCanaryConfig(
         publish_checkpoint=args.publish_checkpoint,
@@ -39,6 +42,9 @@ def main() -> None:
         device=args.device,
         publish_weight=args.publish_weight,
         minimum_triggered_users=args.minimum_triggered_users,
+        cuda_memory_fraction=args.cuda_memory_fraction,
+        minimum_wsl_available_gib=args.minimum_wsl_available_gib,
+        minimum_cuda_free_gib=args.minimum_cuda_free_gib,
     ))
     print(json.dumps(report, indent=2))
 

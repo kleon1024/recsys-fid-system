@@ -32,6 +32,9 @@ class PublishQueueCanaryConfig:
     device: str = "cuda"
     publish_weight: float = 0.12
     minimum_triggered_users: int = 30_000
+    cuda_memory_fraction: float = 0.60
+    minimum_wsl_available_gib: float = 4.0
+    minimum_cuda_free_gib: float = 2.0
 
     def __post_init__(self) -> None:
         if self.items * STANDARD_FEED_PROFILE.users < (
@@ -40,6 +43,36 @@ class PublishQueueCanaryConfig:
             raise ValueError(
                 "expanded canary must preserve the standard item/user ratio"
             )
+        if not 0.0 < self.cuda_memory_fraction <= 1.0:
+            raise ValueError("CUDA memory fraction must be in (0, 1]")
+        if min(
+            self.minimum_wsl_available_gib,
+            self.minimum_cuda_free_gib,
+        ) <= 0.0:
+            raise ValueError("runtime memory guards must be positive")
+
+
+def _memory_available_gib() -> float:
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        if line.startswith("MemAvailable:"):
+            return int(line.split()[1]) / 2**20
+    raise RuntimeError("WSL MemAvailable is unavailable")
+
+
+def _check_runtime_pressure(config: PublishQueueCanaryConfig) -> None:
+    available = _memory_available_gib()
+    if available < config.minimum_wsl_available_gib:
+        raise RuntimeError(
+            f"WSL memory guard tripped at {available:.2f} GiB available"
+        )
+    if torch.device(config.device).type != "cuda":
+        return
+    free, _ = torch.cuda.mem_get_info(torch.device(config.device))
+    free_gib = free / 2**30
+    if free_gib < config.minimum_cuda_free_gib:
+        raise RuntimeError(
+            f"CUDA memory guard tripped at {free_gib:.2f} GiB free"
+        )
 
 
 def _load_artifact(path: str):
@@ -50,8 +83,11 @@ def _load_artifact(path: str):
     return ProbeArtifact.from_checkpoint(checkpoint)
 
 
-def _run_steps(kernel, plan, logical_time, steps, accumulator=None) -> int:
+def _run_steps(
+    kernel, plan, logical_time, steps, config, accumulator=None,
+) -> int:
     for _ in range(steps):
+        _check_runtime_pressure(config)
         tick = kernel.step(logical_time, plan)
         if accumulator is not None:
             accumulator.append(tick.entry_events)
@@ -64,6 +100,11 @@ def run_publish_queue_canary(
     config: PublishQueueCanaryConfig,
 ) -> dict[str, object]:
     started = time.perf_counter()
+    device = torch.device(config.device)
+    if device.type == "cuda":
+        torch.cuda.set_per_process_memory_fraction(
+            config.cuda_memory_fraction, device,
+        )
     output = Path(config.output)
     runtime = RetrievalLadderConfig(
         users=config.users,
@@ -104,7 +145,7 @@ def run_publish_queue_canary(
         eligible_surfaces=(int(Surface.FEED),),
     )
     logical_time = _run_steps(
-        kernel, baseline, 0, config.burn_in_steps,
+        kernel, baseline, 0, config.burn_in_steps, config,
     )
     experiment = ExperimentPlan.ramped_user_ab(
         active_policy=control,
@@ -117,7 +158,8 @@ def run_publish_queue_canary(
     metrics = StreamingExperimentMetrics(config.users, config.device)
     analysis_start = logical_time
     logical_time = _run_steps(
-        kernel, experiment, logical_time, config.experiment_steps, metrics,
+        kernel, experiment, logical_time, config.experiment_steps,
+        config, metrics,
     )
     estimates, sample = metrics.analyze()
     decision, reason = _publish_decision(
