@@ -61,17 +61,28 @@ def _gauc(
     label: torch.Tensor,
     score: torch.Tensor,
 ) -> float:
+    order = torch.argsort(request_id, stable=True)
+    ordered_request = request_id[order]
+    ordered_label = label[order]
+    ordered_score = score[order]
+    starts = torch.ones_like(ordered_request, dtype=torch.bool)
+    starts[1:] = ordered_request[1:] != ordered_request[:-1]
+    begin = torch.where(starts)[0]
+    end = torch.cat((
+        begin[1:], torch.tensor([len(order)], device=begin.device),
+    ))
     weighted_auc = 0.0
     comparable_pairs = 0
-    for value in torch.unique(request_id):
-        selected = request_id == value
-        group_label = label[selected]
+    for left, right in zip(begin.tolist(), end.tolist(), strict=True):
+        group_label = ordered_label[left:right]
         positives = int((group_label > 0.5).sum())
         negatives = len(group_label) - positives
         if not positives or not negatives:
             continue
         pairs = positives * negatives
-        weighted_auc += pairs * _auc(group_label, score[selected])
+        weighted_auc += pairs * _auc(
+            group_label, ordered_score[left:right],
+        )
         comparable_pairs += pairs
     return weighted_auc / comparable_pairs if comparable_pairs else float("nan")
 
