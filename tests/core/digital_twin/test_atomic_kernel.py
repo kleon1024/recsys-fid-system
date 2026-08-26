@@ -232,6 +232,60 @@ def test_event_log_duplicate_failure_is_transactional_across_event_times():
     assert log.manifest()["events"] == 2
 
 
+def test_durable_event_log_evicts_history_and_restores_from_partitions(tmp_path):
+    log = ObservableEventLog(allowed_lateness=2, root=tmp_path)
+    for logical_time in range(8):
+        log.append(event_batch(
+            EventType.IMPRESSION,
+            torch.tensor([100 + logical_time]),
+            torch.tensor([logical_time]),
+            torch.tensor([logical_time + 10]),
+            logical_time,
+            torch.tensor([0]),
+        ))
+    manifest = log.manifest()
+    refs = log.checkpoint_partitions()
+    assert manifest["events"] == 8
+    assert manifest["batches"] == 8
+    assert manifest["hot_batches"] <= 3
+    assert len(refs) == 8
+    assert log.read(through=2).event_time.tolist() == [0, 1, 2]
+    assert all(batch.event_id.device.type == "cpu" for batch in log._batches)
+
+    restored = ObservableEventLog(allowed_lateness=2, root=tmp_path)
+    restored.restore_partitions(refs, manifest)
+    for field in fields(AppEventBatch):
+        assert torch.equal(
+            getattr(log.read(), field.name),
+            getattr(restored.read(), field.name),
+        )
+
+    too_late = event_batch(
+        EventType.IMPRESSION,
+        torch.tensor([999]),
+        torch.tensor([9]),
+        torch.tensor([99]),
+        0,
+        torch.tensor([0]),
+    )
+    too_late = AppEventBatch(
+        **{
+            field.name: (
+                torch.full_like(getattr(too_late, field.name), 8)
+                if field.name == "ingest_time"
+                else getattr(too_late, field.name)
+            )
+            for field in fields(AppEventBatch)
+        }
+    )
+    try:
+        restored.append(too_late)
+    except ValueError as error:
+        assert "allowed lateness" in str(error)
+    else:
+        raise AssertionError("events older than the watermark must fail closed")
+
+
 def test_ramped_user_ab_leaves_unallocated_traffic_on_active_policy():
     users = torch.arange(5_000).repeat_interleave(2)
     requests = PlatformRequestBatch(

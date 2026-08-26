@@ -47,6 +47,7 @@ def _system():
         regions_per_country=4,
         environment_seed=2_103,
         future_signup_fraction=0.0,
+        initialization_mode="bootstrap",
     ), catalog)
     platform = ReferenceRecommendationPlatform(
         ReferencePlatformConfig(users=128, history_length=16),

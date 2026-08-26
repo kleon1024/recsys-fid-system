@@ -243,6 +243,7 @@ def _build_runtime(config, authority):
         embedding_dim=config.embedding_dim, countries=config.countries,
         regions_per_country=config.regions_per_country,
         environment_seed=config.environment_seed, future_signup_fraction=0.0,
+        initialization_mode="bootstrap",
     ), catalog)
     platform = ReferenceRecommendationPlatform(
         ReferencePlatformConfig(users=config.users), catalog,

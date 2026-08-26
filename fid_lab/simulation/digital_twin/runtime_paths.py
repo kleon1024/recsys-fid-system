@@ -9,9 +9,11 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from .profile import SimulationProfile
+from .world.authority import FactualResponseArtifact
 
 
 RUNTIME_AUTHORITY_SCHEMA = "digital-twin-runtime-authority/v1"
+RESPONSE_AUTHORITY_SCHEMA = "digital-twin-response-authority/v1"
 
 
 @dataclass(frozen=True)
@@ -45,6 +47,27 @@ class RuntimePaths:
     @property
     def authority_file(self) -> Path:
         return self.root / "runtime-authority.json"
+
+    @property
+    def response_authority(self) -> Path:
+        return self.root / "response-authority"
+
+    @property
+    def response_authority_file(self) -> Path:
+        return self.root / "response-authority.json"
+
+    def factual_response_artifact(self) -> FactualResponseArtifact:
+        if not self.response_authority_file.is_file():
+            raise ValueError(
+                "factual runtime requires a published response authority"
+            )
+        value = json.loads(self.response_authority_file.read_text())
+        if value.pop("schema", None) != RESPONSE_AUTHORITY_SCHEMA:
+            raise ValueError("response authority schema is unsupported")
+        return FactualResponseArtifact(
+            artifact_dir=str(self.response_authority),
+            **value,
+        )
 
     @classmethod
     def standard(

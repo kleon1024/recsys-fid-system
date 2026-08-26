@@ -768,6 +768,17 @@ path was formula-based. Algorithm promotion is frozen until explicit response
 authority, equilibrium traffic, bounded event history, request microbatching and
 checkpoint generations pass the 96-tick soak.
 
+Implementation checkpoint `S-AUTH00/S-WORLD00/S-EVENT00` is now executable but
+not yet accepted at standard scale. The canonical Feed runtime fails closed
+unless `response-authority.json`, the promoted manifest and `world_model.pt`
+agree by SHA-256. Existing users initialize registered with dispersed arrivals,
+future users alone emit registration, and seven calendar days execute before
+measurement. Event tensors are synchronously moved to immutable zstd CPU/disk
+partitions; only the lateness window and exact recent IDs remain resident, and
+checkpoints bind partition hashes instead of copying historical tensors. The
+v23 weights are currently absent, so artifact reconstruction and the 4090
+stationarity/restart/memory soak remain required before any item below advances.
+
 - Keep rolling Bloom plus the bounded exact session cache as the sole online
   exposure authority; tune Bloom dimensions only through S-MEM system LRs and
   never query the exposure log online.
@@ -777,8 +788,9 @@ checkpoint generations pass the 96-tick soak.
   pass the fixed 100K-user/1M-item 96-tick soak under 24 GB WSL RAM and 24 GB
   VRAM without elapsed-time memory growth.
 - Run F-AA-00, F-R00 and F-R01 Popular as the first complete iteration proof.
-- Use four pre-registered ticks for F-AA/F-R00 because each 20% arm exceeds
-  5,000 unique users; longer windows are reserved for powered retention/LT tests.
+- Start measurement only after the seven-day burn-in checkpoint. F-AA/F-R00 use
+  the pre-registered minimum 96-tick window and may stop only when the achieved
+  triggered-user/MDE gate is satisfied; startup traffic never supplies power.
 - Test index/model mismatch, PS shard loss, feature delay, late labels, fallback,
   overload and recovery.
 - Continue deleting superseded execution paths only after import-closure and

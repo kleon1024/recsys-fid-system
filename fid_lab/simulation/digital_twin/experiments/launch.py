@@ -109,13 +109,24 @@ def _baseline_plan(
     )
 
 
-def _runtime_config(profile: SimulationProfile, device: str) -> RetrievalLadderConfig:
+def _runtime_config(
+    profile: SimulationProfile,
+    device: str,
+    paths: RuntimePaths,
+) -> RetrievalLadderConfig:
+    response = paths.factual_response_artifact()
     return RetrievalLadderConfig(
         users=profile.users,
         items=profile.items,
         ticks_per_day=profile.ticks_per_day,
         seed=profile.seed,
         device=device,
+        response_authority_mode="neural_feed",
+        response_artifact_dir=response.artifact_dir,
+        response_manifest_sha256=response.manifest_sha256,
+        response_member_index=response.member_index,
+        maximum_support_fallback_rate=response.maximum_support_fallback_rate,
+        event_log_root=str(paths.event_partitions),
     )
 
 
@@ -126,7 +137,7 @@ def initialize_canonical_runtime(
     device: str = "cuda",
 ) -> str:
     paths.initialize(profile)
-    _, kernel = _build_kernel(_runtime_config(profile, device))
+    _, kernel = _build_kernel(_runtime_config(profile, device, paths))
     store = WorldCheckpointStore(paths.checkpoints)
     branches = WorldBranchRegistry(store)
     try:
@@ -145,11 +156,31 @@ def initialize_canonical_runtime(
             minimum_ticks=1,
             maximum_ticks=1,
         )
+        burn_in_plan = _baseline_plan(policy, initialization)
+        burn_in_ticks = 7 * profile.ticks_per_day
+        burn_in_requests = []
+        burn_in_registrations = []
+        for logical_time in range(burn_in_ticks):
+            tick = kernel.step(logical_time, burn_in_plan)
+            burn_in_requests.append(tick.rendered_requests)
+            burn_in_registrations.append(int(
+                tick.entry_events.event(EventType.REGISTRATION).sum()
+            ))
+        if burn_in_registrations[0] != 0:
+            raise ValueError("equilibrium world emitted a tick-zero signup surge")
+        if sum(burn_in_requests[-profile.ticks_per_day:]) == 0:
+            raise ValueError("equilibrium world has no post-burn-in traffic")
         ref = store.save(
             kernel,
-            logical_time=-1,
-            experiment=_baseline_plan(policy, initialization),
+            logical_time=burn_in_ticks - 1,
+            experiment=burn_in_plan,
             learning_cursors={
+                "world_burn_in": {
+                    "ticks": burn_in_ticks,
+                    "requests_by_tick": burn_in_requests,
+                    "registrations_by_tick": burn_in_registrations,
+                    "measurement_eligible_from": burn_in_ticks,
+                },
                 "launch_ladder": {
                     "reviewed": [],
                     "passed": [],
@@ -414,7 +445,7 @@ def run_feed_launch(
     revision = source_revision or _source_revision(Path.cwd())
     initialize_canonical_runtime(paths, profile, device=device)
     paths.initialize(profile)
-    _, kernel = _build_kernel(_runtime_config(profile, device))
+    _, kernel = _build_kernel(_runtime_config(profile, device, paths))
     store = WorldCheckpointStore(paths.checkpoints)
     branches = WorldBranchRegistry(store)
     branch = branches.get("main")

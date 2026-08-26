@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
+from typing import Literal
 
 import torch
 
@@ -22,6 +23,7 @@ class UserWorldConfig:
     environment_seed: int
     ticks_per_day: int = 96
     future_signup_fraction: float = 0.08
+    initialization_mode: Literal["equilibrium", "bootstrap"] = "equilibrium"
 
     def __post_init__(self):
         integer_fields = (
@@ -36,6 +38,8 @@ class UserWorldConfig:
             raise ValueError("world dimensions must be positive")
         if not 0.0 <= self.future_signup_fraction < 1.0:
             raise ValueError("future signup fraction must be in [0, 1)")
+        if self.initialization_mode not in {"equilibrium", "bootstrap"}:
+            raise ValueError("world initialization mode is unsupported")
 
 
 @dataclass
@@ -137,6 +141,42 @@ def _empty_search_state(user: torch.Tensor) -> dict[str, torch.Tensor]:
     }
 
 
+def _initial_lifecycle_state(
+    config: UserWorldConfig,
+    user: torch.Tensor,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    future_signup = (
+        uniform(user, 0, 1_057, config.environment_seed)
+        < config.future_signup_fraction
+    )
+    future_signup_time = 1 + torch.floor(
+        config.ticks_per_day
+        * 28
+        * uniform(user, 0, 1_061, config.environment_seed)
+    ).long()
+    if config.initialization_mode == "bootstrap":
+        signup_time = torch.where(
+            future_signup, future_signup_time, torch.zeros_like(user),
+        )
+        return signup_time, signup_time.clone(), torch.zeros_like(
+            user, dtype=torch.bool,
+        )
+    account_age = 1 + torch.floor(
+        config.ticks_per_day
+        * 365
+        * uniform(user, 0, 1_063, config.environment_seed)
+    ).long()
+    residual_arrival = torch.floor(
+        config.ticks_per_day
+        * uniform(user, 0, 1_067, config.environment_seed)
+    ).long()
+    return (
+        torch.where(future_signup, future_signup_time, -account_age),
+        torch.where(future_signup, future_signup_time, residual_arrival),
+        ~future_signup,
+    )
+
+
 def build_hidden_catalog_truth(
     catalog: PublicCatalog, environment_seed: int,
 ) -> HiddenCatalogTruth:
@@ -200,14 +240,8 @@ def build_hidden_users(
     country = population.country
     region = population.region
     segment = population.mixture
-    future = uniform(user, 0, 1_057, config.environment_seed)
-    signup_time = torch.where(
-        future < config.future_signup_fraction,
-        1 + torch.floor(
-            config.ticks_per_day
-            * 14 * uniform(user, 0, 1_061, config.environment_seed)
-        ).long(),
-        torch.zeros_like(user),
+    signup_time, next_return_time, registered = _initial_lifecycle_state(
+        config, user,
     )
     post_kind = (
         (catalog.content_kind == int(ContentKind.SHORT_VIDEO))
@@ -273,11 +307,11 @@ def build_hidden_users(
         novelty=population.novelty,
         spending_power=population.spending_power,
         signup_time=signup_time,
-        next_return_time=signup_time.clone(),
+        next_return_time=next_return_time,
         reactivation_time=torch.full_like(
             user, torch.iinfo(torch.long).max // 4,
         ),
-        registered=torch.zeros(config.users, device=device, dtype=torch.bool),
+        registered=registered,
         churned=torch.zeros(config.users, device=device, dtype=torch.bool),
         active=torch.zeros(config.users, device=device, dtype=torch.bool),
         session_depth=torch.zeros(config.users, device=device, dtype=torch.long),

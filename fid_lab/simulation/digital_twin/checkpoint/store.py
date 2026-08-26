@@ -259,7 +259,7 @@ def _restore_experiment(
 
 
 def _world_state(world: UserEcosystemWorld) -> dict[str, object]:
-    return {
+    state = {
         "users": _dataclass_tensor_state(world.users),
         "supply": _dataclass_tensor_state(world.supply.state),
         "trend": {
@@ -272,6 +272,10 @@ def _world_state(world: UserEcosystemWorld) -> dict[str, object]:
             for ingest_time, events in world.delayed._pending.items()
         },
     }
+    stats = getattr(world.response_authority, "stats", None)
+    if stats is not None:
+        state["response_authority_stats"] = stats()
+    return state
 
 
 def _graph_state(platform: ReferenceRecommendationPlatform) -> dict[str, object]:
@@ -335,6 +339,10 @@ def _restore_world(
         int(ingest_time): _restore_events(events, device)
         for ingest_time, events in state["delayed"].items()
     }
+    response_stats = state.get("response_authority_stats")
+    restore_stats = getattr(world.response_authority, "restore_stats", None)
+    if response_stats is not None and restore_stats is not None:
+        restore_stats(response_stats)
 
 
 def _restore_graph(
@@ -433,16 +441,24 @@ class WorldCheckpointStore:
             "world": _world_state(world),
             "platform": _platform_state(platform),
         })
-        event_objects = tuple(
-            self._write_object(_event_state(batch))
-            for batch in kernel.event_log._batches
-        )
+        if kernel.event_log.durable:
+            event_partitions = kernel.event_log.checkpoint_partitions()
+            event_objects = tuple(
+                str(value["object_sha256"]) for value in event_partitions
+            )
+        else:
+            event_partitions = ()
+            event_objects = tuple(
+                self._write_object(_event_state(batch))
+                for batch in kernel.event_log._batches
+            )
         manifest = {
             "schema": WORLD_CHECKPOINT_SCHEMA,
             "logical_time": logical_time,
             "parent_checkpoint_id": parent_checkpoint_id,
             "state_object": state_object,
             "event_objects": list(event_objects),
+            "event_partitions": list(event_partitions),
             "catalog_sha256": _catalog_hash(world.catalog),
             "runtime_manifest": runtime_manifest,
             "runtime_sha256": sha256(
@@ -555,6 +571,12 @@ class WorldCheckpointStore:
         allowed = int(manifest["event_manifest"]["allowed_lateness"])
         if kernel.event_log.allowed_lateness != allowed:
             raise ValueError("checkpoint event-log lateness differs")
+        if kernel.event_log.durable:
+            kernel.event_log.restore_partitions(
+                tuple(manifest.get("event_partitions", ())),
+                dict(manifest["event_manifest"]),
+            )
+            return
         device = kernel.world.catalog.item_id.device
         kernel.event_log._batches.clear()
         kernel.event_log._ids_by_event_time.clear()

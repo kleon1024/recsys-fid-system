@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from hashlib import sha256
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -19,7 +21,9 @@ from fid_lab.feed_loop.world_model.training import save_world_ensemble
 from fid_lab.feed_loop.world_model.feature_contract import V4_REQUIRED_FEATURES
 from fid_lab.feed_loop.world_model.validation.support import SUPPORT_PROFILE_SCHEMA
 from fid_lab.simulation.digital_twin.world.authority import (
+    FactualResponseArtifact,
     NeuralFeedResponseAuthority,
+    load_factual_response_authority,
 )
 from fid_lab.simulation.digital_twin.world.neural_features import (
     V4_FEATURE_CONTRACT,
@@ -264,6 +268,68 @@ def test_neural_feed_authority_rejects_training_serving_feature_skew():
         assert "batch size" in str(error)
     else:
         raise AssertionError("invalid inference batch size must fail closed")
+
+
+def test_factual_response_artifact_is_content_bound_and_promoted():
+    ensemble = WorldModelEnsemble(WorldModelConfig(
+        width=32, latent_dim=8, attention_heads=4,
+        ensemble_members=2, batch_size=8, epochs=1,
+    ))
+    with TemporaryDirectory() as directory:
+        artifact = Path(directory) / "artifact"
+        save_world_ensemble(
+            ensemble, [[], []], artifact,
+            {
+                "manifest_sha256": "dataset",
+                "feature_contract_sha256": V4_FEATURE_CONTRACT["sha256"],
+                "feature_coverage": V4_FEATURE_COVERAGE,
+            },
+            support_profile=_wide_support_profile(),
+        )
+        manifest_path = artifact / "manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["authority_status"] = "accepted_feed_authority"
+        manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+        manifest_hash = sha256(manifest_path.read_bytes()).hexdigest()
+        authority = load_factual_response_authority(
+            FactualResponseArtifact(
+                artifact_dir=str(artifact),
+                manifest_sha256=manifest_hash,
+                member_index=0,
+            ),
+            "cpu",
+        )
+        assert authority.artifact_sha256 == manifest_hash
+        assert authority.manifest()["weights_sha256"] == manifest["weights_sha256"]
+
+        try:
+            load_factual_response_authority(
+                FactualResponseArtifact(
+                    artifact_dir=str(artifact),
+                    manifest_sha256="0" * 64,
+                    member_index=0,
+                ),
+                "cpu",
+            )
+        except ValueError as error:
+            assert "manifest hash" in str(error)
+        else:
+            raise AssertionError("unregistered factual artifact must fail closed")
+
+        (artifact / "world_model.pt").unlink()
+        try:
+            load_factual_response_authority(
+                FactualResponseArtifact(
+                    artifact_dir=str(artifact),
+                    manifest_sha256=manifest_hash,
+                    member_index=0,
+                ),
+                "cpu",
+            )
+        except ValueError as error:
+            assert "weights" in str(error)
+        else:
+            raise AssertionError("missing factual weights must fail closed")
 
 
 def test_neural_authority_shadow_replays_reference_cascade_without_committing():

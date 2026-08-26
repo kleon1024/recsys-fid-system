@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import argparse
 from dataclasses import asdict, dataclass, replace
-import json
 import math
 from pathlib import Path
 import time
-from typing import Mapping
+from typing import Literal, Mapping
 
 import torch
 
@@ -27,7 +25,11 @@ from ..platform import (
 )
 from ..profile import STANDARD_FEED_PROFILE, SimulationProfile
 from ..world import UserEcosystemWorld, UserWorldConfig
-from ..world.authority import BehavioralSCMResponseAuthority
+from ..world.authority import (
+    FactualResponseArtifact,
+    FormulaResponseAuthority,
+    load_factual_response_authority,
+)
 
 
 BASE_ROUTES = ("random",)
@@ -73,6 +75,14 @@ class RetrievalLadderConfig:
     allow_code_migration: bool = False
     allow_additive_runtime_migration: bool = False
     max_attempts_per_review: int = 3
+    response_authority_mode: Literal["formula_oracle", "neural_feed"] = (
+        "formula_oracle"
+    )
+    response_artifact_dir: str | None = None
+    response_manifest_sha256: str | None = None
+    response_member_index: int = 0
+    maximum_support_fallback_rate: float = 0.03
+    event_log_root: str | None = None
 
     def __post_init__(self):
         if self.ticks_per_day <= 0 or self.minimum_triggered_users <= 1:
@@ -83,6 +93,12 @@ class RetrievalLadderConfig:
             raise ValueError("max_attempts_per_review must be positive")
         if not self.checkpoint_branch:
             raise ValueError("checkpoint_branch must not be empty")
+        if self.response_authority_mode not in {"formula_oracle", "neural_feed"}:
+            raise ValueError("response authority mode is unsupported")
+        if self.response_authority_mode == "neural_feed" and (
+            not self.response_artifact_dir or not self.response_manifest_sha256
+        ):
+            raise ValueError("NeuralSCM factual runtime requires an artifact ref")
 
     @property
     def simulation_profile(self) -> SimulationProfile:
@@ -252,6 +268,21 @@ def _build_kernel(config: RetrievalLadderConfig):
         platform_seed=config.seed + 1,
         device=device,
     )
+    response_authority = (
+        FormulaResponseAuthority()
+        if config.response_authority_mode == "formula_oracle"
+        else load_factual_response_authority(
+            FactualResponseArtifact(
+                artifact_dir=str(config.response_artifact_dir),
+                manifest_sha256=str(config.response_manifest_sha256),
+                member_index=config.response_member_index,
+                maximum_support_fallback_rate=(
+                    config.maximum_support_fallback_rate
+                ),
+            ),
+            device,
+        )
+    )
     world = UserEcosystemWorld(UserWorldConfig(
         users=profile.users,
         topics=profile.topics,
@@ -261,7 +292,7 @@ def _build_kernel(config: RetrievalLadderConfig):
         environment_seed=config.seed + 2,
         ticks_per_day=profile.ticks_per_day,
         future_signup_fraction=0.35,
-    ), catalog, response_authority=BehavioralSCMResponseAuthority())
+    ), catalog, response_authority=response_authority)
     platform = ReferenceRecommendationPlatform(
         ReferencePlatformConfig(
             users=profile.users,
@@ -282,11 +313,14 @@ def _build_kernel(config: RetrievalLadderConfig):
             expose_k=profile.expose_k,
         ),
     )
-    return device, AtomicSimulationKernel(
-        world,
-        platform,
-        ObservableEventLog(allowed_lateness=world.max_reporting_lag),
+    event_log = (
+        ObservableEventLog(allowed_lateness=world.max_reporting_lag)
+        if config.event_log_root is None else ObservableEventLog(
+            allowed_lateness=world.max_reporting_lag,
+            root=Path(config.event_log_root),
+        )
     )
+    return device, AtomicSimulationKernel(world, platform, event_log)
 
 
 def _run_review_window(
@@ -717,61 +751,3 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
             if device.type == "cuda" else 0.0
         ),
     }
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--users", type=int, default=STANDARD_FEED_PROFILE.users)
-    parser.add_argument("--items", type=int, default=STANDARD_FEED_PROFILE.items)
-    parser.add_argument("--burn-in-steps", type=int, default=4)
-    parser.add_argument("--experiment-steps", type=int, default=8)
-    parser.add_argument("--control-fraction", type=float, default=0.20)
-    parser.add_argument("--treatment-fraction", type=float, default=0.20)
-    parser.add_argument("--device", default="cuda")
-    parser.add_argument("--seed", type=int, default=STANDARD_FEED_PROFILE.seed)
-    parser.add_argument(
-        "--ticks-per-day", type=int,
-        default=STANDARD_FEED_PROFILE.ticks_per_day,
-    )
-    parser.add_argument("--minimum-triggered-users", type=int, default=500)
-    parser.add_argument("--no-auto-promote", action="store_true")
-    parser.add_argument("--checkpoint-root", type=Path)
-    parser.add_argument("--checkpoint-branch", default="main")
-    parser.add_argument("--resume-checkpoint-id")
-    parser.add_argument("--max-reviews", type=int)
-    parser.add_argument("--allow-code-migration", action="store_true")
-    parser.add_argument("--allow-additive-runtime-migration", action="store_true")
-    parser.add_argument("--max-attempts-per-review", type=int, default=3)
-    parser.add_argument("--output", type=Path)
-    args = parser.parse_args()
-    result = run_retrieval_ladder(RetrievalLadderConfig(
-        users=args.users,
-        items=args.items,
-        burn_in_steps=args.burn_in_steps,
-        experiment_steps=args.experiment_steps,
-        control_fraction=args.control_fraction,
-        treatment_fraction=args.treatment_fraction,
-        device=args.device,
-        seed=args.seed,
-        auto_promote=not args.no_auto_promote,
-        ticks_per_day=args.ticks_per_day,
-        minimum_triggered_users=args.minimum_triggered_users,
-        checkpoint_root=(
-            None if args.checkpoint_root is None else str(args.checkpoint_root)
-        ),
-        checkpoint_branch=args.checkpoint_branch,
-        resume_checkpoint_id=args.resume_checkpoint_id,
-        max_reviews=args.max_reviews,
-        allow_code_migration=args.allow_code_migration,
-        allow_additive_runtime_migration=args.allow_additive_runtime_migration,
-        max_attempts_per_review=args.max_attempts_per_review,
-    ))
-    payload = json.dumps(result, indent=2, sort_keys=True)
-    if args.output:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(payload + "\n")
-    print(payload)
-
-
-if __name__ == "__main__":
-    main()

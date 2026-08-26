@@ -15,7 +15,7 @@ from ..contracts import (
     Surface,
     make_app_events,
 )
-from .authority import BehavioralSCMResponseAuthority, ResponseAuthority
+from .authority import FormulaResponseAuthority, ResponseAuthority
 from .dynamics.calendar import (
     CALENDAR_VERSION,
     arrival_hazard,
@@ -51,7 +51,7 @@ class UserEcosystemWorld:
         self.config = config
         self.catalog = catalog
         self.response_authority = (
-            BehavioralSCMResponseAuthority()
+            FormulaResponseAuthority()
             if response_authority is None else response_authority
         )
         self.users = build_hidden_users(config, catalog)
@@ -76,12 +76,13 @@ class UserEcosystemWorld:
     def max_reporting_lag(self) -> int:
         return 2 * self.config.ticks_per_day
 
-    def manifest(self) -> dict[str, str]:
+    def manifest(self) -> dict[str, object]:
         return {
             "population": POPULATION_VERSION,
             "calendar_survival": CALENDAR_VERSION,
             "trends": TREND_VERSION,
             "response": self.response_authority.version,
+            "response_authority": self.response_authority.manifest(),
         }
 
     def snapshot(self) -> UserWorldSnapshot:

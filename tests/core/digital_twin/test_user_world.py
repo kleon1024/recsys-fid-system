@@ -59,6 +59,7 @@ def build_world(users=256, items=720):
         regions_per_country=8,
         environment_seed=97,
         future_signup_fraction=0.0,
+        initialization_mode="bootstrap",
     )
     return UserEcosystemWorld(config, catalog), catalog
 

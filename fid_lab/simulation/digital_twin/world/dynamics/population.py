@@ -10,7 +10,7 @@ from ....randomness.counter import normal, uniform
 from ...contracts import Surface
 
 
-POPULATION_VERSION = "correlated-latent-mixture-v1"
+POPULATION_VERSION = "equilibrium-correlated-latent-mixture-v2"
 
 
 @dataclass(frozen=True)

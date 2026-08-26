@@ -1,9 +1,11 @@
 """Independent hidden user world for the event-driven digital twin."""
 
 from .authority import (
+    FactualResponseArtifact,
     FormulaResponseAuthority,
     NeuralFeedResponseAuthority,
     ResponseAuthority,
+    load_factual_response_authority,
 )
 from .dynamics.calendar import CALENDAR_VERSION, ReturnOutcome
 from .dynamics.population import (
@@ -24,6 +26,7 @@ __all__ = (
     "NeuralFeedResponseAuthority",
     "CALENDAR_VERSION",
     "FormulaResponseAuthority",
+    "FactualResponseArtifact",
     "POPULATION_VERSION",
     "PopulationSample",
     "ResponseAuthority",
@@ -36,4 +39,5 @@ __all__ = (
     "UserWorldConfig",
     "UserWorldSnapshot",
     "sample_population",
+    "load_factual_response_authority",
 )
