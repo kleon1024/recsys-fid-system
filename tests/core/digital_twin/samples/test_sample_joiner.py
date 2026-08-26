@@ -188,9 +188,13 @@ def test_joiner_masks_delayed_labels_until_watermark_maturity():
     events = build_events(trace, catalog)
     early = joiner.materialize(trace, context, events, event_watermark=4)
     long_view = early.fine.task_names.index("long_view")
+    comment = early.fine.task_names.index("comment")
+    follow = early.fine.task_names.index("follow")
     order = early.fine.task_names.index("order")
     assert float(early.fine.labels[0, 0, long_view]) == 1.0
     assert bool(early.fine.label_mask[0, 0, long_view])
+    assert bool(early.fine.label_mask[0, 0, comment])
+    assert bool(early.fine.label_mask[0, 0, follow])
     assert float(early.fine.labels[1, 0, order]) == 1.0
     assert bool(early.fine.label_applicable[1, 0, order])
     assert not bool(early.fine.label_mature[1, 0, order])

@@ -65,11 +65,21 @@ def _train_candidate(config: LinearRankLaunchConfig):
         surface=train.surface[feed],
         request_time=train.request_time[feed],
         item_id=train.item_id[feed],
+        position=train.position[feed],
+        route_id=train.route_id[feed],
+        recall_score=train.recall_score[feed],
+        exposed=train.exposed[feed],
+        candidate_exposure_probability=(
+            train.candidate_exposure_probability[feed]
+        ),
+        randomized_support=train.randomized_support[feed],
         dwell_ms=train.dwell_ms[feed],
         dense_features=train.dense_features[feed],
         sparse_buckets=train.sparse_buckets[feed],
         labels=train.labels[feed],
         label_mask=train.label_mask[feed],
+        label_applicable=train.label_applicable[feed],
+        label_mature=train.label_mature[feed],
         joint_logging_probability=train.joint_logging_probability[feed],
     )
     artifact = train_probe(

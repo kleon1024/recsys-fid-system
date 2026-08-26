@@ -129,11 +129,19 @@ class ProbeBatch:
     surface: torch.Tensor
     request_time: torch.Tensor
     item_id: torch.Tensor
+    position: torch.Tensor
+    route_id: torch.Tensor
+    recall_score: torch.Tensor
+    exposed: torch.Tensor
+    candidate_exposure_probability: torch.Tensor
+    randomized_support: torch.Tensor
     dwell_ms: torch.Tensor
     dense_features: torch.Tensor
     sparse_buckets: torch.Tensor
     labels: torch.Tensor
     label_mask: torch.Tensor
+    label_applicable: torch.Tensor
+    label_mature: torch.Tensor
     joint_logging_probability: torch.Tensor
     task_names: tuple[str, ...]
     dense_feature_names: tuple[str, ...]
@@ -145,7 +153,9 @@ class ProbeBatch:
     def __post_init__(self) -> None:
         rows = len(self.request_id)
         for name in (
-            "user_id", "surface", "request_time", "item_id",
+            "user_id", "surface", "request_time", "item_id", "position",
+            "route_id", "recall_score", "exposed",
+            "candidate_exposure_probability", "randomized_support",
             "joint_logging_probability", "dwell_ms",
         ):
             if getattr(self, name).shape != (rows,):
@@ -156,6 +166,14 @@ class ProbeBatch:
                 raise ValueError(f"probe {name} is not row aligned")
         if self.labels.shape != self.label_mask.shape:
             raise ValueError("probe labels and masks differ")
+        if self.labels.shape != self.label_applicable.shape:
+            raise ValueError("probe labels and applicability differ")
+        if self.labels.shape != self.label_mature.shape:
+            raise ValueError("probe labels and maturity differ")
+        if not torch.equal(
+            self.label_mask, self.label_applicable & self.label_mature,
+        ):
+            raise ValueError("probe label mask disagrees with label state")
         if self.labels.shape != (rows, len(self.task_names)):
             raise ValueError("probe task contract differs from labels")
         if self.dense_features.shape[1] != len(self.dense_feature_names):

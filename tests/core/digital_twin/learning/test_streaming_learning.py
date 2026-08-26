@@ -70,6 +70,12 @@ def test_probe_registry_rejects_mismatch_and_preserves_fallback(tmp_path):
     bus = PartitionedSampleBus(dataset, tmp_path / "lane-state")
     refs = bus.poll(Lane.ACTIVE)
     batch = load_probe_batch(bus, refs)
+    assert batch.position.shape == batch.item_id.shape
+    assert batch.exposed.shape == batch.item_id.shape
+    assert batch.randomized_support.shape == batch.item_id.shape
+    assert torch.equal(
+        batch.label_mask, batch.label_applicable & batch.label_mature,
+    )
     no_drift = feature_drift_report(batch, batch)
     assert max(
         row["standardized_mean_shift"]

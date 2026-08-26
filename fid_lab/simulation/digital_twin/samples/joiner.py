@@ -54,7 +54,9 @@ class JoinerConfig:
             LabelTask("complete", EventType.COMPLETE, 0, 0.65),
             LabelTask("click", EventType.CLICK, 0, 0.20),
             LabelTask("like", EventType.LIKE, 0, 0.35),
+            LabelTask("comment", EventType.COMMENT, 0, 0.45),
             LabelTask("share", EventType.SHARE, 0, 0.60),
+            LabelTask("follow", EventType.FOLLOW, 0, 0.80),
             LabelTask("negative", EventType.NEGATIVE, 0, -0.80),
             LabelTask("detail", EventType.DETAIL, 0, 0.30),
             LabelTask("search_success", EventType.SEARCH_SUCCESS, 0, 0.55),
@@ -173,7 +175,9 @@ def _task_applicability(
         EventType.LONG_VIEW,
         EventType.COMPLETE,
         EventType.LIKE,
+        EventType.COMMENT,
         EventType.SHARE,
+        EventType.FOLLOW,
     }:
         return feed_or_live
     if task.event_type in {EventType.CLICK, EventType.DETAIL}:

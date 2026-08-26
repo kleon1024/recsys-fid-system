@@ -47,17 +47,33 @@ def load_probe_batch(
     sparse = list_column_to_tensor(table["sparse_buckets"], torch.long)[order]
     labels = list_column_to_tensor(table["task_label_values"], torch.float32)[order]
     masks = list_column_to_tensor(table["task_label_masks"], torch.bool)[order]
+    applicable = list_column_to_tensor(
+        table["task_label_applicable"], torch.bool,
+    )[order]
+    mature = list_column_to_tensor(
+        table["task_label_mature"], torch.bool,
+    )[order]
     return ProbeBatch(
         request_id=scalar("request_id", torch.long),
         user_id=scalar("user_id", torch.long),
         surface=scalar("surface", torch.long),
         request_time=scalar("request_time", torch.long),
         item_id=scalar("item_id", torch.long),
+        position=scalar("position", torch.long),
+        route_id=scalar("route_id", torch.long),
+        recall_score=scalar("recall_score", torch.float32),
+        exposed=scalar("exposed", torch.bool),
+        candidate_exposure_probability=scalar(
+            "candidate_exposure_probability", torch.float32,
+        ),
+        randomized_support=scalar("randomized_support", torch.bool),
         dwell_ms=scalar("dwell_ms", torch.float32),
         dense_features=dense,
         sparse_buckets=sparse,
         labels=labels,
         label_mask=masks,
+        label_applicable=applicable,
+        label_mature=mature,
         joint_logging_probability=scalar(
             "joint_logging_probability", torch.float32,
         ),
