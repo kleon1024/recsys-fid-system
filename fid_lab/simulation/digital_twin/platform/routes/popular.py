@@ -8,6 +8,7 @@ from ...catalog import PublicCatalog
 from ...contracts import EventType, PlatformRequestBatch, Surface
 from ..indexes.contracts import RetrievalConfig
 from ..projection import PlatformProjectionState
+from ..sequences import resolve_user_sequence
 from .contracts import surface_eligibility
 from .feed import MAIN_FEED_LIFECYCLES
 
@@ -67,16 +68,18 @@ def popular_candidates(
     return item, values
 
 
-def _recent_interest_topic(
+def _recent_interest_topics(
     catalog: PublicCatalog,
     config: RetrievalConfig,
     requests: PlatformRequestBatch,
     state: PlatformProjectionState,
-) -> torch.Tensor:
-    user_id = requests.user_id
-    history_item = state.user_history_item[user_id]
-    event_type = state.user_history_event_type[user_id]
-    event_time = state.user_history_event_time[user_id]
+) -> tuple[torch.Tensor, torch.Tensor]:
+    sequence = resolve_user_sequence(
+        state, requests.user_id, requests.event_time,
+    )
+    history_item = sequence.item_id
+    event_type = sequence.event_type
+    event_time = sequence.event_time
     strength = torch.zeros_like(event_time, dtype=torch.float)
     for candidate, value in (
         (EventType.PLAY_3S, 1.0),
@@ -84,15 +87,17 @@ def _recent_interest_topic(
         (EventType.COMPLETE, 2.5),
         (EventType.CLICK, 2.0),
         (EventType.LIKE, 3.0),
+        (EventType.COMMENT, 3.5),
         (EventType.FAVORITE, 3.5),
         (EventType.SHARE, 4.0),
+        (EventType.FOLLOW, 4.0),
     ):
         strength = torch.where(
             event_type == int(candidate), torch.full_like(strength, value),
             strength,
         )
     positive = strength > 0.0
-    valid = positive & (history_item >= 0)
+    valid = sequence.valid & positive
     age = (
         requests.event_time[:, None] - event_time
     ).clamp_min(0).float()
@@ -106,10 +111,12 @@ def _recent_interest_topic(
         device=catalog.item_id.device,
     )
     topic_score.scatter_add_(1, topic, weight * valid)
-    selected_topic = topic_score.argmax(dim=1)
-    return torch.where(
-        valid.any(dim=1), selected_topic, torch.full_like(selected_topic, -1),
+    width = min(3, topic_score.shape[1])
+    values, selected_topic = torch.topk(topic_score, width, dim=1)
+    selected_topic = torch.where(
+        values > 0.0, selected_topic, torch.full_like(selected_topic, -1),
     )
+    return selected_topic, values
 
 
 def interest_popular_candidates(
@@ -121,37 +128,59 @@ def interest_popular_candidates(
     *,
     interest_fraction: float = 1.0,
 ) -> tuple[torch.Tensor, torch.Tensor]:
-    """Retrieve popular items inside the latest observable interest segment."""
-    item, values = popular_candidates(
-        catalog, config, requests, state, score,
+    """Retrieve quality-preserving Popular pools across top strong interests."""
+    item = torch.full(
+        (len(requests.user_id), config.route_k),
+        -1,
+        device=catalog.item_id.device,
+        dtype=torch.long,
     )
+    values = torch.full_like(item, -torch.inf, dtype=torch.float)
     feed = requests.surface == int(Surface.FEED)
     country = state.user_country[requests.user_id]
-    topic = _recent_interest_topic(catalog, config, requests, state)
+    topics, topic_values = _recent_interest_topics(
+        catalog, config, requests, state,
+    )
     eligible_base = _eligible_feed_items(catalog, state)
-    segment = country * (int(catalog.topic_id.max()) + 1) + topic
-    for key in torch.unique(segment[feed & (topic >= 0)]).tolist():
-        selected = feed & (segment == key)
-        target = torch.where(selected)[0]
-        selected_country = int(country[target[0]])
-        selected_topic = int(topic[target[0]])
-        candidates = torch.where(
-            eligible_base
-            & (state.item_country == selected_country)
-            & (catalog.topic_id == selected_topic)
-        )[0]
-        interest_slots = max(1, round(config.route_k * interest_fraction))
-        width = min(len(candidates), interest_slots)
-        if not width:
-            continue
-        pool = candidates[torch.topk(score[candidates], width).indices]
-        offset = torch.arange(width, device=catalog.item_id.device)[None]
-        start = torch.remainder(
-            requests.request_id[target] * 503
-            + requests.user_id[target] * 1_009,
-            width,
-        )
-        chosen = pool[torch.remainder(start[:, None] + offset, width)]
-        item[target, :width] = chosen
-        values[target, :width] = score[chosen]
+    interest_slots = max(1, round(config.route_k * interest_fraction))
+    topics_per_user = topics.shape[1]
+    slot_width = max(1, interest_slots // topics_per_user)
+    topic_count = int(catalog.topic_id.max()) + 1
+    for rank in range(topics_per_user):
+        topic = topics[:, rank]
+        segment = country * topic_count + topic
+        available = feed & (country >= 0) & (topic >= 0)
+        for key in torch.unique(segment[available]).tolist():
+            target = torch.where(available & (segment == key))[0]
+            selected_country = int(country[target[0]])
+            selected_topic = int(topic[target[0]])
+            candidates = torch.where(
+                eligible_base
+                & (state.item_country == selected_country)
+                & (catalog.topic_id == selected_topic)
+            )[0]
+            pool_width = min(
+                len(candidates), slot_width * config.popular_pool_multiplier,
+            )
+            width = min(pool_width, slot_width)
+            if not width:
+                continue
+            pool = candidates[
+                torch.topk(score[candidates], pool_width).indices
+            ]
+            offset = torch.arange(width, device=catalog.item_id.device)[None]
+            start = torch.remainder(
+                requests.request_id[target] * 503
+                + requests.user_id[target] * 1_009
+                + rank * 257,
+                pool_width,
+            )
+            chosen = pool[torch.remainder(start[:, None] + offset, pool_width)]
+            begin = rank * slot_width
+            end = min(begin + width, interest_slots)
+            chosen = chosen[:, : end - begin]
+            item[target, begin:end] = chosen
+            values[target, begin:end] = (
+                score[chosen] + 0.001 * topic_values[target, rank, None]
+            )
     return item, values
