@@ -1,0 +1,8 @@
+[Unit]
+Description=Recommendation GPU runtime health check
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/training/recsys-fid-system-git
+ExecStart=%h/training/recsys-fid-system-git/scripts/gpu-runtime-health.sh

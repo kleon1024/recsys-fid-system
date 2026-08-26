@@ -1,5 +1,9 @@
 # Recommendation production failure runbook
 
+The Windows RTX 4090 worker has a separate
+[bounded WSL runtime contract](windows-gpu-runtime.md). GPU jobs must run through
+its systemd cgroup rather than an unbounded `nohup` process.
+
 Each row starts with the user-visible symptom, identifies the owning boundary,
 and names evidence that can falsify the hypothesis. A higher offline AUC is not
 root-cause evidence.

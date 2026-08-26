@@ -1,0 +1,65 @@
+# Windows RTX 4090 runtime
+
+This is the operating contract for the WSL2 GPU worker. It protects the host
+from unbounded recommendation simulations without turning a failed experiment
+into an infinite restart loop.
+
+## Host boundary
+
+The Windows host has 32 GB RAM. `%UserProfile%/.wslconfig` owns the WSL ceiling:
+
+```ini
+[wsl2]
+memory=24GB
+swap=4GB
+
+[experimental]
+autoMemoryReclaim=gradual
+```
+
+This leaves approximately 8 GB for Windows. Increasing WSL memory or swap is not
+an OOM fix; the simulator must remain bounded. The Linux VHD has ample free
+space, but the Windows C drive is separately monitored because WSL swap and VHD
+growth ultimately depend on it.
+
+## Service recovery
+
+WSL uses systemd. `ssh.service` and `tailscaled.service` are enabled and already
+use `Restart=on-failure`. A Windows scheduled task starts the Ubuntu distribution
+at logon and probes it every five minutes. User lingering keeps user-level job
+and health units alive without an SSH session.
+
+Install the checked-in units:
+
+```bash
+mkdir -p ~/.config/systemd/user ~/.config/recsys/jobs
+install -m 0644 ops/windows-wsl/recsys-gpu-job@.service ~/.config/systemd/user/
+install -m 0644 ops/windows-wsl/recsys-gpu-health.service ~/.config/systemd/user/
+install -m 0644 ops/windows-wsl/recsys-gpu-health.timer ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now recsys-gpu-health.timer
+```
+
+## Bounded jobs
+
+One job owns one environment file. Example:
+
+```bash
+cat > ~/.config/recsys/jobs/feed-aa.env <<'EOF'
+RECSYS_COMMAND='exec ~/miniconda3/envs/llm-training/bin/python -m fid_lab.simulation.digital_twin.experiments.launch_cli --plan experiments/plans/F-AA-00.json --runtime-root ~/.local/share/recsys-fid-system/feed-standard-v2 --device cuda'
+EOF
+systemctl --user start recsys-gpu-job@feed-aa.service
+```
+
+The unit applies a 20 GB soft memory boundary, 22 GB hard boundary and 3 GB swap
+boundary. CUDA or CPU OOM exits may restart at most twice per 30 minutes. A
+third failure remains failed and must be diagnosed from:
+
+```bash
+systemctl --user status recsys-gpu-job@feed-aa.service
+journalctl --user -u recsys-gpu-job@feed-aa.service
+```
+
+Do not enable experiment jobs at boot. Only infrastructure and health checks
+restart automatically; a factual LR always starts from its immutable checkpoint
+and pre-registered plan.

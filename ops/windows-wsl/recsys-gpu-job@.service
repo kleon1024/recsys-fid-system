@@ -1,0 +1,29 @@
+[Unit]
+Description=Bounded recommendation GPU job %i
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=1800
+StartLimitBurst=2
+
+[Service]
+Type=exec
+WorkingDirectory=%h/training/recsys-fid-system-git
+Environment=PYTHONUNBUFFERED=1
+Environment=CUDA_MODULE_LOADING=LAZY
+Environment=PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True,garbage_collection_threshold:0.8,max_split_size_mb:256
+Environment=OMP_NUM_THREADS=8
+Environment=MKL_NUM_THREADS=8
+Environment=MALLOC_ARENA_MAX=4
+ExecStart=%h/training/recsys-fid-system-git/scripts/run-gpu-job.sh %i
+Restart=on-failure
+RestartSec=30
+MemoryAccounting=yes
+MemoryHigh=20G
+MemoryMax=22G
+MemorySwapMax=3G
+TasksMax=1024
+OOMPolicy=stop
+TimeoutStopSec=120
+
+[Install]
+WantedBy=default.target
