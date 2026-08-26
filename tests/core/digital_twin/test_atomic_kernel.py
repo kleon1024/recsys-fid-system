@@ -118,6 +118,7 @@ class FakePlatform:
             surface=entry_events.surface[session],
             event_time=entry_events.event_time[session],
             query_topic=torch.full_like(entry_events.user_id[session], -1),
+            user_creator_id=entry_events.creator_id[session],
         )
 
     def render(
@@ -308,6 +309,7 @@ def test_ramped_user_ab_leaves_unallocated_traffic_on_active_policy():
         surface=torch.remainder(users, 2),
         event_time=torch.zeros_like(users),
         query_topic=torch.full_like(users, -1),
+        user_creator_id=users,
     )
     eligible = users.remainder(2) == 0
     active, treatment = object(), object()

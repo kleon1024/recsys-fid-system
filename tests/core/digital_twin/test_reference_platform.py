@@ -252,6 +252,7 @@ def test_commerce_inventory_policy_removes_only_unavailable_products():
         surface=torch.tensor([2]),
         event_time=torch.tensor([0]),
         query_topic=torch.tensor([-1]),
+        user_creator_id=torch.tensor([-1]),
     )
     baseline = platform.retriever.retrieve(
         request, state, ("commerce_intent", "retarget"),

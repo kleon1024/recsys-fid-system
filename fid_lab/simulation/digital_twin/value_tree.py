@@ -17,20 +17,5 @@ FEED_TASK_VALUE_WEIGHTS = {
     "negative": -0.35,
 }
 
-POSTING_TASK_VALUE_WEIGHTS = {
-    "click": 0.10,
-    "create": 0.35,
-    "publish": 0.55,
-}
-
-
 def task_value_weights(task_names: tuple[str, ...]) -> tuple[float, ...]:
     return tuple(FEED_TASK_VALUE_WEIGHTS.get(name, 0.0) for name in task_names)
-
-
-def surface_task_value_weights(
-    task_names: tuple[str, ...],
-) -> dict[int, tuple[float, ...]]:
-    return {
-        5: tuple(POSTING_TASK_VALUE_WEIGHTS.get(name, 0.0) for name in task_names),
-    }

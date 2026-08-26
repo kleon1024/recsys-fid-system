@@ -28,4 +28,5 @@ def open_platform_requests(events: AppEventBatch) -> PlatformRequestBatch:
         surface=events.surface[entry],
         event_time=events.event_time[entry],
         query_topic=query_topic,
+        user_creator_id=events.creator_id[entry],
     )
