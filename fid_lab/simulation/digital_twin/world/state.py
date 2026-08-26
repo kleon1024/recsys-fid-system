@@ -25,7 +25,7 @@ class UserWorldConfig:
     environment_seed: int
     ticks_per_day: int = 96
     future_signup_fraction: float = 0.08
-    arrival_intensity: float = 4.0
+    arrival_intensity: float = 8.0
     initialization_mode: Literal["equilibrium", "bootstrap"] = "equilibrium"
 
     def __post_init__(self):

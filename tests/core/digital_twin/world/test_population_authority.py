@@ -137,6 +137,7 @@ def test_session_survival_can_create_churn_without_observable_churn_label():
     users.habit.fill_(0.01)
     users.churn_susceptibility.fill_(1.0)
     users.session_count.fill_(1)
+    users.activation_score.zero_()
     event = make_app_events(
         EventType.SESSION_END,
         event_time=10,

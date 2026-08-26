@@ -10,7 +10,7 @@ from ....randomness.counter import normal, uniform
 from ...contracts import Surface
 
 
-POPULATION_VERSION = "equilibrium-correlated-latent-mixture-v2"
+POPULATION_VERSION = "mau-conditioned-correlated-latent-mixture-v3"
 
 
 @dataclass(frozen=True)
@@ -221,7 +221,10 @@ def sample_population(
     weekly_activity, churn_susceptibility = _weekly_and_churn(
         user, mixture, factors, seed,
     )
-    activity = 0.015 + 0.78 * traits[:, 3].square()
+    # The simulation population represents rolling-28-day active users rather
+    # than all historical registrations. Preserve heterogeneous frequency
+    # without admitting a lifetime-account-sized dormant mass.
+    activity = 0.08 + 0.82 * traits[:, 3]
     lifecycle = torch.where(
         activity > 0.42,
         torch.full_like(mixture, 3),

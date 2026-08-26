@@ -205,7 +205,7 @@ def _build_kernel(config: RetrievalLadderConfig):
         environment_seed=config.seed + 2,
         ticks_per_day=profile.ticks_per_day,
         future_signup_fraction=0.08,
-        arrival_intensity=4.0,
+        arrival_intensity=8.0,
     ), catalog, response_authority=response_authority)
     platform = ReferenceRecommendationPlatform(
         ReferencePlatformConfig(
