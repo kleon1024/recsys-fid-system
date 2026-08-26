@@ -64,7 +64,7 @@ EOF
 systemctl --user start recsys-gpu-job@feed-aa.service
 ```
 
-The unit applies a 20 GB soft memory boundary, 22 GB hard boundary and 3 GB swap
+The unit applies an 18 GB soft memory boundary, 20 GB hard boundary and 2 GB swap
 boundary. CUDA or CPU OOM exits may restart at most twice per 30 minutes. A
 third failure remains failed and must be diagnosed from:
 
