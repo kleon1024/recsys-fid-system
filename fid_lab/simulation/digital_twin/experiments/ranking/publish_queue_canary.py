@@ -12,6 +12,7 @@ from ...contracts import Surface
 from ...engine import ExperimentPlan
 from ...learning import ProbeArtifact, SparseLinearArtifact
 from ...observability.store import replace_json_atomic
+from ...profile import STANDARD_FEED_PROFILE
 from ..launch_review.metrics import StreamingExperimentMetrics
 from ..retrieval_ladder import RetrievalLadderConfig, _build_kernel, _policy
 from .publish_queue_launch import _publish_decision
@@ -23,7 +24,7 @@ class PublishQueueCanaryConfig:
     control_fine_checkpoint: str
     output: str
     users: int = 100_000
-    items: int = 100_000
+    items: int = 1_000_000
     burn_in_steps: int = 112
     experiment_steps: int = 96
     ticks_per_day: int = 16
@@ -31,6 +32,14 @@ class PublishQueueCanaryConfig:
     device: str = "cuda"
     publish_weight: float = 0.12
     minimum_triggered_users: int = 30_000
+
+    def __post_init__(self) -> None:
+        if self.items * STANDARD_FEED_PROFILE.users < (
+            self.users * STANDARD_FEED_PROFILE.items
+        ):
+            raise ValueError(
+                "expanded canary must preserve the standard item/user ratio"
+            )
 
 
 def _load_artifact(path: str):

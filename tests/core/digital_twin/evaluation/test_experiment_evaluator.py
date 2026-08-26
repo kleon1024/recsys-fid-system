@@ -4,6 +4,7 @@ from dataclasses import replace
 from copy import deepcopy
 
 import torch
+import pytest
 
 from fid_lab.simulation.digital_twin import AppEventBatch, EventType
 from fid_lab.simulation.digital_twin.contracts import Surface, make_app_events
@@ -19,6 +20,9 @@ from fid_lab.simulation.digital_twin.observability import (
 from fid_lab.simulation.digital_twin.experiments.launch_review.metrics import (
     StreamingExperimentMetrics,
     analyze_experiment,
+)
+from fid_lab.simulation.digital_twin.experiments.ranking.publish_queue_canary import (
+    PublishQueueCanaryConfig,
 )
 
 
@@ -114,3 +118,14 @@ def test_launch_metrics_join_later_posting_events_by_feed_user_cohort():
     streamed_metrics, streamed_sample = streamed.analyze()
     assert streamed_sample == sample
     assert streamed_metrics == metrics
+
+
+def test_expanded_canary_preserves_standard_supply_ratio():
+    with pytest.raises(ValueError, match="item/user ratio"):
+        PublishQueueCanaryConfig(
+            publish_checkpoint="publish.pt",
+            control_fine_checkpoint="fine.pt",
+            output="out",
+            users=100_000,
+            items=100_000,
+        )

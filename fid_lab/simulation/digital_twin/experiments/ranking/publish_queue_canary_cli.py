@@ -17,7 +17,7 @@ def main() -> None:
     parser.add_argument("--control-fine-checkpoint", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--users", type=int, default=100_000)
-    parser.add_argument("--items", type=int, default=100_000)
+    parser.add_argument("--items", type=int, default=1_000_000)
     parser.add_argument("--burn-in-steps", type=int, default=112)
     parser.add_argument("--steps", type=int, default=96)
     parser.add_argument("--ticks-per-day", type=int, default=16)
