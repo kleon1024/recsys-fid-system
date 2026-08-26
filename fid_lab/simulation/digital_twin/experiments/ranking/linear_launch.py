@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
+from hashlib import sha256
+import os
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 import time
 
 import torch
@@ -14,7 +17,7 @@ from ...learning import Lane, PartitionedSampleBus
 from ...learning.probe import load_probe_batch, train_probe
 from ...observability.store import replace_json_atomic
 from ..launch_review import LaunchEvidenceCollector
-from ..launch_review.metrics import analyze_experiment, decide_launch
+from ..launch_review.metrics import analyze_experiment, decide_launch, validate_aa
 from ..retrieval_ladder import RetrievalLadderConfig, _build_kernel, _policy
 
 
@@ -42,10 +45,35 @@ def _auc(label: torch.Tensor, score: torch.Tensor) -> float:
     if not positives or not negatives:
         return float("nan")
     order = torch.argsort(score)
-    rank = torch.empty_like(order, dtype=torch.float)
-    rank[order] = torch.arange(1, len(label) + 1, dtype=torch.float)
+    sorted_score = score[order]
+    _, counts = torch.unique_consecutive(sorted_score, return_counts=True)
+    end = torch.cumsum(counts, dim=0).float()
+    start = end - counts.float() + 1.0
+    average_rank = torch.repeat_interleave((start + end) / 2.0, counts)
+    rank = torch.empty_like(average_rank)
+    rank[order] = average_rank
     statistic = rank[positive].sum() - positives * (positives + 1) / 2
     return float(statistic / (positives * negatives))
+
+
+def _gauc(
+    request_id: torch.Tensor,
+    label: torch.Tensor,
+    score: torch.Tensor,
+) -> float:
+    weighted_auc = 0.0
+    comparable_pairs = 0
+    for value in torch.unique(request_id):
+        selected = request_id == value
+        group_label = label[selected]
+        positives = int((group_label > 0.5).sum())
+        negatives = len(group_label) - positives
+        if not positives or not negatives:
+            continue
+        pairs = positives * negatives
+        weighted_auc += pairs * _auc(group_label, score[selected])
+        comparable_pairs += pairs
+    return weighted_auc / comparable_pairs if comparable_pairs else float("nan")
 
 
 def _train_candidate(config: LinearRankLaunchConfig):
@@ -105,12 +133,25 @@ def _train_candidate(config: LinearRankLaunchConfig):
         )[:, task].cpu()
     labels = validation.labels[mask, task]
     loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, labels)
+    labeled = train.label_mask.any(dim=1)
     return artifact, {
         "train_rows": len(train.request_id),
         "validation_rows": len(validation.request_id),
         "validation_long_view_rows": int(mask.sum()),
         "validation_long_view_auc": _auc(labels, logits),
+        "validation_long_view_gauc": _gauc(
+            validation.request_id[mask], labels, logits,
+        ),
         "validation_long_view_logloss": float(loss),
+        "training_support": {
+            "labeled_rows": int(labeled.sum()),
+            "randomized_rows": int(train.randomized_support.sum()),
+            "randomized_labeled_rows": int(
+                (labeled & train.randomized_support).sum()
+            ),
+            "exposed_rows": int(train.exposed.sum()),
+            "candidate_rows": len(train.request_id),
+        },
         "train_time_range": [
             int(train.request_time.min()), int(train.request_time.max()),
         ],
@@ -118,6 +159,27 @@ def _train_candidate(config: LinearRankLaunchConfig):
             int(validation.request_time.min()), int(validation.request_time.max()),
         ],
         "artifact": artifact.training_report,
+    }
+
+
+def _save_serving_artifact(artifact, output: Path) -> dict[str, str]:
+    output.mkdir(parents=True, exist_ok=True)
+    target = output / "fine-ranker.pt"
+    with NamedTemporaryFile(
+        dir=output, prefix=".fine-ranker-", suffix=".pt", delete=False,
+    ) as stream:
+        temporary = Path(stream.name)
+    try:
+        torch.save(artifact.checkpoint(), temporary)
+        digest = sha256(temporary.read_bytes()).hexdigest()
+        os.replace(temporary, target)
+    finally:
+        temporary.unlink(missing_ok=True)
+    return {
+        "path": str(target),
+        "sha256": digest,
+        "model_name": artifact.model_name,
+        "feature_manifest_hash": artifact.feature_manifest_hash,
     }
 
 
@@ -135,12 +197,15 @@ def _run_window(kernel, plan, logical_time, steps, evidence=None):
 def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
     started = time.perf_counter()
     artifact, offline = _train_candidate(config)
+    output = Path(config.output)
+    serving_artifact = _save_serving_artifact(artifact, output)
     if offline["validation_long_view_auc"] < 0.52:
         report = {
             "schema": "dense-linear-ranker-launch/v1",
             "quality_claim": "synthetic factual-world evidence only",
             "config": asdict(config),
             "offline": offline,
+            "serving_artifact": serving_artifact,
             "review": {
                 "decision": "reject_offline",
                 "reason": "time-split long-view AUC is below 0.52",
@@ -179,6 +244,30 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
         kernel, baseline, logical_time, config.aa_steps,
     )
     aa_metrics, aa_sample = analyze_experiment(aa_events, config.users)
+    aa_valid, aa_reason = validate_aa(aa_metrics)
+    if not aa_valid:
+        report = {
+            "schema": "dense-linear-ranker-launch/v1",
+            "quality_claim": "synthetic factual-world evidence only",
+            "config": asdict(config),
+            "offline": offline,
+            "serving_artifact": serving_artifact,
+            "aa": {
+                "sample": aa_sample,
+                "metrics_per_triggered_user": aa_metrics,
+                "valid": False,
+                "reason": aa_reason,
+            },
+            "review": {
+                "decision": "invalid_aa",
+                "reason": aa_reason,
+                "sample": {},
+                "metrics_per_triggered_user": {},
+            },
+            "elapsed_seconds": time.perf_counter() - started,
+        }
+        replace_json_atomic(output / "report.json", report)
+        return report
     kernel.platform.install_fine_scorer(1, artifact)
     treatment = replace(
         control, name="feed-random-popular-dense-lr-v1", fine_version_id=1,
@@ -212,7 +301,6 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
         "decision": decision,
         "reason": reason,
     }
-    output = Path(config.output)
     review["launch_bundle"] = evidence.materialize(
         kernel=kernel,
         output_dir=output / "F-LR-001",
@@ -224,9 +312,12 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
         "quality_claim": "synthetic factual-world evidence only",
         "config": asdict(config),
         "offline": offline,
+        "serving_artifact": serving_artifact,
         "aa": {
             "sample": aa_sample,
             "metrics_per_triggered_user": aa_metrics,
+            "valid": True,
+            "reason": aa_reason,
         },
         "review": review,
         "elapsed_seconds": time.perf_counter() - started,

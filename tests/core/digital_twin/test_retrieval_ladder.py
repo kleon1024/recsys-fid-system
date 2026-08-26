@@ -1,9 +1,26 @@
 from __future__ import annotations
 
+import torch
+
 from fid_lab.simulation.digital_twin.experiments.retrieval_ladder import (
     RetrievalLadderConfig,
     _decision,
     run_retrieval_ladder,
+)
+from fid_lab.simulation.digital_twin.experiments.ranking.linear_launch import (
+    _auc,
+    _gauc,
+    _save_serving_artifact,
+)
+from fid_lab.simulation.digital_twin.experiments.launch_review.metrics import (
+    validate_aa,
+)
+from fid_lab.simulation.digital_twin.learning.probe import (
+    ProbeArtifact,
+    ProbeRanker,
+)
+from fid_lab.simulation.digital_twin.platform.features import (
+    DEFAULT_FEATURE_MANIFEST,
 )
 
 
@@ -39,6 +56,65 @@ def test_retrieval_launches_change_one_route_and_preserve_factual_world():
         assert stages["coarse"] >= stages["fine"]
         assert stages["fine"] >= stages["exposed"]
     assert result["final_active_routes"] == ["random"]
+
+
+def test_retrieval_ladder_can_freeze_a_learned_fine_ranker(tmp_path):
+    inputs = len(DEFAULT_FEATURE_MANIFEST.dense_fields)
+    artifact = ProbeArtifact(
+        model=ProbeRanker(inputs, 1),
+        task_names=("long_view",),
+        feature_manifest_hash=DEFAULT_FEATURE_MANIFEST.manifest_hash,
+        training_report={"purpose": "test"},
+        dense_mean=torch.zeros(inputs),
+        dense_scale=torch.ones(inputs),
+    )
+    checkpoint = tmp_path / "fine-ranker.pt"
+    saved = _save_serving_artifact(artifact, tmp_path)
+    checkpoint = tmp_path / "fine-ranker.pt"
+    assert saved["path"] == str(checkpoint)
+    assert len(saved["sha256"]) == 64
+
+    result = run_retrieval_ladder(RetrievalLadderConfig(
+        users=128,
+        items=1_200,
+        burn_in_steps=1,
+        experiment_steps=1,
+        control_fraction=0.4,
+        treatment_fraction=0.4,
+        device="cpu",
+        auto_promote=False,
+        minimum_triggered_users=10_000,
+        max_attempts_per_review=1,
+        max_reviews=1,
+        fine_ranker_checkpoint=str(checkpoint),
+    ))
+
+    assert result["config"]["fine_ranker_checkpoint"] == str(checkpoint)
+    assert result["reviews"][0]["added_route"] == "popular"
+
+
+def test_linear_launch_auc_uses_average_rank_for_ties():
+    label = torch.tensor((0.0, 1.0, 0.0, 1.0))
+    assert _auc(label, torch.zeros_like(label)) == 0.5
+    request = torch.tensor((1, 1, 2, 2))
+    score = torch.tensor((0.0, 1.0, 1.0, 0.0))
+    assert _gauc(request, label, score) == 0.5
+
+
+def test_aa_gate_fails_when_primary_or_guardrail_excludes_zero():
+    neutral = {"ci95_low": -0.1, "ci95_high": 0.1, "control_mean": 1.0}
+    shifted = {"ci95_low": 0.01, "ci95_high": 0.2, "control_mean": 1.0}
+    valid, _ = validate_aa({
+        "dwell_seconds": neutral,
+        "negative": neutral,
+    })
+    invalid, reason = validate_aa({
+        "dwell_seconds": shifted,
+        "negative": neutral,
+    })
+    assert valid
+    assert not invalid
+    assert reason == "A/A dwell_seconds confidence interval excludes zero"
 
 
 def test_empty_or_nonfinite_launch_cannot_promote():

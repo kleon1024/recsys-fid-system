@@ -14,6 +14,7 @@ from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
 from ..contracts import EventType, Surface
 from ..engine import AtomicSimulationKernel, ExperimentPlan
 from ..event_log import ObservableEventLog
+from ..learning.probe import ProbeArtifact
 from ..platform import (
     ROUTE_NAMES,
     CascadePolicy,
@@ -31,7 +32,7 @@ from ..world.authority import (
     load_factual_response_authority,
 )
 from .launch_review.bundle import LaunchEvidenceCollector
-from .launch_review.metrics import analyze_experiment, decide_launch
+from .launch_review.metrics import analyze_experiment, decide_launch, validate_aa
 
 
 _decision = decide_launch
@@ -84,6 +85,7 @@ class RetrievalLadderConfig:
     initial_routes: tuple[str, ...] = ()
     route_ladder: tuple[str, ...] = ROUTE_LADDER
     aa_steps: int = 0
+    fine_ranker_checkpoint: str | None = None
 
     def __post_init__(self):
         if self.ticks_per_day <= 0 or self.minimum_triggered_users <= 1:
@@ -132,6 +134,7 @@ def _policy(
     version: int,
     routes: tuple[str, ...],
     ticks_per_day: int,
+    fine_version_id: int = 0,
 ) -> CascadePolicy:
     weights = tuple(
         0.10 if name == "random" and len(routes) > 1
@@ -144,7 +147,7 @@ def _policy(
     return CascadePolicy(
         name,
         coarse_version_id=0,
-        fine_version_id=0,
+        fine_version_id=fine_version_id,
         mix_version_id=1,
         recall_version_id=version,
         enabled_routes=routes,
@@ -409,6 +412,7 @@ def _run_one_review(
     treatment = _policy(
         f"feed-add-{route}-v{index + 1}", index + 1, proposed_routes,
         config.ticks_per_day,
+        fine_version_id=1 if config.fine_ranker_checkpoint else 0,
     )
     plan = ExperimentPlan.ramped_user_ab(
         active_policy=active,
@@ -525,6 +529,7 @@ def _restore_or_burn_in(
     active = _policy(
         f"feed-{'-'.join(active_routes)}-v1", 1, active_routes,
         config.ticks_per_day,
+        fine_version_id=1 if config.fine_ranker_checkpoint else 0,
     )
     if resume_checkpoint_id is not None:
         if store is None:
@@ -666,6 +671,15 @@ def _save_review_checkpoint(
 
 def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
     device, kernel = _build_kernel(config)
+    if config.fine_ranker_checkpoint:
+        checkpoint = torch.load(
+            Path(config.fine_ranker_checkpoint),
+            map_location="cpu",
+            weights_only=True,
+        )
+        kernel.platform.install_fine_scorer(
+            1, ProbeArtifact.from_checkpoint(checkpoint),
+        )
     store, registry, resume_checkpoint_id = _checkpoint_control(config)
     _sync(device)
     started = time.perf_counter()
@@ -699,19 +713,18 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
         aa_events = kernel.event_log.read(ingested_through=logical_time - 1)
         aa_events = aa_events.select(aa_events.ingest_time >= aa_start)
         aa_metrics, aa_sample = analyze_experiment(aa_events, config.users)
+        aa_valid, aa_reason = validate_aa(aa_metrics)
         aa_review = {
             "analysis_start_time": aa_start,
             "analysis_end_time": logical_time - 1,
             "policy_routes": list(active_routes),
             "sample": aa_sample,
             "metrics_per_triggered_user": aa_metrics,
-            "valid": all(
-                metric["ci95_low"] <= 0.0 <= metric["ci95_high"]
-                for metric in (
-                    aa_metrics["dwell_seconds"], aa_metrics["negative"],
-                )
-            ),
+            "valid": aa_valid,
+            "reason": aa_reason,
         }
+        if not aa_valid:
+            next_route_index = len(config.route_ladder)
     review_windows = 0
     while next_route_index < len(config.route_ladder):
         if config.max_reviews is not None and review_windows >= config.max_reviews:

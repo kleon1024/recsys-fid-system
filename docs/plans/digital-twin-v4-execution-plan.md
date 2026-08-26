@@ -107,6 +107,24 @@ factual evidence until v24 shadow, checkpoint parity and A/A pass.
 
 ## 2.1 Research disposition
 
+### 2026-08-26 semantic-v3 ordering correction
+
+The first semantic-v3 audit invalidated two earlier diagnoses. Multi-route
+ranking consumes weighted RRF scores rather than raw route scores, and the
+retrieval ladder intentionally sets coarse/fine version zero, which preserves
+RRF order. With an average 33.9 merged candidates against `coarse_k=48`, coarse
+has no pressure yet; this is an evolution stage, not a coarse-model failure.
+
+The accepted order is now Random, Popular, initial learned fine ranker, then
+personalized retrieval. Dense LR trained on the v3 Random+Popular exposed
+support achieved time-split long-view AUC around 0.589 and positive online Stay
+in seeds 1809 and 1810. Seed 1811 also showed positive A/B metrics but is invalid
+because its A/A Stay and Negative intervals excluded zero. Canonical promotion
+therefore requires the fail-closed A/A runner, a persisted serving artifact and
+the next fixed-ranker recall review. Full candidate rows remain useful lineage,
+but deterministic unexposed rows have no labels and cannot be treated as
+negatives or causal OPE support.
+
 The research question is not whether a larger handcrafted DGP can make a neural
 ranker win. That would couple the evaluator to the desired model. The reviewed
 public systems establish a more defensible division of responsibility:

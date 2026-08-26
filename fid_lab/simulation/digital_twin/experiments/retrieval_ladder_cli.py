@@ -23,6 +23,7 @@ def main() -> None:
     parser.add_argument("--initial-routes", default="")
     parser.add_argument("--candidate-route", default="popular")
     parser.add_argument("--aa-steps", type=int, default=8)
+    parser.add_argument("--fine-ranker-checkpoint")
     args = parser.parse_args()
     report = run_retrieval_ladder(RetrievalLadderConfig(
         users=args.users, items=args.items, burn_in_steps=args.burn_in_steps,
@@ -39,6 +40,7 @@ def main() -> None:
         initial_routes=tuple(filter(None, args.initial_routes.split(","))),
         route_ladder=(args.candidate_route,),
         aa_steps=args.aa_steps,
+        fine_ranker_checkpoint=args.fine_ranker_checkpoint,
     ))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")

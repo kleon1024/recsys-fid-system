@@ -119,6 +119,19 @@ def analyze_experiment(
     }
 
 
+def validate_aa(
+    metrics: dict[str, dict[str, float]],
+) -> tuple[bool, str]:
+    for name in ("dwell_seconds", "negative"):
+        metric = metrics[name]
+        values = tuple(metric.values())
+        if not all(math.isfinite(value) for value in values):
+            return False, f"A/A {name} contains a non-finite metric"
+        if not metric["ci95_low"] <= 0.0 <= metric["ci95_high"]:
+            return False, f"A/A {name} confidence interval excludes zero"
+    return True, "A/A primary and guardrail intervals include zero"
+
+
 def decide_launch(
     metrics: dict[str, dict[str, float]],
     sample: dict[str, int],
