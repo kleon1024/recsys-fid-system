@@ -388,6 +388,7 @@ def _sample_lineage_defaults(rows: int) -> dict[str, object]:
         "task_label_masks": _empty_lists(rows, pa.bool_()),
         "task_label_applicable": _empty_lists(rows, pa.bool_()),
         "task_label_mature": _empty_lists(rows, pa.bool_()),
+        "task_attribution_event_ids": _empty_lists(rows, pa.int64()),
     }
 
 
@@ -634,6 +635,9 @@ def _publish_queue_example_table(publish) -> pa.Table:
     )
     data["task_label_mature"] = _variable_list(
         publish.label_mature[valid], pa.bool_(),
+    )
+    data["task_attribution_event_ids"] = _variable_list(
+        publish.attribution_event_id[valid], pa.int64(),
     )
     return pa.table(data)
 

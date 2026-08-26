@@ -74,6 +74,7 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
     publish = examples.loc[examples.authority == "publish_queue"]
     assert publish.surface.eq(0).all()
     assert publish.task_label_values.map(len).eq(3).all()
+    assert publish.task_attribution_event_ids.map(len).eq(3).all()
     assert publish.loc[
         ~publish.exposed, "task_label_masks"
     ].map(any).eq(False).all()

@@ -96,6 +96,9 @@ class PublishQueueJoiner:
         task_count = len(tasks)
         shape = (*item.shape, task_count)
         labels = torch.zeros(shape, dtype=torch.float, device=item.device)
+        attribution_event_id = torch.full(
+            shape, -1, dtype=torch.long, device=item.device,
+        )
 
         maturity_time = torch.stack(tuple(
             request_time[:, None].expand_as(item) + task.window_ticks
@@ -129,7 +132,10 @@ class PublishQueueJoiner:
             )
             outcome_users = events.user_id[outcome].detach().cpu().tolist()
             outcome_times = events.event_time[outcome].detach().cpu().tolist()
-            for outcome_user, outcome_time in zip(outcome_users, outcome_times):
+            outcome_ids = events.event_id[outcome].detach().cpu().tolist()
+            for outcome_user, outcome_time, outcome_id in zip(
+                outcome_users, outcome_times, outcome_ids, strict=True,
+            ):
                 candidates = source_by_user.get(int(outcome_user))
                 if not candidates:
                     continue
@@ -147,8 +153,12 @@ class PublishQueueJoiner:
                 if location is not None:
                     row, column = location
                     labels[row, column, task_index] = 1.0
+                    attribution_event_id[row, column, task_index] = outcome_id
 
         labels = labels.clamp_max(1.0) * mature.float()
+        attribution_event_id = torch.where(
+            mature, attribution_event_id, torch.full_like(attribution_event_id, -1),
+        )
         exposure_probability = fine.exposure_probability[selected]
         assignment_probability = fine.assignment_probability[selected]
         return PublishQueueExampleBatch(
@@ -167,6 +177,7 @@ class PublishQueueJoiner:
             label_mature=mature,
             label_mask=mature,
             label_maturity_time=maturity_time,
+            attribution_event_id=attribution_event_id,
             dense_features=fine.dense_features[selected],
             sparse_fids=fine.sparse_fids[selected],
             sparse_buckets=fine.sparse_buckets[selected],

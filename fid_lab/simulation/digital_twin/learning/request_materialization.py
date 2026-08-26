@@ -7,6 +7,8 @@ from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
 
+import torch
+
 from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
 from ..experiments.retrieval_ladder import RetrievalLadderConfig, _build_kernel
 from ..observability import (
@@ -94,7 +96,7 @@ def materialize_factual_requests(
     partitions = []
     for ref in refs:
         request = stream.read(ref, device=kernel.world.catalog.item_id.device)
-        events = select_joiner_events(
+        join_events = select_joiner_events(
             all_events,
             request_id=request.trace.request_id,
             user_id=request.trace.user_id,
@@ -104,9 +106,15 @@ def materialize_factual_requests(
         samples = joiner.materialize(
             request.trace,
             request.context,
-            events,
+            join_events,
             event_watermark=event_watermark,
         )
+        attributed = samples.publish_queue.attribution_event_id
+        attributed = torch.unique(attributed[attributed >= 0])
+        persist = torch.isin(all_events.request_id, request.trace.request_id)
+        if len(attributed):
+            persist |= torch.isin(all_events.event_id, attributed)
+        events = all_events.select(persist)
         snapshot = FullFlowSnapshot(
             catalog=kernel.world.catalog,
             trace=request.trace,

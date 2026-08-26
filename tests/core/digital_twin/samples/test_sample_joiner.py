@@ -277,6 +277,7 @@ def test_publish_queue_attributes_later_posting_outcomes_to_feed_content():
     assert publish.label_mask[0, :2].all()
     assert not publish.label_mask[0, 2:].any()
     assert torch.allclose(publish.labels[0, :2].sum(dim=0), torch.ones(3))
+    assert (publish.attribution_event_id[publish.labels > 0.0] >= 0).all()
     assert torch.allclose(
         publish.joint_logging_probability,
         publish.exposure_probability * publish.assignment_probability[:, None],

@@ -89,7 +89,7 @@ class LaunchEvidenceCollector:
             device = kernel.platform.catalog.item_id.device
             trace = _move_tensor_fields(tick.candidate_trace, device)
             context = _move_tensor_fields(tick.request_context, device)
-            events = select_joiner_events(
+            join_events = select_joiner_events(
                 all_events,
                 request_id=trace.request_id,
                 user_id=trace.user_id,
@@ -99,9 +99,15 @@ class LaunchEvidenceCollector:
             samples = joiner.materialize(
                 trace,
                 context,
-                events,
+                join_events,
                 event_watermark=int(review["analysis_end_time"]),
             )
+            attributed = samples.publish_queue.attribution_event_id
+            attributed = torch.unique(attributed[attributed >= 0])
+            persist = torch.isin(all_events.request_id, trace.request_id)
+            if len(attributed):
+                persist |= torch.isin(all_events.event_id, attributed)
+            events = all_events.select(persist)
             snapshot = FullFlowSnapshot(
                 catalog=kernel.platform.catalog,
                 trace=trace,
@@ -116,7 +122,7 @@ class LaunchEvidenceCollector:
             )
             requests += len(trace.request_id)
             event_count += len(events.event_id)
-            del samples, snapshot, events, trace, context, tick
+            del samples, snapshot, events, join_events, trace, context, tick
         diagnosis = write_diagnosis(full_flow, output_dir, review=review)
         return {
             "path": str(output_dir),

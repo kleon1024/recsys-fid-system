@@ -564,6 +564,7 @@ class PublishQueueExampleBatch:
     label_mature: torch.Tensor
     label_mask: torch.Tensor
     label_maturity_time: torch.Tensor
+    attribution_event_id: torch.Tensor
     dense_features: torch.Tensor
     sparse_fids: torch.Tensor
     sparse_buckets: torch.Tensor
@@ -590,6 +591,7 @@ class PublishQueueExampleBatch:
         task_shape = (*shape, len(self.task_names))
         for name in (
             "labels", "label_mature", "label_mask", "label_maturity_time",
+            "attribution_event_id",
         ):
             _aligned(name, getattr(self, name), task_shape)
         for name in ("dense_features", "sparse_fids", "sparse_buckets"):
@@ -606,6 +608,9 @@ class PublishQueueExampleBatch:
             raise ValueError("publish-queue masks require mature Feed exposure")
         if (self.labels[~self.label_mask] != 0.0).any():
             raise ValueError("publish-queue unobservable labels must remain zero")
+        attributed = self.attribution_event_id >= 0
+        if not torch.equal(attributed, self.labels > 0.0):
+            raise ValueError("Publish Queue labels require exact event lineage")
         expected_probability = (
             self.exposure_probability * self.assignment_probability[:, None]
         )
