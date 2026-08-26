@@ -56,6 +56,20 @@ def _train_candidate(config: LinearRankLaunchConfig):
     split = max(1, int(0.8 * len(refs)))
     train = load_probe_batch(bus, refs[:split])
     validation = load_probe_batch(bus, refs[split:])
+    feed = train.surface == int(Surface.FEED)
+    train = replace(
+        train,
+        request_id=train.request_id[feed],
+        user_id=train.user_id[feed],
+        surface=train.surface[feed],
+        request_time=train.request_time[feed],
+        item_id=train.item_id[feed],
+        dense_features=train.dense_features[feed],
+        sparse_buckets=train.sparse_buckets[feed],
+        labels=train.labels[feed],
+        label_mask=train.label_mask[feed],
+        joint_logging_probability=train.joint_logging_probability[feed],
+    )
     artifact = train_probe(
         train,
         lane=Lane.CANDIDATE,
@@ -105,6 +119,22 @@ def _run_window(kernel, plan, logical_time, steps, evidence=None):
 def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
     started = time.perf_counter()
     artifact, offline = _train_candidate(config)
+    if offline["validation_long_view_auc"] < 0.52:
+        report = {
+            "schema": "dense-linear-ranker-launch/v1",
+            "quality_claim": "synthetic factual-world evidence only",
+            "config": asdict(config),
+            "offline": offline,
+            "review": {
+                "decision": "reject_offline",
+                "reason": "time-split long-view AUC is below 0.52",
+                "sample": {},
+                "metrics_per_triggered_user": {},
+            },
+            "elapsed_seconds": time.perf_counter() - started,
+        }
+        replace_json_atomic(Path(config.output) / "report.json", report)
+        return report
     runtime = RetrievalLadderConfig(
         users=config.users,
         items=config.items,

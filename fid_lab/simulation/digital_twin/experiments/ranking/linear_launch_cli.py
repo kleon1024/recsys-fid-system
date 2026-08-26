@@ -25,14 +25,15 @@ def main() -> None:
         device=args.device,
         seed=args.seed,
     ))
-    print(json.dumps({
+    summary = {
         "offline": report["offline"],
         "decision": report["review"]["decision"],
         "sample": report["review"]["sample"],
-        "stay": report["review"]["metrics_per_triggered_user"][
-            "dwell_seconds"
-        ],
-    }, indent=2))
+    }
+    metrics = report["review"]["metrics_per_triggered_user"]
+    if "dwell_seconds" in metrics:
+        summary["stay"] = metrics["dwell_seconds"]
+    print(json.dumps(summary, indent=2))
 
 
 if __name__ == "__main__":

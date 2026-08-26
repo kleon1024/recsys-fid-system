@@ -198,8 +198,9 @@ def train_probe(
     learning_rate: float = 3e-3,
     device: str | torch.device = "cpu",
     seed: int = 20260825,
+    batch_size: int = 65_536,
 ) -> ProbeArtifact:
-    if epochs <= 0 or learning_rate <= 0.0:
+    if epochs <= 0 or learning_rate <= 0.0 or batch_size <= 0:
         raise ValueError("probe training configuration must be positive")
     target = torch.device(device)
     torch.manual_seed(seed)
@@ -216,17 +217,28 @@ def train_probe(
         raise ValueError("probe has no mature labels")
     losses = []
     model.train()
+    generator = torch.Generator(device=target).manual_seed(seed + 1)
+    optimizer_steps = 0
     for _ in range(epochs):
-        logits = model(dense, surface)
-        element = torch.nn.functional.binary_cross_entropy_with_logits(
-            logits, labels, reduction="none",
-        )
-        weight = (1.0 / propensity.clamp_min(0.05)).clamp_max(10.0)[:, None]
-        loss = (element * masks * weight).sum() / masks.sum().clamp_min(1)
-        optimizer.zero_grad(set_to_none=True)
-        loss.backward()
-        optimizer.step()
-        losses.append(float(loss.detach()))
+        order = torch.randperm(len(dense), generator=generator, device=target)
+        for start in range(0, len(order), batch_size):
+            row = order[start:start + batch_size]
+            logits = model(dense[row], surface[row])
+            element = torch.nn.functional.binary_cross_entropy_with_logits(
+                logits, labels[row], reduction="none",
+            )
+            weight = (
+                1.0 / propensity[row].clamp_min(0.05)
+            ).clamp_max(10.0)[:, None]
+            observed = masks[row]
+            loss = (
+                element * observed * weight
+            ).sum() / observed.sum().clamp_min(1)
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            optimizer.step()
+            losses.append(float(loss.detach()))
+            optimizer_steps += 1
     model.eval()
     return ProbeArtifact(
         model=model,
@@ -242,6 +254,8 @@ def train_probe(
             "loss_first": losses[0],
             "loss_last": losses[-1],
             "epochs": epochs,
+            "batch_size": batch_size,
+            "optimizer_steps": optimizer_steps,
             "device": str(target),
             "seed": seed,
         },
