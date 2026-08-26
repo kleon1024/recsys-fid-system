@@ -160,6 +160,7 @@ class ProbeArtifact:
     dense_scale: torch.Tensor
     serving_task_weights: tuple[float, ...] | None = None
     task_logit_offsets: torch.Tensor | None = None
+    conditional_task_parents: tuple[int, ...] | None = None
 
     @property
     def model_name(self) -> str:
@@ -172,6 +173,31 @@ class ProbeArtifact:
             raise ValueError("probe artifact stage contract differs")
 
     @torch.inference_mode()
+    def predict_task_probabilities(
+        self, dense: torch.Tensor, surface: torch.Tensor,
+    ) -> torch.Tensor:
+        parameter = next(self.model.parameters())
+        dense = dense.to(parameter.device, parameter.dtype)
+        surface = surface.to(parameter.device)
+        mean = self.dense_mean.to(parameter.device, parameter.dtype)
+        scale = self.dense_scale.to(parameter.device, parameter.dtype)
+        logits = self.model((dense - mean) / scale, surface)
+        offset = (
+            torch.zeros(logits.shape[1], device=logits.device)
+            if self.task_logit_offsets is None
+            else self.task_logit_offsets.to(logits.device, logits.dtype)
+        )
+        raw_probability = torch.sigmoid(logits - offset)
+        probability = raw_probability.clone()
+        parents = self.conditional_task_parents or (-1,) * len(self.task_names)
+        for child, parent in enumerate(parents):
+            if parent >= 0:
+                probability[:, child] = (
+                    probability[:, parent] * raw_probability[:, child]
+                )
+        return probability
+
+    @torch.inference_mode()
     def score(
         self,
         features: FeatureTensorBatch,
@@ -179,30 +205,19 @@ class ProbeArtifact:
     ) -> torch.Tensor:
         if features.manifest_hash != self.feature_manifest_hash:
             raise ValueError("probe scoring feature manifest differs")
-        parameter = next(self.model.parameters())
         requests, candidates = features.dense.shape[:2]
-        dense = features.dense.reshape(
-            -1, features.dense.shape[2]
-        ).to(parameter.device, parameter.dtype)
+        dense = features.dense.reshape(-1, features.dense.shape[2])
         expanded_surface = surface[:, None].expand(
             requests, candidates,
-        ).reshape(-1).to(parameter.device)
-        mean = self.dense_mean.to(parameter.device, parameter.dtype)
-        scale = self.dense_scale.to(parameter.device, parameter.dtype)
-        logits = self.model((dense - mean) / scale, expanded_surface)
-        offset = (
-            torch.zeros(logits.shape[1], device=logits.device)
-            if self.task_logit_offsets is None
-            else self.task_logit_offsets.to(logits.device, logits.dtype)
-        )
-        probability = torch.sigmoid(logits - offset)
+        ).reshape(-1)
+        probability = self.predict_task_probabilities(dense, expanded_surface)
         if self.serving_task_weights is None:
             score = probability[:, self.task_names.index("long_view")]
         else:
             weight = torch.tensor(
                 self.serving_task_weights,
-                device=logits.device,
-                dtype=logits.dtype,
+                device=probability.device,
+                dtype=probability.dtype,
             )
             score = (probability * weight).sum(dim=1).clamp_min(0.0)
         score = score.reshape(requests, candidates)
@@ -210,7 +225,7 @@ class ProbeArtifact:
 
     def checkpoint(self) -> dict[str, object]:
         return {
-            "schema": "v4-lr-infrastructure-probe-v3",
+            "schema": "v4-lr-infrastructure-probe-v4",
             "inputs": self.model.inputs,
             "tasks": self.model.tasks,
             "surfaces": self.model.surfaces,
@@ -228,6 +243,7 @@ class ProbeArtifact:
                 None if self.task_logit_offsets is None
                 else self.task_logit_offsets.detach().cpu().clone()
             ),
+            "conditional_task_parents": self.conditional_task_parents,
         }
 
     @classmethod
@@ -237,6 +253,7 @@ class ProbeArtifact:
             "v4-lr-infrastructure-probe-v1",
             "v4-lr-infrastructure-probe-v2",
             "v4-lr-infrastructure-probe-v3",
+            "v4-lr-infrastructure-probe-v4",
         }:
             raise ValueError("probe checkpoint schema is unsupported")
         model = ProbeRanker(
@@ -266,6 +283,11 @@ class ProbeArtifact:
                 if value.get("task_logit_offsets") is None
                 else value["task_logit_offsets"].detach().cpu().float()
             ),
+            (
+                None
+                if value.get("conditional_task_parents") is None
+                else tuple(int(parent) for parent in value["conditional_task_parents"])
+            ),
         )
 
 
@@ -290,6 +312,20 @@ def train_probe(
     model = ProbeRanker(
         batch.dense_features.shape[1], len(batch.task_names),
     ).to(target)
+    conditional_names = {
+        "play_3s": "play",
+        "long_view": "play_3s",
+        "complete": "long_view",
+    }
+    conditional_parents = tuple(
+        batch.task_names.index(conditional_names[name])
+        if name in conditional_names and conditional_names[name] in batch.task_names
+        else -1
+        for name in batch.task_names
+    )
+    conditional_children = {
+        index for index, parent in enumerate(conditional_parents) if parent >= 0
+    }
     warm_started_tasks: list[str] = []
     if initial_artifact is not None:
         if initial_artifact.feature_manifest_hash != batch.feature_manifest_hash:
@@ -300,6 +336,8 @@ def train_probe(
             for task in set(batch.task_names) & set(initial_artifact.task_names):
                 source = initial_artifact.task_names.index(task)
                 target_task = batch.task_names.index(task)
+                if target_task in conditional_children:
+                    continue
                 old_weight = initial_artifact.model.linear.weight[source].to(target)
                 old_mean = initial_artifact.dense_mean.to(target)
                 old_scale = initial_artifact.dense_scale.to(target)
@@ -318,6 +356,10 @@ def train_probe(
     surface = batch.surface.to(target)
     labels = batch.labels.to(target)
     masks = batch.label_mask.to(target)
+    masks = masks.clone()
+    for child, parent in enumerate(conditional_parents):
+        if parent >= 0:
+            masks[:, child] &= labels[:, parent] > 0.5
     propensity = batch.joint_logging_probability.to(target)
     if not masks.any():
         raise ValueError("probe has no mature labels")
@@ -374,6 +416,11 @@ def train_probe(
             "optimizer_steps": optimizer_steps,
             "warm_started_tasks": sorted(warm_started_tasks),
             "new_tasks": sorted(set(batch.task_names) - set(warm_started_tasks)),
+            "conditional_task_parents": {
+                batch.task_names[child]: batch.task_names[parent]
+                for child, parent in enumerate(conditional_parents)
+                if parent >= 0
+            },
             "positive_weight": positive_weight.detach().cpu().tolist(),
             "device": str(target),
             "seed": seed,
@@ -381,4 +428,5 @@ def train_probe(
         dense_mean=dense_mean.detach().cpu(),
         dense_scale=dense_scale.detach().cpu(),
         task_logit_offsets=torch.log(positive_weight).detach().cpu(),
+        conditional_task_parents=conditional_parents,
     )

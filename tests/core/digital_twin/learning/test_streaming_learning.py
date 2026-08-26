@@ -97,6 +97,16 @@ def test_probe_registry_rejects_mismatch_and_preserves_fallback(tmp_path):
     ] > 0.0
     active_probe = train_probe(batch, lane=Lane.ACTIVE, seed=41)
     candidate_probe = train_probe(batch, lane=Lane.CANDIDATE, seed=41)
+    probability = active_probe.predict_task_probabilities(
+        batch.dense_features[:32], batch.surface[:32],
+    )
+    play = probability[:, batch.task_names.index("play")]
+    play_3s = probability[:, batch.task_names.index("play_3s")]
+    long_view = probability[:, batch.task_names.index("long_view")]
+    complete = probability[:, batch.task_names.index("complete")]
+    assert torch.all(play >= play_3s)
+    assert torch.all(play_3s >= long_view)
+    assert torch.all(long_view >= complete)
     for name, value in active_probe.model.state_dict().items():
         assert torch.equal(value, candidate_probe.model.state_dict()[name])
     assert active_probe.training_report["purpose"] == (

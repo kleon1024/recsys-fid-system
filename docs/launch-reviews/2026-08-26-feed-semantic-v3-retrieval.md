@@ -118,3 +118,22 @@ than merely increase retrieval volume.
 
 - `reports/launches/2026-08-26-feed-semantic-v3-stay-vt-lr.json`
 - `reports/launches/2026-08-26-feed-semantic-v3-vt-recent-ann-lr.json`
+
+## Strong-signal graph audit
+
+The existing `recent_graph` is a sequential strong-action co-visit count, not
+a normalized ItemCF or Swing implementation. On the accepted ranker it hit
+21,317 treatment requests and recalled 89,751 candidates, but only 5.26% passed
+fine rank and 3.31% reached exposure. Stay changed -4.16%, Long View -3.46%,
+and Negative -5.85%; only the negative reduction was statistically conclusive.
+The route is therefore safer but less engaging and is not promoted.
+
+The audit found two upstream causes. First, the accepted fine LR saw no ANN or
+graph exposure during training and ignores every sparse user, item, topic and
+route FID, so new-route candidates are out of distribution. Second, the
+four-day window produced only 241 new posts, about 60 per day for a 100,000
+item catalog. ItemCF and Swing must wait for bounded route exploration,
+route-aware ranking support, and a background creator-supply stream; otherwise
+they repeat the same unsupported-candidate failure.
+
+- `reports/launches/2026-08-26-feed-semantic-v3-vt-recent-graph-lr.json`

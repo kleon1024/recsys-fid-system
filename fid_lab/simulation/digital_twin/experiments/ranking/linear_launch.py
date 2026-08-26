@@ -195,22 +195,20 @@ def _train_candidate(config: LinearRankLaunchConfig):
     with torch.inference_mode():
         parameter = next(artifact.model.parameters())
         dense = validation.dense_features[mask].to(parameter.device)
-        mean = artifact.dense_mean.to(parameter.device)
-        scale = artifact.dense_scale.to(parameter.device)
-        logits = artifact.model(
-            (dense - mean) / scale,
+        probability = artifact.predict_task_probabilities(
+            dense,
             validation.surface[mask].to(parameter.device),
         )[:, task].cpu()
     labels = validation.labels[mask, task]
-    loss = torch.nn.functional.binary_cross_entropy_with_logits(logits, labels)
+    loss = torch.nn.functional.binary_cross_entropy(probability, labels)
     labeled = train.label_mask.any(dim=1)
     return artifact, {
         "train_rows": len(train.request_id),
         "validation_rows": len(validation.request_id),
         "validation_long_view_rows": int(mask.sum()),
-        "validation_long_view_auc": _auc(labels, logits),
+        "validation_long_view_auc": _auc(labels, probability),
         "validation_long_view_gauc": _gauc(
-            validation.request_id[mask], labels, logits,
+            validation.request_id[mask], labels, probability,
         ),
         "validation_long_view_logloss": float(loss),
         "training_support": {
