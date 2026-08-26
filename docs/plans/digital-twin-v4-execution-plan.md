@@ -756,6 +756,21 @@ the exploration/data contract is a ranking prerequisite, while personalized
 retrieval is the next quality LR. Coarse ranking still waits for measured fine
 capacity pressure.
 
+The first retrieval diagnosis also prevents three collaborative methods from
+being conflated. Weak adjacent-dwell `recent_graph` was held at -2.92% stay;
+country and dwell qualification reduced the point loss to -1.55%, but did not
+create lift. Cross-request strong-action transition I2I then produced -4.75%
+stay and statistically significant regressions in play-3s, long-view,
+completion, like, comment, share and follow. This is evidence of a
+policy-induced transition/echo signal, not evidence against collaborative
+filtering. It must not be promoted. ItemCF and Swing remain separate unbuilt
+routes: ItemCF will normalize strong user-item co-occurrence; Swing will add
+overlap/popularity debiasing. Each requires its own fixed-ranker Launch Review.
+The first `recent_ann` attempt was also held at -3.04% stay: its history average
+mixed examine, slide and negative events and only 7.75% of its candidates
+matched user country. Query construction now uses recency-weighted strong
+actions and country filtering; this correction remains unclaimed until rerun.
+
 - Run P3-09a → P3-02a/03a/05a → P3-07/08 → P3-09b.
 - Reuse the dual-lane trainer and manifest; do not reconstruct serving inputs.
 

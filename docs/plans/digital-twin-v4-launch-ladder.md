@@ -47,7 +47,9 @@ then calibrate primitive heads and introduce Value Tree and final-slate policy.
 | F-R02 | Popular → Popular + 30-day recent + locale/language eligibility | popularity formula | freshness/locale slices improve without coverage collapse |
 | F-F00 | randomized candidate order -> direct rule fine rank | small fixed candidate set | served Top-K changes; stay improves within latency budget |
 | F-R03 | current routes → Following/author-affinity route | ranker and route quota | marginal unique relevant recall and creator concentration |
-| F-R04 | current routes → Graph/I2I co-watch route | ranker and route quota | marginal unique recall and fixed-ranker delta, not route recall alone |
+| F-R04a | current routes → strong-action transition I2I | ranker and route quota | marginal unique recall, downstream value and feedback-loop concentration |
+| F-R04b | current routes → normalized ItemCF | strong-action interaction matrix, ranker and route quota | collaborative coverage beats popularity bias and compute cost |
+| F-R04c | current routes → Swing | interaction window, ItemCF baseline and route quota | overlap debiasing adds tail relevance without sparse-user regression |
 | F-R05 | current routes → cold-start exploration route | all mature-content routes | new-post coverage/quality and Feed guardrails; exact exploration probability |
 | F-R06 | current routes → regional/topic Hot route | other routes and quota | trend response and fatigue/quality guardrails |
 | F-R07 | current routes → Evergreen route | recent/hot routes | durable-content value without stale-content regression |
