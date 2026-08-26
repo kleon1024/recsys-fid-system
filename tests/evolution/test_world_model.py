@@ -552,13 +552,11 @@ def test_structural_bridge_uses_disjoint_families_and_paired_test_worlds():
         train = load_world_split(output, "train")
         validation = load_world_split(output, "validation")
         test = load_world_split(output, "test")
-        structural_adaptation = load_world_split(
-            output, "structural_adaptation",
-        )
-        structural_validation = load_world_split(
-            output, "structural_validation",
-        )
         resumed = build_structural_bridge(output, config)
+        adaptation_exists = (output / "structural_adaptation.pt").exists()
+        structural_validation_exists = (
+            output / "structural_validation.pt"
+        ).exists()
         with __import__("pytest").raises(ValueError, match="config mismatch"):
             build_structural_bridge(
                 output,
@@ -606,10 +604,9 @@ def test_structural_bridge_uses_disjoint_families_and_paired_test_worlds():
     assert train.structural_intervention_effects is None
     assert validation.structural_intervention_effects is None
     assert test.structural_intervention_effects.shape == (6, 3)
-    assert len(structural_adaptation) == 6
-    assert structural_adaptation.structural_intervention_effects.shape == (6, 3)
-    assert len(structural_validation) == 2
-    assert structural_validation.structural_intervention_effects.shape == (2, 3)
+    assert "paired_splits" not in manifest
+    assert not adaptation_exists
+    assert not structural_validation_exists
     assert test.structural_intervention_features.shape == (6, 3, 28)
     assert test.structural_intervention_slates.shape == (6, 3, 8, 28)
     assert test.structural_intervention_sequences.shape == (6, 3, 24, 8)

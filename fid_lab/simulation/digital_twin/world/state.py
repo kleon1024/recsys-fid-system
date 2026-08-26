@@ -134,6 +134,19 @@ class UserWorldSnapshot:
     population_version: str = POPULATION_VERSION
 
 
+@dataclass(frozen=True)
+class RequestStateOverride:
+    """Request-local potential outcome inputs; never committed to the world."""
+
+    long_interest: torch.Tensor | None = None
+    short_interest: torch.Tensor | None = None
+    behavior_sequence: torch.Tensor | None = None
+    fatigue: torch.Tensor | None = None
+    satisfaction: torch.Tensor | None = None
+    public_quality: torch.Tensor | None = None
+    hidden_quality: torch.Tensor | None = None
+
+
 def topic_prototypes(catalog: PublicCatalog, topics: int) -> torch.Tensor:
     dimensions = catalog.content_embedding.shape[1]
     result = torch.zeros(

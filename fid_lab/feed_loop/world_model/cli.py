@@ -200,31 +200,9 @@ def _train_artifact(args, config, dataset_manifest):
         load_world_split(args.dataset_dir, "adaptation", args.max_eval_rows)
         if (args.dataset_dir / "adaptation.pt").exists() else None
     )
-    structural_path = (
-        None if args.auxiliary_dataset_dir is None
-        else args.auxiliary_dataset_dir / "structural_adaptation.pt"
-    )
-    structural_data = (
-        load_world_split(
-            args.auxiliary_dataset_dir, "structural_adaptation",
-            args.max_train_rows,
-        ) if structural_path is not None and structural_path.exists() else None
-    )
-    structural_validation_path = (
-        None if args.auxiliary_dataset_dir is None
-        else args.auxiliary_dataset_dir / "structural_validation.pt"
-    )
-    structural_validation = (
-        load_world_split(
-            args.auxiliary_dataset_dir, "structural_validation",
-            args.max_eval_rows,
-        )
-        if structural_validation_path is not None
-        and structural_validation_path.exists() else None
-    )
     ensemble, histories, calibration, seconds = train_world_ensemble(
         train, validation, config, args.device, calibration_data,
-        adaptation_data, structural_data, structural_validation,
+        adaptation_data,
     )
     artifact = save_world_ensemble(
         ensemble, histories, args.artifact_dir, dataset_manifest, calibration,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-STRUCTURAL_BRIDGE_SCHEMA = "v5-structural-neural-scm-bridge-v1"
+STRUCTURAL_BRIDGE_SCHEMA = "v6-structural-neural-scm-bridge-v1"
 
 
 @dataclass(frozen=True)

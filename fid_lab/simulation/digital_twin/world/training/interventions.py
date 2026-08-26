@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import replace
 import math
 
 import torch
@@ -11,7 +10,7 @@ from ...contracts import EventType
 from .....feed_loop.world_model.contracts import STRUCTURAL_INTERVENTION_NAMES
 from ..behavior import ResponseTensors, sample_response_tensors
 from ..neural_features import build_neural_scm_batch
-from ..state import HiddenCatalogTruth
+from ..state import RequestStateOverride
 
 
 def _selected(values, choice):
@@ -33,65 +32,67 @@ def select_responses(response: ResponseTensors, selector) -> ResponseTensors:
     )
 
 
-def _interest_world(snapshot, catalog, slate, choice):
-    users = snapshot.users.clone()
+def _interest_override(snapshot, catalog, slate, choice):
+    users = snapshot.users
     user = slate.user_id
     item = _selected(slate.item_ids, choice)
     target = snapshot.catalog_truth.semantic_embedding[item]
-    users.short_interest[user] = torch.nn.functional.normalize(
+    short_interest = torch.nn.functional.normalize(
         0.72 * users.short_interest[user] + 0.28 * target, dim=1,
     )
-    users.long_interest[user] = torch.nn.functional.normalize(
+    long_interest = torch.nn.functional.normalize(
         0.88 * users.long_interest[user] + 0.12 * target, dim=1,
     )
     topic_scale = max(int(catalog.topic_id.max()), 1)
     topic = catalog.topic_id[item].float() / topic_scale
-    sequence = users.behavior_sequence[user].float()
+    sequence = users.behavior_sequence[user].float().clone()
     sequence[:, -3:, 0] = topic[:, None]
     sequence[:, -1, 2] = 1.0
     sequence[:, -1, 3] = 1.0
-    users.behavior_sequence[user] = sequence.to(users.behavior_sequence.dtype)
-    return replace(snapshot, users=users), catalog
-
-
-def _quality_world(snapshot, catalog, slate, choice):
-    item = torch.unique(_selected(slate.item_ids, choice))
-    public_quality = catalog.quality_prior.clone()
-    public_quality[item] = torch.sigmoid(
-        torch.logit(public_quality[item].clamp(1e-4, 1.0 - 1e-4)) + 0.70
-    )
-    hidden_quality = snapshot.catalog_truth.quality.clone()
-    hidden_quality[item] = torch.sigmoid(
-        torch.logit(hidden_quality[item].clamp(1e-4, 1.0 - 1e-4)) + 0.70
-    )
-    truth = HiddenCatalogTruth(
-        semantic_embedding=snapshot.catalog_truth.semantic_embedding,
-        quality=hidden_quality,
-        risk=snapshot.catalog_truth.risk,
-        price_appeal=snapshot.catalog_truth.price_appeal,
-    )
-    return replace(snapshot, catalog_truth=truth), replace(
-        catalog, quality_prior=public_quality,
+    return RequestStateOverride(
+        short_interest=short_interest,
+        long_interest=long_interest,
+        behavior_sequence=sequence.to(users.behavior_sequence.dtype),
     )
 
 
-def _negative_world(snapshot, catalog, slate, choice):
+def _quality_override(snapshot, catalog, slate, choice):
+    item = slate.item_ids.clamp_min(0)
+    selected_item = _selected(item, choice)
+    selected = item == selected_item[:, None]
+    public_quality = catalog.quality_prior[item]
+    treated_public = torch.sigmoid(
+        torch.logit(public_quality.clamp(1e-4, 1.0 - 1e-4)) + 0.70
+    )
+    hidden_quality = snapshot.catalog_truth.quality[item]
+    treated_hidden = torch.sigmoid(
+        torch.logit(hidden_quality.clamp(1e-4, 1.0 - 1e-4)) + 0.70
+    )
+    return RequestStateOverride(
+        public_quality=torch.where(selected, treated_public, public_quality),
+        hidden_quality=torch.where(selected, treated_hidden, hidden_quality),
+    )
+
+
+def _negative_override(snapshot, catalog, slate, choice):
+    del catalog
     del choice
-    users = snapshot.users.clone()
+    users = snapshot.users
     user = slate.user_id
-    sequence = users.behavior_sequence[user].float()
+    sequence = users.behavior_sequence[user].float().clone()
     sequence[:, -1, 5] = 1.0
     sequence[:, -1, 2:5] = 0.0
-    users.behavior_sequence[user] = sequence.to(users.behavior_sequence.dtype)
-    users.fatigue[user] = (users.fatigue[user] + 0.16).clamp(0.0, 1.0)
-    users.satisfaction[user] = (users.satisfaction[user] - 0.10).clamp(0.0, 1.0)
-    return replace(snapshot, users=users), catalog
+    return RequestStateOverride(
+        behavior_sequence=sequence.to(users.behavior_sequence.dtype),
+        fatigue=(users.fatigue[user] + 0.16).clamp(0.0, 1.0),
+        satisfaction=(users.satisfaction[user] - 0.10).clamp(0.0, 1.0),
+    )
 
 
-_WORLD_INTERVENTIONS = (
-    _interest_world,
-    _quality_world,
-    _negative_world,
+_REQUEST_INTERVENTIONS = (
+    _interest_override,
+    _quality_override,
+    _negative_override,
 )
 
 
@@ -111,20 +112,16 @@ def paired_interventions(snapshot, catalog, slate, control, choice, seed):
     slates = []
     sequences = []
     effects = []
-    worlds = []
     control_value = _observed_value(control, choice)
     rows = torch.arange(len(choice), device=choice.device)
-    for treatment in _WORLD_INTERVENTIONS:
-        treated_snapshot, treated_catalog = treatment(
-            snapshot, catalog, slate, choice,
-        )
+    for treatment in _REQUEST_INTERVENTIONS:
+        override = treatment(snapshot, catalog, slate, choice)
         batch = build_neural_scm_batch(
-            treated_snapshot, treated_catalog, slate,
+            snapshot, catalog, slate, override,
         )
         response = sample_response_tensors(
-            treated_snapshot, treated_catalog, slate, seed,
+            snapshot, catalog, slate, seed, override,
         )
-        worlds.append((batch, response, treated_catalog))
         features.append(batch["slate_features"][rows, choice])
         slates.append(batch["slate_features"])
         sequences.append(batch["sequence"])
@@ -137,4 +134,4 @@ def paired_interventions(snapshot, catalog, slate, control, choice, seed):
         "structural_intervention_sequences": torch.stack(sequences, dim=1),
         "structural_intervention_effects": torch.stack(effects, dim=1),
     }
-    return payload, tuple(worlds)
+    return payload

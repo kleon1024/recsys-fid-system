@@ -16,7 +16,7 @@ from ..contracts import (
     Surface,
     make_app_events,
 )
-from .state import UserWorldSnapshot
+from .state import RequestStateOverride, UserWorldSnapshot
 from .experience import CandidateExperience, candidate_experience
 
 
@@ -53,6 +53,7 @@ def _surface_mask(slate: RenderedSlateBatch, surface: Surface) -> torch.Tensor:
 def _examination_probability(
     snapshot: UserWorldSnapshot,
     slate: RenderedSlateBatch,
+    override: RequestStateOverride | None = None,
 ) -> torch.Tensor:
     users = snapshot.users
     row = slate.user_id
@@ -60,10 +61,20 @@ def _examination_probability(
     feed = _surface_mask(slate, Surface.FEED)
     live = _surface_mask(slate, Surface.LIVE)
     list_ui = ~(feed | live)
+    satisfaction = (
+        users.satisfaction[row]
+        if override is None or override.satisfaction is None
+        else override.satisfaction
+    )
+    fatigue = (
+        users.fatigue[row]
+        if override is None or override.fatigue is None
+        else override.fatigue
+    )
     continuation = torch.sigmoid(
         1.3
-        + 1.15 * users.satisfaction[row, None]
-        - 1.7 * users.fatigue[row, None]
+        + 1.15 * satisfaction[:, None]
+        - 1.7 * fatigue[:, None]
         - 0.42 * position
         + 0.18 * users.response_style[row, 0, None]
     )
@@ -84,17 +95,38 @@ def _latent_utility(
     snapshot: UserWorldSnapshot,
     catalog: PublicCatalog,
     slate: RenderedSlateBatch,
+    override: RequestStateOverride | None = None,
 ) -> tuple[torch.Tensor, torch.Tensor, CandidateExperience]:
     users = snapshot.users
     truth = snapshot.catalog_truth
     row = slate.user_id
     item = slate.item_ids.clamp_min(0)
     semantic = truth.semantic_embedding[item]
+    long_interest = (
+        users.long_interest[row]
+        if override is None or override.long_interest is None
+        else override.long_interest
+    )
+    short_interest = (
+        users.short_interest[row]
+        if override is None or override.short_interest is None
+        else override.short_interest
+    )
+    hidden_quality = (
+        truth.quality[item]
+        if override is None or override.hidden_quality is None
+        else override.hidden_quality
+    )
+    public_quality = (
+        catalog.quality_prior[item]
+        if override is None or override.public_quality is None
+        else override.public_quality
+    )
     long_affinity = torch.einsum(
-        "bkd,bd->bk", semantic, users.long_interest[row],
+        "bkd,bd->bk", semantic, long_interest,
     )
     short_affinity = torch.einsum(
-        "bkd,bd->bk", semantic, users.short_interest[row],
+        "bkd,bd->bk", semantic, short_interest,
     )
     affinity = (
         (0.58 + 0.18 * users.habit[row, None]) * long_affinity
@@ -119,13 +151,13 @@ def _latent_utility(
     )
     interaction = torch.sin(
         1.7 * affinity + 0.35 * style[:, 2, None]
-    ) * torch.tanh(2.2 * truth.quality[item] - 1.0)
+    ) * torch.tanh(2.2 * hidden_quality - 1.0)
     utility = (
         (1.05 + 0.12 * style[:, 3, None]) * affinity
-        + (0.42 + 0.10 * style[:, 4, None]) * truth.quality[item]
+        + (0.42 + 0.10 * style[:, 4, None]) * hidden_quality
         - (0.65 + 0.12 * style[:, 5, None]) * truth.risk[item]
         + 0.24 * users.novelty[row, None]
-        * (1.0 - catalog.quality_prior[item])
+        * (1.0 - public_quality)
         + 0.16 * interaction
     )
     local = _surface_mask(slate, Surface.LOCAL)
@@ -161,17 +193,31 @@ def sample_response_tensors(
     catalog: PublicCatalog,
     slate: RenderedSlateBatch,
     seed: int,
+    override: RequestStateOverride | None = None,
 ) -> ResponseTensors:
     users = snapshot.users
     row = slate.user_id
     item = slate.item_ids.clamp_min(0)
     valid = slate.valid
     draws = _event_draws(slate, 24, seed)
-    examined = valid & (draws[:, :, 0] < _examination_probability(snapshot, slate))
-    affinity, utility, experience = _latent_utility(snapshot, catalog, slate)
+    examined = valid & (
+        draws[:, :, 0] < _examination_probability(snapshot, slate, override)
+    )
+    affinity, utility, experience = _latent_utility(
+        snapshot, catalog, slate, override,
+    )
     style = users.response_style[row]
     kind = catalog.content_kind[item]
-    quality = snapshot.catalog_truth.quality[item]
+    quality = (
+        snapshot.catalog_truth.quality[item]
+        if override is None or override.hidden_quality is None
+        else override.hidden_quality
+    )
+    fatigue = (
+        users.fatigue[row]
+        if override is None or override.fatigue is None
+        else override.fatigue
+    )
     risk = snapshot.catalog_truth.risk[item]
     feed = _surface_mask(slate, Surface.FEED)
     live = _surface_mask(slate, Surface.LIVE)
@@ -194,7 +240,7 @@ def sample_response_tensors(
     ))
     long_view = play_3s & (draws[:, :, 3] < torch.sigmoid(
         -0.9 + 1.18 * utility + 1.1 * quality
-        - 0.75 * users.fatigue[row, None],
+        - 0.75 * fatigue[:, None],
     ))
     duration = catalog.duration_seconds[item].clamp_min(1.0)
     complete = long_view & (draws[:, :, 4] < torch.sigmoid(

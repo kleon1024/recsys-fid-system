@@ -111,11 +111,8 @@ def _append_payload(storage, payload, limit):
 
 
 def _capture(storage, snapshot, catalog, slate, response, family_id, limit,
-             split, seed, served_scores, paired_storage=None):
-    augmentation = 1 if split == "test" else 4
-    base_count = min(
-        len(slate.request_id), (limit + augmentation - 1) // augmentation,
-    )
+             split, seed, served_scores):
+    base_count = min(len(slate.request_id), limit)
     selector = torch.arange(base_count, device=slate.request_id.device)
     slate = slate.select(selector)
     served_scores = served_scores[selector]
@@ -126,26 +123,13 @@ def _capture(storage, snapshot, catalog, slate, response, family_id, limit,
         snapshot, catalog, slate, response, batch, choice, family_id,
         served_scores,
     )
-    intervention_payload, worlds = paired_interventions(
-        snapshot, catalog, slate, response, choice, seed,
-    )
-    if paired_storage is not None:
-        _append_payload(
-            paired_storage, {**base, **intervention_payload}, base_count,
-        )
     if split == "test":
+        intervention_payload = paired_interventions(
+            snapshot, catalog, slate, response, choice, seed,
+        )
         base.update(intervention_payload)
         return _append_payload(storage, base, limit), base_count
-    captured = _append_payload(storage, base, limit)
-    for treated_batch, treated_response, treated_catalog in worlds:
-        if captured >= limit:
-            break
-        treated = _example_payload(
-            snapshot, treated_catalog, slate, treated_response,
-            treated_batch, choice, family_id, served_scores,
-        )
-        captured += _append_payload(storage, treated, limit - captured)
-    return captured, base_count
+    return _append_payload(storage, base, limit), base_count
 
 
 def _build_family(config, family_id):
@@ -208,11 +192,9 @@ def _materialize_family(config, family_id, rows, split):
         config, family_id,
     )
     storage = {}
-    paired_storage = {} if split in {"train", "validation"} else None
     captured = 0
     base_requests = 0
-    augmentation = 1 if split == "test" else 4
-    schedule = _base_capture_schedule(rows, augmentation, config.ticks)
+    schedule = _base_capture_schedule(rows, 1, config.ticks)
     pending_bases = 0
     capture_ticks = []
     maximum_ticks = config.ticks + config.max_extension_ticks
@@ -240,12 +222,11 @@ def _materialize_family(config, family_id, rows, split):
                 snapshot, catalog, slate, environment_seed,
             )
             row_limit = min(
-                rows - captured, pending_bases * augmentation,
+                rows - captured, pending_bases,
             )
             added, bases = _capture(
                 storage, snapshot, catalog, slate, response, family_id,
                 row_limit, split, environment_seed, served_scores,
-                paired_storage,
             )
             captured += added
             base_requests += bases
@@ -264,11 +245,7 @@ def _materialize_family(config, family_id, rows, split):
     tensors = {
         name: torch.cat(parts) for name, parts in storage.items()
     }
-    paired = (
-        None if paired_storage is None
-        else {name: torch.cat(parts) for name, parts in paired_storage.items()}
-    )
-    return tensors, paired, {
+    return tensors, None, {
         "family_id": family_id,
         "platform_seed": platform_seed,
         "environment_seed": environment_seed,
@@ -281,8 +258,8 @@ def _materialize_family(config, family_id, rows, split):
         "simulated_ticks": logical_time + 1,
         "extension_ticks": max(logical_time + 1 - config.ticks, 0),
         "row_semantics": (
-            "control_with_paired_potential_outcomes" if split == "test"
-            else "control_plus_three_structural_augmentations"
+            "factual_control_with_validation_probes" if split == "test"
+            else "factual_control_only"
         ),
     }
 
@@ -324,7 +301,6 @@ def build_structural_bridge(
     if reuse_build is not None:
         import_compatible_parts(output_dir, state, reuse_build)
     tensors_by_split = {name: [] for name in ("train", "validation", "test")}
-    paired_by_split = {name: [] for name in ("train", "validation")}
     families = {name: [] for name in ("train", "validation", "test")}
     for family_id, split, rows in family_plan:
         payload = load_family_part(
@@ -343,21 +319,10 @@ def build_structural_bridge(
             paired = payload["paired"]
             family = payload["family"]
         tensors_by_split[split].append(tensors)
-        if paired is not None:
-            paired_by_split[split].append(paired)
         families[split].append(family)
     split_records = {
         split: _write_split(output_dir, split, _merge_tensors(parts))
         for split, parts in tensors_by_split.items()
-    }
-    paired_records = {
-        name: _write_split(
-            output_dir, name, _merge_tensors(paired_by_split[split]),
-        )
-        for name, split in (
-            ("structural_adaptation", "train"),
-            ("structural_validation", "validation"),
-        )
     }
     manifest = {
         "schema": STRUCTURAL_BRIDGE_SCHEMA,
@@ -373,11 +338,11 @@ def build_structural_bridge(
         "families": families,
         "interventions": list(STRUCTURAL_INTERVENTION_NAMES),
         "splits": split_records,
-        "paired_splits": paired_records,
         "family_parts": dict(state["completed"]),
         "evidence_boundary": (
-            "Synthetic v4 formula families teach structural stress mechanisms; "
-            "they are not external behavior, production truth or LT evidence."
+            "Synthetic factual families provide stress coverage. Counterfactual "
+            "interventions exist only on the untouched test family as validation "
+            "probes; they never train or mutate the factual world."
         ),
     }
     write_final_manifest(output_dir, manifest)

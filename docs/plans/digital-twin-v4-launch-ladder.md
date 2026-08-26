@@ -188,7 +188,7 @@ permit shared labels or automatic LT exchange.
 
 ## 7. Current ledger
 
-As of 2026-08-25, S-MEM00, S-ROUTE00, S-TRACE00 and S-IO00 have executable
+As of 2026-08-26, S-MEM00, S-ROUTE00, S-TRACE00 and S-IO00 have executable
 standard-profile evidence. The standard Random tick renders 65,063 requests in
 1.04 seconds with 7.687 GB peak VRAM; request partitions fell from about
 1.735 GB to 100.5 MB per tick, and the initialization checkpoint fell from
@@ -203,6 +203,15 @@ claimed until the immutable remote journal and branch head are readable. That
 submission used the superseded personalized-rule baseline and therefore cannot
 establish F-R00; the corrected runtime uses random retrieval plus
 `exploration_rate=1.0`.
+
+S-WORLD00 now has equilibrium burn-in, bounded event partitions and exact
+next-tick checkpoint parity. S-AUTH00 remains the only blocker before factual
+TikTok World launches: historical v23 bytes are absent, so v24 must re-earn the
+authority gates. Its structural builder now owns one Markov world, trains only
+on factual families and computes three request-local counterfactual deltas on
+the held-out test family. Once v24 shadow, restart parity and F-AA pass, the
+next immutable LR is corrected `Random -> Popular`; model and feature work then
+enters as subsequent LRs rather than further simulator expansion.
 
 P3-06 is an
 offline equal-budget retrieval review: Lifecycle remains control and Graph, RRF,

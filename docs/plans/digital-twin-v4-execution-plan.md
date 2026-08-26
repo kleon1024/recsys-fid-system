@@ -85,25 +85,25 @@ evidence and are never queried on the serving path.
 | Point-in-time projection | Delivered events, lifecycle and full scoring-input tensors replay across content-bound partitions | Implemented | Learned-ranker launch evidence remains P3-07..09 |
 | Request cascade trace | Full recall universe, scorer inputs, stage admission, factual exposure and randomized support are retained | Implemented | Integrated evaluator remains P3-09 |
 | Feed retrieval mechanics | Random and Popular are factual baselines; lifecycle/Graph plus registry-backed Two-Tower/Multi-interest serving paths exist | Handcrafted ladder complete: only Popular promoted; ANN rejected; five routes stopped inconclusive | Train learned retrieval on the request-native sample authority |
-| Durable evolving world | Content-addressed hidden world, supply, delayed queue, platform, index, event, experiment and learning cursor checkpoint | Restart works, but tick-zero registration creates a non-stationary traffic surge and event history grows with elapsed time | S-WORLD00 equilibrium initialization, bounded event authority and 96-tick restart parity |
+| Durable evolving world | Content-addressed hidden world, supply, delayed queue, platform, index, event, experiment and learning cursor checkpoint | Equilibrium burn-in, bounded event authority and exact next-tick restart parity pass | Complete the 96-tick NeuralSCM factual-runtime soak |
 | Layered experiments | Ownership, independent assignment, composed policy and numeric served checkpoint logging | Implemented | Model-learning interference remains P4-05 |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
 | Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
-| Behavior realism | v23 passes external, held-out-family, support, anti-exploitation and 100K semantic-shadow gates | Shadow artifact accepted, but canonical factual runtime still calls the formula response path; retention and most sparse heads lack support | S-AUTH00 explicitly loads the hashed Feed artifact and fails closed; calendar/business authorities remain separate |
+| Behavior realism | Historical v23 reports pass, but its weights and structural tensors were not retained | Canonical runtime now fails closed; v24 rebuild uses factual-only train families and test-only request-local counterfactual probes | Re-earn external, support, structural, shadow, checkpoint and A/A gates with an executable artifact |
 | Full-chain analytical store | Schema v4 persists retained feature/FID and task vectors; DuckDB/ClickHouse agree | Accepted for retained rows | Full scoring-input coverage remains P3-05a |
 | Recall/coarse/fine sample authorities | Recall is source-corrected; coarse covers recall universe; fine covers scorer input with masked factual labels | Implemented | Trainer/evaluator consumption remains P3-07..09 |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
 | Model ladder | Sequential factual runner and corrected random-order policy exist | Existing F-R00 used a rule ranker; v4 has only an LR infrastructure probe and learned retrieval trainer, while deep rankers remain legacy | Pass S-AUTH00/S-WORLD00 and runtime soak, then run corrected A/A→F-R00→Popular and migrate one model family at a time |
 | Search/Ads/Commerce/Live/Local/Posting | Commerce closes cart→refund; Search closes query→post-search; Ads closes budget→auction→impression/spend→click→Pixel with one-slot load | Commerce, Search and Ads implementations in validation; Local, Posting and Live remain open | C-LR-003, S-LR-001 and A-LR-001 RTX evidence remain pending |
 
-The accepted v23 NeuralSCM is the declared Feed response authority only. Its
-KuaiRand path is user-disjoint, PIT-safe and support-gated; its structural path
-uses real cascade requests, independent seeds and held-out world families. The
-100K-user/1M-item/eight-tick shadow covers `98.9835%` of 412,006 requests and
-passes replay gates with 2.46 GiB peak RSS. Retention, creator supply, Local,
-Ads, Commerce and LT remain masked. No route or business-model LR follows from
-this promotion.
+The v23 NeuralSCM is historical evidence, not an executable authority: its
+weights and structural tensors were not retained. The v24 rebuild keeps one
+Markov factual world. Structural train and validation families contain factual
+rows only; three request-local counterfactual deltas exist solely on the
+untouched test family and never mutate state or train the model. TikTok World
+sees only rendered experiences and observable events. No retrieval LR may claim
+factual evidence until v24 shadow, checkpoint parity and A/A pass.
 
 ## 2.1 Research disposition
 
@@ -523,11 +523,11 @@ in another document is informative only; it cannot override this register.
 | P2-01 | Correlated population generator | Done as a versioned six-component low-rank synthetic family authority | P1 | accepted with explicit no-TikTok-demographic-fidelity boundary |
 | P2-02 | Arrival, timezone calendar, session and churn process | Done for synthetic mechanics and externally observed Feed sequence channels | P2-01 | unsupported universal retention remains masked |
 | P2-03 | Exogenous/endogenous trend and concept drift | Done with regional-topic shocks, recovery and policy-independence tests | P2-01 | accepted as synthetic stress evidence only |
-| P2-04 | Neural slate response SCM | Done; v23 passes external, sequence and held-out-family structural gates | P2-01/02 | frozen weights and content-bound reports agree |
+| P2-04 | Neural slate response SCM | v23 historical evidence retained; executable v24 rebuild in progress with factual-only training and test-only counterfactual probes | P2-01/02 | frozen weights, source tensors, shadow and authority reference all remain executable |
 | P2-05 | Latent transition, return survival and creator response | Done for observed Feed trajectory; retention and creator response deferred as masked tasks | P2-04 | no false KuaiRand labels |
 | P2-06 | Ensemble uncertainty, support and causal noise | Done; 100K shadow support 98.9835%, attack rejection 100%, replay passes | P2-04/05 | 97%/99% frozen gates pass without threshold movement |
 | P2-07 | External evidence adapters | Done; user-disjoint KuaiRand DR-OPE and manifests pass | P2-04 | overlap, ESS, max-weight and unsupported-task boundaries retained |
-| P2-08 | DGP validity and authority shadow | Done for Feed; 100K/1M/8-tick shadow and full repository gate pass | P2-01..07 | Launch Review accepts explicit Feed-only manual promotion |
+| P2-08 | DGP validity and authority shadow | Reopened because v23 artifact bytes were missing | P2-01..07 | v24 test-only causal probes, 100K/1M shadow, restart parity and A/A pass before promotion |
 | P3-01 | `samples/recall`: source-aware negatives and correction contract | Done for sample authority; P3-06 must consume the stored expected count | P1/P2 | four sources retain q/log-q, expected count, observed status and false-negative mask; exhaustive-softmax and peer-frequency tests pass; 100K scale uses O(requests × draws) memory |
 | P3-02 | `samples/coarse`: teacher/order/conflict authority | Done: every recall candidate retains admission, rank, teacher score and observed-label mask | P1/P2 | accepted by request-level closure and replay tests |
 | P3-03 | `samples/fine`: PIT cascade/sequence authority | Done: full scorer inputs, exposure/admission masks and randomized support are distinct | P1/P2 | deterministic actions expose no counterfactual support; randomized propensity tests pass |

@@ -22,7 +22,7 @@ from ...randomness.counter import (
 )
 from ..catalog import PublicCatalog
 from ..contracts import RenderedSlateBatch
-from .state import UserWorldSnapshot
+from .state import RequestStateOverride, UserWorldSnapshot
 from .experience import candidate_experience
 
 
@@ -40,11 +40,16 @@ def build_neural_scm_batch(
     snapshot: UserWorldSnapshot,
     catalog: PublicCatalog,
     slate: RenderedSlateBatch,
+    override: RequestStateOverride | None = None,
 ) -> dict[str, torch.Tensor]:
     users = snapshot.users
     row = slate.user_id
     item = slate.item_ids.clamp_min(0)
-    history = users.behavior_sequence[row].float()
+    history = (
+        users.behavior_sequence[row]
+        if override is None or override.behavior_sequence is None
+        else override.behavior_sequence
+    ).float()
     history_present = history.abs().sum(dim=2) > 0
     denominator = history_present.float().sum(dim=1).clamp_min(1.0)
     topic_denominator = max(int(catalog.topic_id.max()), 1)
@@ -63,7 +68,11 @@ def build_neural_scm_batch(
     features = torch.zeros(
         *item.shape, 28, device=item.device, dtype=torch.float,
     )
-    prior = catalog.quality_prior[item]
+    prior = (
+        catalog.quality_prior[item]
+        if override is None or override.public_quality is None
+        else override.public_quality
+    )
     features[:, :, 0] = topic_affinity
     features[:, :, 1] = prior.sqrt()
     features[:, :, 3] = prior
