@@ -11,6 +11,7 @@ from ...catalog import PublicCatalog
 from ...contracts import EventType, PlatformRequestBatch
 from ..projection import ITEM_COUNTER_EVENTS, PlatformProjectionState
 from ..retrieval import MultiRouteRetriever
+from ..sequences import resolve_user_sequence
 from .manifest import DEFAULT_FEATURE_MANIFEST, FeatureManifest
 
 
@@ -105,8 +106,11 @@ class PlatformFeatureEncoder:
         item_id: torch.Tensor,
     ) -> torch.Tensor:
         item = item_id.clamp_min(0)
-        history = state.user_history_item[requests.user_id]
-        history_valid = history >= 0
+        sequence = resolve_user_sequence(
+            state, requests.user_id, requests.event_time,
+        )
+        history = sequence.item_id
+        history_valid = sequence.strong_mask()
         candidate = self.catalog.content_embedding[item]
         history_embedding = self.catalog.content_embedding[history.clamp_min(0)]
         similarity = torch.einsum(

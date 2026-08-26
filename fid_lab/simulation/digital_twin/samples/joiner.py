@@ -10,6 +10,7 @@ from ..catalog import PublicCatalog
 from ..contracts import AppEventBatch, ContentKind, EventType, Surface
 from ..contracts import deterministic_event_id
 from ..platform.projection import ProjectionSnapshot
+from ..platform.sequences import resolve_user_sequence
 from .contracts import (
     CoarseRankExampleBatch,
     FineRankExampleBatch,
@@ -82,35 +83,23 @@ def capture_request_context(
 ) -> RequestContextBatch:
     if projection.as_of_ingest_time > int(trace.event_time.min()):
         raise ValueError("projection snapshot is later than a request")
-    user = trace.user_id
     state = projection.state
     as_of = torch.full_like(trace.event_time, projection.as_of_ingest_time)
-    history_length = state.user_history_item.shape[1]
-    event_number = (
-        state.user_history_cursor[user, None]
-        - history_length
-        + torch.arange(history_length, device=user.device)[None, :]
+    sequence = resolve_user_sequence(
+        state, trace.user_id, trace.event_time,
     )
-    history_valid = event_number >= 0
-    history_slot = torch.remainder(event_number.clamp_min(0), history_length)
-
-    def history(field: str, missing: float | int) -> torch.Tensor:
-        values = torch.gather(getattr(state, field)[user], 1, history_slot)
-        return torch.where(
-            history_valid, values, torch.full_like(values, missing),
-        ).clone()
 
     return RequestContextBatch(
         request_id=trace.request_id,
         request_time=trace.event_time,
-        user_event_counts=state.user_event_counts[user].clone(),
-        user_surface_counts=state.user_surface_counts[user].clone(),
-        history_item_id=history("user_history_item", -1),
-        history_event_type=history("user_history_event_type", -1),
-        history_surface=history("user_history_surface", -1),
-        history_duration_ms=history("user_history_duration_ms", 0.0),
-        history_event_time=history("user_history_event_time", -1),
-        history_ingest_time=history("user_history_ingest_time", -1),
+        user_event_counts=state.user_event_counts[trace.user_id].clone(),
+        user_surface_counts=state.user_surface_counts[trace.user_id].clone(),
+        history_item_id=sequence.item_id.clone(),
+        history_event_type=sequence.event_type.clone(),
+        history_surface=sequence.surface.clone(),
+        history_duration_ms=sequence.duration_ms.clone(),
+        history_event_time=sequence.event_time.clone(),
+        history_ingest_time=sequence.ingest_time.clone(),
         feature_as_of_ingest_time=as_of,
     )
 

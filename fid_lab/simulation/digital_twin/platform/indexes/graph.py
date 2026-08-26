@@ -6,18 +6,8 @@ import numpy as np
 import scipy.sparse
 import torch
 
-from ...contracts import AppEventBatch, EventType, Surface
-
-
-STRONG_GRAPH_EVENTS = (
-    EventType.LONG_VIEW,
-    EventType.COMPLETE,
-    EventType.LIKE,
-    EventType.COMMENT,
-    EventType.SHARE,
-    EventType.FOLLOW,
-    EventType.FAVORITE,
-)
+from ...contracts import AppEventBatch, Surface
+from ..sequences import STRONG_INTEREST_EVENTS
 
 
 class CoVisitGraphIndex:
@@ -37,7 +27,7 @@ class CoVisitGraphIndex:
 
     def update(self, events: AppEventBatch) -> None:
         strong = torch.zeros_like(events.event_type, dtype=torch.bool)
-        for event_type in STRONG_GRAPH_EVENTS:
+        for event_type in STRONG_INTEREST_EVENTS:
             strong |= events.event(event_type)
         selected = (
             strong

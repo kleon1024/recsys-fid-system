@@ -13,7 +13,8 @@ from .routes.posting import posting_route_scores
 from .routes.commerce import inventory_eligible
 from .indexes.ann import FaissItemIndex
 from .indexes.contracts import LearnedRetriever, RetrievalConfig
-from .indexes.graph import CoVisitGraphIndex, STRONG_GRAPH_EVENTS
+from .indexes.graph import CoVisitGraphIndex
+from .sequences import resolve_user_sequence
 
 from ..catalog import PublicCatalog
 from ..contracts import (
@@ -109,16 +110,15 @@ class MultiRouteRetriever:
     def query_embedding(
         self, requests: PlatformRequestBatch, state: PlatformProjectionState,
     ) -> torch.Tensor:
-        history = state.user_history_item[requests.user_id]
-        history_event = state.user_history_event_type[requests.user_id]
-        positive_events = torch.tensor(
-            [int(event_type) for event_type in STRONG_GRAPH_EVENTS],
-            device=self.device,
+        sequence = resolve_user_sequence(
+            state, requests.user_id, requests.event_time,
         )
-        valid = (history >= 0) & torch.isin(history_event, positive_events)
+        history = sequence.item_id
+        valid = sequence.strong_mask()
         embedding = self.catalog.content_embedding[history.clamp_min(0)]
-        history_time = state.user_history_event_time[requests.user_id]
-        age = (requests.event_time[:, None] - history_time).clamp_min(0)
+        age = (
+            requests.event_time[:, None] - sequence.event_time
+        ).clamp_min(0)
         decay = torch.exp2(
             -age.float() / float(self.config.interest_half_life_ticks)
         )
@@ -134,14 +134,12 @@ class MultiRouteRetriever:
     def _last_item(
         self, requests: PlatformRequestBatch, state: PlatformProjectionState,
     ) -> torch.Tensor:
-        item = state.user_history_item[requests.user_id]
-        event_type = state.user_history_event_type[requests.user_id]
-        event_time = state.user_history_event_time[requests.user_id]
-        strong_events = torch.tensor(
-            [int(value) for value in STRONG_GRAPH_EVENTS], device=self.device,
+        sequence = resolve_user_sequence(
+            state, requests.user_id, requests.event_time,
         )
-        valid = (item >= 0) & torch.isin(event_type, strong_events)
-        latest = event_time.masked_fill(~valid, -1).argmax(dim=1)
+        item = sequence.item_id
+        valid = sequence.strong_mask()
+        latest = sequence.event_time.masked_fill(~valid, -1).argmax(dim=1)
         selected = torch.gather(item, 1, latest[:, None]).squeeze(1)
         return torch.where(
             valid.any(dim=1), selected, torch.full_like(selected, -1),
