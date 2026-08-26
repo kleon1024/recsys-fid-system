@@ -378,6 +378,7 @@ def _sample_lineage_defaults(rows: int) -> dict[str, object]:
         "surface": np.full(rows, -1, dtype=np.int64),
         "request_time": np.full(rows, -1, dtype=np.int64),
         "position": np.full(rows, -1, dtype=np.int64),
+        "dwell_ms": np.zeros(rows, dtype=np.float32),
         "served_checkpoint_id": np.full(rows, -1, dtype=np.int64),
         "feature_manifest_hash": np.full(rows, "", dtype=object),
         "dense_features": _empty_lists(rows, pa.float32()),
@@ -529,6 +530,7 @@ def _fine_example_table(fine) -> pa.Table:
         fine.request_time[:, None].expand_as(fine.item_id)[fine_valid]
     )
     fine_data["position"] = _numpy(fine.position[fine_valid])
+    fine_data["dwell_ms"] = _numpy(fine.dwell_ms[fine_valid])
     fine_data["selection_policy_kind"] = _numpy(
         fine.selection_policy_kind[:, None].expand_as(fine.item_id)[fine_valid]
     )

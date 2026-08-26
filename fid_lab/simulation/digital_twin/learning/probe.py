@@ -49,6 +49,7 @@ def load_probe_batch(
         surface=scalar("surface", torch.long),
         request_time=scalar("request_time", torch.long),
         item_id=scalar("item_id", torch.long),
+        dwell_ms=scalar("dwell_ms", torch.float32),
         dense_features=dense,
         sparse_buckets=sparse,
         labels=labels,
@@ -126,6 +127,8 @@ class ProbeArtifact:
     task_names: tuple[str, ...]
     feature_manifest_hash: str
     training_report: dict[str, object]
+    dense_mean: torch.Tensor
+    dense_scale: torch.Tensor
 
     @property
     def model_name(self) -> str:
@@ -153,14 +156,16 @@ class ProbeArtifact:
         expanded_surface = surface[:, None].expand(
             requests, candidates,
         ).reshape(-1).to(parameter.device)
-        logits = self.model(dense, expanded_surface)
+        mean = self.dense_mean.to(parameter.device, parameter.dtype)
+        scale = self.dense_scale.to(parameter.device, parameter.dtype)
+        logits = self.model((dense - mean) / scale, expanded_surface)
         task = self.task_names.index("long_view")
         score = torch.sigmoid(logits[:, task]).reshape(requests, candidates)
         return score.to(features.dense.device)
 
     def checkpoint(self) -> dict[str, object]:
         return {
-            "schema": "v4-lr-infrastructure-probe-v1",
+            "schema": "v4-lr-infrastructure-probe-v2",
             "inputs": self.model.inputs,
             "tasks": self.model.tasks,
             "surfaces": self.model.surfaces,
@@ -171,22 +176,35 @@ class ProbeArtifact:
                 for name, value in self.model.state_dict().items()
             },
             "training_report": self.training_report,
+            "dense_mean": self.dense_mean.detach().cpu().clone(),
+            "dense_scale": self.dense_scale.detach().cpu().clone(),
         }
 
     @classmethod
     def from_checkpoint(cls, value: dict[str, object]) -> ProbeArtifact:
-        if value.get("schema") != "v4-lr-infrastructure-probe-v1":
+        schema = value.get("schema")
+        if schema not in {
+            "v4-lr-infrastructure-probe-v1",
+            "v4-lr-infrastructure-probe-v2",
+        }:
             raise ValueError("probe checkpoint schema is unsupported")
         model = ProbeRanker(
             int(value["inputs"]), int(value["tasks"]), int(value["surfaces"]),
         )
         model.load_state_dict(value["state_dict"])
         model.eval()
+        dense_mean = value.get("dense_mean")
+        dense_scale = value.get("dense_scale")
+        if schema == "v4-lr-infrastructure-probe-v1":
+            dense_mean = torch.zeros(model.inputs)
+            dense_scale = torch.ones(model.inputs)
         return cls(
             model,
             tuple(value["task_names"]),
             str(value["feature_manifest_hash"]),
             dict(value["training_report"]),
+            dense_mean.detach().cpu().float(),
+            dense_scale.detach().cpu().float(),
         )
 
 
@@ -209,6 +227,9 @@ def train_probe(
     ).to(target)
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     dense = batch.dense_features.to(target)
+    dense_mean = dense.mean(dim=0)
+    dense_scale = dense.std(dim=0, unbiased=False).clamp_min(1e-4)
+    dense = (dense - dense_mean) / dense_scale
     surface = batch.surface.to(target)
     labels = batch.labels.to(target)
     masks = batch.label_mask.to(target)
@@ -268,4 +289,6 @@ def train_probe(
             "device": str(target),
             "seed": seed,
         },
+        dense_mean=dense_mean.detach().cpu(),
+        dense_scale=dense_scale.detach().cpu(),
     )

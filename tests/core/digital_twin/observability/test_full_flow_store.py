@@ -82,6 +82,7 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
     assert fine.label_value.isna().all()
     assert not fine.label_mask.any()
     assert fine.feature_manifest_hash.str.len().eq(64).all()
+    assert fine.dwell_ms.ge(0).all()
     expected = snapshot.samples.fine
     valid = expected.item_id >= 0
     assert fine.iloc[0].dense_features.tolist() == (
@@ -96,6 +97,7 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
     assert fine.iloc[0].task_label_masks.tolist() == (
         expected.label_mask[valid][0].tolist()
     )
+    assert fine.dwell_ms.tolist() == expected.dwell_ms[valid].tolist()
 
 
 def test_route_lifecycle_is_request_time_not_post_response_projection():

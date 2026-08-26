@@ -129,6 +129,7 @@ class ProbeBatch:
     surface: torch.Tensor
     request_time: torch.Tensor
     item_id: torch.Tensor
+    dwell_ms: torch.Tensor
     dense_features: torch.Tensor
     sparse_buckets: torch.Tensor
     labels: torch.Tensor
@@ -145,7 +146,7 @@ class ProbeBatch:
         rows = len(self.request_id)
         for name in (
             "user_id", "surface", "request_time", "item_id",
-            "joint_logging_probability",
+            "joint_logging_probability", "dwell_ms",
         ):
             if getattr(self, name).shape != (rows,):
                 raise ValueError(f"probe {name} is not row aligned")

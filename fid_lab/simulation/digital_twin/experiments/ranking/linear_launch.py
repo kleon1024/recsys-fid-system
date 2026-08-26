@@ -30,7 +30,8 @@ class LinearRankLaunchConfig:
     ticks_per_day: int = 16
     seed: int = 1_809
     device: str = "cuda"
-    epochs: int = 4
+    epochs: int = 24
+    learning_rate: float = 1e-2
     minimum_triggered_users: int = 2_000
 
 
@@ -64,6 +65,7 @@ def _train_candidate(config: LinearRankLaunchConfig):
         surface=train.surface[feed],
         request_time=train.request_time[feed],
         item_id=train.item_id[feed],
+        dwell_ms=train.dwell_ms[feed],
         dense_features=train.dense_features[feed],
         sparse_buckets=train.sparse_buckets[feed],
         labels=train.labels[feed],
@@ -74,6 +76,7 @@ def _train_candidate(config: LinearRankLaunchConfig):
         train,
         lane=Lane.CANDIDATE,
         epochs=config.epochs,
+        learning_rate=config.learning_rate,
         device=config.device,
         seed=config.seed + 71,
     )
@@ -83,8 +86,11 @@ def _train_candidate(config: LinearRankLaunchConfig):
     )
     with torch.inference_mode():
         parameter = next(artifact.model.parameters())
+        dense = validation.dense_features[mask].to(parameter.device)
+        mean = artifact.dense_mean.to(parameter.device)
+        scale = artifact.dense_scale.to(parameter.device)
         logits = artifact.model(
-            validation.dense_features[mask].to(parameter.device),
+            (dense - mean) / scale,
             validation.surface[mask].to(parameter.device),
         )[:, task].cpu()
     labels = validation.labels[mask, task]

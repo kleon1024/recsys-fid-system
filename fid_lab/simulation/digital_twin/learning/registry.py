@@ -274,7 +274,10 @@ class PersistentModelRegistry:
     @staticmethod
     def _load_checkpoint(checkpoint, *, corpus=None) -> RegistryArtifact:
         schema = checkpoint.get("schema")
-        if schema == "v4-lr-infrastructure-probe-v1":
+        if schema in {
+            "v4-lr-infrastructure-probe-v1",
+            "v4-lr-infrastructure-probe-v2",
+        }:
             return ProbeArtifact.from_checkpoint(checkpoint)
         if schema == "v4-retrieval-artifact-v1":
             if corpus is None:
