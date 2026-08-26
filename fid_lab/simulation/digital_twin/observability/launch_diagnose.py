@@ -127,6 +127,36 @@ def diagnose_full_flow(
         LEFT JOIN v4_route_items AS routes USING (request_id, item_id)
         GROUP BY routes.route_names ORDER BY routes.route_names
     """)
+    stage_pressure = _rows(connection, """
+        WITH request_stage AS (
+            SELECT request_id,
+                   count(*) AS recalled,
+                   count(*) FILTER (WHERE coarse_pass) AS coarse,
+                   count(*) FILTER (WHERE fine_pass) AS fine,
+                   count(*) FILTER (WHERE exposed) AS exposed
+            FROM v4_candidate_decision_log GROUP BY request_id
+        )
+        SELECT avg(recalled) AS mean_recalled,
+               avg(coarse) AS mean_coarse,
+               avg(fine) AS mean_fine,
+               avg(exposed) AS mean_exposed,
+               avg(CAST(recalled = coarse AS DOUBLE)) AS coarse_noop_request_rate
+        FROM request_stage
+    """)[0]
+    sample_support = _rows(connection, """
+        SELECT count(*) AS fine_rows,
+               count(*) FILTER (WHERE exposed) AS exposed_rows,
+               count(*) FILTER (WHERE randomized_support) AS randomized_rows,
+               count(*) FILTER (WHERE ope_supported) AS ope_rows,
+               count(*) FILTER (
+                   WHERE list_has_any(task_label_masks, [true])
+               ) AS labeled_rows,
+               count(*) FILTER (
+                   WHERE randomized_support
+                     AND list_has_any(task_label_masks, [true])
+               ) AS randomized_labeled_rows
+        FROM v4_training_example_log WHERE authority = 'fine'
+    """)[0]
     exposure = _rows(connection, """
         SELECT request.experiment_cell,
                count(*) AS exposures,
@@ -175,6 +205,18 @@ def diagnose_full_flow(
             "code": "feed_item_repeat",
             "evidence": repeated_impressions,
         })
+    if float(stage_pressure["coarse_noop_request_rate"] or 0.0) > 0.95:
+        findings.append({
+            "severity": "warning",
+            "code": "coarse_stage_has_no_candidate_pressure",
+            "evidence": stage_pressure["coarse_noop_request_rate"],
+        })
+    if int(sample_support["randomized_labeled_rows"] or 0) == 0:
+        findings.append({
+            "severity": "warning",
+            "code": "fine_labels_have_no_randomized_support",
+            "evidence": sample_support["labeled_rows"],
+        })
     diagnosis = {
         "schema": "launch-diagnosis/v1",
         "full_flow_manifest_sha256": sha256(identity_path.read_bytes()).hexdigest(),
@@ -183,6 +225,8 @@ def diagnose_full_flow(
         "catalog": catalog,
         "routes": routes,
         "stages": stages,
+        "stage_pressure": stage_pressure,
+        "sample_support": sample_support,
         "exposure": exposure,
         "dedup": dedup,
         "findings": findings,
