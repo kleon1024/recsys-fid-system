@@ -491,9 +491,18 @@ class MultiRouteRetriever:
         last_item = self._last_item(requests, state)
         item = self.graph.neighbor[last_item.clamp_min(0)]
         score = self.graph.score[last_item.clamp_min(0)]
-        item = torch.where(
-            (last_item >= 0)[:, None], item, torch.full_like(item, -1),
+        safe = item.clamp_min(0)
+        user_country = state.user_country[requests.user_id]
+        country_match = (
+            (user_country < 0)[:, None]
+            | (self.catalog.country[safe] == user_country[:, None])
         )
+        item = torch.where(
+            (last_item >= 0)[:, None] & country_match,
+            item,
+            torch.full_like(item, -1),
+        )
+        score = score.masked_fill(item < 0, -torch.inf)
         return self._filter_and_trim(
             requests,
             state,

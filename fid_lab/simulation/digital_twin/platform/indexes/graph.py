@@ -6,7 +6,10 @@ import numpy as np
 import scipy.sparse
 import torch
 
-from ...contracts import AppEventBatch, EventType
+from ...contracts import AppEventBatch, EventType, Surface
+
+
+MINIMUM_GRAPH_DWELL_MS = 3_000
 
 
 class CoVisitGraphIndex:
@@ -24,7 +27,12 @@ class CoVisitGraphIndex:
         self.version = "graph-empty"
 
     def update(self, events: AppEventBatch) -> None:
-        dwell = events.event(EventType.DWELL) & (events.item_id >= 0)
+        dwell = (
+            events.event(EventType.DWELL)
+            & (events.surface == int(Surface.FEED))
+            & (events.item_id >= 0)
+            & (events.duration_ms >= MINIMUM_GRAPH_DWELL_MS)
+        )
         if int(dwell.sum()) < 2:
             return
         request = events.request_id[dwell]
