@@ -214,7 +214,7 @@ def _materialize_family(config, family_id, rows, split):
             torch.ones_like(requests.user_id, dtype=torch.float),
         )
         feed = serving.slate.surface == int(Surface.FEED)
-        snapshot = world.snapshot()
+        snapshot = world.view()
         if feed.any() and pending_bases and captured < rows:
             slate = serving.slate.select(feed)
             served_scores = _served_fine_scores(serving, feed)

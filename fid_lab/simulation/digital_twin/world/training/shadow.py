@@ -304,7 +304,7 @@ def _run_once(config, authority, replay_root, capture):
             torch.ones_like(requests.user_id, dtype=torch.float),
         )
         trace_hashes.append(_slate_hash(serving.slate))
-        snapshot = world.snapshot()
+        snapshot = world.view()
         feed = serving.slate.surface == int(Surface.FEED)
         if feed.any():
             feed_slate = serving.slate.select(feed)
