@@ -1,4 +1,4 @@
-"""Request-level serving trace and three non-interchangeable sample authorities."""
+"""Serving trace, three cascade authorities, and independent business queues."""
 
 from __future__ import annotations
 
@@ -544,6 +544,80 @@ class FineRankExampleBatch:
 
 
 @dataclass(frozen=True)
+class PublishQueueExampleBatch:
+    """Feed-content examples for delayed creator-response prediction.
+
+    This authority is intentionally separate from posting-surface ranking.  Its
+    candidates are Feed contents and its outcomes happen on later requests.
+    """
+
+    request_id: torch.Tensor
+    user_id: torch.Tensor
+    request_time: torch.Tensor
+    item_id: torch.Tensor
+    position: torch.Tensor
+    exposed: torch.Tensor
+    exposure_probability: torch.Tensor
+    assignment_probability: torch.Tensor
+    joint_logging_probability: torch.Tensor
+    labels: torch.Tensor
+    label_mature: torch.Tensor
+    label_mask: torch.Tensor
+    label_maturity_time: torch.Tensor
+    dense_features: torch.Tensor
+    sparse_fids: torch.Tensor
+    sparse_buckets: torch.Tensor
+    context: RequestContextBatch
+    task_names: tuple[str, ...]
+    task_window_ticks: tuple[int, ...]
+    attribution_half_life_ticks: int
+    feature_manifest_hash: str
+
+    def __post_init__(self):
+        requests = len(self.request_id)
+        shape = self.item_id.shape
+        if self.item_id.ndim != 2 or shape[0] != requests:
+            raise ValueError("publish-queue items must be request-aligned")
+        for name in (
+            "position", "exposed", "exposure_probability",
+            "joint_logging_probability",
+        ):
+            _aligned(name, getattr(self, name), shape)
+        for name in (
+            "user_id", "request_time", "assignment_probability",
+        ):
+            _aligned(name, getattr(self, name), (requests,))
+        task_shape = (*shape, len(self.task_names))
+        for name in (
+            "labels", "label_mature", "label_mask", "label_maturity_time",
+        ):
+            _aligned(name, getattr(self, name), task_shape)
+        for name in ("dense_features", "sparse_fids", "sparse_buckets"):
+            value = getattr(self, name)
+            if value.ndim != 3 or value.shape[:2] != shape:
+                raise ValueError(f"publish-queue {name} must align with items")
+        if self.sparse_fids.shape != self.sparse_buckets.shape:
+            raise ValueError("publish-queue sparse FIDs and buckets differ")
+        if len(self.task_window_ticks) != len(self.task_names):
+            raise ValueError("publish-queue windows do not match tasks")
+        if self.attribution_half_life_ticks <= 0:
+            raise ValueError("publish-queue attribution half-life must be positive")
+        if not torch.equal(self.label_mask, self.label_mature & self.exposed[:, :, None]):
+            raise ValueError("publish-queue masks require mature Feed exposure")
+        if (self.labels[~self.label_mask] != 0.0).any():
+            raise ValueError("publish-queue unobservable labels must remain zero")
+        expected_probability = (
+            self.exposure_probability * self.assignment_probability[:, None]
+        )
+        if not torch.allclose(self.joint_logging_probability, expected_probability):
+            raise ValueError("publish-queue logging probability is inconsistent")
+        if not torch.equal(self.context.request_id, self.request_id):
+            raise ValueError("publish-queue context requests differ")
+        if not self.feature_manifest_hash:
+            raise ValueError("publish-queue feature manifest hash is required")
+
+
+@dataclass(frozen=True)
 class CoarseRankExampleBatch:
     request_id: torch.Tensor
     item_id: torch.Tensor
@@ -668,5 +742,6 @@ class JoinedSampleAuthorities:
     recall: RecallExampleBatch
     coarse: CoarseRankExampleBatch
     fine: FineRankExampleBatch
+    publish_queue: PublishQueueExampleBatch
     event_watermark: int
     manifest: TraceManifest

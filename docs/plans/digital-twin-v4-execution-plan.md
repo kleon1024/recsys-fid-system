@@ -278,6 +278,28 @@ creator session
 → point-in-time Joiner and continuous training
 ```
 
+The Feed distribution candidate is always content.  Publishing value is not a
+posting-page candidate type and it is not a label on the same request.  The
+platform therefore owns two independently trained queues over the same Feed
+content candidates:
+
+```text
+Feed content candidate
+├── Consumption Queue: 3s / stay / long-view / interaction / negative
+└── Publish Queue: later posting-entry / create / publish / qualified supply
+                         ↓
+                  common Feed mixer
+```
+
+`PublishQueueExample` joins a factual Feed exposure at `t` to later requests by
+the same viewer: posting entry and create within 24 hours, publish within 48
+hours, and eventually qualified-post outcomes after their own maturity window.
+Immature windows remain `label_mask=0`.  Hidden world inspiration is never a
+training feature.  Observable multi-touch temporal attribution is a training
+target only; incremental value is established by viewer-UID randomized Feed
+experiments.  Creator incentive and creator-distribution experiments use a
+separate creator assignment unit and must declare interference.
+
 Required invariants:
 
 1. Choosing an anchor is not the publish event and is not the post identity.
@@ -390,6 +412,7 @@ factual event log
 → request/candidate closure validation
 → label maturity and attribution
 → RecallExample / CoarseRankExample / FineRankExample
+  + cross-request PublishQueueExample
 → partitioned replayable sample bus
 → active and candidate trainer lanes
 → validation and checkpoint publication
@@ -403,7 +426,7 @@ experiment. Every request records the exact checkpoint it saw. Evaluation must
 handle changing checkpoints and experiment exposure, rather than pretending the
 whole experiment used one static artifact.
 
-### 6.2 Three sample authorities
+### 6.2 Three cascade authorities plus independent business queues
 
 - `RecallExample`: query context, positive post, proposal source, sampled
   negatives, proposal probability, behavior strength and corpus snapshot.
@@ -554,6 +577,7 @@ in another document is informative only; it cannot override this register.
 | P3-07 | `platform/ranking/coarse`: migrate equal-budget ladder and distillation | Historical implementations only | P3-02a/04/05a/09a | Rule/LR/XGBoost/W&D/DeepFM/DCNv2 share the recall universe and budget; RankDistil-style Top-K preservation, calibration, latency, memory and slices decide |
 | P3-08 | `platform/ranking/fine`: migrate multi-task and sequence ladder | Historical implementations only; request-native listwise path absent | P3-03a/04/05a/09a | pointwise then request-grouped pairwise/listwise deep-cross/DIN/Transformer/MMoE/PLE on identical scorer inputs; per-head calibration, gradient/gate health and latency decide |
 | P3-09 | `validation/evaluation`: support audit first, integrated evaluator and P3 review last | 09a request grouping, stage/support and surface-pure streaming A/B implemented; GPU launch pending | Runtime gate plus P3-06/07/08 | replay served ranks, GAUC/NDCG/PR-AUC/NE/ECE, slices, cost, identified OPE and factual clustered A/B |
+| P3-10 | `samples/publish_queue` + independent Feed Publish Queue | Cross-request PIT authority implemented for posting-entry/create/publish with maturity masks, propensity and observable fractional attribution; model/mixer LR pending | P1-02, P2 creator response, P3-03/04/05 | add qualified-post head; train a separate content scorer; shadow score and launch viewer-UID A/B through the common mixer without reading hidden inspiration or relabeling posting-page candidates |
 | P4-01 | `platform/ranking/value`: calibrate primitive heads, then compose Value Tree | Legacy value code only | P3 | per-task/slice probability or magnitude calibration is frozen before coefficient tuning; coefficients are versioned and nonnegative; sensitivity and monotonicity tests expose which primitive changed each rank |
 | P4-02 | `experiments/metrics`: measure unified LT after randomization | Historical synthetic metric only; no production exchange authority claimed | P4-01 | pre-register stay/return/DAU/commercial outcomes, horizon, MDE and power; cohort curves distinguish immediate and learned effects; exchange assumptions are fitted on separate experiments and sensitivity-bounded, never used as labels |
 | P4-03 | `platform/mixing`: one COPP/final-slate authority | Rolling Bloom online dedup in migration; final mixer remains legacy | Runtime gate plus P4-01 | Bloom FPR/coverage and exact-session gates pass; eligibility→dedup→queue load→quota/diversity→final slate logs every displacement |
@@ -563,7 +587,7 @@ in another document is informative only; it cannot override this register.
 | P5-02 | `scenarios/ads`: add advertiser market and auction workflow | Observable budget/bid, exclusive auction route, probability-scaled capacity, immutable spend, one-slot load, organic backfill, Pixel lineage and A-LR-001 runner implemented; GPU evidence pending | P2-P4 | run A-LR-001 on factual 4090 world; later ranking/pacing experiments require market-diverted or switchback design |
 | P5-03 | `scenarios/commerce`: add inventory and transaction state machine | Implemented through cart→refund lineage, pending reservations, PIT inventory and transactional request-stream publication; C-LR-001 no-support and C-LR-002 cross-route rejection recorded | P2-P4 | complete bounded history migration and C-LR-003; verify payment/refund maturity, full gate and published checkpoint before acceptance |
 | P5-04 | `scenarios/local`: add POI world and closed/open attribution | POI identity/route skeleton only | P2-P4 | POI video/anchor→detail/map/YMAL→closed order plus separately observed Pixel path; distance/category/graph/diversity are distinct signals; identity loss, duplicates, orphan rate and attribution coverage are measured, not imputed negative |
-| P5-05 | `scenarios/posting`: add candidate recommendation and supply feedback | Immutable Feed post/lifecycle accepted; posting ranker absent | P1-P4 | draft/media→POI/product/topic candidates→select→publish→qualified future supply; selection, publish and distribution are separate labels; user- and creator-randomized designs declare interference and creator retention horizon |
+| P5-05 | `scenarios/posting`: add posting-page candidate recommendation and supply feedback | Immutable Feed post/lifecycle accepted; posting-page ranker absent; distinct from P3-10 Feed Publish Queue | P1-P4 | draft/media→POI/product/topic candidates→select→publish→qualified future supply; selection, publication and later distribution are separate labels; creator/user assignment and interference are declared |
 | P5-06 | `scenarios/live` and format adapters: own examination/labels | Surface enums and actions only | P2-P4 | Live availability→enter→stay/interact/gift plus delayed outcomes; photo/card/article own examination, dwell and calibration; only content representation/infrastructure is shared; each format has an independent LR |
 | P6-01 | `validation/profiles`: freeze diagnostic/standard/stress manifests | Standard is fixed at 100K users/1M items/96 ticks/day; first canonical tick failed the scale gate | Runtime v5 | standard profile records requests, candidates, events, state/checkpoint bytes and complexity; partition/resume and content hashes are mandatory |
 | P6-02 | `validation/performance`: bounded Feed runtime rewrite | Partial: Bloom, enabled-route execution, compact trace, projection-free zstd partitions and streaming checkpoint writes landed; authority mismatch, startup surge, event history, request microbatch and checkpoint generations remain | P6-01 | S-AUTH00/S-WORLD00 plus S-EVENT00, S-MICRO00, S-CKPT00 and 96-tick S-LONG00 pass within 24 GB RAM/24 GB VRAM |

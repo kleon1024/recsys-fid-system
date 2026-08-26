@@ -21,18 +21,23 @@ flowchart LR
     Closed --> Joiner[Event-time Joiner]
     Pixel --> Joiner
     Actions --> Joiner
-    Joiner --> Samples[Recall, coarse, and fine examples]
+    Joiner --> Samples[Recall, coarse, fine, and Publish Queue examples]
     Samples --> Train[Offline and online training]
     Train --> Recall
     Train --> Coarse
     Train --> Fine
 ```
 
-The three sample authorities are deliberately separate. Recall learns from a
+The three cascade sample authorities are deliberately separate. Recall learns from a
 positive item and probability-carrying negative mix. Coarse rank learns from
 the actual recalled candidate distribution and fine-rank teacher signals. Fine
 rank learns only from real exposures; an unexposed candidate is never an
 ordinary negative.
+
+The Publish Queue is a fourth, cross-request business authority over the same
+Feed content candidates. It joins an exposure to later posting entry, create,
+publish, and qualified-supply outcomes after maturity; it is not the
+posting-page candidate ranker.
 
 ## Model ladder
 

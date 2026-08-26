@@ -4,11 +4,17 @@ from .contracts import (
     CoarseRankExampleBatch,
     FineRankExampleBatch,
     JoinedSampleAuthorities,
+    PublishQueueExampleBatch,
     RecallExampleBatch,
     RequestCandidateTrace,
     RequestContextBatch,
     ServingOutput,
     TraceManifest,
+)
+from .publish_queue import (
+    PublishQueueConfig,
+    PublishQueueJoiner,
+    PublishQueueTask,
 )
 from .negative_sampling import (
     NegativeSource,
@@ -21,6 +27,10 @@ __all__ = (
     "FineRankExampleBatch",
     "JoinedSampleAuthorities",
     "NegativeSource",
+    "PublishQueueConfig",
+    "PublishQueueExampleBatch",
+    "PublishQueueJoiner",
+    "PublishQueueTask",
     "RecallExampleBatch",
     "RequestCandidateTrace",
     "RequestContextBatch",

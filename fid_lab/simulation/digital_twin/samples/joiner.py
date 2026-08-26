@@ -20,6 +20,7 @@ from .contracts import (
     RequestContextBatch,
 )
 from .negative_sampling import build_recall_negatives
+from .publish_queue import PublishQueueConfig, PublishQueueJoiner
 
 
 @dataclass(frozen=True)
@@ -350,10 +351,14 @@ class RequestLevelJoiner:
         fine = self._fine(trace, context, events, event_watermark)
         coarse = self._coarse(trace, context, fine)
         recall = self._recall(trace, context, fine)
+        publish_queue = PublishQueueJoiner(PublishQueueConfig(
+            ticks_per_day=self.config.ticks_per_day,
+        )).materialize(fine, events, event_watermark)
         return JoinedSampleAuthorities(
             recall=recall,
             coarse=coarse,
             fine=fine,
+            publish_queue=publish_queue,
             event_watermark=event_watermark,
             manifest=trace.manifest,
         )

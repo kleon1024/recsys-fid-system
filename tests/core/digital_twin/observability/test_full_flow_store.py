@@ -68,7 +68,15 @@ def test_full_flow_tables_share_one_request_and_sample_closure():
         labels.label_applicable & labels.label_mature
     )).all()
     examples = tables["v4_training_example_log"].to_pandas()
-    assert set(examples.authority) == {"recall", "coarse", "fine"}
+    assert set(examples.authority) == {
+        "recall", "coarse", "fine", "publish_queue",
+    }
+    publish = examples.loc[examples.authority == "publish_queue"]
+    assert publish.surface.eq(0).all()
+    assert publish.task_label_values.map(len).eq(3).all()
+    assert publish.loc[
+        ~publish.exposed, "task_label_masks"
+    ].map(any).eq(False).all()
     negatives = examples[
         (examples.authority == "recall") & (examples.role == "negative")
     ]

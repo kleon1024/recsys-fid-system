@@ -98,6 +98,15 @@ def materialize_full_flow(
             "sparse_feature_names": list(
                 snapshot.feature_manifest.sparse_names
             ),
+            "publish_queue_task_names": list(
+                snapshot.samples.publish_queue.task_names
+            ),
+            "publish_queue_task_window_ticks": list(
+                snapshot.samples.publish_queue.task_window_ticks
+            ),
+            "publish_queue_attribution_half_life_ticks": (
+                snapshot.samples.publish_queue.attribution_half_life_ticks
+            ),
         },
         "feature_manifest": snapshot.feature_manifest.canonical_payload(),
         "tables": {},

@@ -49,10 +49,12 @@ from .platform import (
     RetrievalConfig,
 )
 from .samples.contracts import (
+    PublishQueueExampleBatch,
     RequestCandidateTrace,
     ServingOutput,
     TraceManifest,
 )
+from .samples.publish_queue import PublishQueueConfig, PublishQueueJoiner
 from .samples.joiner import (
     JoinerConfig,
     RequestLevelJoiner,
@@ -97,6 +99,9 @@ __all__ = (
     "PlatformRequestBatch",
     "PolicyLayer",
     "PublishFailureReason",
+    "PublishQueueConfig",
+    "PublishQueueExampleBatch",
+    "PublishQueueJoiner",
     "PublicCatalog",
     "ProjectionSnapshot",
     "RequestCandidateTrace",

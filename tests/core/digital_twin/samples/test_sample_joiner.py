@@ -11,6 +11,7 @@ from fid_lab.simulation.digital_twin import (
     ObservableProjection,
     RequestCandidateTrace,
     RequestLevelJoiner,
+    Surface,
     TraceManifest,
     build_public_catalog,
     capture_request_context,
@@ -240,6 +241,43 @@ def test_three_authorities_preserve_observability_and_teacher_boundaries():
         trace.candidate_dense_features[:, :5],
     )
     assert joined.fine.feature_manifest_hash == "a" * 64
+
+
+def test_publish_queue_attributes_later_posting_outcomes_to_feed_content():
+    catalog, trace = build_catalog(), build_trace()
+    context = capture_request_context(
+        trace, ObservableProjection(2, catalog, history_length=4).snapshot(),
+    )
+    future = []
+    for request_id, event_time, event_type in (
+        (301, 10, EventType.SURFACE_ENTRY),
+        (302, 12, EventType.CREATE),
+        (303, 20, EventType.PUBLISH),
+    ):
+        future.append(make_app_events(
+            event_type,
+            event_time=event_time,
+            request_id=torch.tensor([request_id]),
+            user_id=torch.tensor([0]),
+            surface=torch.tensor([int(Surface.POSTING)]),
+        ))
+    events = AppEventBatch.concatenate((build_events(trace, catalog), *future))
+    joined = RequestLevelJoiner(
+        JoinerConfig(ticks_per_day=96, recall_negatives=3), catalog,
+    ).materialize(trace, context, events, event_watermark=192)
+    publish = joined.publish_queue
+
+    assert publish.request_id.tolist() == [101]
+    assert publish.task_names == (
+        "posting_entry_24h", "create_24h", "publish_48h",
+    )
+    assert publish.label_mask[0, :2].all()
+    assert not publish.label_mask[0, 2:].any()
+    assert torch.allclose(publish.labels[0, :2].sum(dim=0), torch.ones(3))
+    assert torch.allclose(
+        publish.joint_logging_probability,
+        publish.exposure_probability * publish.assignment_probability[:, None],
+    )
 
 
 def test_recall_sources_carry_q_expected_count_and_false_negative_mask():

@@ -42,6 +42,13 @@ learns the real recalled distribution and teacher order. Fine rank learns only
 from exposed items because skipped unexposed candidates have no observable
 outcome. Combining them would turn retrieval assumptions into ranking labels.
 
+Feed publishing value is separate again: its candidate is still Feed content,
+but its label occurs on a later posting request. I use a dedicated Publish
+Queue sample with 24/48-hour maturity and observable multi-touch attribution,
+then validate incremental creator response through viewer-UID A/B. This must
+not be confused with ranking POI, music, or product candidates on the posting
+page.
+
 ## What was the hardest failure?
 
 The hardest class is false negatives from delayed or unobservable conversion.

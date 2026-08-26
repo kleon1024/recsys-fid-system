@@ -8,7 +8,7 @@ import numpy as np
 import pyarrow as pa
 import torch
 
-from ..contracts import EventType
+from ..contracts import EventType, Surface
 from ..platform.lifecycle import ContentLifecycle, post_content_mask
 from ..platform.routes import FEED_ROUTE_NAMES
 from .contracts import CheckpointRecord, FullFlowSnapshot
@@ -570,12 +570,81 @@ def _fine_example_table(fine) -> pa.Table:
     return pa.table(fine_data)
 
 
+def _publish_queue_example_table(publish) -> pa.Table:
+    valid = publish.item_id >= 0
+    ordinal = torch.arange(
+        publish.item_id.shape[1], device=publish.item_id.device,
+    )[None].expand_as(publish.item_id)
+    request = publish.request_id[:, None].expand_as(publish.item_id)
+    rows = int(valid.sum())
+    data = {
+        "request_id": _numpy(request[valid]),
+        "item_id": _numpy(publish.item_id[valid]),
+        "authority": pa.array(["publish_queue"] * rows, type=pa.string()),
+        "role": pa.array(["candidate"] * rows, type=pa.string()),
+        "ordinal": _numpy(ordinal[valid]),
+        "sampling_probability": _numpy(
+            publish.exposure_probability[valid]
+        ),
+        "label_value": np.full(rows, np.nan, dtype=np.float32),
+        "label_mask": np.zeros(rows, dtype=np.bool_),
+        "teacher_score": np.full(rows, np.nan, dtype=np.float32),
+        "teacher_mask": np.zeros(rows, dtype=np.bool_),
+        **_sample_lineage_defaults(rows),
+    }
+    data["joint_logging_probability"] = _numpy(
+        publish.joint_logging_probability[valid]
+    )
+    data["factual_exposure_probability"] = _numpy(
+        publish.exposure_probability[valid]
+    )
+    data["candidate_exposure_probability"] = _numpy(
+        publish.exposure_probability[valid]
+    )
+    data["exposed"] = _numpy(publish.exposed[valid])
+    data["user_id"] = _numpy(
+        publish.user_id[:, None].expand_as(publish.item_id)[valid]
+    )
+    data["surface"] = np.full(rows, int(Surface.FEED), dtype=np.int64)
+    data["request_time"] = _numpy(
+        publish.request_time[:, None].expand_as(publish.item_id)[valid]
+    )
+    data["position"] = _numpy(publish.position[valid])
+    data["feature_manifest_hash"] = pa.array(
+        [publish.feature_manifest_hash] * rows, type=pa.string(),
+    )
+    data["dense_features"] = _variable_list(
+        publish.dense_features[valid], pa.float32(),
+    )
+    data["sparse_fids"] = _variable_list(
+        publish.sparse_fids[valid], pa.int64(),
+    )
+    data["sparse_buckets"] = _variable_list(
+        publish.sparse_buckets[valid], pa.int64(),
+    )
+    data["task_label_values"] = _variable_list(
+        publish.labels[valid], pa.float32(),
+    )
+    data["task_label_masks"] = _variable_list(
+        publish.label_mask[valid], pa.bool_(),
+    )
+    applicable = publish.exposed[:, :, None].expand_as(publish.labels)
+    data["task_label_applicable"] = _variable_list(
+        applicable[valid], pa.bool_(),
+    )
+    data["task_label_mature"] = _variable_list(
+        publish.label_mature[valid], pa.bool_(),
+    )
+    return pa.table(data)
+
+
 def _example_table(snapshot: FullFlowSnapshot) -> pa.Table:
     samples = snapshot.samples
     result = pa.concat_tables((
         *_recall_example_tables(samples.recall),
         _coarse_example_table(samples.coarse),
         _fine_example_table(samples.fine),
+        _publish_queue_example_table(samples.publish_queue),
     ))
     rows = len(result)
     return result.append_column(

@@ -103,6 +103,12 @@ class PartitionedSampleBus:
         )
         return table.filter(pc.equal(table["authority"], "recall"))
 
+    def publish_queue_examples(self, ref: FullFlowPartitionRef):
+        table = read_full_flow_partition_table(
+            self.dataset_root, ref, "v4_training_example_log",
+        )
+        return table.filter(pc.equal(table["authority"], "publish_queue"))
+
     def request_context(self, ref: FullFlowPartitionRef):
         return read_full_flow_partition_table(
             self.dataset_root, ref, "v4_request_log",

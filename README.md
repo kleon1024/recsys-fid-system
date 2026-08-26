@@ -305,8 +305,10 @@ true quality, true risk, retention state, or future signup schedule. It retains
 all recalled candidates,
 route provenance, coarse/fine scores, exploration and position propensity,
 exposure, point-in-time history, 17 labels, maturity masks, served-policy ID,
-and experiment-cell ID. The Joiner compiles three independent tensor
-authorities rather than reusing one exposure table for every stage. The online
+and experiment-cell ID. The Joiner compiles three independent cascade tensor
+authorities rather than reusing one exposure table for every stage. A fourth
+cross-request Publish Queue authority keeps Feed-content exposure and later
+posting outcomes separate from posting-page ranking. The online
 trainer supports LR, Wide & Deep, DCNv2, and MMoE on the current dense
 observable contract and uses clipped IPS BCE plus request-aware pairwise and
 listwise losses;
