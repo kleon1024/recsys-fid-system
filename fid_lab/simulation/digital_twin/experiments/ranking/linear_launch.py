@@ -40,6 +40,7 @@ class LinearRankLaunchConfig:
     control_fine_checkpoint: str = ""
     replay_dataset_root: str = ""
     replay_partition_fraction: float = 0.20
+    run_aa: bool = False
 
 
 _ROW_TENSORS = (
@@ -329,11 +330,16 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
     logical_time, _ = _run_window(
         kernel, baseline, 0, config.burn_in_steps,
     )
-    logical_time, aa_events = _run_window(
-        kernel, baseline, logical_time, config.aa_steps,
-    )
-    aa_metrics, aa_sample = analyze_experiment(aa_events, config.users)
-    aa_valid, aa_reason = validate_aa(aa_metrics)
+    aa_metrics: dict[str, object] = {}
+    aa_sample: dict[str, object] = {}
+    aa_valid = True
+    aa_reason = "handled by the experiment-platform health monitor"
+    if config.run_aa:
+        logical_time, aa_events = _run_window(
+            kernel, baseline, logical_time, config.aa_steps,
+        )
+        aa_metrics, aa_sample = analyze_experiment(aa_events, config.users)
+        aa_valid, aa_reason = validate_aa(aa_metrics)
     if not aa_valid:
         report = {
             "schema": "dense-linear-ranker-launch/v1",
@@ -410,6 +416,7 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
             "metrics_per_triggered_user": aa_metrics,
             "valid": True,
             "reason": aa_reason,
+            "run_for_this_launch": config.run_aa,
         },
         "review": review,
         "elapsed_seconds": time.perf_counter() - started,

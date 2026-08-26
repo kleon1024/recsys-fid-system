@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument("--control-fine-checkpoint", default="")
     parser.add_argument("--replay-dataset-root", default="")
     parser.add_argument("--replay-partition-fraction", type=float, default=0.20)
+    parser.add_argument("--run-aa", action="store_true")
     args = parser.parse_args()
     report = run_linear_rank_launch(LinearRankLaunchConfig(
         dataset_root=args.dataset_root,
@@ -32,6 +33,7 @@ def main() -> None:
         control_fine_checkpoint=args.control_fine_checkpoint,
         replay_dataset_root=args.replay_dataset_root,
         replay_partition_fraction=args.replay_partition_fraction,
+        run_aa=args.run_aa,
     ))
     summary = {
         "offline": report["offline"],

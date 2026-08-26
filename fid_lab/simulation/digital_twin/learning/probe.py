@@ -284,6 +284,9 @@ def train_probe(
         raise ValueError("probe training configuration must be positive")
     target = torch.device(device)
     torch.manual_seed(seed)
+    dense = batch.dense_features.to(target)
+    dense_mean = dense.mean(dim=0)
+    dense_scale = dense.std(dim=0, unbiased=False).clamp_min(1e-4)
     model = ProbeRanker(
         batch.dense_features.shape[1], len(batch.task_names),
     ).to(target)
@@ -297,17 +300,20 @@ def train_probe(
             for task in set(batch.task_names) & set(initial_artifact.task_names):
                 source = initial_artifact.task_names.index(task)
                 target_task = batch.task_names.index(task)
-                model.linear.weight[target_task].copy_(
-                    initial_artifact.model.linear.weight[source].to(target),
-                )
+                old_weight = initial_artifact.model.linear.weight[source].to(target)
+                old_mean = initial_artifact.dense_mean.to(target)
+                old_scale = initial_artifact.dense_scale.to(target)
+                adjusted_weight = old_weight.clone()
+                adjusted_weight[:model.inputs] *= dense_scale / old_scale
+                model.linear.weight[target_task].copy_(adjusted_weight)
                 model.linear.bias[target_task].copy_(
-                    initial_artifact.model.linear.bias[source].to(target),
+                    initial_artifact.model.linear.bias[source].to(target)
+                    + (old_weight[:model.inputs] * (
+                        dense_mean - old_mean
+                    ) / old_scale).sum(),
                 )
                 warm_started_tasks.append(task)
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-    dense = batch.dense_features.to(target)
-    dense_mean = dense.mean(dim=0)
-    dense_scale = dense.std(dim=0, unbiased=False).clamp_min(1e-4)
     dense = (dense - dense_mean) / dense_scale
     surface = batch.surface.to(target)
     labels = batch.labels.to(target)
