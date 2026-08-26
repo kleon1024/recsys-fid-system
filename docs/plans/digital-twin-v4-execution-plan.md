@@ -728,6 +728,34 @@ before any authority switch.
 Status: retrieval is accepted; ranking manifests/mechanics are accepted but
 candidate coverage and support are reopened. No learned model is active.
 
+The 2026-08-26 fine-rank audit fixes the next order of work. The accepted
+Random+Popular dataset contains 46,668 Feed requests and 1,553,854 fine
+candidate rows, or 33.3 candidates per request. Only the eight exposed items
+per request have mature behavioral labels: 24.0% of candidate rows. No
+unexposed candidate has randomized support, so deterministic non-exposure is
+not a negative label and IPS cannot recover the missing counterfactual. The
+materialized sample also dropped its in-memory dwell target; this is fixed for
+new partitions with backward-compatible replay for old partitions.
+
+The first learned ranker additionally under-trained unnormalised dense inputs.
+After normalization and 456 optimizer steps, F-LR-001 v4 reaches 0.5835
+time-split long-view AUC, while the current rule teacher reaches about 0.655 on
+the same observed rows. Its factual A/B is directionally positive on stay
+(+4.44%) and long view (+5.29%), but both 95% confidence intervals cross zero;
+negative feedback is also directionally worse (+1.96%) with an interval that
+crosses zero. The correct decision is `hold`, not promotion. The learned scorer
+also consumes none of the sparse FIDs and serves only its long-view head although
+the launch gate uses dwell and negative feedback.
+
+Execution order is now fixed as follows: collect a small, explicit randomized
+ranking lane and preserve dwell; add one independent personalized transition
+I2I/ItemCF retrieval route against the accepted Random+Popular baseline; then
+train a request-aware, sparse-aware multi-objective fine ranker on the expanded
+supported candidate distribution. This does not postpone ranking indefinitely:
+the exploration/data contract is a ranking prerequisite, while personalized
+retrieval is the next quality LR. Coarse ranking still waits for measured fine
+capacity pressure.
+
 - Run P3-09a → P3-02a/03a/05a → P3-07/08 → P3-09b.
 - Reuse the dual-lane trainer and manifest; do not reconstruct serving inputs.
 
