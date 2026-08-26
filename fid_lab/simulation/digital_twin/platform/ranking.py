@@ -8,7 +8,12 @@ from typing import Protocol
 import torch
 
 from ..catalog import PublicCatalog
-from ..contracts import ContentKind, PlatformRequestBatch, SelectionPolicyKind
+from ..contracts import (
+    ContentKind,
+    PlatformRequestBatch,
+    SelectionPolicyKind,
+    Surface,
+)
 from .exploration import (
     exploration_mask,
     mixture_admission_probability,
@@ -73,6 +78,8 @@ class CascadePolicy:
     cold_start_exploration_rate: float = 0.0
     commerce_require_inventory: bool = False
     commerce_min_inventory: float = 0.0
+    publish_version_id: int = 0
+    publish_weight: float = 0.0
 
     def __post_init__(self):
         if len(self.coarse_weights) != 10 or len(self.fine_weights) != 10:
@@ -105,6 +112,10 @@ class CascadePolicy:
             raise ValueError("cold-start exploration requires its recall route")
         if not 0.0 <= self.commerce_min_inventory <= 1.0:
             raise ValueError("Commerce minimum inventory must be in [0, 1]")
+        if self.publish_version_id < 0 or self.publish_weight < 0.0:
+            raise ValueError("Publish Queue version and weight must be non-negative")
+        if self.publish_version_id == 0 and self.publish_weight != 0.0:
+            raise ValueError("Publish Queue weight requires a model version")
 
     @property
     def effective_routes(self) -> tuple[str, ...]:
@@ -147,6 +158,7 @@ class LearnedRankScorer(Protocol):
 
 LearnedCoarseScorer = LearnedRankScorer
 LearnedFineScorer = LearnedRankScorer
+LearnedPublishScorer = LearnedRankScorer
 
 
 class CascadeRanker:
@@ -166,6 +178,7 @@ class CascadeRanker:
         )
         self._coarse_scorers: dict[int, LearnedCoarseScorer] = {}
         self._fine_scorers: dict[int, LearnedFineScorer] = {}
+        self._publish_scorers: dict[int, LearnedPublishScorer] = {}
 
     def install_coarse_scorer(
         self, serving_version_id: int, scorer: LearnedCoarseScorer,
@@ -179,6 +192,13 @@ class CascadeRanker:
     ) -> None:
         self._install_scorer(
             self._fine_scorers, serving_version_id, scorer, "fine",
+        )
+
+    def install_publish_scorer(
+        self, serving_version_id: int, scorer: LearnedPublishScorer,
+    ) -> None:
+        self._install_scorer(
+            self._publish_scorers, serving_version_id, scorer, "publish",
         )
 
     def _install_scorer(
@@ -204,6 +224,10 @@ class CascadeRanker:
             policy.fine_version_id not in self._fine_scorers
         ):
             missing.append(f"fine={policy.fine_version_id}")
+        if policy.publish_version_id > 0 and (
+            policy.publish_version_id not in self._publish_scorers
+        ):
+            missing.append(f"publish={policy.publish_version_id}")
         if missing:
             raise ValueError(
                 "policy references uninstalled model artifacts: "
@@ -545,18 +569,34 @@ class CascadeRanker:
             priority = -torch.arange(
                 item_id.shape[1], device=item_id.device, dtype=torch.float,
             )[None].expand_as(item_id)
-            return priority.masked_fill(item_id < 0, -torch.inf)
-        scorer = self._fine_scorers.get(policy.fine_version_id)
-        if scorer is not None:
-            score = scorer.score(features, requests.surface)
-            if score.shape != item_id.shape:
-                raise ValueError("learned fine scorer returned an invalid shape")
-            return score.to(item_id.device).masked_fill(item_id < 0, -torch.inf)
-        dense = features.dense[:, :, :10]
-        weight = torch.tensor(policy.fine_weights, device=item_id.device)
-        score = torch.einsum("bkd,d->bk", dense, weight)
-        score += policy.cross_weight * torch.sin(1.7 * dense[:, :, 0]) * dense[:, :, 1]
-        score += policy.sequence_weight * features.dense[:, :, 10]
+            score = priority
+        else:
+            scorer = self._fine_scorers.get(policy.fine_version_id)
+            if scorer is not None:
+                score = scorer.score(features, requests.surface)
+                if score.shape != item_id.shape:
+                    raise ValueError("learned fine scorer returned an invalid shape")
+                score = score.to(item_id.device)
+            else:
+                dense = features.dense[:, :, :10]
+                weight = torch.tensor(policy.fine_weights, device=item_id.device)
+                score = torch.einsum("bkd,d->bk", dense, weight)
+                score += policy.cross_weight * torch.sin(
+                    1.7 * dense[:, :, 0]
+                ) * dense[:, :, 1]
+                score += policy.sequence_weight * features.dense[:, :, 10]
+        if policy.publish_version_id > 0 and policy.publish_weight > 0.0:
+            publish = self._publish_scorers[policy.publish_version_id].score(
+                features, requests.surface,
+            )
+            if publish.shape != item_id.shape:
+                raise ValueError("Publish Queue scorer returned an invalid shape")
+            feed = requests.surface == int(Surface.FEED)
+            score = score + (
+                policy.publish_weight
+                * publish.to(item_id.device)
+                * feed[:, None]
+            )
         return score.masked_fill(item_id < 0, -torch.inf)
 
     def _coarse_scores(

@@ -56,7 +56,7 @@ such model was served in this experiment.
 Feed publishing value now has its own cross-request `PublishQueueExample`
 authority. Candidates remain Feed content. Labels are posting entry and create
 within 24 hours and publish within 48 hours, with maturity masks, factual
-propensity and observable time-decayed attribution. The training materializer
+propensity and globally unique observable engaged-last-touch attribution. The training materializer
 retains later posting requests by the same viewer instead of filtering the log
 to the Feed request ID. Hidden inspiration remains unavailable to the Joiner.
 

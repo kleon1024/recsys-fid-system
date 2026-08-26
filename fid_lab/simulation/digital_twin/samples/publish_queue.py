@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
-from math import exp, log
 
 import torch
 
 from ..contracts import AppEventBatch, EventType, Surface
 from .contracts import FineRankExampleBatch, PublishQueueExampleBatch
+from .event_closure import PUBLISH_QUEUE_SOURCE_TYPES
 
 
 @dataclass(frozen=True)
@@ -22,21 +22,10 @@ class PublishQueueTask:
 @dataclass(frozen=True)
 class PublishQueueConfig:
     ticks_per_day: int
-    attribution_half_life_ticks: int | None = None
-    maximum_attributed_exposures: int = 32
 
     def __post_init__(self):
-        if self.ticks_per_day <= 0 or self.maximum_attributed_exposures <= 0:
+        if self.ticks_per_day <= 0:
             raise ValueError("publish-queue dimensions must be positive")
-        if (
-            self.attribution_half_life_ticks is not None
-            and self.attribution_half_life_ticks <= 0
-        ):
-            raise ValueError("publish-queue attribution half-life must be positive")
-
-    @property
-    def half_life_ticks(self) -> int:
-        return self.attribution_half_life_ticks or max(1, self.ticks_per_day // 2)
 
     @property
     def tasks(self) -> tuple[PublishQueueTask, ...]:
@@ -52,8 +41,8 @@ class PublishQueueJoiner:
     """Attribute later creator outcomes to observable Feed exposures.
 
     Hidden inspiration state is deliberately unavailable here.  Outcomes are
-    attributed across recent factual Feed exposures with normalized temporal
-    decay.  The label is therefore an observational fractional-credit target;
+    attributed to one globally observable, engaged last-touch Feed exposure.
+    This prevents one outcome from being credited once per request partition;
     causal lift still requires randomized serving and A/B evaluation.
     """
 
@@ -87,20 +76,44 @@ class PublishQueueJoiner:
         )
 
         exposure_rows, exposure_columns = torch.where(exposed)
-        exposure_index: dict[int, list[tuple[int, int, int]]] = {}
+        exposure_index: dict[tuple[int, int, int], tuple[int, int]] = {}
         for row, column in zip(
             exposure_rows.detach().cpu().tolist(),
             exposure_columns.detach().cpu().tolist(),
         ):
-            exposure_index.setdefault(int(user_id[row]), []).append((
-                int(request_time[row]), row, column,
-            ))
-        for values in exposure_index.values():
-            values.sort(key=lambda value: value[0])
-        exposure_times = {
-            user: [value[0] for value in values]
-            for user, values in exposure_index.items()
+            exposure_index[(
+                int(user_id[row]),
+                int(fine.request_id[selected][row]),
+                int(item[row, column]),
+            )] = (row, column)
+
+        source_strength = {
+            event_type: strength
+            for strength, event_type in enumerate(PUBLISH_QUEUE_SOURCE_TYPES)
         }
+        source = (
+            (events.surface == int(Surface.FEED))
+            & (events.user_id >= 0)
+            & (events.item_id >= 0)
+            & torch.isin(events.event_type, torch.tensor(
+                [int(event_type) for event_type in PUBLISH_QUEUE_SOURCE_TYPES],
+                device=events.event_type.device,
+            ))
+        )
+        source_by_user: dict[int, list[tuple[int, int, int, int, int]]] = {}
+        for row in torch.where(source)[0].detach().cpu().tolist():
+            event_type = EventType(int(events.event_type[row]))
+            source_by_user.setdefault(int(events.user_id[row]), []).append((
+                int(events.event_time[row]),
+                source_strength[event_type],
+                int(events.event_id[row]),
+                int(events.request_id[row]),
+                int(events.item_id[row]),
+            ))
+        source_times = {}
+        for outcome_user, values in source_by_user.items():
+            values.sort()
+            source_times[outcome_user] = [value[0] for value in values]
 
         for task_index, task in enumerate(tasks):
             outcome = (
@@ -112,27 +125,23 @@ class PublishQueueJoiner:
             outcome_users = events.user_id[outcome].detach().cpu().tolist()
             outcome_times = events.event_time[outcome].detach().cpu().tolist()
             for outcome_user, outcome_time in zip(outcome_users, outcome_times):
-                candidates = exposure_index.get(int(outcome_user))
+                candidates = source_by_user.get(int(outcome_user))
                 if not candidates:
                     continue
-                times = exposure_times[int(outcome_user)]
+                times = source_times[int(outcome_user)]
                 start = bisect_left(times, int(outcome_time) - task.window_ticks)
                 stop = bisect_right(times, int(outcome_time))
-                touches = candidates[start:stop]
-                if not touches:
+                if start == stop:
                     continue
-                touches = touches[-self.config.maximum_attributed_exposures:]
-                weights = [
-                    exp(
-                        -log(2.0)
-                        * max(0, int(outcome_time) - exposure_time)
-                        / self.config.half_life_ticks
-                    )
-                    for exposure_time, _, _ in touches
-                ]
-                denominator = sum(weights)
-                for (_, row, column), weight in zip(touches, weights):
-                    labels[row, column, task_index] += weight / denominator
+                _, _, _, source_request, source_item = max(
+                    candidates[start:stop]
+                )
+                location = exposure_index.get((
+                    int(outcome_user), source_request, source_item,
+                ))
+                if location is not None:
+                    row, column = location
+                    labels[row, column, task_index] = 1.0
 
         labels = labels.clamp_max(1.0) * mature.float()
         exposure_probability = fine.exposure_probability[selected]
@@ -159,6 +168,6 @@ class PublishQueueJoiner:
             context=context,
             task_names=tuple(task.name for task in tasks),
             task_window_ticks=tuple(task.window_ticks for task in tasks),
-            attribution_half_life_ticks=self.config.half_life_ticks,
+            attribution_method="engaged_last_touch_v1",
             feature_manifest_hash=fine.feature_manifest_hash,
         )

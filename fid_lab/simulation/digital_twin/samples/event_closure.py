@@ -12,6 +12,13 @@ PUBLISH_QUEUE_OUTCOME_TYPES = (
     EventType.CREATE,
     EventType.PUBLISH,
 )
+PUBLISH_QUEUE_SOURCE_TYPES = (
+    EventType.IMPRESSION,
+    EventType.PLAY_3S,
+    EventType.LIKE,
+    EventType.LONG_VIEW,
+    EventType.SHARE,
+)
 
 
 def select_joiner_events(
@@ -32,11 +39,27 @@ def select_joiner_events(
         [int(event_type) for event_type in PUBLISH_QUEUE_OUTCOME_TYPES],
         device=events.event_type.device,
     )
-    cross_request_publish = (
-        torch.isin(events.user_id, user_id)
-        & (events.surface == int(Surface.POSTING))
-        & torch.isin(events.event_type, outcome_types)
-        & (events.event_time >= int(request_time.min()))
+    source_types = torch.tensor(
+        [int(event_type) for event_type in PUBLISH_QUEUE_SOURCE_TYPES],
+        device=events.event_type.device,
+    )
+    same_user = torch.isin(events.user_id, user_id)
+    in_publish_window = (
+        (events.event_time >= int(request_time.min()))
         & (events.event_time <= int(request_time.max()) + publish_window_ticks)
     )
-    return events.select(same_request | cross_request_publish)
+    cross_request_publish = (
+        same_user
+        & (events.surface == int(Surface.POSTING))
+        & torch.isin(events.event_type, outcome_types)
+        & in_publish_window
+    )
+    cross_request_feed_source = (
+        same_user
+        & (events.surface == int(Surface.FEED))
+        & torch.isin(events.event_type, source_types)
+        & in_publish_window
+    )
+    return events.select(
+        same_request | cross_request_publish | cross_request_feed_source
+    )

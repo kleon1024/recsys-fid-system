@@ -6,7 +6,7 @@ import math
 
 import torch
 
-from ...contracts import AppEventBatch, EventType
+from ...contracts import AppEventBatch, EventType, Surface
 
 
 COUNT_METRICS = {
@@ -19,6 +19,12 @@ COUNT_METRICS = {
     "follow": EventType.FOLLOW,
     "negative": EventType.NEGATIVE,
     "session_end": EventType.SESSION_END,
+}
+
+CROSS_REQUEST_METRICS = {
+    "posting_entry": (EventType.SURFACE_ENTRY, Surface.POSTING),
+    "create": (EventType.CREATE, Surface.POSTING),
+    "publish": (EventType.PUBLISH, Surface.POSTING),
 }
 
 
@@ -56,6 +62,26 @@ def _cell_users(events: AppEventBatch, cell: int, users: int) -> torch.Tensor:
     present = torch.zeros(users, device=events.user_id.device, dtype=torch.bool)
     present[events.user_id[impression]] = True
     return present
+
+
+def _cross_request_user_metric(
+    events: AppEventBatch,
+    users: int,
+    event_type: EventType,
+    surface: Surface,
+) -> torch.Tensor:
+    selected = (
+        (events.user_id >= 0)
+        & (events.surface == int(surface))
+        & events.event(event_type)
+    )
+    result = torch.zeros(users, device=events.user_id.device)
+    result.scatter_add_(
+        0,
+        events.user_id[selected],
+        torch.ones(int(selected.sum()), device=events.user_id.device),
+    )
+    return result
 
 
 def _estimate(
@@ -112,6 +138,13 @@ def analyze_experiment(
             _user_metric(
                 events, treatment_cell, users, event_type,
             )[treatment_users],
+        )
+    for name, (event_type, surface) in CROSS_REQUEST_METRICS.items():
+        values = _cross_request_user_metric(
+            events, users, event_type, surface,
+        )
+        metrics[name] = _estimate(
+            values[control_users], values[treatment_users],
         )
     return metrics, {
         "control_triggered_users": int(control_users.sum()),

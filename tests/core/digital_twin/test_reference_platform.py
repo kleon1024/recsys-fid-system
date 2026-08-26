@@ -21,6 +21,7 @@ from fid_lab.simulation.digital_twin import (
     RequestLevelJoiner,
     RetrievalConfig,
     SelectionPolicyKind,
+    Surface,
     UserEcosystemWorld,
     UserWorldConfig,
     build_public_catalog,
@@ -505,6 +506,62 @@ def test_installed_learned_scorer_replays_exact_score_and_version():
     replay = scorer.score(scorer_input, trace.surface)
     valid = trace.coarse_item_id >= 0
     assert torch.allclose(replay[valid], trace.fine_input_score[valid])
+
+
+def test_publish_queue_score_mixes_only_into_feed_content_candidates():
+    world, platform, log, _, _, _ = build_system(users=128, items=1_600)
+
+    class BaseScorer:
+        feature_manifest_hash = DEFAULT_FEATURE_MANIFEST.manifest_hash
+
+        @staticmethod
+        def score(features, surface):
+            del surface
+            return features.dense[:, :, 0]
+
+    class PublishScorer:
+        feature_manifest_hash = DEFAULT_FEATURE_MANIFEST.manifest_hash
+
+        @staticmethod
+        def score(features, surface):
+            del surface
+            return torch.ones_like(features.dense[:, :, 0])
+
+    platform.install_fine_scorer(77, BaseScorer())
+    platform.install_publish_scorer(88, PublishScorer())
+    policy = CascadePolicy(
+        "feed-publish-queue",
+        1,
+        77,
+        2,
+        publish_version_id=88,
+        publish_weight=0.25,
+    )
+    result = AtomicSimulationKernel(world, platform, log).step(
+        0,
+        ExperimentPlan.ramped_user_ab(
+            active_policy=policy,
+            treatment_policy=policy,
+            experiment_seed=93,
+            control_fraction=0.25,
+            treatment_fraction=0.25,
+        ),
+    )
+    trace = result.candidate_trace
+    features = FeatureTensorBatch(
+        dense=trace.candidate_dense_features,
+        sparse_fids=trace.candidate_sparse_fids,
+        sparse_buckets=trace.candidate_sparse_buckets,
+        manifest_hash=trace.manifest.feature_manifest_hash,
+    )
+    selected = platform.ranker._select_features(
+        trace.coarse_item_id, trace.recall_item_id, features,
+    )
+    expected = selected.dense[:, :, 0] + (
+        0.25 * (trace.surface == int(Surface.FEED))[:, None]
+    )
+    valid = trace.coarse_item_id >= 0
+    assert torch.allclose(trace.fine_input_score[valid], expected[valid])
 
 
 def test_installed_learned_coarse_scorer_replays_exact_score_and_version():

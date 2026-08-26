@@ -10,9 +10,13 @@ from fid_lab.simulation.digital_twin.learning import (
     Lane,
     PartitionedSampleBus,
     PersistentModelRegistry,
+    ProbeBatch,
+    SparseLinearArtifact,
     feature_drift_report,
     load_probe_batch,
+    load_publish_queue_batch,
     train_probe,
+    train_sparse_linear,
 )
 from fid_lab.simulation.digital_twin.learning.contracts import (
     ServingCompatibility,
@@ -61,6 +65,68 @@ def test_active_and_candidate_lanes_share_data_but_resume_independently(tmp_path
     )
     assert restarted.cursor(Lane.CANDIDATE).consumed == (
         (candidate[0].key, candidate[0].content_sha256),
+    )
+    publish = load_publish_queue_batch(bus, candidate)
+    assert publish.task_names == (
+        "posting_entry_24h", "create_24h", "publish_48h",
+    )
+    assert publish.exposed.all()
+    assert publish.sparse_buckets.shape[1] == len(
+        publish.sparse_feature_names
+    )
+
+
+def test_hashed_sparse_lr_learns_fid_signal_and_round_trips_checkpoint():
+    rows = 512
+    label = torch.remainder(torch.arange(rows), 2).float()
+    batch = ProbeBatch(
+        request_id=torch.arange(rows),
+        user_id=torch.arange(rows),
+        surface=torch.zeros(rows, dtype=torch.long),
+        request_time=torch.zeros(rows, dtype=torch.long),
+        item_id=torch.arange(rows),
+        position=torch.zeros(rows, dtype=torch.long),
+        route_id=torch.zeros(rows, dtype=torch.long),
+        recall_score=torch.zeros(rows),
+        exposed=torch.ones(rows, dtype=torch.bool),
+        candidate_exposure_probability=torch.ones(rows),
+        randomized_support=torch.ones(rows, dtype=torch.bool),
+        dwell_ms=torch.zeros(rows),
+        dense_features=torch.zeros(rows, 1),
+        sparse_buckets=label.long()[:, None],
+        labels=label[:, None],
+        label_mask=torch.ones(rows, 1, dtype=torch.bool),
+        label_applicable=torch.ones(rows, 1, dtype=torch.bool),
+        label_mature=torch.ones(rows, 1, dtype=torch.bool),
+        joint_logging_probability=torch.ones(rows),
+        task_names=("publish_48h",),
+        dense_feature_names=("constant",),
+        sparse_feature_names=("intent_fid",),
+        feature_manifest_hash="f" * 64,
+        partition_content_hashes=("p" * 64,),
+        event_watermark=10,
+    )
+    artifact = train_sparse_linear(
+        batch,
+        lane=Lane.CANDIDATE,
+        epochs=12,
+        learning_rate=0.05,
+        hash_size=32,
+        batch_size=128,
+        seed=51,
+    )
+    probability = artifact.predict_task_probabilities(
+        batch.dense_features, batch.sparse_buckets, batch.surface,
+    )[:, 0]
+    assert probability[label > 0].mean() > probability[label == 0].mean() + 0.5
+    restored = SparseLinearArtifact.from_checkpoint(artifact.checkpoint())
+    assert torch.allclose(
+        restored.predict_task_probabilities(
+            batch.dense_features, batch.sparse_buckets, batch.surface,
+        ),
+        artifact.predict_task_probabilities(
+            batch.dense_features, batch.sparse_buckets, batch.surface,
+        ),
     )
 
 

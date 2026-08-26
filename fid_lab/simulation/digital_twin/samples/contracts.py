@@ -570,7 +570,7 @@ class PublishQueueExampleBatch:
     context: RequestContextBatch
     task_names: tuple[str, ...]
     task_window_ticks: tuple[int, ...]
-    attribution_half_life_ticks: int
+    attribution_method: str
     feature_manifest_hash: str
 
     def __post_init__(self):
@@ -600,8 +600,8 @@ class PublishQueueExampleBatch:
             raise ValueError("publish-queue sparse FIDs and buckets differ")
         if len(self.task_window_ticks) != len(self.task_names):
             raise ValueError("publish-queue windows do not match tasks")
-        if self.attribution_half_life_ticks <= 0:
-            raise ValueError("publish-queue attribution half-life must be positive")
+        if not self.attribution_method:
+            raise ValueError("publish-queue attribution method is required")
         if not torch.equal(self.label_mask, self.label_mature & self.exposed[:, :, None]):
             raise ValueError("publish-queue masks require mature Feed exposure")
         if (self.labels[~self.label_mask] != 0.0).any():

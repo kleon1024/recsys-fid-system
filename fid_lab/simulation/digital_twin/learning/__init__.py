@@ -15,6 +15,15 @@ from .request_stream import (
     FactualRequestStream,
 )
 from .sample_bus import PartitionedSampleBus
+from .publish_queue import (
+    PUBLISH_QUEUE_VALUE_VERSION,
+    load_publish_queue_batch,
+    publish_queue_task_weights,
+)
+from .sparse_linear import (
+    SparseLinearArtifact,
+    train_sparse_linear,
+)
 
 __all__ = (
     "ArtifactCompatibility",
@@ -25,10 +34,15 @@ __all__ = (
     "Lane",
     "LaneCursor",
     "PartitionedSampleBus",
+    "PUBLISH_QUEUE_VALUE_VERSION",
     "PersistentModelRegistry",
     "ProbeArtifact",
     "ProbeBatch",
+    "SparseLinearArtifact",
     "feature_drift_report",
     "load_probe_batch",
+    "load_publish_queue_batch",
+    "publish_queue_task_weights",
     "train_probe",
+    "train_sparse_linear",
 )

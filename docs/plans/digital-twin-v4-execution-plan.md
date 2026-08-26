@@ -295,8 +295,9 @@ Feed content candidate
 the same viewer: posting entry and create within 24 hours, publish within 48
 hours, and eventually qualified-post outcomes after their own maturity window.
 Immature windows remain `label_mask=0`.  Hidden world inspiration is never a
-training feature.  Observable multi-touch temporal attribution is a training
-target only; incremental value is established by viewer-UID randomized Feed
+training feature.  The first executable target uses one globally unique,
+observable engaged last touch; multi-touch requires a cross-partition streaming
+attribution operator. Incremental value is established by viewer-UID randomized Feed
 experiments.  Creator incentive and creator-distribution experiments use a
 separate creator assignment unit and must declare interference.
 
@@ -577,7 +578,7 @@ in another document is informative only; it cannot override this register.
 | P3-07 | `platform/ranking/coarse`: migrate equal-budget ladder and distillation | Historical implementations only | P3-02a/04/05a/09a | Rule/LR/XGBoost/W&D/DeepFM/DCNv2 share the recall universe and budget; RankDistil-style Top-K preservation, calibration, latency, memory and slices decide |
 | P3-08 | `platform/ranking/fine`: migrate multi-task and sequence ladder | Historical implementations only; request-native listwise path absent | P3-03a/04/05a/09a | pointwise then request-grouped pairwise/listwise deep-cross/DIN/Transformer/MMoE/PLE on identical scorer inputs; per-head calibration, gradient/gate health and latency decide |
 | P3-09 | `validation/evaluation`: support audit first, integrated evaluator and P3 review last | 09a request grouping, stage/support and surface-pure streaming A/B implemented; GPU launch pending | Runtime gate plus P3-06/07/08 | replay served ranks, GAUC/NDCG/PR-AUC/NE/ECE, slices, cost, identified OPE and factual clustered A/B |
-| P3-10 | `samples/publish_queue` + independent Feed Publish Queue | Cross-request PIT authority implemented for posting-entry/create/publish with maturity masks, propensity and observable fractional attribution; model/mixer LR pending | P1-02, P2 creator response, P3-03/04/05 | add qualified-post head; train a separate content scorer; shadow score and launch viewer-UID A/B through the common mixer without reading hidden inspiration or relabeling posting-page candidates |
+| P3-10 | `samples/publish_queue` + independent Feed Publish Queue | Cross-request PIT authority implemented for posting-entry/create/publish with maturity masks, propensity and globally unique engaged-last-touch attribution; model/mixer LR pending | P1-02, P2 creator response, P3-03/04/05 | add qualified-post head; train a separate content scorer; shadow score and launch viewer-UID A/B through the common mixer without reading hidden inspiration or relabeling posting-page candidates |
 | P4-01 | `platform/ranking/value`: calibrate primitive heads, then compose Value Tree | Legacy value code only | P3 | per-task/slice probability or magnitude calibration is frozen before coefficient tuning; coefficients are versioned and nonnegative; sensitivity and monotonicity tests expose which primitive changed each rank |
 | P4-02 | `experiments/metrics`: measure unified LT after randomization | Historical synthetic metric only; no production exchange authority claimed | P4-01 | pre-register stay/return/DAU/commercial outcomes, horizon, MDE and power; cohort curves distinguish immediate and learned effects; exchange assumptions are fitted on separate experiments and sensitivity-bounded, never used as labels |
 | P4-03 | `platform/mixing`: one COPP/final-slate authority | Rolling Bloom online dedup in migration; final mixer remains legacy | Runtime gate plus P4-01 | Bloom FPR/coverage and exact-session gates pass; eligibility→dedup→queue load→quota/diversity→final slate logs every displacement |

@@ -316,6 +316,50 @@ def test_joiner_event_closure_keeps_future_posting_request_for_same_user():
     assert set(selected.request_id.tolist()) == {101, 301}
 
 
+def test_publish_outcome_has_one_global_last_touch_across_request_partitions():
+    catalog = build_catalog()
+    first = build_trace().select(torch.tensor([0]))
+    values = first.__dict__.copy()
+    values["request_id"] = torch.tensor([301])
+    values["event_time"] = torch.tensor([10])
+    second = RequestCandidateTrace(**values)
+    feed_events = []
+    for trace, time in ((first, 0), (second, 10)):
+        feed_events.extend((
+            observed_event(trace, catalog, 0, 0, EventType.IMPRESSION, time),
+            observed_event(trace, catalog, 0, 0, EventType.LONG_VIEW, time),
+        ))
+    publish = make_app_events(
+        EventType.PUBLISH,
+        event_time=20,
+        request_id=torch.tensor([999]),
+        user_id=torch.tensor([0]),
+        surface=torch.tensor([int(Surface.POSTING)]),
+    )
+    all_events = AppEventBatch.concatenate((*feed_events, publish))
+    projection = ObservableProjection(2, catalog, history_length=4)
+    credits = []
+    for trace in (first, second):
+        events = select_joiner_events(
+            all_events,
+            request_id=trace.request_id,
+            user_id=trace.user_id,
+            request_time=trace.event_time,
+            publish_window_ticks=192,
+        )
+        joined = RequestLevelJoiner(
+            JoinerConfig(ticks_per_day=96, recall_negatives=3), catalog,
+        ).materialize(
+            trace,
+            capture_request_context(trace, projection.snapshot()),
+            events,
+            event_watermark=300,
+        )
+        task = joined.publish_queue.task_names.index("publish_48h")
+        credits.append(float(joined.publish_queue.labels[:, :, task].sum()))
+    assert credits == [0.0, 1.0]
+
+
 def test_recall_sources_carry_q_expected_count_and_false_negative_mask():
     catalog, trace = build_catalog(), build_trace()
     context = capture_request_context(

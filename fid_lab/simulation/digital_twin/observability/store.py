@@ -104,8 +104,8 @@ def materialize_full_flow(
             "publish_queue_task_window_ticks": list(
                 snapshot.samples.publish_queue.task_window_ticks
             ),
-            "publish_queue_attribution_half_life_ticks": (
-                snapshot.samples.publish_queue.attribution_half_life_ticks
+            "publish_queue_attribution_method": (
+                snapshot.samples.publish_queue.attribution_method
             ),
         },
         "feature_manifest": snapshot.feature_manifest.canonical_payload(),
