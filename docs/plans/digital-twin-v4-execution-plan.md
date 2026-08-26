@@ -790,6 +790,12 @@ Durable checkpoints bind one constant-size event stream cursor; platform-owned
 event/sample partitions remain independently retained for training, A/B and
 audit. Acquisition, need episodes, activation and retention are specified in
 [`user-world-growth-retention.md`](../research/user-world-growth-retention.md).
+The 10K-user/100K-item CUDA transition smoke and exact checkpoint-fork parity
+are recorded in
+`reports/runtime/2026-08-26-growth-needs-retention-4090-smoke.json`. The event
+cursor is 444 bytes with zero historical event objects in the checkpoint;
+user, response, growth and cursor state are byte-exact on the next tick after
+two independent restores. These accept mechanics, not behavioral calibration.
 
 - Keep rolling Bloom plus the bounded exact session cache as the sole online
   exposure authority; tune Bloom dimensions only through S-MEM system LRs and

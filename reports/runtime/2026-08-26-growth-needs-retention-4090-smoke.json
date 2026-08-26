@@ -1,0 +1,62 @@
+{
+  "schema": "digital-twin-growth-retention-smoke/v1",
+  "source_revision": "9d73e008bb199d8986514264823b809d423bbdcb",
+  "device": "NVIDIA GeForce RTX 4090",
+  "scope": {
+    "users": 10000,
+    "items": 100000,
+    "ticks": 96,
+    "ticks_per_day": 16,
+    "response_authority": "formula_oracle",
+    "world_transition": "activation-retention-state-v2-q1e5"
+  },
+  "traffic": {
+    "surface_entries_by_day": [987, 3022, 2694, 2392, 2205, 2527],
+    "new_registrations_by_channel": [158, 99, 123, 79, 94],
+    "acquisition_channel_order": [
+      "organic",
+      "paid",
+      "referral",
+      "creator_led",
+      "cross_product"
+    ]
+  },
+  "hidden_state_diagnostics": {
+    "lifecycle_stage_counts": [2900, 692, 4104, 2238, 66],
+    "need_kind_counts": [1659, 1679, 1706, 1651, 1654, 1651],
+    "need_kind_order": [
+      "entertainment",
+      "information",
+      "social",
+      "local",
+      "commerce",
+      "creation"
+    ],
+    "maximum_referral_pressure": 0.7911409139633179
+  },
+  "state_and_event_boundary": {
+    "disk_event_partitions": 192,
+    "resident_hot_batches": 66,
+    "event_cursor_bytes": 444,
+    "checkpoint_event_objects": 0,
+    "checkpoint_manifest_bytes": 4721
+  },
+  "restart_parity": {
+    "user_state_exact": true,
+    "response_events_exact": true,
+    "growth_state_exact": true,
+    "event_cursor_exact": true
+  },
+  "runtime": {
+    "wall_seconds": 37.43,
+    "peak_cuda_gib": 0.37276315689086914,
+    "host_swap_used_kib": 0,
+    "host_health_after_run": "pass"
+  },
+  "decision": "mechanics_pass_calibration_and_standard_scale_pending",
+  "limitations": [
+    "All acquisition, need, activation, and retention coefficients are synthetic and not fitted to a real trajectory source.",
+    "The promoted NeuralSCM artifact is absent, so the formula invariant oracle generated immediate responses.",
+    "The canonical 100K-user/1M-item seven-day stationarity and model-LR gate remains pending."
+  ]
+}
