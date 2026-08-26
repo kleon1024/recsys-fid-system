@@ -276,7 +276,7 @@ def test_publish_queue_attributes_later_posting_outcomes_to_feed_content():
     )
     assert publish.label_mask[0, :2].all()
     assert not publish.label_mask[0, 2:].any()
-    assert torch.allclose(publish.labels[0, :2].sum(dim=0), torch.ones(3))
+    assert publish.labels[0, :2].eq(1.0).all()
     assert (publish.attribution_event_id[publish.labels > 0.0] >= 0).all()
     assert torch.allclose(
         publish.joint_logging_probability,
@@ -317,7 +317,7 @@ def test_joiner_event_closure_keeps_future_posting_request_for_same_user():
     assert set(selected.request_id.tolist()) == {101, 301}
 
 
-def test_publish_outcome_has_one_global_last_touch_across_request_partitions():
+def test_publish_outcome_labels_each_prior_exposure_in_its_window():
     catalog = build_catalog()
     first = build_trace().select(torch.tensor([0]))
     values = first.__dict__.copy()
@@ -358,7 +358,7 @@ def test_publish_outcome_has_one_global_last_touch_across_request_partitions():
         )
         task = joined.publish_queue.task_names.index("publish_48h")
         credits.append(float(joined.publish_queue.labels[:, :, task].sum()))
-    assert credits == [0.0, 1.0]
+    assert credits == [2.0, 2.0]
 
 
 def test_recall_sources_carry_q_expected_count_and_false_negative_mask():

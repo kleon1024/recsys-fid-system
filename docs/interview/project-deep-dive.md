@@ -44,7 +44,7 @@ outcome. Combining them would turn retrieval assumptions into ranking labels.
 
 Feed publishing value is separate again: its candidate is still Feed content,
 but its label occurs on a later posting request. I use a dedicated Publish
-Queue sample with 24/48-hour maturity and observable engaged-last-touch attribution,
+Queue sample with 24/48-hour maturity and exposure-window outcomes,
 then validate incremental creator response through viewer-UID A/B. This must
 not be confused with ranking POI, music, or product candidates on the posting
 page.

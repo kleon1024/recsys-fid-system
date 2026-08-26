@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from bisect import bisect_left, bisect_right
+from bisect import bisect_left
 from dataclasses import dataclass
 
 import torch
 
 from ..contracts import AppEventBatch, EventType, Surface
 from .contracts import FineRankExampleBatch, PublishQueueExampleBatch
-from .event_closure import PUBLISH_QUEUE_SOURCE_TYPES
 
 
 @dataclass(frozen=True)
@@ -41,44 +40,14 @@ class PublishQueueJoiner:
     """Attribute later creator outcomes to observable Feed exposures.
 
     Hidden inspiration state is deliberately unavailable here.  Outcomes are
-    attributed to one globally observable, engaged last-touch Feed exposure.
-    This prevents one outcome from being credited once per request partition;
-    causal lift still requires randomized serving and A/B evaluation.
+    Each factual Feed exposure receives a delayed binary outcome. Multiple
+    exposures may share one later publication because the target is conditional
+    response probability, not a claim of unique causal attribution. Causal lift
+    still requires randomized serving and A/B evaluation.
     """
 
     def __init__(self, config: PublishQueueConfig):
         self.config = config
-
-    @staticmethod
-    def _source_index(events: AppEventBatch):
-        source_strength = {
-            event_type: strength
-            for strength, event_type in enumerate(PUBLISH_QUEUE_SOURCE_TYPES)
-        }
-        source = (
-            (events.surface == int(Surface.FEED))
-            & (events.user_id >= 0)
-            & (events.item_id >= 0)
-            & torch.isin(events.event_type, torch.tensor(
-                [int(event_type) for event_type in PUBLISH_QUEUE_SOURCE_TYPES],
-                device=events.event_type.device,
-            ))
-        )
-        by_user: dict[int, list[tuple[int, int, int, int, int]]] = {}
-        for row in torch.where(source)[0].detach().cpu().tolist():
-            event_type = EventType(int(events.event_type[row]))
-            by_user.setdefault(int(events.user_id[row]), []).append((
-                int(events.event_time[row]),
-                source_strength[event_type],
-                int(events.event_id[row]),
-                int(events.request_id[row]),
-                int(events.item_id[row]),
-            ))
-        times = {}
-        for outcome_user, values in by_user.items():
-            values.sort()
-            times[outcome_user] = [value[0] for value in values]
-        return by_user, times
 
     def materialize(
         self,
@@ -109,20 +78,6 @@ class PublishQueueJoiner:
             & (event_watermark >= maturity_time)
         )
 
-        exposure_rows, exposure_columns = torch.where(exposed)
-        exposure_index: dict[tuple[int, int, int], tuple[int, int]] = {}
-        for row, column in zip(
-            exposure_rows.detach().cpu().tolist(),
-            exposure_columns.detach().cpu().tolist(),
-        ):
-            exposure_index[(
-                int(user_id[row]),
-                int(fine.request_id[selected][row]),
-                int(item[row, column]),
-            )] = (row, column)
-
-        source_by_user, source_times = self._source_index(events)
-
         for task_index, task in enumerate(tasks):
             outcome = (
                 events.event(task.event_type)
@@ -130,30 +85,32 @@ class PublishQueueJoiner:
                 & (events.surface == int(Surface.POSTING))
                 & (events.event_time <= event_watermark)
             )
-            outcome_users = events.user_id[outcome].detach().cpu().tolist()
-            outcome_times = events.event_time[outcome].detach().cpu().tolist()
-            outcome_ids = events.event_id[outcome].detach().cpu().tolist()
-            for outcome_user, outcome_time, outcome_id in zip(
-                outcome_users, outcome_times, outcome_ids, strict=True,
+            by_user: dict[int, list[tuple[int, int]]] = {}
+            for outcome_time, outcome_user, outcome_id in zip(
+                events.event_time[outcome].detach().cpu().tolist(),
+                events.user_id[outcome].detach().cpu().tolist(),
+                events.event_id[outcome].detach().cpu().tolist(),
+                strict=True,
             ):
-                candidates = source_by_user.get(int(outcome_user))
-                if not candidates:
-                    continue
-                times = source_times[int(outcome_user)]
-                start = bisect_left(times, int(outcome_time) - task.window_ticks)
-                stop = bisect_right(times, int(outcome_time))
-                if start == stop:
-                    continue
-                _, _, _, source_request, source_item = max(
-                    candidates[start:stop]
-                )
-                location = exposure_index.get((
-                    int(outcome_user), source_request, source_item,
+                by_user.setdefault(int(outcome_user), []).append((
+                    int(outcome_time), int(outcome_id),
                 ))
-                if location is not None:
-                    row, column = location
-                    labels[row, column, task_index] = 1.0
-                    attribution_event_id[row, column, task_index] = outcome_id
+            for values in by_user.values():
+                values.sort()
+            for row, (exposure_user, exposure_time) in enumerate(zip(
+                user_id.detach().cpu().tolist(),
+                request_time.detach().cpu().tolist(),
+                strict=True,
+            )):
+                outcomes = by_user.get(int(exposure_user), ())
+                location = bisect_left(outcomes, (int(exposure_time), -1))
+                if location == len(outcomes):
+                    continue
+                outcome_time, outcome_id = outcomes[location]
+                if outcome_time > int(exposure_time) + task.window_ticks:
+                    continue
+                labels[row, exposed[row], task_index] = 1.0
+                attribution_event_id[row, exposed[row], task_index] = outcome_id
 
         labels = labels.clamp_max(1.0) * mature.float()
         attribution_event_id = torch.where(
@@ -184,6 +141,6 @@ class PublishQueueJoiner:
             context=context,
             task_names=tuple(task.name for task in tasks),
             task_window_ticks=tuple(task.window_ticks for task in tasks),
-            attribution_method="engaged_last_touch_v1",
+            attribution_method="exposure_window_outcome_v1",
             feature_manifest_hash=fine.feature_manifest_hash,
         )

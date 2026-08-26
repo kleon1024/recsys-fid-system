@@ -109,11 +109,7 @@ def materialize_factual_requests(
             join_events,
             event_watermark=event_watermark,
         )
-        attributed = samples.publish_queue.attribution_event_id
-        attributed = torch.unique(attributed[attributed >= 0])
         persist = torch.isin(all_events.request_id, request.trace.request_id)
-        if len(attributed):
-            persist |= torch.isin(all_events.event_id, attributed)
         events = all_events.select(persist)
         snapshot = FullFlowSnapshot(
             catalog=kernel.world.catalog,
