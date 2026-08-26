@@ -215,6 +215,11 @@ def train_probe(
     propensity = batch.joint_logging_probability.to(target)
     if not masks.any():
         raise ValueError("probe has no mature labels")
+    positive = (labels * masks).sum(dim=0)
+    observed = masks.sum(dim=0)
+    positive_weight = (
+        (observed - positive) / positive.clamp_min(1.0)
+    ).clamp(1.0, 50.0)
     losses = []
     model.train()
     generator = torch.Generator(device=target).manual_seed(seed + 1)
@@ -225,7 +230,10 @@ def train_probe(
             row = order[start:start + batch_size]
             logits = model(dense[row], surface[row])
             element = torch.nn.functional.binary_cross_entropy_with_logits(
-                logits, labels[row], reduction="none",
+                logits,
+                labels[row],
+                reduction="none",
+                pos_weight=positive_weight,
             )
             weight = (
                 1.0 / propensity[row].clamp_min(0.05)
@@ -256,6 +264,7 @@ def train_probe(
             "epochs": epochs,
             "batch_size": batch_size,
             "optimizer_steps": optimizer_steps,
+            "positive_weight": positive_weight.detach().cpu().tolist(),
             "device": str(target),
             "seed": seed,
         },
