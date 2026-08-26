@@ -15,6 +15,7 @@ from ..contracts import (
     Surface,
     make_app_events,
 )
+from ..semantics import SEMANTIC_SIGNAL_VERSION
 from .authority import FormulaResponseAuthority, ResponseAuthority
 from .dynamics.calendar import (
     CALENDAR_VERSION,
@@ -96,6 +97,7 @@ class UserEcosystemWorld:
 
     def manifest(self) -> dict[str, object]:
         return {
+            "semantic_signal": SEMANTIC_SIGNAL_VERSION,
             "population": POPULATION_VERSION,
             "calendar_survival": CALENDAR_VERSION,
             "trends": TREND_VERSION,

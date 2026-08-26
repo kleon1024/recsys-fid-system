@@ -10,6 +10,12 @@ import torch
 from ...randomness.counter import normal, uniform
 from ..catalog import PublicCatalog
 from ..contracts import ContentKind
+from ..semantics import (
+    HIDDEN_ITEM_RESIDUAL_WEIGHT,
+    USER_LONG_RESIDUAL_WEIGHT,
+    USER_SHORT_RESIDUAL_WEIGHT,
+    mix_direction,
+)
 from .dynamics.population import POPULATION_VERSION, sample_population
 from .dynamics.growth import sample_acquisition_population
 from .dynamics.needs import sample_need_population
@@ -217,8 +223,8 @@ def build_hidden_catalog_truth(
         item, 0, 1_001, environment_seed,
         catalog.content_embedding.shape[1],
     )
-    semantic = torch.nn.functional.normalize(
-        catalog.content_embedding + 0.42 * residual, dim=1,
+    semantic = mix_direction(
+        catalog.content_embedding, residual, HIDDEN_ITEM_RESIDUAL_WEIGHT,
     )
     prior = catalog.quality_prior.clamp(1e-4, 1.0 - 1e-4)
     quality_logit = torch.logit(prior)
@@ -334,18 +340,17 @@ def build_hidden_users(
     residual = normal(
         user, 0, 1_031, config.environment_seed, config.embedding_dim,
     )
-    long_interest = torch.nn.functional.normalize(
-        0.85 * prototype[primary]
-        + 0.45 * prototype[secondary]
-        + 0.55 * residual,
-        dim=1,
+    long_interest = mix_direction(
+        0.85 * prototype[primary] + 0.45 * prototype[secondary],
+        residual,
+        USER_LONG_RESIDUAL_WEIGHT,
     )
-    short_interest = torch.nn.functional.normalize(
-        long_interest
-        + 0.48 * normal(
+    short_interest = mix_direction(
+        long_interest,
+        normal(
             user, 0, 1_039, config.environment_seed, config.embedding_dim,
         ),
-        dim=1,
+        USER_SHORT_RESIDUAL_WEIGHT,
     )
     country = population.country
     region = population.region

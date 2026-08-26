@@ -6,6 +6,8 @@ from dataclasses import dataclass, fields
 
 import torch
 
+from .semantics import CONTENT_TOPIC_RESIDUAL_WEIGHT, mix_direction
+
 from ..randomness.counter import normal, uniform
 from .contracts import ContentKind
 
@@ -152,12 +154,10 @@ def build_public_catalog(
     prototypes = torch.nn.functional.normalize(
         normal(topic_ids, 0, 101, platform_seed, embedding_dim), dim=1
     )
-    content_embedding = torch.nn.functional.normalize(
-        prototypes[topic_id]
-        + 0.28 * normal(
-            item_id, 0, 103, platform_seed, embedding_dim
-        ),
-        dim=1,
+    content_embedding = mix_direction(
+        prototypes[topic_id],
+        normal(item_id, 0, 103, platform_seed, embedding_dim),
+        CONTENT_TOPIC_RESIDUAL_WEIGHT,
     )
     content_kind = _content_kind(item_id, platform_seed)
     country = _categorical(

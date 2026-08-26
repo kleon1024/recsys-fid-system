@@ -132,6 +132,10 @@ def _latent_utility(
         (0.58 + 0.18 * users.habit[row, None]) * long_affinity
         + (0.64 - 0.22 * users.habit[row, None]) * short_affinity
     )
+    need_match = (
+        catalog.topic_id[item] == users.need_topic[row, None]
+    ).float()
+    affinity += 0.50 * users.need_strength[row, None] * need_match
     local_match = (
         (catalog.country[item] == users.country[row, None]).float()
         + 0.8 * (catalog.region[item] == users.region[row, None]).float()

@@ -14,7 +14,7 @@ topic 或 item 不得向排序器泄露 hidden state，也不得重写旧 Launch
 
 ## Current semantic epoch / 当前语义纪元
 
-`feed-semantic-v2` removes arithmetic mappings from contiguous item IDs to
+`feed-semantic-v3` removes arithmetic mappings from contiguous item IDs to
 topic, country, creator, merchant and content kind. The standard profile owns
 512 topics and 64-dimensional public content embeddings. Random retrieval uses
 a counter-random catalog permutation and samples without replacement. Popular
@@ -22,10 +22,20 @@ uses mature impression and engagement counters within country-level rotating
 pools. A single route bypasses RRF; RRF is tested only as a separate multi-route
 mechanism.
 
-`feed-semantic-v2` 删除连续 item ID 到 topic、国家、作者、商家和内容形态的算术
+All public and private semantic residuals are normalized before mixing. Vector
+width therefore cannot silently amplify private noise. The private world keeps
+an irreducible residual and persistent need episodes, while observable content
+and behavior retain enough signal for retrieval to learn without reading hidden
+state directly.
+
+`feed-semantic-v3` 删除连续 item ID 到 topic、国家、作者、商家和内容形态的算术
 映射。标准 profile 使用 512 个 topic 和 64 维公开内容向量。Random 通过 counter
 random permutation 做无放回抽样。Popular 使用国家分层的成熟曝光和互动 counter，
 并在热门池内轮转。单路召回不经过 RRF，RRF 只作为独立多路合并机制开实验。
+
+所有公开和私有语义残差必须先归一化再混合，向量维度不能静默放大私有噪声。私有
+World 仍保留不可约残差和持续的需求 episode，但公开内容与行为必须保留足够的可学习
+信号，召回系统不得直接读取 hidden state。
 
 ## Expansion protocol / 扩容协议
 

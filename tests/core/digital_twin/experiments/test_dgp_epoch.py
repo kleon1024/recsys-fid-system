@@ -55,10 +55,11 @@ def test_dgp_epoch_migration_backfills_memory_and_closes_old_samples(tmp_path):
     assert report["historical_samples_training_eligible"] is False
     assert report["users_with_exposure_memory"] > 0
     _, current_kernel = _build_kernel(config)
+    current_kernel.world.response_authority = BehavioralSCMResponseAuthority()
     restored = store.restore(current_kernel, report["checkpoint_id"])
     assert current_kernel.world.response_authority.version == (
         BehavioralSCMResponseAuthority.version
     )
-    assert restored.learning_cursors["dgp_epoch_v5"][
+    assert restored.learning_cursors["dgp_epoch_v6"][
         "historical_request_stream_training_eligible"
     ] is False

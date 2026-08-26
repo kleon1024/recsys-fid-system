@@ -50,7 +50,7 @@ class SimulationProfile:
 
 
 STANDARD_FEED_PROFILE = SimulationProfile(
-    name="feed-semantic-v2",
+    name="feed-semantic-v3",
     users=100_000,
     items=1_000_000,
     ticks_per_day=96,

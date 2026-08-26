@@ -50,7 +50,7 @@ review is accepted.
 The last accepted baseline before this rebuild is `4028491`. Its first
 Random-to-Popular result is invalid: contiguous Random windows were coupled to a
 64-topic arithmetic item mapping, global Popular exhausted a fixed Top-24 pool,
-and multi-route RRF remained in the path. `feed-semantic-v2` removes those three
+and multi-route RRF remained in the path. `feed-semantic-v3` removes those three
 confounders and requires a fresh F-R01 artifact.
 
 F-AA-01 is the first accepted factual Feed infrastructure review. F-AA-00 remains

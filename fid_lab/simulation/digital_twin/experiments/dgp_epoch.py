@@ -22,7 +22,7 @@ from .retrieval_ladder import (
 )
 
 
-DGP_EPOCH_CURSOR = "dgp_epoch_v5"
+DGP_EPOCH_CURSOR = "dgp_epoch_v6"
 DGP_RUNTIME_CHANGES = {
     "world_manifest.response": (
         FormulaResponseAuthority.version,
@@ -71,8 +71,9 @@ def migrate_dgp_epoch(
         allow_additive_runtime_migration=True,
         approved_runtime_changes=DGP_RUNTIME_CHANGES,
     )
+    kernel.world.response_authority = BehavioralSCMResponseAuthority()
     if DGP_EPOCH_CURSOR in restored.learning_cursors:
-        raise ValueError("DGP epoch v5 was already migrated")
+        raise ValueError("DGP epoch v6 was already migrated")
     if not isinstance(restored.experiment, ExperimentPlan):
         raise ValueError("DGP migration requires a non-layered experiment")
     active = restored.experiment.policies[-1]
@@ -87,8 +88,8 @@ def migrate_dgp_epoch(
     if pending and not pending.get("completed"):
         pending.update({
             "completed": True,
-            "decision": "invalidated_dgp_v4",
-            "validity": "excluded_from_v5_training_and_launch_decisions",
+            "decision": "invalidated_dgp_v5",
+            "validity": "excluded_from_v6_training_and_launch_decisions",
         })
         cursors["feed_session_dedup_launch"] = pending
     cursors[DGP_EPOCH_CURSOR] = {
