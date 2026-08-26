@@ -768,8 +768,11 @@ routes: ItemCF will normalize strong user-item co-occurrence; Swing will add
 overlap/popularity debiasing. Each requires its own fixed-ranker Launch Review.
 The first `recent_ann` attempt was also held at -3.04% stay: its history average
 mixed examine, slide and negative events and only 7.75% of its candidates
-matched user country. Query construction now uses recency-weighted strong
-actions and country filtering; this correction remains unclaimed until rerun.
+matched user country. Recency-weighted strong actions and country filtering
+raised country match to 98.72%, but v2 remained held at -4.16% stay. Its route
+engagement rate was 4.75%, no better than Random and far below Popular at
+12.79%. This isolates the next defect to the semantic query/item space rather
+than eligibility or history-event filtering; further weight tuning is blocked.
 
 - Run P3-09a → P3-02a/03a/05a → P3-07/08 → P3-09b.
 - Reuse the dual-lane trainer and manifest; do not reconstruct serving inputs.
