@@ -11,6 +11,8 @@ from ...randomness.counter import normal, uniform
 from ..catalog import PublicCatalog
 from ..contracts import ContentKind
 from .dynamics.population import POPULATION_VERSION, sample_population
+from .dynamics.growth import sample_acquisition_population
+from .dynamics.needs import sample_need_population
 
 
 @dataclass(frozen=True)
@@ -52,6 +54,10 @@ class HiddenUserState:
     language: torch.Tensor
     device_class: torch.Tensor
     lifecycle_cohort: torch.Tensor
+    lifecycle_stage: torch.Tensor
+    acquisition_channel: torch.Tensor
+    acquisition_quality: torch.Tensor
+    referral_susceptibility: torch.Tensor
     weekly_activity: torch.Tensor
     churn_susceptibility: torch.Tensor
     segment: torch.Tensor
@@ -79,6 +85,15 @@ class HiddenUserState:
     activity: torch.Tensor
     novelty: torch.Tensor
     spending_power: torch.Tensor
+    need_kind: torch.Tensor
+    need_topic: torch.Tensor
+    need_strength: torch.Tensor
+    need_expiry_time: torch.Tensor
+    activation_score: torch.Tensor
+    session_value_ema: torch.Tensor
+    last_active_time: torch.Tensor
+    last_active_day: torch.Tensor
+    return_streak: torch.Tensor
     signup_time: torch.Tensor
     next_return_time: torch.Tensor
     reactivation_time: torch.Tensor
@@ -205,6 +220,85 @@ def build_hidden_catalog_truth(
     return HiddenCatalogTruth(semantic, quality, risk, price_appeal)
 
 
+def _initial_dynamic_context(config, user, population, signup_time, registered):
+    acquisition = sample_acquisition_population(
+        user,
+        population.country,
+        population.mixture,
+        population.habit,
+        config.environment_seed,
+    )
+    needs = sample_need_population(
+        user,
+        population.primary_topic,
+        population.secondary_topic,
+        population.surface_intent,
+        config.ticks_per_day,
+        config.topics,
+        config.environment_seed,
+    )
+    account_age_days = (-signup_time).clamp_min(0).float() / config.ticks_per_day
+    sessions = torch.floor(
+        account_age_days.sqrt() * (0.8 + 6.0 * population.activity)
+    ).long()
+    activation = torch.sigmoid(
+        -1.4
+        + 1.2 * acquisition.quality
+        + population.habit
+        + 0.22 * torch.log1p(sessions.float())
+    )
+    stage = torch.where(
+        sessions >= 30,
+        torch.full_like(user, 3),
+        torch.where(
+            sessions >= 5,
+            torch.full_like(user, 2),
+            torch.where(registered, torch.ones_like(user), torch.zeros_like(user)),
+        ),
+    )
+    return {
+        "lifecycle_stage": stage,
+        "acquisition_channel": acquisition.channel,
+        "acquisition_quality": acquisition.quality,
+        "referral_susceptibility": acquisition.referral_susceptibility,
+        "need_kind": needs.kind,
+        "need_topic": needs.topic,
+        "need_strength": needs.strength,
+        "need_expiry_time": needs.expiry_time,
+        "activation_score": activation,
+        "session_count": sessions,
+    }
+
+
+def _empty_behavior_memory(config, user, device):
+    return {
+        "behavior_sequence": torch.zeros(
+            config.users, 24, 8, device=device, dtype=torch.float16,
+        ),
+        "exposure_item": torch.full(
+            (config.users, 64), -1, device=device, dtype=torch.long,
+        ),
+        "exposure_creator": torch.full(
+            (config.users, 64), -1, device=device, dtype=torch.long,
+        ),
+        "exposure_topic": torch.full(
+            (config.users, 64), -1, device=device, dtype=torch.long,
+        ),
+        "exposure_time": torch.full(
+            (config.users, 64), -1, device=device, dtype=torch.long,
+        ),
+        "exposure_positive": torch.zeros(
+            (config.users, 64), device=device, dtype=torch.bool,
+        ),
+        "exposure_cursor": torch.zeros_like(user),
+        "disappointment": torch.zeros(config.users, device=device),
+        "session_value_ema": torch.zeros(config.users, device=device),
+        "last_active_time": torch.full_like(user, -1),
+        "last_active_day": torch.full_like(user, -1),
+        "return_streak": torch.zeros_like(user),
+    }
+
+
 def build_hidden_users(
     config: UserWorldConfig,
     catalog: PublicCatalog,
@@ -243,6 +337,9 @@ def build_hidden_users(
     signup_time, next_return_time, registered = _initial_lifecycle_state(
         config, user,
     )
+    dynamic = _initial_dynamic_context(
+        config, user, population, signup_time, registered,
+    )
     post_kind = (
         (catalog.content_kind == int(ContentKind.SHORT_VIDEO))
         | (catalog.content_kind == int(ContentKind.PHOTO))
@@ -266,6 +363,7 @@ def build_hidden_users(
         language=population.language,
         device_class=population.device_class,
         lifecycle_cohort=population.lifecycle_cohort,
+        **dynamic,
         weekly_activity=population.weekly_activity,
         churn_susceptibility=population.churn_susceptibility,
         segment=segment,
@@ -273,30 +371,7 @@ def build_hidden_users(
         secondary_topic=secondary,
         long_interest=long_interest,
         short_interest=short_interest,
-        behavior_sequence=torch.zeros(
-            config.users, 24, 8,
-            device=device,
-            dtype=torch.float16,
-        ),
-        exposure_item=torch.full(
-            (config.users, 64), -1, device=device, dtype=torch.long,
-        ),
-        exposure_creator=torch.full(
-            (config.users, 64), -1, device=device, dtype=torch.long,
-        ),
-        exposure_topic=torch.full(
-            (config.users, 64), -1, device=device, dtype=torch.long,
-        ),
-        exposure_time=torch.full(
-            (config.users, 64), -1, device=device, dtype=torch.long,
-        ),
-        exposure_positive=torch.zeros(
-            (config.users, 64), device=device, dtype=torch.bool,
-        ),
-        exposure_cursor=torch.zeros(
-            config.users, device=device, dtype=torch.long,
-        ),
-        disappointment=torch.zeros(config.users, device=device),
+        **_empty_behavior_memory(config, user, device),
         **_empty_search_state(user),
         surface_intent=population.surface_intent,
         response_style=population.response_style,
@@ -315,5 +390,4 @@ def build_hidden_users(
         churned=torch.zeros(config.users, device=device, dtype=torch.bool),
         active=torch.zeros(config.users, device=device, dtype=torch.bool),
         session_depth=torch.zeros(config.users, device=device, dtype=torch.long),
-        session_count=torch.zeros(config.users, device=device, dtype=torch.long),
     )

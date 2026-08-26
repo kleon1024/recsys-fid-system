@@ -22,6 +22,18 @@ from .dynamics.calendar import (
     sample_return_outcome,
 )
 from .dynamics.population import POPULATION_VERSION
+from .dynamics.growth import ACQUISITION_VERSION, GrowthProcess
+from .dynamics.needs import (
+    NEED_DYNAMICS_VERSION,
+    NeedKind,
+)
+from .dynamics.lifecycle import (
+    LIFECYCLE_DYNAMICS_VERSION,
+    advance_latent_user_state,
+    commit_need_and_activation,
+    commit_session_start,
+    update_lifecycle_stage,
+)
 from .delayed import DelayedOutcomeQueue
 from .state import (
     HiddenUserState,
@@ -65,6 +77,11 @@ class UserEcosystemWorld:
             config.environment_seed,
             catalog.item_id.device,
         )
+        self.growth = GrowthProcess(
+            config.countries,
+            config.environment_seed,
+            catalog.item_id.device,
+        )
         self.supply = SupplyEcosystem(
             catalog, config.environment_seed, config.ticks_per_day,
         )
@@ -81,6 +98,9 @@ class UserEcosystemWorld:
             "population": POPULATION_VERSION,
             "calendar_survival": CALENDAR_VERSION,
             "trends": TREND_VERSION,
+            "acquisition": ACQUISITION_VERSION,
+            "needs": NEED_DYNAMICS_VERSION,
+            "lifecycle": LIFECYCLE_DYNAMICS_VERSION,
             "response": self.response_authority.version,
             "response_authority": self.response_authority.manifest(),
         }
@@ -125,6 +145,27 @@ class UserEcosystemWorld:
         ).remainder(24.0)
         logits = torch.log(state.surface_intent[user].clamp_min(1e-5))
         logits[:, int(Surface.FEED)] += 0.35
+        if self.config.initialization_mode == "equilibrium":
+            need = state.need_kind[user]
+            strength = state.need_strength[user]
+            logits[:, int(Surface.FEED)] += strength * (
+                (need == int(NeedKind.ENTERTAINMENT)).float()
+                + 0.55 * (need == int(NeedKind.SOCIAL)).float()
+            )
+            logits[:, int(Surface.SEARCH)] += strength * (
+                1.15 * (need == int(NeedKind.INFORMATION)).float()
+                + 0.75 * (need == int(NeedKind.LOCAL)).float()
+                + 0.65 * (need == int(NeedKind.COMMERCE)).float()
+            )
+            logits[:, int(Surface.LOCAL)] += 1.25 * strength * (
+                need == int(NeedKind.LOCAL)
+            ).float()
+            logits[:, int(Surface.COMMERCE)] += 1.20 * strength * (
+                need == int(NeedKind.COMMERCE)
+            ).float()
+            logits[:, int(Surface.POSTING)] += 1.30 * strength * (
+                need == int(NeedKind.CREATION)
+            ).float()
         dinner = torch.exp(-((local_hour - 19.0) / 2.5).square())
         logits[:, int(Surface.LOCAL)] += 0.9 * dinner
         logits[:, int(Surface.COMMERCE)] += 0.45 * dinner
@@ -162,9 +203,12 @@ class UserEcosystemWorld:
 
     def schedule(self, logical_time: int) -> AppEventBatch:
         self.trends.advance(logical_time)
+        self.growth.advance(logical_time, self.config.ticks_per_day)
         state = self.users
         user = state.user_id
-        registration = (~state.registered) & (state.signup_time <= logical_time)
+        registration = advance_latent_user_state(
+            state, self.growth, logical_time, self.config,
+        )
         eligible = state.registered | registration
         arrival_probability = arrival_hazard(
             state, logical_time, self.config.ticks_per_day,
@@ -297,6 +341,7 @@ class UserEcosystemWorld:
         self._commit_session_close(events)
         self.supply.commit(events)
         self.trends.commit(events)
+        self.growth.commit(events)
         self.delayed.schedule_from(
             events,
             self.users,
@@ -329,7 +374,9 @@ class UserEcosystemWorld:
     def _commit_session_open(self, events: AppEventBatch) -> None:
         state = self.users
         registration = events.event(EventType.REGISTRATION)
-        state.registered[events.user_id[registration]] = True
+        registration_user = events.user_id[registration]
+        state.registered[registration_user] = True
+        state.lifecycle_stage[registration_user] = 1
         start = events.event(EventType.SESSION_START)
         start_user = events.user_id[start]
         state.active[start_user] = True
@@ -337,6 +384,12 @@ class UserEcosystemWorld:
         state.reactivation_time[start_user] = torch.iinfo(torch.long).max // 4
         state.session_depth[start_user] = 0
         state.session_count[start_user] += 1
+        commit_session_start(
+            state,
+            start_user,
+            events.event_time[start],
+            self.config.ticks_per_day,
+        )
         state.fatigue[start_user] *= 0.72
         state.disappointment[start_user] *= 0.82
         self._drift_short_interest(start_user, events.event_time[start])
@@ -369,6 +422,7 @@ class UserEcosystemWorld:
         state.search_followup_topic[end_user] = -1
         state.search_reformulation_depth[end_user] = 0
         state.post_search_feed_pending[end_user] = False
+        update_lifecycle_stage(state, end_user)
 
     def _drift_short_interest(
         self, user: torch.Tensor, event_time: torch.Tensor,
@@ -461,6 +515,15 @@ class UserEcosystemWorld:
             0.82 * state.disappointment[experience_user]
             + 0.18 * disappointment[experience_user]
         ).clamp(0.0, 1.0)
+        commit_need_and_activation(
+            state,
+            touched,
+            positive,
+            negative,
+            dwell_by_user,
+            disappointment,
+            repeat_pressure,
+        )
         self._commit_interest(events, positive_weight)
 
     def _experience_outcomes(

@@ -783,6 +783,14 @@ The bounded 10K-user/100K-item 96-tick CUDA mechanics smoke is recorded in
 partitions produced 412,384 events while only 66 lateness-window batches stayed
 resident. This accepts the eviction mechanism only, not the standard profile.
 
+The world/data boundary is now explicit: hidden evolution checkpoints only a
+bounded Markov/semi-Markov sufficient state plus pending delayed outcomes and
+counter-randomness identity. Historical event objects are not checkpoint state.
+Durable checkpoints bind one constant-size event stream cursor; platform-owned
+event/sample partitions remain independently retained for training, A/B and
+audit. Acquisition, need episodes, activation and retention are specified in
+[`user-world-growth-retention.md`](../research/user-world-growth-retention.md).
+
 - Keep rolling Bloom plus the bounded exact session cache as the sole online
   exposure authority; tune Bloom dimensions only through S-MEM system LRs and
   never query the exposure log online.

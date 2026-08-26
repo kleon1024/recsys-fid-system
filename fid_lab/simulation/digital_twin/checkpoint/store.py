@@ -39,6 +39,7 @@ class WorldCheckpointRef:
     world_code_sha256: str
     platform_code_sha256: str
     experiment_sha256: str
+    event_cursor_sha256: str = ""
 
 
 @dataclass(frozen=True)
@@ -267,6 +268,18 @@ def _world_state(world: UserEcosystemWorld) -> dict[str, object]:
             "momentum": _tensor_payload(world.trends.state.momentum),
             "last_time": world.trends.state.last_time,
         },
+        "growth": {
+            "campaign_intensity": _tensor_payload(
+                world.growth.state.campaign_intensity,
+            ),
+            "referral_pressure": _tensor_payload(
+                world.growth.state.referral_pressure,
+            ),
+            "creator_pressure": _tensor_payload(
+                world.growth.state.creator_pressure,
+            ),
+            "last_time": world.growth.state.last_time,
+        },
         "delayed": {
             str(ingest_time): _event_state(events)
             for ingest_time, events in world.delayed._pending.items()
@@ -334,6 +347,24 @@ def _restore_world(
         trend["momentum"].to(world.trends.state.momentum.device)
     )
     world.trends.state.last_time = int(trend["last_time"])
+    growth = state.get("growth")
+    if growth is not None:
+        world.growth.state.campaign_intensity.copy_(
+            growth["campaign_intensity"].to(
+                world.growth.state.campaign_intensity.device,
+            )
+        )
+        world.growth.state.referral_pressure.copy_(
+            growth["referral_pressure"].to(
+                world.growth.state.referral_pressure.device,
+            )
+        )
+        world.growth.state.creator_pressure.copy_(
+            growth["creator_pressure"].to(
+                world.growth.state.creator_pressure.device,
+            )
+        )
+        world.growth.state.last_time = int(growth["last_time"])
     device = world.catalog.item_id.device
     world.delayed._pending = {
         int(ingest_time): _restore_events(events, device)
@@ -442,12 +473,10 @@ class WorldCheckpointStore:
             "platform": _platform_state(platform),
         })
         if kernel.event_log.durable:
-            event_partitions = kernel.event_log.checkpoint_partitions()
-            event_objects = tuple(
-                str(value["object_sha256"]) for value in event_partitions
-            )
+            event_cursor = kernel.event_log.checkpoint_cursor()
+            event_objects = ()
         else:
-            event_partitions = ()
+            event_cursor = {}
             event_objects = tuple(
                 self._write_object(_event_state(batch))
                 for batch in kernel.event_log._batches
@@ -458,7 +487,7 @@ class WorldCheckpointStore:
             "parent_checkpoint_id": parent_checkpoint_id,
             "state_object": state_object,
             "event_objects": list(event_objects),
-            "event_partitions": list(event_partitions),
+            "event_cursor": event_cursor,
             "catalog_sha256": _catalog_hash(world.catalog),
             "runtime_manifest": runtime_manifest,
             "runtime_sha256": sha256(
@@ -572,10 +601,14 @@ class WorldCheckpointStore:
         if kernel.event_log.allowed_lateness != allowed:
             raise ValueError("checkpoint event-log lateness differs")
         if kernel.event_log.durable:
-            kernel.event_log.restore_partitions(
-                tuple(manifest.get("event_partitions", ())),
-                dict(manifest["event_manifest"]),
-            )
+            cursor = dict(manifest.get("event_cursor", {}))
+            if cursor:
+                kernel.event_log.restore_cursor(cursor)
+            else:
+                kernel.event_log.restore_partitions(
+                    tuple(manifest.get("event_partitions", ())),
+                    dict(manifest["event_manifest"]),
+                )
             return
         device = kernel.world.catalog.item_id.device
         kernel.event_log._batches.clear()
@@ -616,6 +649,9 @@ class WorldCheckpointStore:
             world_code_sha256=str(manifest["world_code_sha256"]),
             platform_code_sha256=str(manifest["platform_code_sha256"]),
             experiment_sha256=str(manifest["experiment_sha256"]),
+            event_cursor_sha256=sha256(_canonical_json(
+                manifest.get("event_cursor", {}),
+            )).hexdigest() if manifest.get("event_cursor") else "",
         )
 
     @staticmethod

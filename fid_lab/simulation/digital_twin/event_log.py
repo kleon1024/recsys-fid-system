@@ -19,6 +19,7 @@ from .contracts import AppEventBatch
 
 
 EVENT_LOG_SCHEMA = "observable-app-events-v6"
+EVENT_CURSOR_SCHEMA = "observable-event-cursor/v1"
 
 
 @dataclass(frozen=True)
@@ -150,6 +151,31 @@ class ObservableEventLog:
     def checkpoint_partitions(self) -> tuple[dict[str, object], ...]:
         return tuple(asdict(ref) for ref in self._partition_refs)
 
+    def checkpoint_cursor(self) -> dict[str, object]:
+        if self.root is None:
+            raise ValueError("event cursor requires a durable event authority")
+        return {
+            "schema": EVENT_CURSOR_SCHEMA,
+            "partition_count": len(self._partition_refs),
+            "partition_stream_sha256": self._partition_stream_hash(),
+            "event_manifest": self.manifest(),
+        }
+
+    def restore_cursor(self, cursor: dict[str, object]) -> None:
+        if self.root is None:
+            raise ValueError("event cursor restore requires a durable authority")
+        if cursor.get("schema") != EVENT_CURSOR_SCHEMA:
+            raise ValueError("event cursor schema is unsupported")
+        persisted = self._read_manifest()
+        count = int(cursor["partition_count"])
+        refs = tuple(persisted["partitions"][:count])
+        if len(refs) != count:
+            raise ValueError("event cursor exceeds the persisted stream")
+        parsed = [EventPartitionRef(**value) for value in refs]
+        if self._hash_refs(parsed) != cursor["partition_stream_sha256"]:
+            raise ValueError("event cursor stream hash differs")
+        self.restore_partitions(refs, dict(cursor["event_manifest"]))
+
     def restore_partitions(
         self,
         refs: tuple[dict[str, object], ...],
@@ -275,12 +301,24 @@ class ObservableEventLog:
         }
 
     def _partition_stream_hash(self) -> str:
+        return self._hash_refs(self._partition_refs)
+
+    @staticmethod
+    def _hash_refs(refs: list[EventPartitionRef]) -> str:
         payload = json.dumps(
-            [asdict(ref) for ref in self._partition_refs],
+            [asdict(ref) for ref in refs],
             sort_keys=True,
             separators=(",", ":"),
         ).encode()
         return sha256(payload).hexdigest()
+
+    def _read_manifest(self) -> dict[str, object]:
+        if not self.manifest_path.is_file():
+            raise ValueError("durable event manifest is missing")
+        value = json.loads(self.manifest_path.read_text())
+        if value.get("manifest", {}).get("schema") != EVENT_LOG_SCHEMA:
+            raise ValueError("durable event manifest schema is unsupported")
+        return value
 
     def _write_manifest(self) -> None:
         value = {

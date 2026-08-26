@@ -245,6 +245,7 @@ def test_durable_event_log_evicts_history_and_restores_from_partitions(tmp_path)
         ))
     manifest = log.manifest()
     refs = log.checkpoint_partitions()
+    cursor = log.checkpoint_cursor()
     assert manifest["events"] == 8
     assert manifest["batches"] == 8
     assert manifest["hot_batches"] <= 3
@@ -259,6 +260,19 @@ def test_durable_event_log_evicts_history_and_restores_from_partitions(tmp_path)
             getattr(log.read(), field.name),
             getattr(restored.read(), field.name),
         )
+
+    restored.append(event_batch(
+        EventType.IMPRESSION,
+        torch.tensor([108]),
+        torch.tensor([8]),
+        torch.tensor([18]),
+        8,
+        torch.tensor([0]),
+    ))
+    assert restored.manifest()["batches"] == 9
+    restored.restore_cursor(cursor)
+    assert restored.manifest()["batches"] == 8
+    assert restored.manifest()["events"] == 8
 
     too_late = event_batch(
         EventType.IMPRESSION,

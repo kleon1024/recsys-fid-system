@@ -10,7 +10,7 @@ from ....randomness.counter import uniform
 from ..state import HiddenUserState
 
 
-CALENDAR_VERSION = "session-survival-calendar-v1"
+CALENDAR_VERSION = "session-survival-calendar-v2"
 
 
 @dataclass(frozen=True)
@@ -71,6 +71,10 @@ def sample_return_outcome(
         - 1.35 * users.satisfaction
         - 1.10 * users.habit
         + 0.70 * users.churn_susceptibility
+        - 0.65 * users.activation_score
+        - 0.22 * users.session_value_ema.clamp(-1.0, 2.0)
+        - 0.28 * users.acquisition_quality
+        - 0.18 * users.need_strength
     ).clamp(0.02, 60.0)
     shape = (0.72 + 0.90 * users.habit).clamp(0.55, 1.65)
     delay_days = scale_days * (-torch.log1p(-noise)).pow(1.0 / shape)
@@ -82,6 +86,9 @@ def sample_return_outcome(
         - 2.4 * users.satisfaction
         - 1.2 * users.habit
         - 0.10 * torch.log1p(users.session_count.float())
+        - 0.75 * users.activation_score
+        - 0.20 * users.session_value_ema.clamp(-1.0, 2.0)
+        - 0.12 * torch.log1p(users.return_streak.float())
     )
     churned = uniform(event_id, 0, 1_509, seed) < churn_probability
     can_reactivate = uniform(event_id, 0, 1_513, seed) < (

@@ -133,6 +133,11 @@ def test_feed_launch_advances_one_factual_world_and_keeps_policy_on_aa(tmp_path)
     assert initialization["event_manifest"]["hot_batches"] < (
         initialization["event_manifest"]["batches"]
     )
+    assert initialization["event_objects"] == []
+    assert "event_partitions" not in initialization
+    assert initialization["event_cursor"]["partition_count"] == (
+        initialization["event_manifest"]["batches"]
+    )
 
     report = run_feed_launch(
         paths,
