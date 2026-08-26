@@ -489,8 +489,16 @@ class MultiRouteRetriever:
                 requests, state, signals.random, MAIN_FEED_LIFECYCLES,
             )
         if "popular" in enabled:
-            routes["popular"] = self._top_for_surface(
-                requests, state, signals.popular, Surface.FEED,
+            routes["popular"] = self._top_by_group(
+                requests,
+                state,
+                signals.popular,
+                torch.where(
+                    requests.surface == int(Surface.FEED),
+                    state.user_country[requests.user_id],
+                    torch.full_like(requests.user_id, -1),
+                ),
+                state.item_country,
                 allowed_lifecycle=main_lifecycle,
             )
         if "cold_start" in enabled:
