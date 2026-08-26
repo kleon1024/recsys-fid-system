@@ -13,7 +13,12 @@ import torch
 
 from ...contracts import Surface
 from ...engine import ExperimentPlan
-from ...learning import Lane, PartitionedSampleBus
+from ...learning import (
+    Lane,
+    PartitionedSampleBus,
+    SparseLinearArtifact,
+    train_sparse_linear,
+)
 from ...learning.probe import ProbeArtifact, load_probe_batch, train_probe
 from ...observability.store import replace_json_atomic
 from ...value_tree import FEED_VALUE_TREE_VERSION, task_value_weights
@@ -44,6 +49,8 @@ class LinearRankLaunchConfig:
     run_aa: bool = False
     candidate_fine_checkpoint: str = ""
     candidate_stay_weight: float | None = None
+    candidate_model: str = "dense_lr"
+    sparse_hash_size: int = 1 << 18
 
 
 _ROW_TENSORS = (
@@ -178,15 +185,29 @@ def _train_candidate(config: LinearRankLaunchConfig):
             config.control_fine_checkpoint, map_location="cpu", weights_only=True,
         )
         initial_artifact = ProbeArtifact.from_checkpoint(checkpoint)
-    artifact = train_probe(
-        train,
-        lane=Lane.CANDIDATE,
-        initial_artifact=initial_artifact,
-        epochs=config.epochs,
-        learning_rate=config.learning_rate,
-        device=config.device,
-        seed=config.seed + 71,
-    )
+    if config.candidate_model == "dense_lr":
+        artifact = train_probe(
+            train,
+            lane=Lane.CANDIDATE,
+            initial_artifact=initial_artifact,
+            epochs=config.epochs,
+            learning_rate=config.learning_rate,
+            device=config.device,
+            seed=config.seed + 71,
+        )
+    elif config.candidate_model == "sparse_fid_lr":
+        artifact = train_sparse_linear(
+            train,
+            lane=Lane.CANDIDATE,
+            initial_dense_artifact=initial_artifact,
+            epochs=config.epochs,
+            learning_rate=config.learning_rate,
+            hash_size=config.sparse_hash_size,
+            device=config.device,
+            seed=config.seed + 71,
+        )
+    else:
+        raise ValueError("candidate model must be dense_lr or sparse_fid_lr")
     artifact = replace(
         artifact,
         serving_task_weights=task_value_weights(artifact.task_names),
@@ -198,10 +219,17 @@ def _train_candidate(config: LinearRankLaunchConfig):
     with torch.inference_mode():
         parameter = next(artifact.model.parameters())
         dense = validation.dense_features[mask].to(parameter.device)
-        probability = artifact.predict_task_probabilities(
-            dense,
-            validation.surface[mask].to(parameter.device),
-        )[:, task].cpu()
+        if isinstance(artifact, SparseLinearArtifact):
+            probability = artifact.predict_task_probabilities(
+                dense,
+                validation.sparse_buckets[mask].to(parameter.device),
+                validation.surface[mask].to(parameter.device),
+            )[:, task].cpu()
+        else:
+            probability = artifact.predict_task_probabilities(
+                dense,
+                validation.surface[mask].to(parameter.device),
+            )[:, task].cpu()
     labels = validation.labels[mask, task]
     loss = torch.nn.functional.binary_cross_entropy(probability, labels)
     labeled = train.label_mask.any(dim=1)
@@ -308,6 +336,8 @@ def _save_serving_artifact(artifact, output: Path) -> dict[str, str]:
 def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
     started = time.perf_counter()
     if config.candidate_fine_checkpoint:
+        if config.candidate_model != "dense_lr":
+            raise ValueError("sparse FID resume is not implemented")
         checkpoint = torch.load(
             config.candidate_fine_checkpoint,
             map_location="cpu",
@@ -419,7 +449,7 @@ def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
     kernel.platform.install_fine_scorer(candidate_version, artifact)
     treatment = replace(
         control,
-        name="feed-random-popular-dense-lr-stay-v2",
+        name=f"feed-random-popular-{config.candidate_model}",
         fine_version_id=candidate_version,
     )
     experiment = ExperimentPlan.ramped_user_ab(

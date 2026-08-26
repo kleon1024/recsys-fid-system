@@ -23,6 +23,12 @@ def main() -> None:
     parser.add_argument("--run-aa", action="store_true")
     parser.add_argument("--candidate-fine-checkpoint", default="")
     parser.add_argument("--candidate-stay-weight", type=float)
+    parser.add_argument(
+        "--candidate-model",
+        choices=("dense_lr", "sparse_fid_lr"),
+        default="dense_lr",
+    )
+    parser.add_argument("--sparse-hash-size", type=int, default=1 << 18)
     args = parser.parse_args()
     report = run_linear_rank_launch(LinearRankLaunchConfig(
         dataset_root=args.dataset_root,
@@ -38,6 +44,8 @@ def main() -> None:
         run_aa=args.run_aa,
         candidate_fine_checkpoint=args.candidate_fine_checkpoint,
         candidate_stay_weight=args.candidate_stay_weight,
+        candidate_model=args.candidate_model,
+        sparse_hash_size=args.sparse_hash_size,
     ))
     summary = {
         "offline": report["offline"],
