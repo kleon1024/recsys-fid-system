@@ -137,3 +137,21 @@ route-aware ranking support, and a background creator-supply stream; otherwise
 they repeat the same unsupported-candidate failure.
 
 - `reports/launches/2026-08-26-feed-semantic-v3-vt-recent-graph-lr.json`
+
+## Conditional objective and Stay-weight reviews
+
+The Feed heads now enforce the observable probability chain
+`Play -> Play-3S -> Long View -> Complete`; each child trains conditionally and
+serving reconstructs marginal probabilities. Stay remains expected normalized
+dwell per impression. The conditional candidate produced Stay +1.56%, Long
+View +2.11%, Complete +2.85%, and Negative -1.45%. Its Stay confidence interval
+still crossed zero, so it remains Hold.
+
+An isolated value-tree review then used the same conditional checkpoint on
+both sides and changed only the Stay coefficient from 0.30 to 0.45. Stay moved
+only +0.35%, Long View +1.97%, and Complete +3.40%; Share and Follow were
+slightly negative and all confidence intervals crossed zero. Increasing the
+Stay coefficient is therefore saturated and is not promoted.
+
+- `reports/launches/2026-08-26-feed-semantic-v3-conditional-vt-lr.json`
+- `reports/launches/2026-08-26-feed-semantic-v3-stay045-lr.json`
