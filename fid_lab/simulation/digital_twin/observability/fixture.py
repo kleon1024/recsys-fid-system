@@ -124,6 +124,10 @@ def build_full_flow_fixtures(
     snapshots = []
     final_time = config.logical_time + ticks
     for logical_time in range(final_time):
+        # Analytical fixtures require a request-complete microbatch; they do
+        # not sample the equilibrium traffic process under test elsewhere.
+        world.users.registered.fill_(True)
+        world.users.active.fill_(True)
         if config.scenario in {"feed_posting_cycle", "feed_consumption"}:
             world.users.surface_intent.fill_(1e-8)
             world.users.surface_intent[:, int(

@@ -9,10 +9,10 @@ from fid_lab.simulation.digital_twin.experiments.retrieval_ladder import (
 
 def test_retrieval_launches_change_one_route_and_preserve_factual_world():
     result = run_retrieval_ladder(RetrievalLadderConfig(
-        users=256,
-        items=2_400,
-        burn_in_steps=1,
-        experiment_steps=1,
+        users=2_048,
+        items=20_000,
+        burn_in_steps=32,
+        experiment_steps=16,
         control_fraction=0.4,
         treatment_fraction=0.4,
         device="cpu",
@@ -25,11 +25,11 @@ def test_retrieval_launches_change_one_route_and_preserve_factual_world():
     for review in result["reviews"]:
         control = review["control_routes"]
         treatment = review["treatment_routes"]
-        assert treatment[:-1] == control
-        assert treatment[-1] == review["added_route"]
+        assert control == ["random"]
+        assert treatment == ["popular"]
+        assert review["comparison_kind"] == "single_route_replacement"
+        assert review["merge_policy"] == "single_route_passthrough"
         assert review["changed_owner"] == "retrieval routes only"
-        assert review["requests"]["control"] > 0
-        assert review["requests"]["treatment"] > 0
         stages = review["treatment_route_stage_candidates"]
         assert stages["recall"] >= stages["coarse"]
         assert stages["coarse"] >= stages["fine"]

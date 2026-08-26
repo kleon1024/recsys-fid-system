@@ -50,16 +50,16 @@ class SimulationProfile:
 
 
 STANDARD_FEED_PROFILE = SimulationProfile(
-    name="feed-standard-v1",
+    name="feed-semantic-v2",
     users=100_000,
     items=1_000_000,
     ticks_per_day=96,
-    topics=64,
+    topics=512,
     countries=12,
     regions_per_country=16,
-    embedding_dim=32,
-    history_length=128,
-    feed_exposure_history_length=128,
+    embedding_dim=64,
+    history_length=256,
+    feed_exposure_history_length=256,
     route_k=24,
     merged_k=96,
     coarse_k=48,

@@ -23,6 +23,14 @@ DIAGNOSTIC_VIEWS = (
 )
 
 
+DIAGNOSTIC_SQL_ASSET = (
+    Path(__file__).resolve().parents[4]
+    / "sql"
+    / "duckdb"
+    / "v4_full_flow_diagnostics.sql"
+)
+
+
 def register_full_flow(
     connection: duckdb.DuckDBPyConnection,
     tables: dict[str, pa.Table],

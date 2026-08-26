@@ -2,7 +2,7 @@
 
 Status: active execution authority
 
-Updated: 2026-08-25 (bounded runtime landed; factual Feed ladder started)
+Updated: 2026-08-26 (semantic-v2 and Launch Bundle rebuild in validation)
 
 Scope: synthetic engineering and interview reference; no production or internal-company claims
 
@@ -47,11 +47,11 @@ tree but has not passed the repository acceptance path. `Implemented` means the
 focused contract is executable; it does not mean the phase, benchmark or launch
 review is accepted.
 
-The last pushed implementation baseline is
-`ba55e5f6ff666e110a76f8aa9935042ca72a0ada`; local and `origin/main` agreed
-before the rolling-Bloom runtime slice began. It contains the canonical clock,
-restart-safe world authority, candidate-level support, request-aware evaluator,
-factual Launch Review transaction and artifact-bound coarse/fine serving.
+The last accepted baseline before this rebuild is `4028491`. Its first
+Random-to-Popular result is invalid: contiguous Random windows were coupled to a
+64-topic arithmetic item mapping, global Popular exhausted a fixed Top-24 pool,
+and multi-route RRF remained in the path. `feed-semantic-v2` removes those three
+confounders and requires a fresh F-R01 artifact.
 
 F-AA-01 is the first accepted factual Feed infrastructure review. F-AA-00 remains
 immutable failure evidence because its old primary-only gate missed a metric-
@@ -84,14 +84,14 @@ evidence and are never queried on the serving path.
 | Delayed outcomes | Order/payment/refund/Pixel occurrence and ingestion time are distinct | Implemented | Production-like loss/duplicate/orphan distributions need calibration |
 | Point-in-time projection | Delivered events, lifecycle and full scoring-input tensors replay across content-bound partitions | Implemented | Learned-ranker launch evidence remains P3-07..09 |
 | Request cascade trace | Full recall universe, scorer inputs, stage admission, factual exposure and randomized support are retained | Implemented | Integrated evaluator remains P3-09 |
-| Feed retrieval mechanics | Random and Popular are factual baselines; lifecycle/Graph plus registry-backed Two-Tower/Multi-interest serving paths exist | Handcrafted ladder complete: only Popular promoted; ANN rejected; five routes stopped inconclusive | Train learned retrieval on the request-native sample authority |
+| Feed retrieval mechanics | ID-independent semantic catalog, unbiased Random and country Popular are implemented | semantic-v2 GPU F-R01 pending | Re-run Random to Popular with single-route passthrough and automatic diagnosis |
 | Durable evolving world | Content-addressed hidden world, supply, delayed queue, platform, index, event, experiment and learning cursor checkpoint | Equilibrium burn-in, bounded event authority and exact next-tick restart parity pass | Complete the 96-tick NeuralSCM factual-runtime soak |
 | Layered experiments | Ownership, independent assignment, composed policy and numeric served checkpoint logging | Implemented | Model-learning interference remains P4-05 |
 | Feed post creation | Immutable `post_id`, source lineage, capacity/cooldown/exit failure and future Feed trace | Implemented | Rich media processing belongs to P5 Posting |
 | Content lifecycle | Observable 30-day recent, cold-start, hot, evergreen, expired, moderation and deletion | Implemented | Threshold calibration belongs to P2 |
 | Public catalog anchors | Product/POI lineage is typed through projection and events | Implemented for P1 | Post media/semantic processing belongs to P5 Posting |
 | Behavior realism | Historical v23 reports pass, but its weights and structural tensors were not retained | Canonical runtime now fails closed; v24 rebuild uses factual-only train families and test-only request-local counterfactual probes | Re-earn external, support, structural, shadow, checkpoint and A/A gates with an executable artifact |
-| Full-chain analytical store | Schema v4 persists retained feature/FID and task vectors; DuckDB/ClickHouse agree | Accepted for retained rows | Full scoring-input coverage remains P3-05a |
+| Full-chain analytical store | Every LR can write event-time v4 partitions plus automatic DuckDB diagnosis | Local smoke passes | Validate standard GPU Launch Bundle and add ClickHouse publication later |
 | Recall/coarse/fine sample authorities | Recall is source-corrected; coarse covers recall universe; fine covers scorer input with masked factual labels | Implemented | Trainer/evaluator consumption remains P3-07..09 |
 | Continuous learning | Persistent dual lanes, cursors, registry, compatibility, fallback and serving adapter | Accepted for P3-04/05 | Cadence lift remains P4-04 |
 | Model ladder | Sequential factual runner and corrected random-order policy exist | Existing F-R00 used a rule ranker; v4 has only an LR infrastructure probe and learned retrieval trainer, while deep rankers remain legacy | Pass S-AUTH00/S-WORLD00 and runtime soak, then run corrected A/A→F-R00→Popular and migrate one model family at a time |

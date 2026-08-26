@@ -32,7 +32,9 @@ def main() -> None:
     parser.add_argument("--logical-time", type=int, default=0)
     parser.add_argument("--ticks", type=int, default=1)
     parser.add_argument(
-        "--scenario", choices=("mixed", "feed_posting_cycle"), default="mixed",
+        "--scenario",
+        choices=("mixed", "feed_posting_cycle", "feed_consumption"),
+        default="mixed",
     )
     args = parser.parse_args()
     device = torch.device(args.device)

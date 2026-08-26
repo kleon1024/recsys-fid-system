@@ -21,12 +21,15 @@ class RetrievalConfig:
     refresh_interval: int = 8
     hnsw_neighbors: int = 24
     hnsw_ef_search: int = 64
+    selection_seed: int = 2_029
+    popular_pool_multiplier: int = 16
 
     def __post_init__(self):
         dimensions = (
             self.route_k, self.merged_k, self.ann_oversample,
             self.graph_neighbors, self.refresh_interval,
             self.hnsw_neighbors, self.hnsw_ef_search,
+            self.popular_pool_multiplier,
         )
         if any(value <= 0 for value in dimensions):
             raise ValueError("retrieval dimensions must be positive")

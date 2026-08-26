@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
-import math
 from pathlib import Path
 import time
 from typing import Literal, Mapping
@@ -12,7 +11,7 @@ import torch
 
 from ..catalog import build_public_catalog
 from ..checkpoint import WorldBranchRegistry, WorldCheckpointStore
-from ..contracts import AppEventBatch, EventType, Surface
+from ..contracts import Surface
 from ..engine import AtomicSimulationKernel, ExperimentPlan
 from ..event_log import ObservableEventLog
 from ..platform import (
@@ -24,15 +23,24 @@ from ..platform import (
     RetrievalConfig,
 )
 from ..profile import STANDARD_FEED_PROFILE, SimulationProfile
+from ..platform.routes import DEFAULT_BUSINESS_ROUTE_NAMES
 from ..world import UserEcosystemWorld, UserWorldConfig
 from ..world.authority import (
     FactualResponseArtifact,
     FormulaResponseAuthority,
     load_factual_response_authority,
 )
+from .launch_review.bundle import LaunchEvidenceCollector
+from .launch_review.metrics import analyze_experiment, decide_launch
+
+
+_decision = decide_launch
 
 
 BASE_ROUTES = ("random",)
+FIXED_NON_FEED_ROUTES = tuple(
+    route for route in DEFAULT_BUSINESS_ROUTE_NAMES if route != "retarget"
+)
 ROUTE_LADDER = (
     "popular",
     "cold_start",
@@ -42,17 +50,6 @@ ROUTE_LADDER = (
     "hot",
     "evergreen",
 )
-COUNT_METRICS = {
-    "play_3s": EventType.PLAY_3S,
-    "long_view": EventType.LONG_VIEW,
-    "complete": EventType.COMPLETE,
-    "like": EventType.LIKE,
-    "comment": EventType.COMMENT,
-    "share": EventType.SHARE,
-    "follow": EventType.FOLLOW,
-    "negative": EventType.NEGATIVE,
-    "session_end": EventType.SESSION_END,
-}
 
 
 @dataclass(frozen=True)
@@ -83,6 +80,7 @@ class RetrievalLadderConfig:
     response_member_index: int = 0
     maximum_support_fallback_rate: float = 0.03
     event_log_root: str | None = None
+    launch_bundle_root: str | None = None
 
     def __post_init__(self):
         if self.ticks_per_day <= 0 or self.minimum_triggered_users <= 1:
@@ -116,117 +114,6 @@ def _sync(device: torch.device) -> None:
         torch.cuda.synchronize(device)
 
 
-def _user_metric(
-    events: AppEventBatch,
-    cell: int,
-    users: int,
-    event_type: EventType | None = None,
-) -> torch.Tensor:
-    selected = (events.experiment_cell == cell) & (events.user_id >= 0)
-    if event_type is not None:
-        selected &= events.event(event_type)
-    result = torch.zeros(users, device=events.user_id.device)
-    if event_type is EventType.DWELL:
-        result.scatter_add_(
-            0,
-            events.user_id[selected],
-            events.duration_ms[selected].float() / 1_000.0,
-        )
-    else:
-        result.scatter_add_(
-            0,
-            events.user_id[selected],
-            torch.ones(int(selected.sum()), device=events.user_id.device),
-        )
-    return result
-
-
-def _cell_users(events: AppEventBatch, cell: int, users: int) -> torch.Tensor:
-    impression = (events.experiment_cell == cell) & events.event(
-        EventType.IMPRESSION
-    )
-    present = torch.zeros(users, device=events.user_id.device, dtype=torch.bool)
-    present[events.user_id[impression]] = True
-    return present
-
-
-def _estimate(
-    control: torch.Tensor,
-    treatment: torch.Tensor,
-) -> dict[str, float]:
-    if len(control) < 2 or len(treatment) < 2:
-        return {
-            "control_mean": float("nan"),
-            "treatment_mean": float("nan"),
-            "absolute_delta": float("nan"),
-            "relative_delta": float("nan"),
-            "ci95_low": float("nan"),
-            "ci95_high": float("nan"),
-        }
-    control_mean = control.mean()
-    treatment_mean = treatment.mean()
-    delta = treatment_mean - control_mean
-    standard_error = torch.sqrt(
-        control.var(unbiased=True) / max(len(control), 1)
-        + treatment.var(unbiased=True) / max(len(treatment), 1)
-    )
-    return {
-        "control_mean": float(control_mean),
-        "treatment_mean": float(treatment_mean),
-        "absolute_delta": float(delta),
-        "relative_delta": float(delta / control_mean.clamp_min(1e-12)),
-        "ci95_low": float(delta - 1.96 * standard_error),
-        "ci95_high": float(delta + 1.96 * standard_error),
-    }
-
-
-def _analyze(
-    batches: list[AppEventBatch],
-    users: int,
-    control_cell: int = 0,
-    treatment_cell: int = 1,
-) -> tuple[dict[str, dict[str, float]], dict[str, int]]:
-    events = AppEventBatch.concatenate(tuple(batches))
-    control_users = _cell_users(events, control_cell, users)
-    treatment_users = _cell_users(events, treatment_cell, users)
-    metrics = {}
-    for name, event_type in {
-        "dwell_seconds": EventType.DWELL,
-        **COUNT_METRICS,
-    }.items():
-        values_control = _user_metric(
-            events, control_cell, users, event_type,
-        )[control_users]
-        values_treatment = _user_metric(
-            events, treatment_cell, users, event_type,
-        )[treatment_users]
-        metrics[name] = _estimate(values_control, values_treatment)
-    return metrics, {
-        "control_triggered_users": int(control_users.sum()),
-        "treatment_triggered_users": int(treatment_users.sum()),
-    }
-
-
-def _decision(
-    metrics: dict[str, dict[str, float]],
-    sample: dict[str, int],
-    minimum_triggered_users: int,
-) -> tuple[str, str]:
-    if min(sample.values()) < minimum_triggered_users:
-        return "hold", "triggered-user sample is below the preregistered gate"
-    dwell = metrics["dwell_seconds"]
-    negative = metrics["negative"]
-    if not all(math.isfinite(value) for metric in metrics.values() for value in metric.values()):
-        return "hold", "non-finite experiment metric"
-    if dwell["ci95_high"] < 0.0:
-        return "reject", "stay significantly decreases"
-    if dwell["ci95_low"] <= 0.0:
-        return "hold", "stay confidence interval crosses zero"
-    if negative["ci95_low"] > 0.0:
-        return "reject", "negative feedback significantly increases"
-    return "promote", "stay improves and negative-feedback guardrail passes"
-
-
 def _policy(
     name: str,
     version: int,
@@ -240,6 +127,7 @@ def _policy(
         mix_version_id=1,
         recall_version_id=version,
         enabled_routes=routes,
+        enabled_business_routes=FIXED_NON_FEED_ROUTES,
         feed_exposure_dedup_ticks=30 * ticks_per_day,
         feed_session_dedup=True,
     )
@@ -336,6 +224,7 @@ def _run_review_window(
     logical_time: int,
     steps: int,
     route: str,
+    evidence: LaunchEvidenceCollector | None = None,
 ) -> tuple[
     dict[str, int], dict[str, int], dict[str, int], int,
 ]:
@@ -347,6 +236,8 @@ def _run_review_window(
     route_bit = 1 << ROUTE_NAMES.index(route)
     for _ in range(steps):
         tick = kernel.step(logical_time, plan)
+        if evidence is not None:
+            evidence.append(tick)
         logical_time += 1
         for cell, name in ((0, "control"), (1, "treatment"), (-1, "default")):
             requests[name] += tick.cell_counts.get(cell, 0)
@@ -407,6 +298,27 @@ def _pending_review(
     }
 
 
+def _attach_launch_bundle(
+    review: dict[str, object],
+    evidence: LaunchEvidenceCollector | None,
+    kernel: AtomicSimulationKernel,
+    config: RetrievalLadderConfig,
+    index: int,
+    attempt: int,
+) -> None:
+    if evidence is None:
+        return
+    review["launch_bundle"] = evidence.materialize(
+        kernel=kernel,
+        output_dir=(
+            Path(str(config.launch_bundle_root))
+            / f"R-LR-{index:03d}-attempt-{attempt}"
+        ),
+        review=review,
+        ticks_per_day=config.ticks_per_day,
+    )
+
+
 def _run_one_review(
     kernel: AtomicSimulationKernel,
     config: RetrievalLadderConfig,
@@ -424,7 +336,10 @@ def _run_one_review(
     dict[str, object] | None,
     ExperimentPlan,
 ]:
-    proposed_routes = (*active_routes, route)
+    proposed_routes = (
+        ("popular",) if route == "popular" and active_routes == BASE_ROUTES
+        else (*active_routes, route)
+    )
     treatment = _policy(
         f"feed-add-{route}-v{index + 1}", index + 1, proposed_routes,
         config.ticks_per_day,
@@ -439,13 +354,14 @@ def _run_one_review(
     )
     start_time = logical_time if pending is None else int(pending["start_time"])
     attempt = 1 if pending is None else int(pending["attempt"]) + 1
+    evidence = LaunchEvidenceCollector() if config.launch_bundle_root else None
     if pending is not None and (
         pending["route"] != route or int(pending["route_index"]) != index - 1
     ):
         raise ValueError("pending launch cursor points to a different route")
     requests, route_hits, stage_candidates, logical_time = (
         _run_review_window(
-            kernel, plan, logical_time, config.experiment_steps, route,
+            kernel, plan, logical_time, config.experiment_steps, route, evidence,
         )
     )
     requests = _add_counts(
@@ -460,7 +376,7 @@ def _run_one_review(
     )
     events = kernel.event_log.read(ingested_through=logical_time - 1)
     events = events.select(events.ingest_time >= start_time)
-    metrics, sample = _analyze([events], config.users)
+    metrics, sample = analyze_experiment(events, config.users)
     decision, reason = _decision(
         metrics, sample, config.minimum_triggered_users,
     )
@@ -474,6 +390,16 @@ def _run_one_review(
         "analysis_start_time": start_time,
         "analysis_end_time": logical_time - 1,
         "changed_owner": "retrieval routes only",
+        "comparison_kind": (
+            "single_route_replacement"
+            if route == "popular" and active_routes == BASE_ROUTES
+            else "route_addition"
+        ),
+        "merge_policy": (
+            "single_route_passthrough"
+            if len(active_routes) == 1 and len(proposed_routes) == 1
+            else "reciprocal_rank_fusion"
+        ),
         "control_routes": list(active_routes),
         "treatment_routes": list(proposed_routes),
         "added_route": route,
@@ -490,6 +416,9 @@ def _run_one_review(
         "reason": reason,
         "promoted_to_next_baseline": promoted,
     }
+    _attach_launch_bundle(
+        review, evidence, kernel, config, index, attempt,
+    )
     next_pending = (
         _pending_review(
             route,

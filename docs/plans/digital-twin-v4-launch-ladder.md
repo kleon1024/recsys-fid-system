@@ -43,7 +43,7 @@ then calibrate primitive heads and introduce Value Tree and final-slate policy.
 |---|---|---|---|
 | F-AA-00 | A → identical A | everything | SRM passes; confidence interval covers zero; replay is exact |
 | F-R00 | no recommender -> eligible random retrieval and randomized order | eligibility, corpus, slate width | establishes zero-personalization baseline; no lift claim |
-| F-R01 | eligible random -> eligible Popular candidates | randomized order, eligibility and slate width | stay/session and negative feedback; concentration guardrail |
+| F-R01 | unbiased Random route -> country Behavioral Popular route | one route per arm, single-route passthrough, eligibility and slate width | stay/session, negative feedback, market match, pool concentration and topic-periodicity gate |
 | F-R02 | Popular → Popular + 30-day recent + locale/language eligibility | popularity formula | freshness/locale slices improve without coverage collapse |
 | F-F00 | randomized candidate order -> direct rule fine rank | small fixed candidate set | served Top-K changes; stay improves within latency budget |
 | F-R03 | current routes → Following/author-affinity route | ranker and route quota | marginal unique relevant recall and creator concentration |

@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import torch
 
+from ...randomness.counter import uniform
 from .retrieval_merge import reciprocal_rank_fusion
 from .routes.exposure import exposed_in_current_session, recently_exposed
 from .routes.commerce import inventory_eligible
@@ -228,7 +229,7 @@ class MultiRouteRetriever:
             values[selected, :count] = score[chosen][None]
         return item, values
 
-    def _rotating_lifecycle_candidates(
+    def _uniform_lifecycle_candidates(
         self,
         requests: PlatformRequestBatch,
         state: PlatformProjectionState,
@@ -260,6 +261,14 @@ class MultiRouteRetriever:
         width = min(self.config.route_k, len(candidates))
         if not feed.any() or not width:
             return item, values
+        logical_time = int(requests.event_time.min())
+        random_key = uniform(
+            candidates,
+            logical_time,
+            313,
+            self.config.selection_seed,
+        )
+        candidates = candidates[torch.argsort(random_key, stable=True)]
         start = torch.remainder(
             requests.request_id[feed] * 503 + requests.user_id[feed] * 1_009,
             len(candidates),
@@ -269,6 +278,52 @@ class MultiRouteRetriever:
         chosen = candidates[location]
         item[feed, :width] = chosen
         values[feed, :width] = score[chosen]
+        return item, values
+
+    def _popular_candidates(
+        self,
+        requests: PlatformRequestBatch,
+        state: PlatformProjectionState,
+        score: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Return rotating country-popular pools learned from mature events."""
+        rows, limit = len(requests.user_id), self.config.route_k
+        item = torch.full(
+            (rows, limit), -1, device=self.device, dtype=torch.long,
+        )
+        values = torch.full_like(item, -torch.inf, dtype=torch.float)
+        feed = requests.surface == int(Surface.FEED)
+        request_country = state.user_country[requests.user_id]
+        lifecycle = self._lifecycle_mask(
+            state, tuple(int(value) for value in MAIN_FEED_LIFECYCLES),
+        )
+        eligible_base = (
+            state.item_active
+            & lifecycle
+            & surface_eligibility(int(Surface.FEED), self.catalog.content_kind)
+        )
+        for country in torch.unique(request_country[feed]).tolist():
+            selected = feed & (request_country == country)
+            eligible = eligible_base & (state.item_country == country)
+            candidates = torch.where(eligible)[0]
+            pool_width = min(
+                len(candidates), limit * self.config.popular_pool_multiplier,
+            )
+            if not pool_width:
+                continue
+            top = torch.topk(score[candidates], pool_width).indices
+            pool = candidates[top]
+            target = torch.where(selected)[0]
+            width = min(limit, pool_width)
+            start = torch.remainder(
+                requests.request_id[target] * 503
+                + requests.user_id[target] * 1_009,
+                pool_width,
+            )
+            offset = torch.arange(width, device=self.device)[None]
+            chosen = pool[torch.remainder(start[:, None] + offset, pool_width)]
+            item[target, :width] = chosen
+            values[target, :width] = score[chosen]
         return item, values
 
     def retrieve(
@@ -351,12 +406,22 @@ class MultiRouteRetriever:
             route_score,
             torch.full_like(route_score, -torch.inf),
         )
-        merged_item, merged_score, route_bits = reciprocal_rank_fusion(
-            route_item,
-            route_valid,
-            reciprocal_rank_constant=self.config.reciprocal_rank_constant,
-            merged_k=self.config.merged_k,
-        )
+        if len(enabled_routes) == 1:
+            route_index = ROUTE_NAMES.index(enabled_routes[0])
+            merged_item = route_item[:, route_index]
+            merged_score = route_score[:, route_index]
+            route_bits = torch.where(
+                route_valid[:, route_index],
+                torch.full_like(merged_item, 1 << route_index),
+                torch.zeros_like(merged_item),
+            )
+        else:
+            merged_item, merged_score, route_bits = reciprocal_rank_fusion(
+                route_item,
+                route_valid,
+                reciprocal_rank_constant=self.config.reciprocal_rank_constant,
+                merged_k=self.config.merged_k,
+            )
         return RetrievalResult(
             item_id=merged_item,
             route_bits=route_bits,
@@ -483,18 +548,16 @@ class MultiRouteRetriever:
         self, requests, state, signals, enabled,
     ):
         routes = {}
-        main_lifecycle = tuple(int(value) for value in MAIN_FEED_LIFECYCLES)
         if "random" in enabled:
-            routes["random"] = self._rotating_lifecycle_candidates(
+            routes["random"] = self._uniform_lifecycle_candidates(
                 requests, state, signals.random, MAIN_FEED_LIFECYCLES,
             )
         if "popular" in enabled:
-            routes["popular"] = self._top_for_surface(
-                requests, state, signals.popular, Surface.FEED,
-                allowed_lifecycle=main_lifecycle,
+            routes["popular"] = self._popular_candidates(
+                requests, state, signals.popular,
             )
         if "cold_start" in enabled:
-            routes["cold_start"] = self._rotating_lifecycle_candidates(
+            routes["cold_start"] = self._uniform_lifecycle_candidates(
                 requests, state, signals.cold_start, ContentLifecycle.COLD_START,
             )
         if "hot" in enabled:

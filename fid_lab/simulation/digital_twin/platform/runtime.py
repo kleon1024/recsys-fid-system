@@ -217,7 +217,7 @@ class ReferenceRecommendationPlatform:
                 catalog_version=self.config.catalog_version,
                 policy_registry_version=self.config.policy_registry_version,
                 route_names=self.retriever.route_names,
-                index_version=snapshot.index_version,
+                index_version=retrieval.index_version,
                 fid_version=f"fid-{self.ranker.features.manifest.fid_version}",
                 lifecycle_version=LIFECYCLE_POLICY_VERSION,
                 feature_manifest_hash=ranked.candidate_features.manifest_hash,

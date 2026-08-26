@@ -17,6 +17,7 @@ def main() -> None:
     parser.add_argument("--burn-in-steps", type=int, default=112)
     parser.add_argument("--steps", type=int, default=16)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--bundle-root", type=Path)
     args = parser.parse_args()
     report = run_retrieval_ladder(RetrievalLadderConfig(
         users=args.users, items=args.items, burn_in_steps=args.burn_in_steps,
@@ -24,6 +25,9 @@ def main() -> None:
         treatment_fraction=0.45, minimum_triggered_users=500,
         max_reviews=1, max_attempts_per_review=1,
         response_authority_mode="formula_oracle", ticks_per_day=16,
+        launch_bundle_root=str(
+            args.bundle_root or args.output.with_suffix("")
+        ),
         device=args.device,
     ))
     args.output.parent.mkdir(parents=True, exist_ok=True)

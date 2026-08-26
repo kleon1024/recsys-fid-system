@@ -10,6 +10,29 @@ from ..randomness.counter import normal, uniform
 from .contracts import ContentKind
 
 
+def _categorical(
+    entity_id: torch.Tensor,
+    cardinality: int,
+    *,
+    stream: int,
+    seed: int,
+) -> torch.Tensor:
+    """Draw an ID-independent categorical assignment from a counter stream."""
+    return torch.floor(
+        uniform(entity_id, 0, stream, seed) * cardinality
+    ).long().clamp_max(cardinality - 1)
+
+
+def _content_kind(item_id: torch.Tensor, platform_seed: int) -> torch.Tensor:
+    """Use an explicit mixed-media supply distribution, not item-ID modulo."""
+    draw = uniform(item_id, 0, 97, platform_seed)
+    boundaries = torch.tensor(
+        (0.72, 0.80, 0.85, 0.89, 0.93, 0.95, 0.97, 0.99),
+        device=item_id.device,
+    )
+    return torch.bucketize(draw, boundaries)
+
+
 @dataclass(frozen=True)
 class PublicCatalog:
     item_id: torch.Tensor
@@ -122,7 +145,9 @@ def build_public_catalog(
         raise ValueError("initial active fraction must be in (0, 1]")
     device = torch.device(device)
     item_id = torch.arange(items, device=device)
-    topic_id = torch.remainder(item_id * 69_697 + 29, topics)
+    topic_id = _categorical(
+        item_id, topics, stream=99, seed=platform_seed,
+    )
     topic_ids = torch.arange(topics, device=device)
     prototypes = torch.nn.functional.normalize(
         normal(topic_ids, 0, 101, platform_seed, embedding_dim), dim=1
@@ -134,11 +159,18 @@ def build_public_catalog(
         ),
         dim=1,
     )
-    content_kind = torch.remainder(item_id, len(ContentKind))
-    country = torch.remainder(item_id * 503 + 37, countries)
+    content_kind = _content_kind(item_id, platform_seed)
+    country = _categorical(
+        item_id, countries, stream=105, seed=platform_seed,
+    )
     region = (
         country * regions_per_country
-        + torch.remainder(item_id * 1_009 + 41, regions_per_country)
+        + _categorical(
+            item_id,
+            regions_per_country,
+            stream=106,
+            seed=platform_seed,
+        )
     )
     text_quality = uniform(item_id, 0, 107, platform_seed)
     visual_quality = uniform(item_id, 0, 109, platform_seed)
@@ -169,9 +201,15 @@ def build_public_catalog(
         content_kind=content_kind,
         topic_id=topic_id,
         content_embedding=content_embedding,
-        creator_id=torch.remainder(item_id * 7_919 + 31, creators),
-        merchant_id=torch.remainder(item_id * 1_231 + 17, merchants),
-        advertiser_id=torch.remainder(item_id * 2_003 + 23, advertisers),
+        creator_id=_categorical(
+            item_id, creators, stream=117, seed=platform_seed,
+        ),
+        merchant_id=_categorical(
+            item_id, merchants, stream=119, seed=platform_seed,
+        ),
+        advertiser_id=_categorical(
+            item_id, advertisers, stream=121, seed=platform_seed,
+        ),
         product_id=product_id,
         poi_id=poi_id,
         country=country,
