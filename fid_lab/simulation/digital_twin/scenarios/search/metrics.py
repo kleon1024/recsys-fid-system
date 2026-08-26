@@ -7,7 +7,7 @@ import math
 import torch
 
 from ...contracts import AppEventBatch, EventType, Surface
-from ...experiments.retrieval_ladder import _estimate
+from ...experiments.launch_review.metrics import _estimate
 
 
 def _query_cohort(

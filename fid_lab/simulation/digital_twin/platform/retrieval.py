@@ -8,6 +8,7 @@ import torch
 from ...randomness.counter import uniform
 from .retrieval_merge import reciprocal_rank_fusion
 from .routes.exposure import exposed_in_current_session, recently_exposed
+from .routes.popular import interest_popular_candidates, popular_candidates
 from .routes.commerce import inventory_eligible
 from .indexes.ann import FaissItemIndex
 from .indexes.contracts import LearnedRetriever, RetrievalConfig
@@ -280,52 +281,6 @@ class MultiRouteRetriever:
         values[feed, :width] = score[chosen]
         return item, values
 
-    def _popular_candidates(
-        self,
-        requests: PlatformRequestBatch,
-        state: PlatformProjectionState,
-        score: torch.Tensor,
-    ) -> tuple[torch.Tensor, torch.Tensor]:
-        """Return rotating country-popular pools learned from mature events."""
-        rows, limit = len(requests.user_id), self.config.route_k
-        item = torch.full(
-            (rows, limit), -1, device=self.device, dtype=torch.long,
-        )
-        values = torch.full_like(item, -torch.inf, dtype=torch.float)
-        feed = requests.surface == int(Surface.FEED)
-        request_country = state.user_country[requests.user_id]
-        lifecycle = self._lifecycle_mask(
-            state, tuple(int(value) for value in MAIN_FEED_LIFECYCLES),
-        )
-        eligible_base = (
-            state.item_active
-            & lifecycle
-            & surface_eligibility(int(Surface.FEED), self.catalog.content_kind)
-        )
-        for country in torch.unique(request_country[feed]).tolist():
-            selected = feed & (request_country == country)
-            eligible = eligible_base & (state.item_country == country)
-            candidates = torch.where(eligible)[0]
-            pool_width = min(
-                len(candidates), limit * self.config.popular_pool_multiplier,
-            )
-            if not pool_width:
-                continue
-            top = torch.topk(score[candidates], pool_width).indices
-            pool = candidates[top]
-            target = torch.where(selected)[0]
-            width = min(limit, pool_width)
-            start = torch.remainder(
-                requests.request_id[target] * 503
-                + requests.user_id[target] * 1_009,
-                pool_width,
-            )
-            offset = torch.arange(width, device=self.device)[None]
-            chosen = pool[torch.remainder(start[:, None] + offset, pool_width)]
-            item[target, :width] = chosen
-            values[target, :width] = score[chosen]
-        return item, values
-
     def retrieve(
         self,
         requests: PlatformRequestBatch,
@@ -483,8 +438,8 @@ class MultiRouteRetriever:
         enabled: set[str],
     ) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
         feed_enabled = enabled & {
-            "random", "popular", "recent_ann", "recent_graph", "following",
-            "cold_start", "hot", "evergreen",
+            "random", "popular", "interest_popular", "recent_ann",
+            "recent_graph", "following", "cold_start", "hot", "evergreen",
         }
         if not feed_enabled:
             return {}
@@ -547,8 +502,12 @@ class MultiRouteRetriever:
                 requests, state, signals.random, MAIN_FEED_LIFECYCLES,
             )
         if "popular" in enabled:
-            routes["popular"] = self._popular_candidates(
-                requests, state, signals.popular,
+            routes["popular"] = popular_candidates(
+                self.catalog, self.config, requests, state, signals.popular,
+            )
+        if "interest_popular" in enabled:
+            routes["interest_popular"] = interest_popular_candidates(
+                self.catalog, self.config, requests, state, signals.popular,
             )
         if "cold_start" in enabled:
             routes["cold_start"] = self._uniform_lifecycle_candidates(

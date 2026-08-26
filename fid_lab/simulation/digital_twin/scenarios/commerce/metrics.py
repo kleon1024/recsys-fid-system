@@ -8,7 +8,7 @@ from typing import Mapping
 import torch
 
 from ...contracts import AppEventBatch, EventType, Surface
-from ...experiments.retrieval_ladder import _estimate
+from ...experiments.launch_review.metrics import _estimate
 
 
 def _user_values(events, cell, users, event_type, *, use_value=False):

@@ -10,6 +10,7 @@ from ...contracts import ContentKind, Surface
 FEED_ROUTE_NAMES = (
     "random",
     "popular",
+    "interest_popular",
     "recent_ann",
     "recent_graph",
     "following",

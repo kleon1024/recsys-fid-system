@@ -53,6 +53,30 @@ def test_empty_or_nonfinite_launch_cannot_promote():
     assert result["final_active_routes"] == ["random"]
 
 
+def test_popular_baseline_can_run_aa_then_replace_with_interest_popular():
+    result = run_retrieval_ladder(RetrievalLadderConfig(
+        users=512,
+        items=12_000,
+        burn_in_steps=8,
+        aa_steps=4,
+        experiment_steps=4,
+        control_fraction=0.4,
+        treatment_fraction=0.4,
+        device="cpu",
+        auto_promote=False,
+        minimum_triggered_users=2,
+        max_reviews=1,
+        initial_route="popular",
+        route_ladder=("interest_popular",),
+    ))
+    assert result["aa_review"] is not None
+    assert result["aa_review"]["policy_routes"] == ["popular"]
+    review = result["reviews"][0]
+    assert review["control_routes"] == ["popular"]
+    assert review["treatment_routes"] == ["interest_popular"]
+    assert review["comparison_kind"] == "single_route_replacement"
+
+
 def test_inconclusive_launch_stops_at_preregistered_window_limit():
     result = run_retrieval_ladder(RetrievalLadderConfig(
         users=128,

@@ -37,12 +37,12 @@ from .launch_review.metrics import analyze_experiment, decide_launch
 _decision = decide_launch
 
 
-BASE_ROUTES = ("random",)
 FIXED_NON_FEED_ROUTES = tuple(
     route for route in DEFAULT_BUSINESS_ROUTE_NAMES if route != "retarget"
 )
 ROUTE_LADDER = (
     "popular",
+    "interest_popular",
     "cold_start",
     "recent_ann",
     "recent_graph",
@@ -81,6 +81,9 @@ class RetrievalLadderConfig:
     maximum_support_fallback_rate: float = 0.03
     event_log_root: str | None = None
     launch_bundle_root: str | None = None
+    initial_route: str = "random"
+    route_ladder: tuple[str, ...] = ROUTE_LADDER
+    aa_steps: int = 0
 
     def __post_init__(self):
         if self.ticks_per_day <= 0 or self.minimum_triggered_users <= 1:
@@ -89,6 +92,14 @@ class RetrievalLadderConfig:
             raise ValueError("max_reviews must be positive when provided")
         if self.max_attempts_per_review <= 0:
             raise ValueError("max_attempts_per_review must be positive")
+        if self.initial_route not in ROUTE_NAMES:
+            raise ValueError("initial retrieval route is unknown")
+        if not self.route_ladder or any(
+            route not in ROUTE_NAMES for route in self.route_ladder
+        ):
+            raise ValueError("retrieval route ladder is empty or unknown")
+        if self.aa_steps < 0:
+            raise ValueError("A/A steps must be non-negative")
         if not self.checkpoint_branch:
             raise ValueError("checkpoint_branch must not be empty")
         if self.response_authority_mode not in {"formula_oracle", "neural_feed"}:
@@ -144,6 +155,15 @@ def _baseline_plan(
         treatment_fraction=config.treatment_fraction,
         eligible_surfaces=(int(Surface.FEED),),
     )
+
+
+def _is_single_route_replacement(
+    active_routes: tuple[str, ...], route: str,
+) -> bool:
+    return len(active_routes) == 1 and (active_routes[0], route) in {
+        ("random", "popular"),
+        ("popular", "interest_popular"),
+    }
 
 
 def _build_kernel(config: RetrievalLadderConfig):
@@ -336,10 +356,8 @@ def _run_one_review(
     dict[str, object] | None,
     ExperimentPlan,
 ]:
-    proposed_routes = (
-        ("popular",) if route == "popular" and active_routes == BASE_ROUTES
-        else (*active_routes, route)
-    )
+    replacement = _is_single_route_replacement(active_routes, route)
+    proposed_routes = (route,) if replacement else (*active_routes, route)
     treatment = _policy(
         f"feed-add-{route}-v{index + 1}", index + 1, proposed_routes,
         config.ticks_per_day,
@@ -392,7 +410,7 @@ def _run_one_review(
         "changed_owner": "retrieval routes only",
         "comparison_kind": (
             "single_route_replacement"
-            if route == "popular" and active_routes == BASE_ROUTES
+            if replacement
             else "route_addition"
         ),
         "merge_policy": (
@@ -457,9 +475,10 @@ def _restore_or_burn_in(
     dict[str, object] | None,
     str,
 ]:
-    active_routes = BASE_ROUTES
+    active_routes = (config.initial_route,)
     active = _policy(
-        "feed-random-v1", 1, active_routes, config.ticks_per_day,
+        f"feed-{config.initial_route}-v1", 1, active_routes,
+        config.ticks_per_day,
     )
     if resume_checkpoint_id is not None:
         if store is None:
@@ -620,12 +639,39 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
         registry,
         resume_checkpoint_id,
     )
+    aa_review = None
+    if config.aa_steps and resume_checkpoint_id is None:
+        aa_start = logical_time
+        aa_plan = _baseline_plan(config, active, 77)
+        _, _, _, logical_time = _run_review_window(
+            kernel,
+            aa_plan,
+            logical_time,
+            config.aa_steps,
+            active_routes[0],
+        )
+        aa_events = kernel.event_log.read(ingested_through=logical_time - 1)
+        aa_events = aa_events.select(aa_events.ingest_time >= aa_start)
+        aa_metrics, aa_sample = analyze_experiment(aa_events, config.users)
+        aa_review = {
+            "analysis_start_time": aa_start,
+            "analysis_end_time": logical_time - 1,
+            "policy_routes": list(active_routes),
+            "sample": aa_sample,
+            "metrics_per_triggered_user": aa_metrics,
+            "valid": all(
+                metric["ci95_low"] <= 0.0 <= metric["ci95_high"]
+                for metric in (
+                    aa_metrics["dwell_seconds"], aa_metrics["negative"],
+                )
+            ),
+        }
     review_windows = 0
-    while next_route_index < len(ROUTE_LADDER):
+    while next_route_index < len(config.route_ladder):
         if config.max_reviews is not None and review_windows >= config.max_reviews:
             break
         route_offset = next_route_index
-        route = ROUTE_LADDER[route_offset]
+        route = config.route_ladder[route_offset]
         index = route_offset + 1
         review, active, active_routes, logical_time, pending_review, plan = (
             _run_one_review(
@@ -668,6 +714,7 @@ def run_retrieval_ladder(config: RetrievalLadderConfig) -> dict[str, object]:
         "scope": "v4-feed-sequential-retrieval-launch-reviews",
         "quality_claim": "synthetic-world causal evidence only",
         "config": asdict(config),
+        "aa_review": aa_review,
         "simulation_profile": config.simulation_profile.manifest(),
         "simulation_profile_hash": config.simulation_profile.profile_hash,
         "invariant": (
