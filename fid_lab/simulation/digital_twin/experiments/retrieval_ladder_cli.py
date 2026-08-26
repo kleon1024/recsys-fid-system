@@ -18,11 +18,12 @@ def main() -> None:
     parser.add_argument("--device", default="cuda:0")
     args = parser.parse_args()
     report = run_retrieval_ladder(RetrievalLadderConfig(
-        users=args.users, items=args.items, burn_in_steps=8,
+        users=args.users, items=args.items, burn_in_steps=16,
         experiment_steps=args.steps, control_fraction=0.45,
         treatment_fraction=0.45, minimum_triggered_users=500,
         max_reviews=1, max_attempts_per_review=1,
-        response_authority_mode="formula_oracle", device=args.device,
+        response_authority_mode="formula_oracle", ticks_per_day=16,
+        device=args.device,
     ))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2) + "\n")
