@@ -41,6 +41,7 @@ class LinearRankLaunchConfig:
     replay_dataset_root: str = ""
     replay_partition_fraction: float = 0.20
     run_aa: bool = False
+    candidate_fine_checkpoint: str = ""
 
 
 _ROW_TENSORS = (
@@ -238,6 +239,49 @@ def _train_candidate(config: LinearRankLaunchConfig):
     }
 
 
+def _evaluate_resumed_candidate(config: LinearRankLaunchConfig, artifact):
+    bus = PartitionedSampleBus(
+        Path(config.dataset_root), Path(config.output) / "resume-evaluation-lane",
+    )
+    refs = bus.poll(Lane.CANDIDATE)
+    split = max(1, int(0.8 * len(refs)))
+    validation = load_probe_batch(bus, refs[split:])
+    task = validation.task_names.index("long_view")
+    mask = validation.label_mask[:, task] & (
+        validation.surface == int(Surface.FEED)
+    )
+    with torch.inference_mode():
+        probability = artifact.predict_task_probabilities(
+            validation.dense_features[mask], validation.surface[mask],
+        )[:, task].cpu()
+    labels = validation.labels[mask, task]
+    return {
+        "train_rows": int(artifact.training_report["rows"]),
+        "validation_rows": len(validation.request_id),
+        "validation_long_view_rows": int(mask.sum()),
+        "validation_long_view_auc": _auc(labels, probability),
+        "validation_long_view_gauc": _gauc(
+            validation.request_id[mask], labels, probability,
+        ),
+        "validation_long_view_logloss": float(
+            torch.nn.functional.binary_cross_entropy(probability, labels)
+        ),
+        "training_support": {
+            "resumed_from_candidate_checkpoint": config.candidate_fine_checkpoint,
+        },
+        "validation_time_range": [
+            int(validation.request_time.min()), int(validation.request_time.max()),
+        ],
+        "artifact": artifact.training_report,
+        "value_tree_version": FEED_VALUE_TREE_VERSION,
+        "serving_task_weights": dict(zip(
+            artifact.task_names,
+            artifact.serving_task_weights or (),
+            strict=True,
+        )),
+    }
+
+
 def _save_serving_artifact(artifact, output: Path) -> dict[str, str]:
     output.mkdir(parents=True, exist_ok=True)
     target = output / "fine-ranker.pt"
@@ -272,7 +316,16 @@ def _run_window(kernel, plan, logical_time, steps, evidence=None):
 
 def run_linear_rank_launch(config: LinearRankLaunchConfig) -> dict[str, object]:
     started = time.perf_counter()
-    artifact, offline = _train_candidate(config)
+    if config.candidate_fine_checkpoint:
+        checkpoint = torch.load(
+            config.candidate_fine_checkpoint,
+            map_location="cpu",
+            weights_only=True,
+        )
+        artifact = ProbeArtifact.from_checkpoint(checkpoint)
+        offline = _evaluate_resumed_candidate(config, artifact)
+    else:
+        artifact, offline = _train_candidate(config)
     output = Path(config.output)
     serving_artifact = _save_serving_artifact(artifact, output)
     if offline["validation_long_view_auc"] < 0.52:
