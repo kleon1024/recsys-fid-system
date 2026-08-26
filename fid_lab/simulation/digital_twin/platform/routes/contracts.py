@@ -11,6 +11,7 @@ FEED_ROUTE_NAMES = (
     "random",
     "popular",
     "interest_popular",
+    "blended_popular",
     "recent_ann",
     "recent_graph",
     "following",

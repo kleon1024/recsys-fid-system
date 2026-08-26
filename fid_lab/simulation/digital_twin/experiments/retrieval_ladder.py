@@ -43,6 +43,7 @@ FIXED_NON_FEED_ROUTES = tuple(
 ROUTE_LADDER = (
     "popular",
     "interest_popular",
+    "blended_popular",
     "cold_start",
     "recent_ann",
     "recent_graph",
@@ -163,6 +164,7 @@ def _is_single_route_replacement(
     return len(active_routes) == 1 and (active_routes[0], route) in {
         ("random", "popular"),
         ("popular", "interest_popular"),
+        ("popular", "blended_popular"),
     }
 
 

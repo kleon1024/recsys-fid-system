@@ -23,6 +23,8 @@ class RetrievalConfig:
     hnsw_ef_search: int = 64
     selection_seed: int = 2_029
     popular_pool_multiplier: int = 16
+    popular_interest_fraction: float = 0.25
+    interest_half_life_ticks: int = 96
 
     def __post_init__(self):
         dimensions = (
@@ -30,9 +32,12 @@ class RetrievalConfig:
             self.graph_neighbors, self.refresh_interval,
             self.hnsw_neighbors, self.hnsw_ef_search,
             self.popular_pool_multiplier,
+            self.interest_half_life_ticks,
         )
         if any(value <= 0 for value in dimensions):
             raise ValueError("retrieval dimensions must be positive")
+        if not 0.0 < self.popular_interest_fraction <= 1.0:
+            raise ValueError("Popular interest fraction must be in (0, 1]")
 
 
 class LearnedRetriever(Protocol):

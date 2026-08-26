@@ -69,6 +69,7 @@ def popular_candidates(
 
 def _recent_interest_topic(
     catalog: PublicCatalog,
+    config: RetrievalConfig,
     requests: PlatformRequestBatch,
     state: PlatformProjectionState,
 ) -> torch.Tensor:
@@ -76,30 +77,38 @@ def _recent_interest_topic(
     history_item = state.user_history_item[user_id]
     event_type = state.user_history_event_type[user_id]
     event_time = state.user_history_event_time[user_id]
-    positive = torch.zeros_like(event_type, dtype=torch.bool)
-    for candidate in (
-        EventType.PLAY_3S,
-        EventType.LONG_VIEW,
-        EventType.COMPLETE,
-        EventType.CLICK,
-        EventType.LIKE,
-        EventType.FAVORITE,
-        EventType.SHARE,
+    strength = torch.zeros_like(event_time, dtype=torch.float)
+    for candidate, value in (
+        (EventType.PLAY_3S, 1.0),
+        (EventType.LONG_VIEW, 2.0),
+        (EventType.COMPLETE, 2.5),
+        (EventType.CLICK, 2.0),
+        (EventType.LIKE, 3.0),
+        (EventType.FAVORITE, 3.5),
+        (EventType.SHARE, 4.0),
     ):
-        positive |= event_type == int(candidate)
+        strength = torch.where(
+            event_type == int(candidate), torch.full_like(strength, value),
+            strength,
+        )
+    positive = strength > 0.0
     valid = positive & (history_item >= 0)
-    selected_time = torch.where(
-        valid, event_time, torch.full_like(event_time, -1),
+    age = (
+        requests.event_time[:, None] - event_time
+    ).clamp_min(0).float()
+    weight = strength * torch.exp2(
+        -age / float(config.interest_half_life_ticks),
     )
-    slot = selected_time.argmax(dim=1)
-    selected_item = torch.gather(history_item, 1, slot[:, None]).squeeze(1)
-    selected_item = torch.where(
-        valid.any(dim=1), selected_item, torch.full_like(selected_item, -1),
+    topic = catalog.topic_id[history_item.clamp_min(0)]
+    topic_score = torch.zeros(
+        len(requests.user_id),
+        int(catalog.topic_id.max()) + 1,
+        device=catalog.item_id.device,
     )
+    topic_score.scatter_add_(1, topic, weight * valid)
+    selected_topic = topic_score.argmax(dim=1)
     return torch.where(
-        selected_item >= 0,
-        catalog.topic_id[selected_item.clamp_min(0)],
-        torch.full_like(selected_item, -1),
+        valid.any(dim=1), selected_topic, torch.full_like(selected_topic, -1),
     )
 
 
@@ -109,6 +118,8 @@ def interest_popular_candidates(
     requests: PlatformRequestBatch,
     state: PlatformProjectionState,
     score: torch.Tensor,
+    *,
+    interest_fraction: float = 1.0,
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """Retrieve popular items inside the latest observable interest segment."""
     item, values = popular_candidates(
@@ -116,7 +127,7 @@ def interest_popular_candidates(
     )
     feed = requests.surface == int(Surface.FEED)
     country = state.user_country[requests.user_id]
-    topic = _recent_interest_topic(catalog, requests, state)
+    topic = _recent_interest_topic(catalog, config, requests, state)
     eligible_base = _eligible_feed_items(catalog, state)
     segment = country * (int(catalog.topic_id.max()) + 1) + topic
     for key in torch.unique(segment[feed & (topic >= 0)]).tolist():
@@ -129,7 +140,8 @@ def interest_popular_candidates(
             & (state.item_country == selected_country)
             & (catalog.topic_id == selected_topic)
         )[0]
-        width = min(len(candidates), config.route_k)
+        interest_slots = max(1, round(config.route_k * interest_fraction))
+        width = min(len(candidates), interest_slots)
         if not width:
             continue
         pool = candidates[torch.topk(score[candidates], width).indices]

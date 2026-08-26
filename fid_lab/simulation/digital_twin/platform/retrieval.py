@@ -438,8 +438,9 @@ class MultiRouteRetriever:
         enabled: set[str],
     ) -> dict[str, tuple[torch.Tensor, torch.Tensor]]:
         feed_enabled = enabled & {
-            "random", "popular", "interest_popular", "recent_ann",
-            "recent_graph", "following", "cold_start", "hot", "evergreen",
+            "random", "popular", "interest_popular", "blended_popular",
+            "recent_ann", "recent_graph", "following", "cold_start", "hot",
+            "evergreen",
         }
         if not feed_enabled:
             return {}
@@ -508,6 +509,15 @@ class MultiRouteRetriever:
         if "interest_popular" in enabled:
             routes["interest_popular"] = interest_popular_candidates(
                 self.catalog, self.config, requests, state, signals.popular,
+            )
+        if "blended_popular" in enabled:
+            routes["blended_popular"] = interest_popular_candidates(
+                self.catalog,
+                self.config,
+                requests,
+                state,
+                signals.popular,
+                interest_fraction=self.config.popular_interest_fraction,
             )
         if "cold_start" in enabled:
             routes["cold_start"] = self._uniform_lifecycle_candidates(
