@@ -65,8 +65,12 @@ systemctl --user start recsys-gpu-job@feed-aa.service
 ```
 
 The unit applies an 18 GB soft memory boundary, 20 GB hard boundary and 2 GB swap
-boundary. CUDA or CPU OOM exits may restart at most twice per 30 minutes. A
-third failure remains failed and must be diagnosed from:
+boundary. It also raises the inherited soft file-descriptor limit to 65,536.
+WSL exposes CUDA allocations through DXG descriptors; leaving the process soft
+limit at 1,024 causes `get_unused_fd_flags` / `CUDA driver error: unknown error`
+under tensor-heavy worlds even when RAM and VRAM are healthy. CUDA or CPU OOM
+exits may restart at most twice per 30 minutes. A third failure remains failed
+and must be diagnosed from:
 
 ```bash
 systemctl --user status recsys-gpu-job@feed-aa.service

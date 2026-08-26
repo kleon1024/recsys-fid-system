@@ -21,6 +21,7 @@ MemoryAccounting=yes
 MemoryHigh=18G
 MemoryMax=20G
 MemorySwapMax=2G
+LimitNOFILE=65536:1048576
 TasksMax=1024
 OOMPolicy=stop
 TimeoutStopSec=120
