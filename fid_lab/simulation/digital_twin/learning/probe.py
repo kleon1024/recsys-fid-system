@@ -161,6 +161,7 @@ class ProbeArtifact:
     serving_task_weights: tuple[float, ...] | None = None
     task_logit_offsets: torch.Tensor | None = None
     conditional_task_parents: tuple[int, ...] | None = None
+    surface_task_weights: dict[int, tuple[float, ...]] | None = None
 
     @property
     def model_name(self) -> str:
@@ -214,18 +215,28 @@ class ProbeArtifact:
         if self.serving_task_weights is None:
             score = probability[:, self.task_names.index("long_view")]
         else:
-            weight = torch.tensor(
+            base_weight = torch.tensor(
                 self.serving_task_weights,
                 device=probability.device,
                 dtype=probability.dtype,
             )
+            weight = base_weight[None, :].expand_as(probability)
+            if self.surface_task_weights:
+                weight = weight.clone()
+                serving_surface = expanded_surface.to(probability.device)
+                for surface_id, surface_weight in self.surface_task_weights.items():
+                    weight[serving_surface == surface_id] = torch.tensor(
+                        surface_weight,
+                        device=probability.device,
+                        dtype=probability.dtype,
+                    )
             score = (probability * weight).sum(dim=1).clamp_min(0.0)
         score = score.reshape(requests, candidates)
         return score.to(features.dense.device)
 
     def checkpoint(self) -> dict[str, object]:
         return {
-            "schema": "v4-lr-infrastructure-probe-v4",
+            "schema": "v4-lr-infrastructure-probe-v5",
             "inputs": self.model.inputs,
             "tasks": self.model.tasks,
             "surfaces": self.model.surfaces,
@@ -244,6 +255,7 @@ class ProbeArtifact:
                 else self.task_logit_offsets.detach().cpu().clone()
             ),
             "conditional_task_parents": self.conditional_task_parents,
+            "surface_task_weights": self.surface_task_weights,
         }
 
     @classmethod
@@ -254,6 +266,7 @@ class ProbeArtifact:
             "v4-lr-infrastructure-probe-v2",
             "v4-lr-infrastructure-probe-v3",
             "v4-lr-infrastructure-probe-v4",
+            "v4-lr-infrastructure-probe-v5",
         }:
             raise ValueError("probe checkpoint schema is unsupported")
         model = ProbeRanker(
@@ -288,6 +301,14 @@ class ProbeArtifact:
                 if value.get("conditional_task_parents") is None
                 else tuple(int(parent) for parent in value["conditional_task_parents"])
             ),
+            (
+                None
+                if value.get("surface_task_weights") is None
+                else {
+                    int(surface): tuple(weights)
+                    for surface, weights in value["surface_task_weights"].items()
+                }
+            ),
         )
 
 
@@ -316,6 +337,8 @@ def train_probe(
         "play_3s": "play",
         "long_view": "play_3s",
         "complete": "long_view",
+        "create": "click",
+        "publish": "create",
     }
     conditional_parents = tuple(
         batch.task_names.index(conditional_names[name])

@@ -16,7 +16,11 @@ from ...engine import ExperimentPlan
 from ...learning import Lane, PartitionedSampleBus
 from ...learning.probe import ProbeArtifact, load_probe_batch, train_probe
 from ...observability.store import replace_json_atomic
-from ...value_tree import FEED_VALUE_TREE_VERSION, task_value_weights
+from ...value_tree import (
+    FEED_VALUE_TREE_VERSION,
+    surface_task_value_weights,
+    task_value_weights,
+)
 from ..launch_review import LaunchEvidenceCollector
 from ..launch_review.metrics import analyze_experiment, decide_launch, validate_aa
 from ..retrieval_ladder import RetrievalLadderConfig, _build_kernel, _policy
@@ -146,31 +150,6 @@ def _train_candidate(config: LinearRankLaunchConfig):
         replay = load_probe_batch(replay_bus, replay_refs[-replay_count:])
         replay_rows = len(replay.request_id)
         train = _append_replay(train, replay)
-    feed = train.surface == int(Surface.FEED)
-    train = replace(
-        train,
-        request_id=train.request_id[feed],
-        user_id=train.user_id[feed],
-        surface=train.surface[feed],
-        request_time=train.request_time[feed],
-        item_id=train.item_id[feed],
-        position=train.position[feed],
-        route_id=train.route_id[feed],
-        recall_score=train.recall_score[feed],
-        exposed=train.exposed[feed],
-        candidate_exposure_probability=(
-            train.candidate_exposure_probability[feed]
-        ),
-        randomized_support=train.randomized_support[feed],
-        dwell_ms=train.dwell_ms[feed],
-        dense_features=train.dense_features[feed],
-        sparse_buckets=train.sparse_buckets[feed],
-        labels=train.labels[feed],
-        label_mask=train.label_mask[feed],
-        label_applicable=train.label_applicable[feed],
-        label_mature=train.label_mature[feed],
-        joint_logging_probability=train.joint_logging_probability[feed],
-    )
     initial_artifact = None
     if config.control_fine_checkpoint:
         checkpoint = torch.load(
@@ -189,6 +168,7 @@ def _train_candidate(config: LinearRankLaunchConfig):
     artifact = replace(
         artifact,
         serving_task_weights=task_value_weights(artifact.task_names),
+        surface_task_weights=surface_task_value_weights(artifact.task_names),
     )
     task = validation.task_names.index("long_view")
     mask = validation.label_mask[:, task] & (
@@ -203,6 +183,28 @@ def _train_candidate(config: LinearRankLaunchConfig):
         )[:, task].cpu()
     labels = validation.labels[mask, task]
     loss = torch.nn.functional.binary_cross_entropy(probability, labels)
+    posting_metrics = {}
+    for task_name in ("click", "create", "publish"):
+        task_index = validation.task_names.index(task_name)
+        task_mask = validation.label_mask[:, task_index] & (
+            validation.surface == int(Surface.POSTING)
+        )
+        with torch.inference_mode():
+            task_probability = artifact.predict_task_probabilities(
+                validation.dense_features[task_mask],
+                validation.surface[task_mask],
+            )[:, task_index].cpu()
+        task_label = validation.labels[task_mask, task_index]
+        posting_metrics[task_name] = {
+            "rows": int(task_mask.sum()),
+            "auc": _auc(task_label, task_probability),
+            "gauc": _gauc(
+                validation.request_id[task_mask], task_label, task_probability,
+            ),
+            "logloss": float(torch.nn.functional.binary_cross_entropy(
+                task_probability, task_label,
+            )),
+        }
     labeled = train.label_mask.any(dim=1)
     return artifact, {
         "train_rows": len(train.request_id),
@@ -213,6 +215,7 @@ def _train_candidate(config: LinearRankLaunchConfig):
             validation.request_id[mask], labels, probability,
         ),
         "validation_long_view_logloss": float(loss),
+        "validation_posting_funnel": posting_metrics,
         "training_support": {
             "current_train_rows": current_train_rows,
             "historical_replay_rows": replay_rows,

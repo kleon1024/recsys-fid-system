@@ -147,7 +147,10 @@ class SupplyEcosystem:
             | (self.catalog.content_kind == int(ContentKind.ARTICLE))
             | (self.catalog.content_kind == int(ContentKind.CARD))
         )
-        available = ~self.state.item_active & post_kind
+        never_published = self.state.item_publish_time == torch.iinfo(
+            torch.long,
+        ).max
+        available = ~self.state.item_active & post_kind & never_published
         for creator_id in torch.unique(creator).tolist():
             rows = torch.where(creator == creator_id)[0]
             rows = rows[torch.argsort(event_id[rows], stable=True)]
@@ -322,6 +325,7 @@ class SupplyEcosystem:
         eligible = (
             ~state.item_active
             & post_kind
+            & (state.item_publish_time == torch.iinfo(torch.long).max)
             & state.creator_retained[creator]
             & (state.creator_next_publish[creator] <= logical_time)
         )

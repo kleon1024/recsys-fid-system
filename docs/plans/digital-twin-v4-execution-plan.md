@@ -808,6 +808,12 @@ creator supply is therefore a versioned environment input shared by all cells,
 never a treatment. Dormant item IDs are immutable and capacity exhaustion is
 observable. New routes must first receive bounded exploration support and then
 train a route-aware ranker before ItemCF or Swing can claim an online test.
+Background arrivals cannot claim product lift. Platform-induced supply must
+come from creator-assigned incentives or distribution feedback that changes
+motivation and creation cost. Feed candidates may carry a future-qualified-
+supply head because the candidate space is unchanged. Posting candidates use a
+separate retrieval/ranking cascade with the conditional chain
+`Click -> Create -> Publish`; only embeddings or a backbone may be shared.
 
 - Calibrate primitive predictions; add Value Tree, COPP, dedup/diversity, queues
   and cross-business load ownership.

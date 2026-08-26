@@ -68,6 +68,7 @@ def _loop():
 
 
 def _force_surface(world: UserEcosystemWorld, surface: Surface) -> None:
+    world.users.active.fill_(True)
     world.users.surface_intent.fill_(1e-8)
     world.users.surface_intent[:, int(surface)] = 1.0
 

@@ -279,6 +279,7 @@ class PersistentModelRegistry:
             "v4-lr-infrastructure-probe-v2",
             "v4-lr-infrastructure-probe-v3",
             "v4-lr-infrastructure-probe-v4",
+            "v4-lr-infrastructure-probe-v5",
         }:
             return ProbeArtifact.from_checkpoint(checkpoint)
         if schema == "v4-retrieval-artifact-v1":
