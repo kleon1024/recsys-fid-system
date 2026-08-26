@@ -2,6 +2,37 @@
 
 Status: Popular promoted; personalized routes held
 
+## Initial learned fine ranker
+
+The first Long-view-only Dense LR proved that observable learning could beat
+RRF, but its three A/B seeds all moved Negative upward. One of those seeds also
+failed A/A, while the runner still allowed Promote. That result is superseded.
+
+The corrected runner fails closed on A/A and serves `feed-engagement-v1`, a
+prior-corrected multi-task value tree with positive Play-3S, Long View,
+Complete, Like, Comment, Share and Follow value and explicit negative-feedback
+penalty. Seed 1809 passed A/A. Against the frozen Random+Popular RRF baseline it
+produced:
+
+| Metric | Relative delta | Absolute 95% CI |
+| --- | ---: | ---: |
+| Stay | +9.60% | [+3.60s, +12.39s] |
+| Play-3S | +7.10% | [+0.22, +1.58] |
+| Long View | +12.13% | [+0.35, +1.00] |
+| Complete | +14.58% | [+0.23, +0.59] |
+| Follow | +10.06% | [+0.03, +0.20] |
+| Negative | -0.98% | [-0.080, +0.057] |
+
+The decision is Promote for the requested single-seed protocol. The artifact is
+content-bound at SHA-256
+`d1477ed48c667feecc6e724856269b262b587e77ca8de22b2750fa76744757d0`.
+Offline long-view AUC is `0.5893` and request GAUC is `0.5937`.
+
+This does not erase the support warning: 296,368 of 1,247,007 training rows had
+mature labels, and none came from randomized exposure. Online A/B establishes
+the factual launch result for this policy; deterministic offline evaluation
+alone cannot authorize a different policy.
+
 ## Changed world authority
 
 The previous 64-dimensional Gaussian residuals were not normalized before
@@ -57,3 +88,4 @@ gate passes.
 - `reports/launches/2026-08-26-feed-semantic-v3-popular-lr.json`
 - `reports/launches/2026-08-26-feed-semantic-v3-interest-popular-lr.json`
 - `reports/launches/2026-08-26-feed-semantic-v3-recent-ann-lr.json`
+- `reports/launches/2026-08-26-feed-semantic-v3-vt-lr.json`

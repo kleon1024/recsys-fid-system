@@ -116,12 +116,11 @@ RRF order. With an average 33.9 merged candidates against `coarse_k=48`, coarse
 has no pressure yet; this is an evolution stage, not a coarse-model failure.
 
 The accepted order is now Random, Popular, initial learned fine ranker, then
-personalized retrieval. Dense LR trained on the v3 Random+Popular exposed
-support achieved time-split long-view AUC around 0.589 and positive online Stay
-in seeds 1809 and 1810. Seed 1811 also showed positive A/B metrics but is invalid
-because its A/A Stay and Negative intervals excluded zero. Canonical promotion
-therefore requires the fail-closed A/A runner, a persisted serving artifact and
-the next fixed-ranker recall review. Full candidate rows remain useful lineage,
+personalized retrieval. The fail-closed A/A runner and multi-objective
+`feed-engagement-v1` value tree passed the requested seed-1809 review: Stay
+increased 9.60% with a fully positive confidence interval, while Negative moved
+-0.98% with an interval crossing zero. The persisted serving artifact is now
+the fixed fine-rank baseline for the next personalized-recall review. Full candidate rows remain useful lineage,
 but deterministic unexposed rows have no labels and cannot be treated as
 negatives or causal OPE support.
 
