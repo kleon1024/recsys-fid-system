@@ -81,6 +81,7 @@ class RetrievalLadderConfig:
     event_log_root: str | None = None
     launch_bundle_root: str | None = None
     initial_route: str = "random"
+    initial_routes: tuple[str, ...] = ()
     route_ladder: tuple[str, ...] = ROUTE_LADDER
     aa_steps: int = 0
 
@@ -93,6 +94,8 @@ class RetrievalLadderConfig:
             raise ValueError("max_attempts_per_review must be positive")
         if self.initial_route not in ROUTE_NAMES:
             raise ValueError("initial retrieval route is unknown")
+        if any(route not in ROUTE_NAMES for route in self.initial_routes):
+            raise ValueError("initial retrieval routes contain an unknown route")
         if not self.route_ladder or any(
             route not in ROUTE_NAMES for route in self.route_ladder
         ):
@@ -514,9 +517,9 @@ def _restore_or_burn_in(
     dict[str, object] | None,
     str,
 ]:
-    active_routes = (config.initial_route,)
+    active_routes = config.initial_routes or (config.initial_route,)
     active = _policy(
-        f"feed-{config.initial_route}-v1", 1, active_routes,
+        f"feed-{'-'.join(active_routes)}-v1", 1, active_routes,
         config.ticks_per_day,
     )
     if resume_checkpoint_id is not None:

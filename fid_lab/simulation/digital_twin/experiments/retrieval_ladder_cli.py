@@ -20,6 +20,7 @@ def main() -> None:
     parser.add_argument("--seed", type=int, default=809)
     parser.add_argument("--bundle-root", type=Path)
     parser.add_argument("--initial-route", default="random")
+    parser.add_argument("--initial-routes", default="")
     parser.add_argument("--candidate-route", default="popular")
     parser.add_argument("--aa-steps", type=int, default=8)
     args = parser.parse_args()
@@ -35,6 +36,7 @@ def main() -> None:
         seed=args.seed,
         device=args.device,
         initial_route=args.initial_route,
+        initial_routes=tuple(filter(None, args.initial_routes.split(","))),
         route_ladder=(args.candidate_route,),
         aa_steps=args.aa_steps,
     ))

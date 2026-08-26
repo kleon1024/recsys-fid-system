@@ -81,6 +81,26 @@ def test_popular_baseline_can_run_aa_then_add_a_personalized_route():
     assert review["comparison_kind"] == "route_addition"
 
 
+def test_promoted_multi_route_baseline_can_launch_the_next_route():
+    result = run_retrieval_ladder(RetrievalLadderConfig(
+        users=512,
+        items=12_000,
+        burn_in_steps=8,
+        experiment_steps=4,
+        control_fraction=0.5,
+        treatment_fraction=0.5,
+        device="cpu",
+        auto_promote=False,
+        minimum_triggered_users=2,
+        max_reviews=1,
+        initial_routes=("random", "popular"),
+        route_ladder=("cold_start",),
+    ))
+    review = result["reviews"][0]
+    assert review["control_routes"] == ["random", "popular"]
+    assert review["treatment_routes"] == ["random", "popular", "cold_start"]
+
+
 def test_inconclusive_launch_stops_at_preregistered_window_limit():
     result = run_retrieval_ladder(RetrievalLadderConfig(
         users=128,
