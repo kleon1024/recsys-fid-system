@@ -38,6 +38,36 @@ class LinearRankLaunchConfig:
     learning_rate: float = 1e-2
     minimum_triggered_users: int = 2_000
     control_fine_checkpoint: str = ""
+    replay_dataset_root: str = ""
+    replay_partition_fraction: float = 0.20
+
+
+_ROW_TENSORS = (
+    "request_id", "user_id", "surface", "request_time", "item_id",
+    "position", "route_id", "recall_score", "exposed",
+    "candidate_exposure_probability", "randomized_support", "dwell_ms",
+    "dense_features", "sparse_buckets", "labels", "label_mask",
+    "label_applicable", "label_mature", "joint_logging_probability",
+)
+
+
+def _append_replay(current, replay):
+    if (
+        current.task_names != replay.task_names
+        or current.feature_manifest_hash != replay.feature_manifest_hash
+    ):
+        raise ValueError("replay sample contract differs from current samples")
+    return replace(
+        current,
+        **{
+            name: torch.cat((getattr(current, name), getattr(replay, name)))
+            for name in _ROW_TENSORS
+        },
+        partition_content_hashes=(
+            current.partition_content_hashes + replay.partition_content_hashes
+        ),
+        event_watermark=max(current.event_watermark, replay.event_watermark),
+    )
 
 
 def _auc(label: torch.Tensor, score: torch.Tensor) -> float:
@@ -90,6 +120,8 @@ def _gauc(
 
 
 def _train_candidate(config: LinearRankLaunchConfig):
+    if not 0.0 < config.replay_partition_fraction <= 1.0:
+        raise ValueError("replay partition fraction must be in (0, 1]")
     state = Path(config.output) / "training-lane"
     bus = PartitionedSampleBus(Path(config.dataset_root), state)
     refs = bus.poll(Lane.CANDIDATE)
@@ -98,6 +130,19 @@ def _train_candidate(config: LinearRankLaunchConfig):
     split = max(1, int(0.8 * len(refs)))
     train = load_probe_batch(bus, refs[:split])
     validation = load_probe_batch(bus, refs[split:])
+    current_train_rows = len(train.request_id)
+    replay_rows = 0
+    if config.replay_dataset_root:
+        replay_bus = PartitionedSampleBus(
+            Path(config.replay_dataset_root), state / "replay",
+        )
+        replay_refs = replay_bus.poll(Lane.CANDIDATE)
+        replay_count = max(
+            1, int(len(replay_refs) * config.replay_partition_fraction),
+        )
+        replay = load_probe_batch(replay_bus, replay_refs[-replay_count:])
+        replay_rows = len(replay.request_id)
+        train = _append_replay(train, replay)
     feed = train.surface == int(Surface.FEED)
     train = replace(
         train,
@@ -123,9 +168,16 @@ def _train_candidate(config: LinearRankLaunchConfig):
         label_mature=train.label_mature[feed],
         joint_logging_probability=train.joint_logging_probability[feed],
     )
+    initial_artifact = None
+    if config.control_fine_checkpoint:
+        checkpoint = torch.load(
+            config.control_fine_checkpoint, map_location="cpu", weights_only=True,
+        )
+        initial_artifact = ProbeArtifact.from_checkpoint(checkpoint)
     artifact = train_probe(
         train,
         lane=Lane.CANDIDATE,
+        initial_artifact=initial_artifact,
         epochs=config.epochs,
         learning_rate=config.learning_rate,
         device=config.device,
@@ -161,6 +213,8 @@ def _train_candidate(config: LinearRankLaunchConfig):
         ),
         "validation_long_view_logloss": float(loss),
         "training_support": {
+            "current_train_rows": current_train_rows,
+            "historical_replay_rows": replay_rows,
             "labeled_rows": int(labeled.sum()),
             "randomized_rows": int(train.randomized_support.sum()),
             "randomized_labeled_rows": int(

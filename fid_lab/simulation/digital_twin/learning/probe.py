@@ -273,6 +273,7 @@ def train_probe(
     batch: ProbeBatch,
     *,
     lane: Lane,
+    initial_artifact: ProbeArtifact | None = None,
     epochs: int = 2,
     learning_rate: float = 3e-3,
     device: str | torch.device = "cpu",
@@ -286,6 +287,23 @@ def train_probe(
     model = ProbeRanker(
         batch.dense_features.shape[1], len(batch.task_names),
     ).to(target)
+    warm_started_tasks: list[str] = []
+    if initial_artifact is not None:
+        if initial_artifact.feature_manifest_hash != batch.feature_manifest_hash:
+            raise ValueError("warm-start artifact feature manifest differs")
+        if initial_artifact.model.inputs != model.inputs:
+            raise ValueError("warm-start artifact input shape differs")
+        with torch.no_grad():
+            for task in set(batch.task_names) & set(initial_artifact.task_names):
+                source = initial_artifact.task_names.index(task)
+                target_task = batch.task_names.index(task)
+                model.linear.weight[target_task].copy_(
+                    initial_artifact.model.linear.weight[source].to(target),
+                )
+                model.linear.bias[target_task].copy_(
+                    initial_artifact.model.linear.bias[source].to(target),
+                )
+                warm_started_tasks.append(task)
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
     dense = batch.dense_features.to(target)
     dense_mean = dense.mean(dim=0)
@@ -348,6 +366,8 @@ def train_probe(
             "epochs": epochs,
             "batch_size": batch_size,
             "optimizer_steps": optimizer_steps,
+            "warm_started_tasks": sorted(warm_started_tasks),
+            "new_tasks": sorted(set(batch.task_names) - set(warm_started_tasks)),
             "positive_weight": positive_weight.detach().cpu().tolist(),
             "device": str(target),
             "seed": seed,
